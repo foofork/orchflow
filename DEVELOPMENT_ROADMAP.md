@@ -64,9 +64,16 @@ Orchflow has successfully completed **all infrastructure and core implementation
 
 ## Current Focus: Phase 6 - Frontend Integration & Polish (2-3 weeks) 🔵
 
+### 6.0 Wire Up Missing Commands (Immediate Priority)
+- [ ] Add `select_backend_pane` command - Wrap existing MuxBackend method
+- [ ] Add `list_plugins` command - Expose plugin registry listing
+- [ ] Add `get_plugin_metadata` command - Get plugin info for UI
+- [ ] Add `persist_state` command - Manual state save trigger
+- [ ] Fix LoadPlugin/UnloadPlugin implementation - Currently returns "not_implemented"
+
 ### 6.1 Frontend Migration (High Priority)
 - [ ] Update frontend to use new orchestrator API
-- [ ] Create plugin UI components
+- [ ] Create plugin UI components (depends on plugin commands above)
 - [ ] Implement plugin marketplace UI (browsing only)
 - [ ] Test end-to-end functionality
 
