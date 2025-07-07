@@ -73,7 +73,7 @@ Orchflow has successfully completed **all infrastructure and core implementation
 
 ### 6.1 Frontend Migration (High Priority)
 - [ ] Update frontend to use new orchestrator API
-- [ ] Create plugin UI components (depends on plugin commands above)
+- [ ] Create plugin UI components (depends on plugin commands work completed)
 - [ ] Implement plugin marketplace UI (browsing only)
 - [ ] Test end-to-end functionality
 
@@ -107,6 +107,9 @@ Orchflow has successfully completed **all infrastructure and core implementation
 3. **Configuration**: Unified config system for all features
 
 ## Future Enhancements 📅
+
+> **Important**: For detailed Manager + Orchestrator integration plans, see [MANAGER_ORCHESTRATOR_INTEGRATION_ROADMAP.md](./MANAGER_ORCHESTRATOR_INTEGRATION_ROADMAP.md)
+> This includes the 12-week plan for connecting the Rust Manager with the TypeScript Orchestrator service.
 
 ### Near-term (Month 2)
 1. **Advanced Muxd Features**
