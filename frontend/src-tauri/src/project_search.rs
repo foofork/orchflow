@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
 use serde::{Deserialize, Serialize};
-use grep::regex::RegexMatcher;
+use grep::regex::{RegexMatcher, RegexMatcherBuilder};
 use grep::searcher::{Searcher, SearcherBuilder, Sink, SinkMatch};
 use ignore::{WalkBuilder, WalkState};
 use std::collections::HashMap;
@@ -98,7 +98,10 @@ impl ProjectSearch {
             regex::escape(&options.pattern)
         };
         
-        let matcher = RegexMatcher::new_line_matcher(&pattern)
+        let mut builder = RegexMatcherBuilder::new();
+        builder.case_insensitive(!options.case_sensitive);
+        
+        let matcher = builder.build(&pattern)
             .map_err(|e| OrchflowError::ValidationError {
                 field: "pattern".to_string(),
                 reason: e.to_string(),

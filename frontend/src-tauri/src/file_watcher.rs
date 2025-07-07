@@ -292,13 +292,27 @@ impl AdvancedFileWatcher {
     
     /// Simple pattern matching (supports * and ** wildcards)
     fn matches_pattern(&self, path: &str, pattern: &str) -> bool {
-        // Convert pattern to regex-like matching
-        let pattern = pattern
-            .replace("**", ".*")
-            .replace("*", "[^/]*");
+        // Handle ** wildcard for directory traversal
+        if pattern.contains("**") {
+            // For patterns like **/.git/**, check if .git is in the path
+            let core_pattern = pattern
+                .trim_start_matches("**/")
+                .trim_end_matches("/**");
+            
+            // Check if the core pattern exists in the path
+            return path.contains(&format!("/{}/", core_pattern)) || 
+                   path.contains(&format!("/{}", core_pattern)) ||
+                   path.ends_with(&format!("/{}", core_pattern));
+        } else if pattern.contains("*") {
+            // For single * wildcard, do simple matching
+            let parts: Vec<&str> = pattern.split('*').collect();
+            if parts.len() == 2 {
+                return path.starts_with(parts[0]) && path.ends_with(parts[1]);
+            }
+        }
         
-        // Simple substring matching for now
-        path.contains(&pattern.replace(".*", "").replace("[^/]*", ""))
+        // Exact match
+        path == pattern
     }
     
     /// Get buffered events without processing
@@ -396,17 +410,29 @@ mod tests {
         // Start watching
         watcher.watch_path(temp_dir.path(), true).await?;
         
+        // Give the watcher time to start
+        sleep(Duration::from_millis(50)).await;
+        
         // Create a file
         let test_file = temp_dir.path().join("test.txt");
         fs::write(&test_file, "hello").await.unwrap();
         
-        // Wait for debounce
-        sleep(Duration::from_millis(200)).await;
+        // Wait for debounce and processing
+        sleep(Duration::from_millis(300)).await;
         
-        // Check for event
-        if let Some(event) = watcher.try_recv_event().await {
-            assert!(event.paths.contains(&test_file));
+        // Try to get event multiple times
+        let mut found = false;
+        for _ in 0..5 {
+            if let Some(event) = watcher.try_recv_event().await {
+                if event.paths.iter().any(|p| p.ends_with("test.txt")) {
+                    found = true;
+                    break;
+                }
+            }
+            sleep(Duration::from_millis(50)).await;
         }
+        
+        assert!(found, "Expected to receive file creation event");
         
         Ok(())
     }
