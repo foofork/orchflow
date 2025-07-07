@@ -1,22 +1,22 @@
 use tauri::State;
 use serde::{Deserialize, Serialize};
-use crate::orchestrator::Orchestrator;
+use crate::manager::Manager;
 use crate::error::Result;
 use crate::file_watcher::{FileWatchEvent, FileWatchConfig};
 
 /// Start watching a path for file changes
 #[tauri::command]
 pub async fn start_file_watcher(
-    orchestrator: State<'_, Orchestrator>,
+    manager: State<'_, Manager>,
     path: String,
     recursive: bool,
 ) -> Result<WatcherStartResult> {
-    if let Some(file_watcher) = &orchestrator.file_watcher {
+    if let Some(file_watcher) = &manager.file_watcher {
         let mut watcher = file_watcher.write().await;
         match watcher.watch_path(&std::path::Path::new(&path)).await {
             Ok(_) => {
                 // Emit event for the orchestrator
-                let _ = orchestrator.event_tx.send(crate::orchestrator::Event::FileWatchStarted { 
+                let _ = manager.event_tx.send(crate::manager::Event::FileWatchStarted { 
                     path: path.clone(), 
                     recursive 
                 });
@@ -27,9 +27,9 @@ pub async fn start_file_watcher(
                     message: format!("Started watching {} (recursive: {})", path, recursive),
                 })
             },
-            Err(e) => Err(crate::error::OrchflowError::FileError {
+            Err(e) => Err(crate::error::OrchflowError::FileOperationError {
                 operation: "start_file_watcher".to_string(),
-                path: path.clone(),
+                path: path.clone().into(),
                 reason: e.to_string(),
             })
         }
@@ -51,22 +51,22 @@ pub struct WatcherStartResult {
 /// Stop watching a path
 #[tauri::command]
 pub async fn stop_file_watcher(
-    orchestrator: State<'_, Orchestrator>,
+    manager: State<'_, Manager>,
     path: String,
 ) -> Result<()> {
-    if let Some(file_watcher) = &orchestrator.file_watcher {
+    if let Some(file_watcher) = &manager.file_watcher {
         let mut watcher = file_watcher.write().await;
         match watcher.unwatch_path(&path).await {
             Ok(_) => {
                 // Emit event for the orchestrator
-                let _ = orchestrator.event_tx.send(crate::orchestrator::Event::FileWatchStopped { 
+                let _ = manager.event_tx.send(crate::manager::Event::FileWatchStopped { 
                     path: path.clone() 
                 });
                 Ok(())
             },
-            Err(e) => Err(crate::error::OrchflowError::FileError {
+            Err(e) => Err(crate::error::OrchflowError::FileOperationError {
                 operation: "stop_file_watcher".to_string(),
-                path: path.clone(),
+                path: path.clone().into(),
                 reason: e.to_string(),
             })
         }
@@ -81,9 +81,9 @@ pub async fn stop_file_watcher(
 /// Get all watched paths
 #[tauri::command]
 pub async fn get_watched_paths(
-    orchestrator: State<'_, Orchestrator>,
+    manager: State<'_, Manager>,
 ) -> Result<Vec<String>> {
-    if let Some(file_watcher) = &orchestrator.file_watcher {
+    if let Some(file_watcher) = &manager.file_watcher {
         let watcher = file_watcher.read().await;
         let paths = watcher.get_watched_paths();
         Ok(paths)
@@ -98,10 +98,10 @@ pub async fn get_watched_paths(
 /// Get file watch events
 #[tauri::command]
 pub async fn get_file_watch_events(
-    orchestrator: State<'_, Orchestrator>,
+    manager: State<'_, Manager>,
     limit: Option<usize>,
 ) -> Result<Vec<FileWatchEvent>> {
-    if let Some(file_watcher) = &orchestrator.file_watcher {
+    if let Some(file_watcher) = &manager.file_watcher {
         let watcher = file_watcher.read().await;
         let events = watcher.get_recent_events(limit.unwrap_or(100));
         Ok(events)
@@ -116,10 +116,10 @@ pub async fn get_file_watch_events(
 /// Update file watcher configuration
 #[tauri::command]
 pub async fn update_file_watcher_config(
-    orchestrator: State<'_, Orchestrator>,
+    manager: State<'_, Manager>,
     config: FileWatchConfig,
 ) -> Result<()> {
-    if let Some(file_watcher) = &orchestrator.file_watcher {
+    if let Some(file_watcher) = &manager.file_watcher {
         let mut watcher = file_watcher.write().await;
         watcher.update_config(config);
         Ok(())
@@ -134,9 +134,9 @@ pub async fn update_file_watcher_config(
 /// Get current file watcher configuration
 #[tauri::command]
 pub async fn get_file_watcher_config(
-    orchestrator: State<'_, Orchestrator>,
+    manager: State<'_, Manager>,
 ) -> Result<FileWatchConfig> {
-    if let Some(file_watcher) = &orchestrator.file_watcher {
+    if let Some(file_watcher) = &manager.file_watcher {
         let watcher = file_watcher.read().await;
         let config = watcher.get_config().clone();
         Ok(config)
@@ -151,9 +151,9 @@ pub async fn get_file_watcher_config(
 /// Clear file watch event buffer
 #[tauri::command]
 pub async fn clear_file_watch_buffer(
-    orchestrator: State<'_, Orchestrator>,
+    manager: State<'_, Manager>,
 ) -> Result<()> {
-    if let Some(file_watcher) = &orchestrator.file_watcher {
+    if let Some(file_watcher) = &manager.file_watcher {
         let mut watcher = file_watcher.write().await;
         watcher.clear_event_buffer();
         Ok(())

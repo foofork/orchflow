@@ -372,9 +372,9 @@ impl AdvancedSearch {
         
         // Read the file
         let content = fs::read_to_string(&file_result.path).await
-            .map_err(|e| crate::error::OrchflowError::FileError {
+            .map_err(|e| crate::error::OrchflowError::FileOperationError {
                 operation: "read_file".to_string(),
-                path: file_result.path.to_string_lossy().to_string(),
+                path: file_result.path.clone(),
                 reason: e.to_string(),
             })?;
         
@@ -442,9 +442,9 @@ impl AdvancedSearch {
         // Only write if we made changes
         if count > 0 {
             fs::write(&file_result.path, new_content).await
-                .map_err(|e| crate::error::OrchflowError::FileError {
+                .map_err(|e| crate::error::OrchflowError::FileOperationError {
                     operation: "write_file".to_string(),
-                    path: file_result.path.to_string_lossy().to_string(),
+                    path: file_result.path.clone(),
                     reason: e.to_string(),
                 })?;
         }

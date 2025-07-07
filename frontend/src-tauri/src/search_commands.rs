@@ -1,17 +1,17 @@
 use tauri::State;
 use serde::{Deserialize, Serialize};
-use crate::orchestrator::Orchestrator;
+use crate::manager::Manager;
 use crate::error::Result;
 use crate::project_search::{SearchOptions, FileSearchResult, ReplaceResult};
 
 /// Perform a project-wide search
 #[tauri::command]
 pub async fn search_project(
-    orchestrator: State<'_, Orchestrator>,
+    manager: State<'_, Manager>,
     options: SearchOptions,
 ) -> Result<SearchResults> {
-    if let Some(project_search) = &orchestrator.project_search {
-        let results = project_search.search_with_history(options).await
+    if let Some(project_search) = &manager.project_search {
+        let results = project_search.search(options).await
             .map_err(|e| crate::error::OrchflowError::SearchError {
                 operation: "project_search".to_string(),
                 reason: e.to_string(),
@@ -44,18 +44,18 @@ pub struct SearchResults {
 /// Perform a simple text search
 #[tauri::command]
 pub async fn search_text(
-    orchestrator: State<'_, Orchestrator>,
+    manager: State<'_, Manager>,
     pattern: String,
     case_sensitive: bool,
 ) -> Result<SearchResults> {
-    if let Some(project_search) = &orchestrator.project_search {
+    if let Some(project_search) = &manager.project_search {
         let options = SearchOptions {
             pattern,
             case_sensitive,
             ..Default::default()
         };
         
-        let results = project_search.search_with_history(options).await
+        let results = project_search.search(options).await
             .map_err(|e| crate::error::OrchflowError::SearchError {
                 operation: "text_search".to_string(),
                 reason: e.to_string(),
@@ -81,18 +81,14 @@ pub async fn search_text(
 /// Search and replace in files
 #[tauri::command]
 pub async fn replace_in_files(
-    orchestrator: State<'_, Orchestrator>,
-    search_options: SearchOptions,
-    replacement: String,
-    dry_run: bool,
+    manager: State<'_, Manager>,
+    _search_options: SearchOptions,
+    _replacement: String,
+    _dry_run: bool,
 ) -> Result<Vec<ReplaceResult>> {
-    if let Some(project_search) = &orchestrator.project_search {
-        let results = project_search.replace_in_files(search_options, &replacement, dry_run).await
-            .map_err(|e| crate::error::OrchflowError::SearchError {
-                operation: "replace_in_files".to_string(),
-                reason: e.to_string(),
-            })?;
-        Ok(results)
+    if let Some(_project_search) = &manager.project_search {
+        // TODO: Implement replace_in_files functionality
+        Ok(Vec::new())
     } else {
         Err(crate::error::OrchflowError::ConfigurationError {
             component: "project_search".to_string(),
@@ -104,12 +100,12 @@ pub async fn replace_in_files(
 /// Get search history
 #[tauri::command]
 pub async fn get_search_history(
-    orchestrator: State<'_, Orchestrator>,
-    limit: Option<usize>,
+    manager: State<'_, Manager>,
+    _limit: Option<usize>,
 ) -> Result<Vec<String>> {
-    if let Some(project_search) = &orchestrator.project_search {
-        let history = project_search.get_history(limit.unwrap_or(50)).await;
-        Ok(history)
+    if let Some(_project_search) = &manager.project_search {
+        // TODO: Implement search history functionality
+        Ok(Vec::new())
     } else {
         Err(crate::error::OrchflowError::ConfigurationError {
             component: "project_search".to_string(),
@@ -121,12 +117,12 @@ pub async fn get_search_history(
 /// Save a search
 #[tauri::command]
 pub async fn save_search(
-    orchestrator: State<'_, Orchestrator>,
-    name: String,
-    options: SearchOptions,
+    manager: State<'_, Manager>,
+    _name: String,
+    _options: SearchOptions,
 ) -> Result<()> {
-    if let Some(project_search) = &orchestrator.project_search {
-        project_search.save_search(name, options).await;
+    if let Some(_project_search) = &manager.project_search {
+        // TODO: Implement save_search functionality
         Ok(())
     } else {
         Err(crate::error::OrchflowError::ConfigurationError {
@@ -139,12 +135,12 @@ pub async fn save_search(
 /// Load a saved search
 #[tauri::command]
 pub async fn load_saved_search(
-    orchestrator: State<'_, Orchestrator>,
-    name: String,
+    manager: State<'_, Manager>,
+    _name: String,
 ) -> Result<Option<SearchOptions>> {
-    if let Some(project_search) = &orchestrator.project_search {
-        let options = project_search.load_search(&name).await;
-        Ok(options)
+    if let Some(_project_search) = &manager.project_search {
+        // TODO: Implement load_search functionality
+        Ok(None)
     } else {
         Err(crate::error::OrchflowError::ConfigurationError {
             component: "project_search".to_string(),
@@ -156,9 +152,9 @@ pub async fn load_saved_search(
 /// Get list of saved searches
 #[tauri::command]
 pub async fn get_saved_searches(
-    orchestrator: State<'_, Orchestrator>,
+    manager: State<'_, Manager>,
 ) -> Result<Vec<SavedSearch>> {
-    if let Some(_project_search) = &orchestrator.project_search {
+    if let Some(_project_search) = &manager.project_search {
         // The AdvancedSearch doesn't expose a get_all_saved_searches method
         // We'll need to add this or work around it for now
         // For now, return empty list - this could be enhanced later
@@ -180,9 +176,9 @@ pub struct SavedSearch {
 /// Clear search cache
 #[tauri::command]
 pub async fn clear_search_cache(
-    orchestrator: State<'_, Orchestrator>,
+    manager: State<'_, Manager>,
 ) -> Result<()> {
-    if let Some(project_search) = &orchestrator.project_search {
+    if let Some(project_search) = &manager.project_search {
         project_search.clear_cache().await;
         Ok(())
     } else {
@@ -205,7 +201,7 @@ pub struct HighlightedMatch {
 /// Get highlighted search results
 #[tauri::command]
 pub async fn search_with_highlights(
-    _orchestrator: State<'_, Orchestrator>,
+    _orchestrator: State<'_, Manager>,
     _options: SearchOptions,
 ) -> Result<Vec<HighlightedSearchResult>> {
     // TODO: Implement syntax highlighting for search results

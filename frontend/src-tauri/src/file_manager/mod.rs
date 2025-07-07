@@ -1,0 +1,291 @@
+// File manager module - organized file system operations
+
+pub mod types;
+pub mod git;
+pub mod history;
+pub mod tree;
+pub mod operations;
+pub mod utils;
+
+// Re-export commonly used types
+pub use types::{
+    FileNode, FileNodeType, GitStatus, FileOperation, FileOperationType,
+    FileEntry, FileEntryType, FileOperationResult
+};
+
+use std::path::{Path, PathBuf};
+use crate::error::Result;
+use history::OperationHistory;
+use tree::FileTreeCache;
+use operations::FileOperations;
+
+pub struct FileManager {
+    root_path: PathBuf,
+    cache: FileTreeCache,
+    history: OperationHistory,
+    operations: FileOperations,
+    gitignore_patterns: Vec<String>,
+    max_file_size: u64,
+}
+
+impl FileManager {
+    pub fn new(root_path: PathBuf) -> Self {
+        let cache = FileTreeCache::new();
+        let history = OperationHistory::new(1000); // Keep last 1000 operations
+        let operations = FileOperations::new(
+            history.clone(),
+            cache.clone(),
+            root_path.clone()
+        );
+        
+        Self {
+            root_path,
+            cache: cache.clone(),
+            history: history.clone(),
+            operations,
+            gitignore_patterns: Vec::new(),
+            max_file_size: 10 * 1024 * 1024, // 10MB default
+        }
+    }
+    
+    /// Initialize the file manager (load gitignore patterns, etc.)
+    pub async fn init(&mut self) -> Result<()> {
+        self.gitignore_patterns = git::load_gitignore_patterns(&self.root_path).await;
+        Ok(())
+    }
+    
+    // ===== Tree Operations =====
+    
+    /// Build a complete file tree from the root path
+    pub async fn build_file_tree(&self, max_depth: Option<usize>) -> Result<FileNode> {
+        self.cache.build_tree(&self.root_path, max_depth, &self.gitignore_patterns).await
+    }
+    
+    /// Expand a directory in the tree
+    pub async fn expand_directory(&self, path: &Path) -> Result<Vec<FileNode>> {
+        self.cache.expand_directory(path, &self.gitignore_patterns).await
+    }
+    
+    /// Collapse a directory in the tree
+    pub async fn collapse_directory(&self, path: &Path) -> Result<()> {
+        self.cache.collapse_directory(path).await
+    }
+    
+    /// Get a file node from cache
+    pub async fn get_file_node(&self, path: &Path) -> Option<FileNode> {
+        self.cache.get_node(path).await
+    }
+    
+    // ===== File Operations =====
+    
+    /// Create a new file
+    pub async fn create_file(&self, path: &Path, content: &str) -> Result<()> {
+        self.operations.create_file(path, Some(content)).await
+    }
+    
+    /// Create a new directory
+    pub async fn create_directory(&self, path: &Path) -> Result<()> {
+        self.operations.create_directory(path).await
+    }
+    
+    /// Delete a file or directory
+    pub async fn delete_to_trash(&self, path: &Path) -> Result<()> {
+        self.operations.delete(path, false).await
+    }
+    
+    /// Delete permanently
+    pub async fn delete_permanent(&self, path: &Path) -> Result<()> {
+        self.operations.delete(path, true).await
+    }
+    
+    /// Rename a file or directory
+    pub async fn rename(&self, old_path: &Path, new_name: &str) -> Result<()> {
+        self.operations.rename(old_path, new_name).await
+    }
+    
+    /// Move files to a destination
+    pub async fn move_file(&self, source: &str, destination: &str) -> Result<()> {
+        let src = PathBuf::from(source);
+        let dst = PathBuf::from(destination);
+        self.operations.move_files(vec![src], &dst).await
+    }
+    
+    /// Move multiple files
+    pub async fn move_files(&self, files: Vec<PathBuf>, destination: &Path) -> Result<()> {
+        self.operations.move_files(files, destination).await
+    }
+    
+    /// Copy a file
+    pub async fn copy_file(&self, source: &str, destination: &str) -> Result<FileOperationResult> {
+        let src = PathBuf::from(source);
+        let dst = PathBuf::from(destination);
+        
+        // Check if destination exists
+        if dst.exists() {
+            return Ok(FileOperationResult::Conflict);
+        }
+        
+        self.operations.copy_files(vec![src], dst.parent().unwrap_or(&dst)).await?;
+        Ok(FileOperationResult::Success)
+    }
+    
+    /// Copy multiple files
+    pub async fn copy_files(&self, files: Vec<PathBuf>, destination: &Path) -> Result<()> {
+        self.operations.copy_files(files, destination).await
+    }
+    
+    // ===== Utility Operations =====
+    
+    /// Get a preview of a file
+    pub async fn get_file_preview(&self, path: &Path, max_lines: usize) -> Result<String> {
+        utils::get_file_preview(path, max_lines, self.max_file_size).await
+    }
+    
+    /// Search for files
+    pub async fn search_files(&self, pattern: &str, path: Option<&Path>) -> Result<Vec<PathBuf>> {
+        let search_path = path.unwrap_or(&self.root_path);
+        utils::search_files(pattern, search_path, &self.root_path).await
+    }
+    
+    /// Read file content
+    pub async fn read_file(&self, path: &str) -> Result<String> {
+        let file_path = PathBuf::from(path);
+        
+        // Check if file is binary
+        if utils::is_binary_file(&file_path) {
+            return Err(crate::error::OrchflowError::FileOperationError {
+                path: file_path,
+                operation: "read file".to_string(),
+                reason: "Cannot read binary file".to_string(),
+            });
+        }
+        
+        tokio::fs::read_to_string(&file_path).await
+            .map_err(|e| crate::error::OrchflowError::FileOperationError {
+                path: file_path,
+                operation: "read file".to_string(),
+                reason: e.to_string(),
+            })
+    }
+    
+    /// Save file content
+    pub async fn save_file(&self, path: &str, content: &str) -> Result<()> {
+        let file_path = PathBuf::from(path);
+        
+        // Ensure path is safe
+        if !utils::is_safe_path(&file_path, &self.root_path) {
+            return Err(crate::error::OrchflowError::FileOperationError {
+                path: file_path,
+                operation: "save file".to_string(),
+                reason: "Path must be within project root".to_string(),
+            });
+        }
+        
+        tokio::fs::write(&file_path, content).await
+            .map_err(|e| crate::error::OrchflowError::FileOperationError {
+                path: file_path.clone(),
+                operation: "save file".to_string(),
+                reason: e.to_string(),
+            })?;
+        
+        // Invalidate cache
+        self.cache.invalidate_path(&file_path).await;
+        
+        Ok(())
+    }
+    
+    /// List directory contents
+    pub async fn list_directory(&self, path: &str) -> Result<Vec<FileEntry>> {
+        let dir_path = PathBuf::from(path);
+        let mut entries = Vec::new();
+        
+        let mut dir_entries = tokio::fs::read_dir(&dir_path).await
+            .map_err(|e| crate::error::OrchflowError::FileOperationError {
+                path: dir_path.clone(),
+                operation: "list directory".to_string(),
+                reason: e.to_string(),
+            })?;
+        
+        while let Some(entry) = dir_entries.next_entry().await
+            .map_err(|e| crate::error::OrchflowError::FileOperationError {
+                path: dir_path.clone(),
+                operation: "read entry".to_string(),
+                reason: e.to_string(),
+            })? {
+            
+            let path = entry.path();
+            let metadata = entry.metadata().await
+                .map_err(|e| crate::error::OrchflowError::FileOperationError {
+                    path: path.clone(),
+                    operation: "read metadata".to_string(),
+                    reason: e.to_string(),
+                })?;
+            
+            let file_type = if metadata.is_dir() {
+                FileEntryType::Directory
+            } else if metadata.is_symlink() {
+                FileEntryType::Symlink
+            } else {
+                FileEntryType::File
+            };
+            
+            entries.push(FileEntry {
+                path: path.to_string_lossy().to_string(),
+                name: path.file_name()
+                    .map(|n| n.to_string_lossy().to_string())
+                    .unwrap_or_default(),
+                file_type,
+                size: Some(metadata.len()),
+                modified: metadata.modified().ok()
+                    .map(|t| chrono::DateTime::<chrono::Utc>::from(t)),
+                permissions: None, // TODO: Get actual permissions
+            });
+        }
+        
+        // Sort entries
+        entries.sort_by(|a, b| {
+            match (&a.file_type, &b.file_type) {
+                (FileEntryType::Directory, FileEntryType::File) => std::cmp::Ordering::Less,
+                (FileEntryType::File, FileEntryType::Directory) => std::cmp::Ordering::Greater,
+                _ => a.name.cmp(&b.name),
+            }
+        });
+        
+        Ok(entries)
+    }
+    
+    // ===== History Operations =====
+    
+    /// Get operation history
+    pub async fn get_operation_history(&self, limit: usize) -> Vec<FileOperation> {
+        self.history.get_history(limit).await
+    }
+    
+    /// Undo the last operation
+    pub async fn undo_last_operation(&self) -> Result<()> {
+        if let Some(operation) = self.history.get_last_undoable().await {
+            history::undo_operation(&operation).await?;
+            
+            // Invalidate cache for affected paths
+            self.cache.invalidate_path(&operation.source).await;
+            if let Some(dest) = &operation.destination {
+                self.cache.invalidate_path(dest).await;
+            }
+        }
+        Ok(())
+    }
+}
+
+// Make FileManager cloneable by wrapping internals in Arc
+impl Clone for FileManager {
+    fn clone(&self) -> Self {
+        Self {
+            root_path: self.root_path.clone(),
+            cache: self.cache.clone(),
+            history: self.history.clone(),
+            operations: self.operations.clone(),
+            gitignore_patterns: self.gitignore_patterns.clone(),
+            max_file_size: self.max_file_size,
+        }
+    }
+}

@@ -1,9 +1,9 @@
 use std::time::Instant;
 use std::sync::Arc;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Manager as TauriManager};
 use tokio::sync::mpsc;
 use crate::simple_state_store::SimpleStateStore;
-use crate::orchestrator::Orchestrator;
+use crate::manager::Manager;
 use crate::state_manager::StateManager;
 use crate::modules::ModuleLoader;
 
@@ -46,7 +46,7 @@ pub async fn initialize_app(app: &AppHandle) -> Result<StartupMetrics, Box<dyn s
             .data_dir()
             .ok_or("Failed to get data directory")?
             .join("orchflow.db");
-        Arc::new(SimpleStateStore::new(db_path.to_str().unwrap())?)
+        Arc::new(SimpleStateStore::new_with_file(db_path.to_str().unwrap())?)
     };
     
     // SQLx pool is now automatically initialized during SimpleStateStore construction
@@ -54,20 +54,18 @@ pub async fn initialize_app(app: &AppHandle) -> Result<StartupMetrics, Box<dyn s
     
     let state_manager = StateManager::new(state_store.clone());
     
-    // Load initial state from persistence
-    if let Err(e) = state_manager.load_from_store().await {
-        eprintln!("Warning: Failed to load initial state: {}", e);
-    }
-    // Create orchestrator using new MuxBackend system
+    // State is automatically loaded from SimpleStateStore as needed
+    // No explicit load_from_store() method required
+    // Create manager using new MuxBackend system
     let mux_backend = crate::mux_backend::create_mux_backend();
-    let orchestrator = Arc::new(Orchestrator::new_with_backend(
+    let manager = Arc::new(Manager::new_with_backend(
         app.clone(),
         mux_backend,
         state_store.clone(),
     ));
     
-    // Initialize terminal searcher after orchestrator is created
-    orchestrator.initialize_terminal_searcher().await;
+    // Initialize terminal searcher after manager is created
+    manager.initialize_terminal_searcher().await;
     
     // Initialize module loader
     let modules_dir = crate::app_dirs::get_project_dirs()?
@@ -81,7 +79,7 @@ pub async fn initialize_app(app: &AppHandle) -> Result<StartupMetrics, Box<dyn s
     // Manage all state
     app.manage(state_store.clone());
     app.manage(state_manager.clone());
-    app.manage(orchestrator.clone());
+    app.manage(manager.clone());
     app.manage(module_loader.clone());
     
     metrics.state_store_ms = state_start.elapsed().as_millis() as u64;
@@ -104,10 +102,10 @@ pub async fn initialize_app(app: &AppHandle) -> Result<StartupMetrics, Box<dyn s
     });
 
     let tx3 = tx.clone();
-    let orchestrator_clone = orchestrator.clone();
+    let manager_clone = manager.clone();
     tokio::spawn(async move {
         let start = Instant::now();
-        // Orchestrator is already initialized above
+        // Manager is already initialized above
         let elapsed = start.elapsed().as_millis() as u64;
         tx3.send(("orchestrator", Ok(elapsed))).await.ok();
     });
@@ -124,9 +122,9 @@ pub async fn initialize_app(app: &AppHandle) -> Result<StartupMetrics, Box<dyn s
     });
 
     // Start WebSocket server for AI integration
-    let ws_orchestrator = orchestrator.clone();
+    let ws_manager = manager.clone();
     tokio::spawn(async move {
-        crate::websocket_server::start_websocket_server(ws_orchestrator, 7777).await;
+        crate::websocket_server::start_websocket_server(ws_manager, 7777).await;
     });
     
     // Load essential plugins (now Send-safe)
@@ -143,7 +141,7 @@ pub async fn initialize_app(app: &AppHandle) -> Result<StartupMetrics, Box<dyn s
     
     for plugin_id in &plugins_to_load {
         if let Some(plugin) = plugin_registry.create(plugin_id) {
-            if let Err(e) = orchestrator.load_plugin(plugin).await {
+            if let Err(e) = manager.load_plugin(plugin).await {
                 eprintln!("Failed to load plugin {}: {}", plugin_id, e);
             } else {
                 println!("Loaded plugin: {}", plugin_id);

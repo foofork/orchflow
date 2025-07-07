@@ -65,14 +65,47 @@ Orchflow has successfully completed **all infrastructure and core implementation
 ## Current Focus: Phase 6 - Frontend Integration & Polish (2-3 weeks) 🔵
 
 ### 6.0 Wire Up Missing Commands (Immediate Priority)
-- [ ] Add `select_backend_pane` command - Wrap existing MuxBackend method
-- [ ] Add `list_plugins` command - Expose plugin registry listing
+- [x] ~~Rename orchestrator.rs to manager.rs for clarity~~ ✅ COMPLETE (Jan 2025)
+- [x] ~~Refactor large files into modular structures~~ ✅ COMPLETE (Jan 2025)
+  - manager.rs → 12 modules (core + handlers)
+  - file_manager.rs → 7 modules
+  - error.rs → 13 domain modules
+  - lsp_plugin.rs → 8 modules
+  - state_manager.rs → 8 modules
+  - search_plugin.rs → 7 modules
+  - simple_state_store.rs → 8 modules
+- [x] ~~Achieve zero compilation errors~~ ✅ COMPLETE (Jan 2025)
+- [x] ~~Implement `list_plugins` command~~ ✅ COMPLETE (Jan 2025)
+- [x] ~~Add `select_backend_pane` command~~ ✅ COMPLETE (Jan 2025)
 - [ ] Add `get_plugin_metadata` command - Get plugin info for UI
 - [ ] Add `persist_state` command - Manual state save trigger
 - [ ] Fix LoadPlugin/UnloadPlugin implementation - Currently returns "not_implemented"
 
+### 6.0.5 Terminal Streaming Infrastructure (CRITICAL - Before UI)
+- [ ] Implement real-time terminal output streaming via WebSocket
+  - [ ] PTY management for bidirectional I/O
+  - [ ] Output buffering and replay mechanism
+  - [ ] Event-driven push to frontend
+- [ ] Add terminal state synchronization
+  - [ ] Active terminal tracking
+  - [ ] Terminal resize handling
+  - [ ] Cursor position tracking
+  - [ ] Terminal mode tracking (normal/insert/visual)
+- [ ] Implement process lifecycle management
+  - [ ] Process health monitoring
+  - [ ] Resource usage tracking (CPU/memory)
+  - [ ] Process crash recovery
+- [ ] Add multi-terminal coordination
+  - [ ] Broadcast commands to groups
+  - [ ] Synchronized scrolling
+  - [ ] Session recording/replay
+- [ ] Performance optimizations
+  - [ ] Output throttling/debouncing
+  - [ ] Large output handling (>1MB)
+  - [ ] Connection pooling
+
 ### 6.1 Frontend Migration (High Priority)
-- [ ] Update frontend to use new orchestrator API
+- [ ] Update frontend to use new Manager API (Rust backend)
 - [ ] Create plugin UI components (depends on plugin commands work completed)
 - [ ] Implement plugin marketplace UI (browsing only)
 - [ ] Test end-to-end functionality
@@ -95,6 +128,10 @@ Orchflow has successfully completed **all infrastructure and core implementation
 1. **Error Types**: Complete migration from String errors to typed errors
 2. **Test Coverage**: Add comprehensive integration tests for new features
 3. **Performance Monitoring**: Add metrics collection and dashboards
+4. **SQLx to SimpleStateStore Migration**: 
+   - Migrate test_results.rs from SQLx to SimpleStateStore
+   - Re-enable test result tracking commands
+5. **Module Commands**: Implement module commands through ModuleSystem instead of StateManager
 
 ### Medium Priority
 1. **Documentation**: Update architecture docs to reflect current state
@@ -210,7 +247,7 @@ Orchflow has successfully completed **all infrastructure and core implementation
 ## Next Actions 🚀
 
 ### Immediate (This Week)
-1. Begin frontend migration to new orchestrator API
+1. Begin frontend migration to new Manager API (Rust backend)
 2. Set up performance profiling infrastructure
 3. Create plugin UI components
 4. Update user documentation

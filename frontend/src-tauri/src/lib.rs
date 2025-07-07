@@ -1,7 +1,7 @@
 pub mod error;
 pub mod mux_backend;
 pub mod tmux;
-pub mod orchestrator;
+pub mod manager;
 pub mod simple_state_store;
 pub mod layout;
 pub mod state_manager;
@@ -15,6 +15,7 @@ pub mod file_watcher_commands;
 pub mod project_search;
 pub mod search_commands;
 pub mod plugin_system;
+pub mod plugins;
 pub mod backend_commands;
 pub mod test_parser_commands;
 

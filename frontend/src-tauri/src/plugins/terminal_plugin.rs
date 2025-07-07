@@ -1,7 +1,9 @@
 use async_trait::async_trait;
 use serde_json::{json, Value};
 use std::collections::HashMap;
-use crate::orchestrator::{Plugin, PluginMetadata, PluginContext, Event, Action, PaneType};
+use crate::manager::{Plugin, PluginMetadata, PluginContext, Event, Action};
+use crate::state_manager::PaneType;
+use crate::manager::actions::PaneType as ActionPaneType;
 
 #[derive(Debug, Clone)]
 struct TerminalHistory {
@@ -206,10 +208,10 @@ impl Plugin for TerminalPlugin {
                 }
             }
             
-            Event::PaneOutput { pane_id, data } => {
+            Event::PaneOutput { pane_id, output, .. } => {
                 if self.capture_output {
                     if let Some(history) = self.terminals.get_mut(pane_id) {
-                        history.add_output(data.clone());
+                        history.add_output(output.clone());
                     }
                 }
             }
@@ -237,7 +239,7 @@ impl Plugin for TerminalPlugin {
                 if let Some(ctx) = &self.context {
                     let result = ctx.execute(Action::CreatePane {
                         session_id: session_id.to_string(),
-                        pane_type: PaneType::Terminal,
+                        pane_type: ActionPaneType::Terminal,
                         command,
                         shell_type: None,
                         name: None,

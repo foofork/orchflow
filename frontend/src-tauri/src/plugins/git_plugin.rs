@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use serde_json::Value;
-use crate::orchestrator::{Plugin, PluginMetadata, PluginContext, Event, Action};
+use crate::manager::{Plugin, PluginMetadata, PluginContext, Event, Action};
+use crate::state_manager::PaneType;
 
 /// Example plugin: Git integration
 pub struct GitPlugin {
@@ -89,7 +90,7 @@ impl Plugin for GitPlugin {
             
             Event::PaneCreated { pane } => {
                 // Could automatically show git status in new terminal panes
-                if matches!(pane.pane_type, crate::orchestrator::PaneType::Terminal) {
+                if matches!(pane.pane_type, PaneType::Terminal) {
                     self.check_git_status(&pane.id).await?;
                 }
             }

@@ -5,7 +5,7 @@
 
 use crate::state_manager::{StateManager, PaneType};
 use crate::layout::*;
-use crate::orchestrator::{Orchestrator, Action, PaneType as OrchPaneType};
+use crate::manager::{Manager as OrchflowManager, Action, PaneType as OrchPaneType};
 use crate::error::OrchflowError;
 use tauri::{State, Manager};
 use serde_json::Value;
@@ -19,12 +19,13 @@ pub async fn create_session(name: String, state_manager: State<'_, StateManager>
     Ok(serde_json::to_value(session).unwrap())
 }
 
-#[tauri::command]
-pub async fn get_session(session_id: String, state_manager: State<'_, StateManager>) -> Result<Value, String> {
-    let session = state_manager.get_session(&session_id).await
-        .ok_or_else(|| OrchflowError::session_not_found(&session_id).to_string())?;
-    Ok(serde_json::to_value(session).unwrap())
-}
+// Removed - now using manager::get_session
+// #[tauri::command]
+// pub async fn get_session(session_id: String, state_manager: State<'_, StateManager>) -> Result<Value, String> {
+//     let session = state_manager.get_session(&session_id).await
+//         .ok_or_else(|| OrchflowError::session_not_found(&session_id).to_string())?;
+//     Ok(serde_json::to_value(session).unwrap())
+// }
 
 #[tauri::command]
 pub async fn list_sessions(state_manager: State<'_, StateManager>) -> Result<Value, String> {
@@ -59,12 +60,13 @@ pub async fn create_pane(
     Ok(serde_json::to_value(pane).unwrap())
 }
 
-#[tauri::command]
-pub async fn get_pane(pane_id: String, state_manager: State<'_, StateManager>) -> Result<Value, String> {
-    let pane = state_manager.get_pane(&pane_id).await
-        .ok_or_else(|| OrchflowError::pane_not_found(&pane_id).to_string())?;
-    Ok(serde_json::to_value(pane).unwrap())
-}
+// Removed - now using manager::get_pane
+// #[tauri::command]
+// pub async fn get_pane(pane_id: String, state_manager: State<'_, StateManager>) -> Result<Value, String> {
+//     let pane = state_manager.get_pane(&pane_id).await
+//         .ok_or_else(|| OrchflowError::pane_not_found(&pane_id).to_string())?;
+//     Ok(serde_json::to_value(pane).unwrap())
+// }
 
 #[tauri::command]
 pub async fn list_panes(session_id: String, state_manager: State<'_, StateManager>) -> Result<Value, String> {
@@ -112,7 +114,8 @@ pub async fn split_unified_layout_pane(
     
     // Split in the layout
     let split_type = if horizontal { SplitType::Horizontal } else { SplitType::Vertical };
-    let (child1_id, child2_id) = layout.split_pane(&pane_id, split_type, percent.unwrap_or(50))?;
+    let (child1_id, child2_id) = layout.split_pane(&pane_id, split_type, percent.unwrap_or(50))
+        .map_err(|e| e.to_string())?;
     
     // Get the tmux pane ID from the first child (which inherited the original pane)
     let backend_pane_id = layout.panes.get(&child1_id)
@@ -121,17 +124,17 @@ pub async fn split_unified_layout_pane(
         .clone();
     
     // Create actual pane split through orchestrator
-    let orchestrator: State<Orchestrator> = app_handle.state();
+    let manager: State<OrchflowManager> = app_handle.state();
     
     let create_action = Action::CreatePane {
         session_id: session_id.clone(),
         pane_type: OrchPaneType::Terminal,
         command,
-        shell_type: Some(crate::orchestrator::ShellType::detect()),
+        shell_type: Some(crate::manager::ShellType::detect()),
         name: Some("Terminal".to_string()),
     };
     
-    let result = orchestrator.execute_action(create_action).await
+    let result = manager.execute_action(create_action).await
         .map_err(|e| format!("Failed to create pane: {}", e))?;
     
     // Extract the new pane ID from the result
@@ -147,7 +150,8 @@ pub async fn split_unified_layout_pane(
     }
     
     // Update the layout in state
-    state_manager.update_layout(&session_id, layout).await?;
+    state_manager.update_layout(&session_id, layout).await
+        .map_err(|e| e.to_string())?;
     
     Ok((child1_id, child2_id))
 }
@@ -167,20 +171,22 @@ pub async fn close_unified_layout_pane(
     if let Some(pane) = layout.panes.get(&pane_id) {
         if let Some(backend_pane_id) = &pane.pane_id {
             // Kill the backend pane through orchestrator
-            let orchestrator: State<Orchestrator> = app_handle.state();
+            let manager: State<OrchflowManager> = app_handle.state();
             let close_action = Action::ClosePane {
                 pane_id: backend_pane_id.clone(),
             };
-            orchestrator.execute_action(close_action).await
+            manager.execute_action(close_action).await
                 .map_err(|e| format!("Failed to close pane: {}", e))?;
         }
     }
     
     // Close in the layout
-    layout.close_pane(&pane_id)?;
+    layout.close_pane(&pane_id)
+        .map_err(|e| e.to_string())?;
     
     // Update the layout in state
-    state_manager.update_layout(&session_id, layout).await?;
+    state_manager.update_layout(&session_id, layout).await
+        .map_err(|e| e.to_string())?;
     
     Ok(())
 }
@@ -198,24 +204,26 @@ pub async fn resize_unified_layout_pane(
         .ok_or_else(|| "Layout not found".to_string())?;
     
     // Resize in the layout
-    layout.resize_pane(&pane_id, new_percent)?;
+    layout.resize_pane(&pane_id, new_percent)
+        .map_err(|e| e.to_string())?;
     
     // Apply resize to backend panes based on new layout bounds
     if let Some(pane) = layout.panes.get(&pane_id) {
         if let Some(backend_pane_id) = &pane.pane_id {
-            let orchestrator: State<Orchestrator> = app_handle.state();
+            let manager: State<OrchflowManager> = app_handle.state();
             let resize_action = Action::ResizePane {
                 pane_id: backend_pane_id.clone(),
                 width: pane.bounds.width as u32,
                 height: pane.bounds.height as u32,
             };
-            orchestrator.execute_action(resize_action).await
+            manager.execute_action(resize_action).await
                 .map_err(|e| format!("Failed to resize backend pane: {}", e))?;
         }
     }
     
     // Update the layout in state
-    state_manager.update_layout(&session_id, layout).await?;
+    state_manager.update_layout(&session_id, layout).await
+        .map_err(|e| e.to_string())?;
     
     Ok(())
 }
@@ -254,6 +262,8 @@ pub async fn get_setting(
 
 // ===== Module Commands =====
 
+// TODO: Module functions need to be implemented through ModuleSystem, not StateManager
+/*
 #[tauri::command]
 pub async fn install_module(
     name: String,
@@ -268,10 +278,14 @@ pub async fn install_module(
         .map_err(|e| e.to_string())?;
     Ok(serde_json::to_value(module).unwrap())
 }
+*/
 
+// TODO: Module functions need to be implemented through ModuleSystem, not StateManager
+/*
 #[tauri::command]
 pub async fn list_modules(state_manager: State<'_, StateManager>) -> Result<Value, String> {
     let modules = state_manager.list_modules().await
         .map_err(|e| e.to_string())?;
     Ok(serde_json::to_value(modules).unwrap())
 }
+*/

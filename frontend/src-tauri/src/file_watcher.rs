@@ -81,9 +81,9 @@ impl FileWatcher {
                         }
                     }
                 }
-            ).map_err(|e| OrchflowError::FileError {
+            ).map_err(|e| OrchflowError::FileOperationError {
                 operation: "create_watcher".to_string(),
-                path: path.to_string_lossy().to_string(),
+                path: path.to_path_buf(),
                 reason: e.to_string(),
             })?;
             
@@ -100,9 +100,9 @@ impl FileWatcher {
             
             watcher.watcher()
                 .watch(path, mode)
-                .map_err(|e| OrchflowError::FileError {
+                .map_err(|e| OrchflowError::FileOperationError {
                     operation: "watch_path".to_string(),
-                    path: path.to_string_lossy().to_string(),
+                    path: path.to_path_buf(),
                     reason: e.to_string(),
                 })?;
             
@@ -118,9 +118,9 @@ impl FileWatcher {
         if let Some(watcher) = &mut self.watcher {
             watcher.watcher()
                 .unwatch(path)
-                .map_err(|e| OrchflowError::FileError {
+                .map_err(|e| OrchflowError::FileOperationError {
                     operation: "unwatch_path".to_string(),
-                    path: path.to_string_lossy().to_string(),
+                    path: path.to_path_buf(),
                     reason: e.to_string(),
                 })?;
             

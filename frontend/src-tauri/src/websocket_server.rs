@@ -4,7 +4,7 @@ use tokio_tungstenite::{accept_async, tungstenite::Message};
 use futures_util::{StreamExt, SinkExt};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use crate::orchestrator::{Orchestrator, Action, Event};
+use crate::manager::{Manager, Action, Event};
 
 #[derive(Debug, Deserialize)]
 struct JsonRpcRequest {
@@ -45,13 +45,13 @@ struct EventParams {
 }
 
 pub struct WebSocketServer {
-    orchestrator: Arc<Orchestrator>,
+    manager: Arc<Manager>,
     port: u16,
 }
 
 impl WebSocketServer {
-    pub fn new(orchestrator: Arc<Orchestrator>, port: u16) -> Self {
-        Self { orchestrator, port }
+    pub fn new(manager: Arc<Manager>, port: u16) -> Self {
+        Self { manager, port }
     }
     
     pub async fn start(&self) -> Result<(), Box<dyn std::error::Error>> {
@@ -60,15 +60,15 @@ impl WebSocketServer {
         println!("WebSocket server listening on ws://{}", addr);
         
         while let Ok((stream, _)) = listener.accept().await {
-            let orchestrator = self.orchestrator.clone();
-            tokio::spawn(handle_connection(stream, orchestrator));
+            let manager = self.manager.clone();
+            tokio::spawn(handle_connection(stream, manager));
         }
         
         Ok(())
     }
 }
 
-async fn handle_connection(stream: TcpStream, orchestrator: Arc<Orchestrator>) {
+async fn handle_connection(stream: TcpStream, manager: Arc<Manager>) {
     let ws_stream = match accept_async(stream).await {
         Ok(ws) => ws,
         Err(e) => {
@@ -95,7 +95,7 @@ async fn handle_connection(stream: TcpStream, orchestrator: Arc<Orchestrator>) {
     });
     
     // Subscribe to orchestrator events
-    let mut event_rx = orchestrator.event_tx.subscribe();
+    let mut event_rx = manager.event_tx.subscribe();
     let tx_events = tx.clone();
     
     // Spawn task to forward events to client
@@ -103,7 +103,7 @@ async fn handle_connection(stream: TcpStream, orchestrator: Arc<Orchestrator>) {
         while let Ok(event) = event_rx.recv().await {
             let notification = EventNotification {
                 jsonrpc: "2.0".to_string(),
-                method: "orchestrator.event".to_string(),
+                method: "manager.event".to_string(),
                 params: EventParams { event },
             };
             
@@ -119,7 +119,7 @@ async fn handle_connection(stream: TcpStream, orchestrator: Arc<Orchestrator>) {
     while let Some(msg) = ws_receiver.next().await {
         match msg {
             Ok(Message::Text(text)) => {
-                let response = handle_request(&text, &orchestrator).await;
+                let response = handle_request(&text, &manager).await;
                 if let Ok(json) = serde_json::to_string(&response) {
                     // Send response through channel
                     if tx.send(Message::Text(json)).is_err() {
@@ -145,7 +145,7 @@ async fn handle_connection(stream: TcpStream, orchestrator: Arc<Orchestrator>) {
     event_task.abort();
 }
 
-async fn handle_request(text: &str, orchestrator: &Arc<Orchestrator>) -> JsonRpcResponse {
+async fn handle_request(text: &str, manager: &Arc<Manager>) -> JsonRpcResponse {
     let request: JsonRpcRequest = match serde_json::from_str(text) {
         Ok(req) => req,
         Err(e) => {
@@ -168,7 +168,7 @@ async fn handle_request(text: &str, orchestrator: &Arc<Orchestrator>) -> JsonRpc
         "execute" => {
             if let Some(params) = request.params {
                 if let Ok(action) = serde_json::from_value::<Action>(params["action"].clone()) {
-                    match orchestrator.execute_action(action).await {
+                    match manager.execute_action(action).await {
                         Ok(result) => JsonRpcResponse {
                             jsonrpc: "2.0".to_string(),
                             result: Some(result),
@@ -236,8 +236,8 @@ async fn handle_request(text: &str, orchestrator: &Arc<Orchestrator>) -> JsonRpc
     }
 }
 
-pub async fn start_websocket_server(orchestrator: Arc<Orchestrator>, port: u16) {
-    let server = WebSocketServer::new(orchestrator, port);
+pub async fn start_websocket_server(manager: Arc<Manager>, port: u16) {
+    let server = WebSocketServer::new(manager, port);
     if let Err(e) = server.start().await {
         eprintln!("WebSocket server error: {}", e);
     }

@@ -48,13 +48,13 @@ Multi-Tool Orchestration → TypeScript Service → Shared Across IDEs
 
 ### Rust Manager (Infrastructure/Platform)
 
-**Location**: `/frontend/src-tauri/src/orchestrator.rs`
+**Location**: `/frontend/src-tauri/src/manager.rs`
 
 **Purpose**: Provide fast, native infrastructure management including terminal sessions, file operations, and platform integration
 
 **Key Components**:
 ```rust
-- Session & Pane Management (orchestrator.rs) // Infrastructure layer
+- Session & Pane Management (manager.rs) // Infrastructure layer
 - MuxBackend Abstraction (mux_backend/) // Terminal backend management
 - File Operations (file_manager.rs) // Direct filesystem access
 - State Management (state_manager.rs) // Platform state

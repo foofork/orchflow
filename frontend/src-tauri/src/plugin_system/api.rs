@@ -1,5 +1,5 @@
 use crate::error::Result;
-use crate::orchestrator::Orchestrator;
+use crate::manager::Orchestrator;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -32,28 +32,28 @@ impl PluginApi {
     /// Window API namespace
     pub fn window(&self) -> WindowApi {
         WindowApi {
-            orchestrator: self.orchestrator.clone(),
+            orchestrator: self.manager.clone(),
         }
     }
     
     /// Commands API namespace
     pub fn commands(&self) -> CommandsApi {
         CommandsApi {
-            orchestrator: self.orchestrator.clone(),
+            orchestrator: self.manager.clone(),
         }
     }
     
     /// Workspace API namespace
     pub fn workspace(&self) -> WorkspaceApi {
         WorkspaceApi {
-            orchestrator: self.orchestrator.clone(),
+            orchestrator: self.manager.clone(),
         }
     }
     
     /// Terminal API namespace
     pub fn terminal(&self) -> TerminalApi {
         TerminalApi {
-            orchestrator: self.orchestrator.clone(),
+            orchestrator: self.manager.clone(),
         }
     }
 }
@@ -66,31 +66,31 @@ pub struct WindowApi {
 impl WindowApi {
     /// Show information message
     pub async fn show_information_message(&self, message: &str) -> Result<()> {
-        let orchestrator = self.orchestrator.read().await;
+        let manager = self.manager.read().await;
         orchestrator.emit_notification("info", message).await
     }
     
     /// Show warning message
     pub async fn show_warning_message(&self, message: &str) -> Result<()> {
-        let orchestrator = self.orchestrator.read().await;
+        let manager = self.manager.read().await;
         orchestrator.emit_notification("warning", message).await
     }
     
     /// Show error message
     pub async fn show_error_message(&self, message: &str) -> Result<()> {
-        let orchestrator = self.orchestrator.read().await;
+        let manager = self.manager.read().await;
         orchestrator.emit_notification("error", message).await
     }
     
     /// Show input box
     pub async fn show_input_box(&self, options: InputBoxOptions) -> Result<Option<String>> {
-        let orchestrator = self.orchestrator.read().await;
+        let manager = self.manager.read().await;
         orchestrator.show_input_dialog(options).await
     }
     
     /// Create terminal
     pub async fn create_terminal(&self, options: TerminalOptions) -> Result<String> {
-        let mut orchestrator = self.orchestrator.write().await;
+        let mut orchestrator = self.manager.write().await;
         orchestrator.create_terminal_with_options(options).await
     }
 }
@@ -106,19 +106,19 @@ impl CommandsApi {
     where
         F: Fn(Vec<serde_json::Value>) -> Result<serde_json::Value> + Send + Sync + 'static,
     {
-        let mut orchestrator = self.orchestrator.write().await;
+        let mut orchestrator = self.manager.write().await;
         orchestrator.register_plugin_command(command, Box::new(handler))
     }
     
     /// Execute a command
     pub async fn execute_command(&self, command: &str, args: Vec<serde_json::Value>) -> Result<serde_json::Value> {
-        let orchestrator = self.orchestrator.read().await;
+        let manager = self.manager.read().await;
         orchestrator.execute_command(command, args).await
     }
     
     /// Get all registered commands
     pub async fn get_commands(&self) -> Result<Vec<String>> {
-        let orchestrator = self.orchestrator.read().await;
+        let manager = self.manager.read().await;
         Ok(orchestrator.get_registered_commands())
     }
 }
@@ -131,31 +131,31 @@ pub struct WorkspaceApi {
 impl WorkspaceApi {
     /// Get workspace root path
     pub async fn get_root_path(&self) -> Result<Option<String>> {
-        let orchestrator = self.orchestrator.read().await;
+        let manager = self.manager.read().await;
         Ok(orchestrator.get_workspace_root())
     }
     
     /// Find files matching pattern
     pub async fn find_files(&self, pattern: &str, exclude: Option<&str>) -> Result<Vec<String>> {
-        let orchestrator = self.orchestrator.read().await;
+        let manager = self.manager.read().await;
         orchestrator.find_files(pattern, exclude).await
     }
     
     /// Read file contents
     pub async fn read_file(&self, path: &str) -> Result<String> {
-        let orchestrator = self.orchestrator.read().await;
+        let manager = self.manager.read().await;
         orchestrator.read_file(path).await
     }
     
     /// Write file contents
     pub async fn write_file(&self, path: &str, content: &str) -> Result<()> {
-        let mut orchestrator = self.orchestrator.write().await;
+        let mut orchestrator = self.manager.write().await;
         orchestrator.write_file(path, content).await
     }
     
     /// Watch file changes
     pub async fn watch_files(&self, pattern: &str) -> Result<()> {
-        let mut orchestrator = self.orchestrator.write().await;
+        let mut orchestrator = self.manager.write().await;
         orchestrator.watch_pattern(pattern).await
     }
 }
@@ -168,7 +168,7 @@ pub struct TerminalApi {
 impl TerminalApi {
     /// Send text to terminal
     pub async fn send_text(&self, terminal_id: &str, text: &str, add_newline: bool) -> Result<()> {
-        let mut orchestrator = self.orchestrator.write().await;
+        let mut orchestrator = self.manager.write().await;
         let text = if add_newline {
             format!("{}\n", text)
         } else {
@@ -179,19 +179,19 @@ impl TerminalApi {
     
     /// Read terminal output
     pub async fn read_output(&self, terminal_id: &str, lines: usize) -> Result<String> {
-        let orchestrator = self.orchestrator.read().await;
+        let manager = self.manager.read().await;
         orchestrator.read_terminal_output(terminal_id, lines).await
     }
     
     /// Get active terminal ID
     pub async fn get_active_terminal(&self) -> Result<Option<String>> {
-        let orchestrator = self.orchestrator.read().await;
+        let manager = self.manager.read().await;
         Ok(orchestrator.get_active_terminal())
     }
     
     /// List all terminals
     pub async fn list_terminals(&self) -> Result<Vec<TerminalInfo>> {
-        let orchestrator = self.orchestrator.read().await;
+        let manager = self.manager.read().await;
         orchestrator.list_terminals().await
     }
 }
@@ -234,9 +234,9 @@ impl PluginStorage {
     /// Save storage to disk
     pub async fn save(&self) -> Result<()> {
         let storage_path = dirs::data_dir()
-            .ok_or_else(|| crate::error::OrchflowError::FileError {
+            .ok_or_else(|| crate::error::OrchflowError::FileOperationError {
                 operation: "get_data_dir".to_string(),
-                path: "".to_string(),
+                path: "".into(),
                 reason: "Could not determine data directory".to_string(),
             })?
             .join("orchflow")
@@ -255,9 +255,9 @@ impl PluginStorage {
     /// Load storage from disk
     pub async fn load(&mut self) -> Result<()> {
         let storage_path = dirs::data_dir()
-            .ok_or_else(|| crate::error::OrchflowError::FileError {
+            .ok_or_else(|| crate::error::OrchflowError::FileOperationError {
                 operation: "get_data_dir".to_string(),
-                path: "".to_string(),
+                path: "".into(),
                 reason: "Could not determine data directory".to_string(),
             })?
             .join("orchflow")

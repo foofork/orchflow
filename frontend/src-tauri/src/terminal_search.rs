@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use crate::orchestrator::{Orchestrator, Action};
+use crate::manager::{Manager, Action};
 use crate::error::{OrchflowError, Result};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -36,12 +36,12 @@ impl Default for SearchOptions {
 }
 
 pub struct TerminalSearcher {
-    orchestrator: Arc<Orchestrator>,
+    manager: Arc<Manager>,
 }
 
 impl TerminalSearcher {
-    pub fn new(orchestrator: Arc<Orchestrator>) -> Self {
-        Self { orchestrator }
+    pub fn new(manager: Arc<Manager>) -> Self {
+        Self { manager }
     }
     
     /// Search across all terminal panes in a session
@@ -52,7 +52,7 @@ impl TerminalSearcher {
         options: SearchOptions,
     ) -> Result<Vec<SearchMatch>> {
         // Get all panes in the session
-        let state_manager = &self.orchestrator.state_manager;
+        let state_manager = &self.manager.state_manager;
         let session = state_manager.get_session(session_id).await
             .ok_or_else(|| OrchflowError::SessionNotFound { id: session_id.to_string() })?;
         
@@ -76,17 +76,17 @@ impl TerminalSearcher {
         options: &SearchOptions,
     ) -> Result<Vec<SearchMatch>> {
         // Get pane info
-        let state_manager = &self.orchestrator.state_manager;
+        let state_manager = &self.manager.state_manager;
         let pane = state_manager.get_pane(pane_id).await
             .ok_or_else(|| OrchflowError::PaneNotFound { id: pane_id.to_string() })?;
         
         // Get pane output
-        let action = Action::GetOutput {
+        let action = Action::GetPaneOutput {
             pane_id: pane_id.to_string(),
             lines: None, // Get all lines
         };
         
-        let result = self.orchestrator.execute_action(action).await
+        let result = self.manager.execute_action(action).await
             .map_err(|e| OrchflowError::BackendError { 
                 operation: "capture_pane".to_string(),
                 reason: e 

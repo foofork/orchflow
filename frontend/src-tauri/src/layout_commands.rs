@@ -1,5 +1,5 @@
 use crate::layout::*;
-use crate::orchestrator::{Orchestrator, Action, PaneType, ShellType};
+use crate::manager::{Manager as OrchflowManager, Action, PaneType, ShellType};
 use tauri::Manager;
 use tauri::State;
 use crate::AppState;
@@ -39,7 +39,8 @@ pub async fn split_layout_pane(
         
         // Split in the layout
         let split_type = if horizontal { SplitType::Horizontal } else { SplitType::Vertical };
-        let (child1_id, child2_id) = layout.split_pane(&pane_id, split_type, percent.unwrap_or(50))?;
+        let (child1_id, child2_id) = layout.split_pane(&pane_id, split_type, percent.unwrap_or(50))
+            .map_err(|e| e.to_string())?;
         
         // Get the tmux pane ID from the first child (which inherited the original pane)
         let tmux_pane_id = layout.panes.get(&child1_id)
@@ -50,8 +51,8 @@ pub async fn split_layout_pane(
         (child1_id, child2_id, tmux_pane_id)
     }; // Release the lock here
     
-    // Create actual pane split through orchestrator
-    let orchestrator: State<Orchestrator> = app_handle.state();
+    // Create actual pane split through manager
+    let manager: State<OrchflowManager> = app_handle.state();
     
     let create_action = Action::CreatePane {
         session_id: session_id.clone(),
@@ -61,7 +62,7 @@ pub async fn split_layout_pane(
         name: Some("Terminal".to_string()),
     };
     
-    let result = orchestrator.execute_action(create_action).await
+    let result = manager.execute_action(create_action).await
         .map_err(|e| format!("Failed to create pane: {}", e))?;
     
     // Extract the new pane ID from the result
@@ -103,11 +104,11 @@ pub async fn close_layout_pane(
     
     // Kill the backend pane through orchestrator if it exists
     if let Some(backend_pane_id) = backend_pane_id {
-        let orchestrator: State<Orchestrator> = app_handle.state();
+        let manager: State<OrchflowManager> = app_handle.state();
         let close_action = Action::ClosePane {
             pane_id: backend_pane_id,
         };
-        orchestrator.execute_action(close_action).await
+        manager.execute_action(close_action).await
             .map_err(|e| format!("Failed to close pane: {}", e))?;
     }
     
@@ -116,7 +117,8 @@ pub async fn close_layout_pane(
         let mut layouts = state.layouts.lock().unwrap();
         let layout = layouts.get_mut(&session_id)
             .ok_or_else(|| "Layout not found".to_string())?;
-        layout.close_pane(&pane_id)?
+        layout.close_pane(&pane_id)
+            .map_err(|e| e.to_string())?
     }
     
     Ok(())
@@ -137,7 +139,8 @@ pub async fn resize_layout_pane(
             .ok_or_else(|| "Layout not found".to_string())?;
         
         // Resize in the layout
-        layout.resize_pane(&pane_id, new_percent)?;
+        layout.resize_pane(&pane_id, new_percent)
+            .map_err(|e| e.to_string())?;
         
         // Get the backend pane info
         layout.panes.get(&pane_id)
@@ -150,13 +153,13 @@ pub async fn resize_layout_pane(
     };
     
     // Apply resize to backend pane
-    let orchestrator: State<Orchestrator> = app_handle.state();
+    let manager: State<OrchflowManager> = app_handle.state();
     let resize_action = Action::ResizePane {
         pane_id: backend_pane_id,
         width,
         height,
     };
-    orchestrator.execute_action(resize_action).await
+    manager.execute_action(resize_action).await
         .map_err(|e| format!("Failed to resize backend pane: {}", e))?;
     
     Ok(())

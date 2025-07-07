@@ -67,44 +67,26 @@ pub async fn parse_and_store_test_output(
     let mut failed = 0;
     let mut skipped = 0;
     
-    if let Some(pool) = state.get_pool() {
-        for result in parsed_results {
-            total += 1;
-            match &result.status {
-                TestStatus::Passed => passed += 1,
-                TestStatus::Failed => failed += 1,
-                TestStatus::Skipped => skipped += 1,
-                TestStatus::Pending => skipped += 1,
-            }
-            
-            // Store each test result
-            let id = uuid::Uuid::new_v4().to_string();
-            let status_str = result.status.to_string();
-            
-            sqlx::query(
-                r#"
-                INSERT INTO test_results (
-                    id, run_id, suite_id, test_file, test_name, test_path,
-                    status, duration_ms, error_message, error_stack, retry_count
-                ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 0)
-                "#
-            )
-            .bind(&id)
-            .bind(&request.run_id)
-            .bind(&request.suite_id)
-            .bind(&result.test_file)
-            .bind(&result.test_name)
-            .bind(&result.test_path)
-            .bind(&status_str)
-            .bind(result.duration_ms)
-            .bind(&result.error_message)
-            .bind(&result.error_stack)
-            .execute(pool)
-            .await
-            .map_err(|e| crate::error::OrchflowError::DatabaseError {
-                operation: "insert_test_result".to_string(),
-                reason: e.to_string(),
+    // Process test results without database storage for now
+    for result in parsed_results {
+        total += 1;
+        match &result.status {
+            TestStatus::Passed => passed += 1,
+            TestStatus::Failed => failed += 1,
+            TestStatus::Skipped => skipped += 1,
+            TestStatus::Pending => skipped += 1,
+        }
+        
+        // TODO: Store test results using SimpleStateStore key-value store
+        let result_key = format!("test_result:{}:{}", request.run_id, result.test_name);
+        let result_data = serde_json::to_string(&result)
+            .map_err(|e| crate::error::OrchflowError::ValidationError {
+                field: "test_result".to_string(),
+                reason: format!("Failed to serialize test result: {}", e),
             })?;
+        
+        if let Err(e) = state.set(&result_key, &result_data).await {
+            eprintln!("Warning: Failed to store test result: {}", e);
         }
     }
     

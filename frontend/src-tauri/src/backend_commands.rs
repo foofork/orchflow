@@ -1,15 +1,15 @@
 // Backend-specific commands for managing tmux/muxd sessions
 use tauri::State;
-use crate::orchestrator::Orchestrator;
+use crate::manager::Manager;
 use crate::error::Result;
 use serde::{Deserialize, Serialize};
 
 /// List all backend sessions (tmux/muxd sessions)
 #[tauri::command]
 pub async fn list_backend_sessions(
-    orchestrator: State<'_, Orchestrator>,
+    manager: State<'_, Manager>,
 ) -> Result<Vec<BackendSession>> {
-    let sessions = orchestrator.mux_backend.list_sessions().await
+    let sessions = manager.mux_backend.list_sessions().await
         .map_err(|e| crate::error::OrchflowError::BackendError {
             operation: "list_sessions".to_string(),
             reason: e.to_string(),
@@ -30,10 +30,10 @@ pub async fn list_backend_sessions(
 /// Attach to a backend session
 #[tauri::command]
 pub async fn attach_backend_session(
-    orchestrator: State<'_, Orchestrator>,
+    manager: State<'_, Manager>,
     session_id: String,
 ) -> Result<()> {
-    orchestrator.mux_backend.attach_session(&session_id).await
+    manager.mux_backend.attach_session(&session_id).await
         .map_err(|e| crate::error::OrchflowError::BackendError {
             operation: "attach_session".to_string(),
             reason: e.to_string(),
@@ -45,10 +45,10 @@ pub async fn attach_backend_session(
 /// Detach from a backend session
 #[tauri::command]
 pub async fn detach_backend_session(
-    orchestrator: State<'_, Orchestrator>,
+    manager: State<'_, Manager>,
     session_id: String,
 ) -> Result<()> {
-    orchestrator.mux_backend.detach_session(&session_id).await
+    manager.mux_backend.detach_session(&session_id).await
         .map_err(|e| crate::error::OrchflowError::BackendError {
             operation: "detach_session".to_string(),
             reason: e.to_string(),
@@ -60,10 +60,10 @@ pub async fn detach_backend_session(
 /// Kill a backend session
 #[tauri::command]
 pub async fn kill_backend_session(
-    orchestrator: State<'_, Orchestrator>,
+    manager: State<'_, Manager>,
     session_id: String,
 ) -> Result<()> {
-    orchestrator.mux_backend.kill_session(&session_id).await
+    manager.mux_backend.kill_session(&session_id).await
         .map_err(|e| crate::error::OrchflowError::BackendError {
             operation: "kill_session".to_string(),
             reason: e.to_string(),
@@ -75,10 +75,10 @@ pub async fn kill_backend_session(
 /// List all panes in a backend session
 #[tauri::command]
 pub async fn list_backend_panes(
-    orchestrator: State<'_, Orchestrator>,
+    manager: State<'_, Manager>,
     session_id: String,
 ) -> Result<Vec<BackendPane>> {
-    let panes = orchestrator.mux_backend.list_panes(&session_id).await
+    let panes = manager.mux_backend.list_panes(&session_id).await
         .map_err(|e| crate::error::OrchflowError::BackendError {
             operation: "list_panes".to_string(),
             reason: e.to_string(),
@@ -101,17 +101,17 @@ pub async fn list_backend_panes(
 /// Sync backend sessions with orchflow state
 #[tauri::command]
 pub async fn sync_backend_sessions(
-    orchestrator: State<'_, Orchestrator>,
+    manager: State<'_, Manager>,
 ) -> Result<SyncResult> {
     // Get backend sessions
-    let backend_sessions = orchestrator.mux_backend.list_sessions().await
+    let backend_sessions = manager.mux_backend.list_sessions().await
         .map_err(|e| crate::error::OrchflowError::BackendError {
             operation: "list_sessions".to_string(),
             reason: e.to_string(),
         })?;
     
     // Get orchflow sessions
-    let orchflow_sessions = orchestrator.state_manager.list_sessions().await;
+    let orchflow_sessions = manager.state_manager.list_sessions().await;
     
     let mut orphaned_backend = Vec::new();
     let mut missing_backend = Vec::new();

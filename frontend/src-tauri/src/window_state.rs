@@ -43,14 +43,16 @@ pub async fn save_window_state(window: &Window, state_store: Arc<SimpleStateStor
     };
     
     let state_json = serde_json::to_string(&window_state)?;
-    state_store.set_setting("window_state", &state_json)?;
+    state_store.set_setting("window_state", &state_json).await
+        .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
     
     Ok(())
 }
 
 /// Restore window state from database
 pub async fn restore_window_state(window: &Window, state_store: Arc<SimpleStateStore>) -> Result<(), Box<dyn std::error::Error>> {
-    if let Some(state_json) = state_store.get_setting("window_state")? {
+    if let Some(state_json) = state_store.get_setting("window_state").await
+        .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)? {
         let window_state: WindowState = serde_json::from_str(&state_json)?;
         
         // Only restore position and size if window is not maximized or fullscreen

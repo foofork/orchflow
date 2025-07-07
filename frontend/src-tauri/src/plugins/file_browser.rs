@@ -2,7 +2,8 @@ use async_trait::async_trait;
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 use tokio::fs;
-use crate::orchestrator::{Plugin, PluginMetadata, PluginContext, Event, Action, PaneType};
+use crate::manager::{Plugin, PluginMetadata, PluginContext, Event, Action};
+use crate::state_manager::PaneType;
 
 /// File Browser Plugin - Provides file system navigation and operations
 pub struct FileBrowserPlugin {

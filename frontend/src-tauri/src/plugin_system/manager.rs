@@ -1,5 +1,5 @@
 use crate::error::{OrchflowError, Result};
-use crate::orchestrator::Orchestrator;
+use crate::manager::Orchestrator;
 use crate::plugin_system::{
     Plugin, PluginApi, PluginContext, PluginLoader, PluginManifest, PluginState,
     api::PluginStorage,
@@ -140,9 +140,9 @@ impl PluginManager {
         
         let context = PluginContext {
             plugin_id: plugin_id.to_string(),
-            orchestrator: self.orchestrator.clone(),
+            orchestrator: self.manager.clone(),
             storage: Arc::new(RwLock::new(storage)),
-            api: PluginApi::new(self.orchestrator.clone()),
+            api: PluginApi::new(self.manager.clone()),
         };
         
         // Store context

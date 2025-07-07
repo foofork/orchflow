@@ -139,9 +139,7 @@ impl From<MuxError> for OrchflowError {
                 reason: format!("Parse error: {}", msg),
             },
             MuxError::IoError(io_err) => OrchflowError::FileError {
-                operation: "mux_io".to_string(),
-                path: "unknown".to_string(),
-                reason: io_err.to_string(),
+                reason: format!("Mux I/O error: {}", io_err),
             },
             MuxError::SerializationError(serde_err) => OrchflowError::ValidationError {
                 field: "mux_data".to_string(),

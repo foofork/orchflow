@@ -1,7 +1,7 @@
 use std::time::{Duration, Instant};
 use tokio::runtime::Runtime;
 use orchflow::{
-    orchestrator::{Action, ShellType, PaneType},
+    manager::{Action, ShellType, PaneType},
     mux_backend::create_mux_backend,
     simple_state_store::SimpleStateStore,
 };
@@ -64,7 +64,7 @@ fn main() {
     
     // Benchmark: State Store Operations
     {
-        let store = Arc::new(SimpleStateStore::new("test.db").unwrap());
+        let store = Arc::new(SimpleStateStore::new_with_file("test.db").unwrap());
         
         let result = run_benchmark("State Store - Write", 10000, || {
             let start = Instant::now();
@@ -112,6 +112,7 @@ fn main() {
             },
             Action::SaveSession {
                 session_id: "session-1".to_string(),
+                name: Some("Test Session".to_string()),
             },
             Action::GetFileTree { path: None, max_depth: Some(3) },
             Action::SearchFiles {

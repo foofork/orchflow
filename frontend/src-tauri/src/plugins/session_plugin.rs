@@ -3,7 +3,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use chrono::{DateTime, Utc};
-use crate::orchestrator::{Plugin, PluginMetadata, PluginContext, Event, Action, Session, Pane, PaneType};
+use crate::manager::{Plugin, PluginMetadata, PluginContext, Event, Action, PaneType};
+use crate::state_manager::{SessionState, PaneState};
+use crate::simple_state_store::Session;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct SessionTemplate {
@@ -40,14 +42,14 @@ struct PaneCommand {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct SessionSnapshot {
-    session: Session,
+    session: SessionState,
     panes: Vec<PaneSnapshot>,
     timestamp: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct PaneSnapshot {
-    pane: Pane,
+    pane: PaneState,
     working_dir: Option<String>,
     command_history: Vec<String>,
     is_active: bool,
@@ -178,7 +180,7 @@ impl SessionPlugin {
                         session_id: session.id.clone(),
                         pane_type: layout_pane.pane_type.clone(),
                         command: None,
-                        shell_type: Some(crate::orchestrator::ShellType::detect()),
+                        shell_type: Some(crate::manager::ShellType::detect()),
                         name: Some(format!("Pane {}", pane_index + 1)),
                     }).await?;
                     pane_index += 1;
@@ -206,13 +208,14 @@ impl SessionPlugin {
         if let Some(ctx) = &self.context {
             // Get session info (would need to implement in orchestrator)
             let snapshot = SessionSnapshot {
-                session: Session {
+                session: SessionState {
                     id: session_id.to_string(),
                     name: "Current Session".to_string(),
                     panes: vec![],
                     active_pane: None,
                     created_at: Utc::now(),
                     updated_at: Utc::now(),
+                    layout: None,
                 },
                 panes: vec![],
                 timestamp: Utc::now(),

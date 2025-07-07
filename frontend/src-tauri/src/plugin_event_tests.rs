@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod plugin_event_tests {
-    use crate::orchestrator::{Plugin, PluginMetadata, PluginContext, Event, Orchestrator};
+    use crate::manager::{Plugin, PluginMetadata, PluginContext, Event, Manager};
     use async_trait::async_trait;
     use std::sync::{Arc, Mutex};
     use serde_json::Value;
@@ -75,27 +75,26 @@ mod plugin_event_tests {
         
         // Simulate receiving events
         plugin.handle_event(&Event::SessionCreated {
-            session: crate::orchestrator::Session {
+            session: crate::state_manager::SessionState {
                 id: "test-session".to_string(),
                 name: "Test".to_string(),
                 panes: vec![],
                 active_pane: None,
+                layout: None,
                 created_at: chrono::Utc::now(),
                 updated_at: chrono::Utc::now(),
             }
         }).await.unwrap();
         
         plugin.handle_event(&Event::PaneCreated {
-            pane: crate::orchestrator::Pane {
+            pane: crate::state_manager::PaneState {
                 id: "test-pane".to_string(),
                 session_id: "test-session".to_string(),
-                pane_type: crate::orchestrator::PaneType::Terminal,
-                tmux_id: None,
+                pane_type: crate::state_manager::PaneType::Terminal,
+                backend_id: None,
                 title: "Test Pane".to_string(),
                 working_dir: None,
                 command: None,
-                shell_type: None,
-                custom_name: None,
                 created_at: chrono::Utc::now(),
             }
         }).await.unwrap();
@@ -111,11 +110,12 @@ mod plugin_event_tests {
     fn test_event_type_matching() {
         // Test that event type matching works correctly
         let event = Event::SessionCreated {
-            session: crate::orchestrator::Session {
+            session: crate::state_manager::SessionState {
                 id: "test".to_string(),
                 name: "Test".to_string(),
                 panes: vec![],
                 active_pane: None,
+                layout: None,
                 created_at: chrono::Utc::now(),
                 updated_at: chrono::Utc::now(),
             }

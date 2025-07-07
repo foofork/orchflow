@@ -1,6 +1,6 @@
 use tauri::State;
 use serde::{Deserialize, Serialize};
-use crate::orchestrator::{Orchestrator, Action, ShellType, PaneType};
+use crate::manager::{Manager, Action, ShellType, PaneType};
 use crate::error::{OrchflowError, Result};
 use std::collections::HashMap;
 
@@ -26,7 +26,7 @@ pub struct TerminalInfo {
 /// Create a new terminal with advanced configuration
 #[tauri::command]
 pub async fn create_terminal(
-    orchestrator: State<'_, Orchestrator>,
+    manager: State<'_, Manager>,
     session_id: String,
     config: TerminalConfig,
 ) -> Result<TerminalInfo> {
@@ -39,14 +39,14 @@ pub async fn create_terminal(
         name: config.name.clone(),
     };
     
-    let result = orchestrator.execute_action(action).await
+    let result = manager.execute_action(action).await
         .map_err(|e| OrchflowError::TerminalError { 
             operation: "create_terminal".to_string(),
             reason: e 
         })?;
     
     // Parse the result into our TerminalInfo structure
-    let pane: crate::orchestrator::Pane = serde_json::from_value(result)
+    let pane: crate::state_manager::PaneState = serde_json::from_value(result)
         .map_err(|e| OrchflowError::ValidationError { 
             field: "pane_result".to_string(),
             reason: format!("Failed to parse pane: {}", e) 
@@ -54,8 +54,8 @@ pub async fn create_terminal(
     
     Ok(TerminalInfo {
         id: pane.id,
-        name: pane.custom_name.unwrap_or(pane.title),
-        shell_type: pane.shell_type,
+        name: pane.title,
+        shell_type: Some(ShellType::Bash), // Default to bash for now
         working_dir: pane.working_dir,
         session_id: pane.session_id,
         is_active: false, // TODO: Track active terminal
@@ -65,7 +65,7 @@ pub async fn create_terminal(
 /// Rename a terminal
 #[tauri::command]
 pub async fn rename_terminal(
-    orchestrator: State<'_, Orchestrator>,
+    manager: State<'_, Manager>,
     terminal_id: String,
     new_name: String,
 ) -> Result<()> {
@@ -74,7 +74,7 @@ pub async fn rename_terminal(
         name: new_name,
     };
     
-    orchestrator.execute_action(action).await
+    manager.execute_action(action).await
         .map_err(|e| OrchflowError::TerminalError { 
             operation: "rename_terminal".to_string(),
             reason: e 
@@ -141,11 +141,11 @@ pub struct ShellInfo {
 /// Get terminal groups (organized by project/feature)
 #[tauri::command]
 pub async fn get_terminal_groups(
-    orchestrator: State<'_, Orchestrator>,
+    manager: State<'_, Manager>,
     session_id: String,
 ) -> Result<Vec<TerminalGroup>> {
     // Get all panes for the session
-    let panes = orchestrator.state_manager.list_panes(&session_id).await;
+    let panes = manager.state_manager.list_panes(&session_id).await;
     
     // Group terminal panes by working directory
     let mut groups: std::collections::HashMap<String, Vec<String>> = std::collections::HashMap::new();
@@ -192,7 +192,7 @@ pub struct TerminalGroup {
 /// Create a terminal template (for common configurations)
 #[tauri::command]
 pub async fn save_terminal_template(
-    orchestrator: State<'_, Orchestrator>,
+    manager: State<'_, Manager>,
     name: String,
     config: TerminalConfig,
 ) -> Result<()> {
@@ -211,7 +211,7 @@ pub async fn save_terminal_template(
         })?;
     
     // Save to state store as a setting with template_ prefix
-    orchestrator.state_manager.set_setting(
+    manager.state_manager.set_setting(
         &format!("template_{}", name), 
         &config_json
     ).await.map_err(|e| OrchflowError::DatabaseError {
@@ -225,13 +225,13 @@ pub async fn save_terminal_template(
 /// Search terminal output across all panes
 #[tauri::command]
 pub async fn search_terminal_output(
-    orchestrator: State<'_, Orchestrator>,
+    manager: State<'_, Manager>,
     session_id: String,
     query: String,
     regex: bool,
 ) -> Result<Vec<SearchResult>> {
     // Use TerminalSearcher if available for more advanced searching
-    let terminal_searcher_lock = orchestrator.terminal_searcher.read().await;
+    let terminal_searcher_lock = manager.terminal_searcher.read().await;
     if let Some(terminal_searcher) = terminal_searcher_lock.as_ref() {
         let options = crate::terminal_search::SearchOptions {
             regex,
@@ -260,7 +260,7 @@ pub async fn search_terminal_output(
     }
     
     // Fallback to basic search if TerminalSearcher not available
-    let panes = orchestrator.state_manager.list_panes(&session_id).await;
+    let panes = manager.state_manager.list_panes(&session_id).await;
     
     let mut all_results = Vec::new();
     
@@ -271,7 +271,7 @@ pub async fn search_terminal_output(
         }
         
         // Get terminal output using GetOutput action
-        let result = orchestrator.execute_action(crate::orchestrator::Action::GetOutput {
+        let result = manager.execute_action(crate::manager::Action::GetPaneOutput {
             pane_id: pane.id.clone(),
             lines: Some(1000), // Get last 1000 lines
         }).await;

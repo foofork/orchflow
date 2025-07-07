@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 use regex::Regex;
-use crate::orchestrator::{Plugin, PluginMetadata, PluginContext, Event, Action, PaneType};
+use crate::manager::{Plugin, PluginMetadata, PluginContext, Event, Action, PaneType};
 
 #[derive(Debug, Clone)]
 enum TestFramework {
@@ -219,11 +219,11 @@ impl Plugin for TestRunnerPlugin {
     
     async fn handle_event(&mut self, event: &Event) -> Result<(), String> {
         match event {
-            Event::PaneOutput { pane_id, data } => {
+            Event::PaneOutput { pane_id, output, .. } => {
                 // If this is our test pane, parse the output
                 if Some(pane_id) == self.test_pane_id.as_ref() && self.is_running {
                     if let Some(framework) = self.current_framework.clone() {
-                        self.parse_test_output(data, &framework);
+                        self.parse_test_output(output, &framework);
                     }
                 }
             }

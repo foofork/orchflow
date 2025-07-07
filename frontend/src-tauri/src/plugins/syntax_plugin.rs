@@ -4,7 +4,7 @@ use serde_json::{json, Value};
 use std::collections::HashMap;
 use tree_sitter::{Language, Parser, Query, QueryCursor, QueryCapture, Node};
 use tree_sitter_highlight::{HighlightConfiguration, HighlightEvent, Highlighter};
-use crate::orchestrator::{Plugin, PluginMetadata, PluginContext, Event};
+use crate::manager::{Plugin, PluginMetadata, PluginContext, Event};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct ThemeColors {

@@ -8,7 +8,7 @@ pub mod syntax_plugin;
 pub mod search_plugin;
 pub mod language_config;
 
-use crate::orchestrator::{Plugin, PluginMetadata};
+use crate::manager::{Plugin, PluginMetadata};
 use std::collections::HashMap;
 use std::sync::Arc;
 

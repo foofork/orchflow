@@ -9,7 +9,7 @@ mod layout_commands;
 mod neovim;
 mod simple_state_store;
 // mod state_commands; // REMOVED - legacy module replaced by unified_state_commands
-mod orchestrator;
+mod manager;
 mod state_manager;
 mod unified_state_commands;
 mod terminal_commands;
@@ -26,7 +26,7 @@ mod websocket_server;
 mod modules;
 mod startup;
 mod updater;
-mod test_results;
+// mod test_results; // TODO: Migrate from SQLx to SimpleStateStore
 mod experimental;
 mod window_state;
 mod metrics;
@@ -42,13 +42,12 @@ use layout_commands::*;
 use neovim::*;
 // use simple_state_store::*; // Not needed - using unified_state_commands
 // Removed legacy state_commands - using unified_state_commands instead
-use orchestrator::{orchestrator_execute, orchestrator_subscribe};
-use unified_state_commands::*;
+// use unified_state_commands::*; // Using explicit imports in invoke_handler
 // use terminal_commands::*; // Unused top-level import - commands accessed via module::
 // use file_commands::*; // Unused top-level import - commands accessed via module::
 use modules::*;
 use updater::*;
-use test_results::*;
+// use test_results::*; // TODO: Migrate from SQLx to SimpleStateStore
 use metrics::*;
 use sharing_service::SharingService;
 use simple_state_store::SimpleStateStore;
@@ -100,7 +99,7 @@ async fn main() {
         .manage(SharingService::new())
         .manage(MetricsState::new())
         .manage({
-            let mut store = SimpleStateStore::new("orchflow.db").unwrap();
+            let mut store = SimpleStateStore::new_with_file("orchflow.db").unwrap();
             // Initialize SQLx pool synchronously in setup since we can't await here
             // The pool will be initialized during startup
             Arc::new(store)
@@ -139,28 +138,38 @@ async fn main() {
             check_for_update,
             download_and_install_update,
             get_current_version,
-            // Orchestrator commands
-            orchestrator_execute,
-            orchestrator_subscribe,
+            // Manager/Orchestrator commands
+            manager::orchestrator_execute,
+            manager::orchestrator_subscribe,
+            manager::list_plugins,
+            manager::get_plugin_metadata,
+            manager::persist_state,
+            manager::select_backend_pane,
+            manager::get_sessions,
+            manager::get_panes,
+            manager::get_command_history,
+            manager::list_directory,
+            manager::read_file,
+            manager::save_file,
+            manager::watch_file,
+            manager::unwatch_file,
             // Test results commands
-            create_test_suite,
-            start_test_run,
-            update_test_run,
-            add_test_result,
-            add_test_coverage,
-            get_test_history,
-            get_test_results,
-            get_test_coverage,
-            get_test_failure_trends,
+            // create_test_suite, // TODO: Migrate from SQLx to SimpleStateStore
+            // start_test_run, // TODO: Migrate from SQLx to SimpleStateStore
+            // update_test_run, // TODO: Migrate from SQLx to SimpleStateStore
+            // add_test_result, // TODO: Migrate from SQLx to SimpleStateStore
+            // add_test_coverage, // TODO: Migrate from SQLx to SimpleStateStore
+            // get_test_history, // TODO: Migrate from SQLx to SimpleStateStore
+            // get_test_results, // TODO: Migrate from SQLx to SimpleStateStore
+            // get_test_coverage, // TODO: Migrate from SQLx to SimpleStateStore
+            // get_test_failure_trends, // TODO: Migrate from SQLx to SimpleStateStore
             // Metrics commands
             get_system_metrics,
             // Unified State commands (NEW - using StateManager)
             unified_state_commands::create_session,
-            unified_state_commands::get_session,
             unified_state_commands::list_sessions,
             unified_state_commands::delete_session,
             unified_state_commands::create_pane,
-            unified_state_commands::get_pane,
             unified_state_commands::list_panes,
             unified_state_commands::delete_pane,
             unified_state_commands::get_unified_layout,
@@ -172,15 +181,14 @@ async fn main() {
             // Settings and modules (unified modern API)
             unified_state_commands::set_setting,
             unified_state_commands::get_setting,
-            unified_state_commands::install_module,
-            unified_state_commands::list_modules,
+            // unified_state_commands::install_module, // TODO: Implement through ModuleSystem
+            // unified_state_commands::list_modules, // TODO: Implement through ModuleSystem
             // Terminal commands (Enhanced Terminal Management)
             terminal_commands::create_terminal,
             terminal_commands::rename_terminal,
             terminal_commands::get_available_shells,
             terminal_commands::get_terminal_groups,
             terminal_commands::save_terminal_template,
-            terminal_commands::search_terminal_output,
             // File management commands
             file_commands::get_file_tree,
             file_commands::create_file,
@@ -214,7 +222,6 @@ async fn main() {
             file_watcher_commands::get_file_watcher_config,
             file_watcher_commands::clear_file_watch_buffer,
             // Command history commands
-            command_history_commands::search_command_history,
             command_history_commands::get_command_stats,
             command_history_commands::get_command_suggestions,
             command_history_commands::cleanup_command_history,

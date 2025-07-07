@@ -172,11 +172,12 @@ impl ModuleLoader {
         
         // Update database
         self.state_store
-            .install_module(
-                manifest.name.clone(),
-                manifest.version.clone(),
-                serde_json::to_string(&manifest).unwrap(),
-            )
+            .install_module(crate::simple_state_store::CreateModule {
+                name: manifest.name.clone(),
+                version: manifest.version.clone(),
+                manifest: serde_json::to_string(&manifest).unwrap(),
+                enabled: true,
+            })
             .await
             .map_err(|e| e.to_string())?;
         
@@ -207,6 +208,7 @@ impl ModuleLoader {
                     &format!("module.{}.config", name),
                     &config_json,
                 )
+                .await
                 .map_err(|e| e.to_string())?;
             
             Ok(())

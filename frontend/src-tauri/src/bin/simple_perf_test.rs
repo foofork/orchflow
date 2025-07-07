@@ -1,5 +1,5 @@
 use std::time::{Duration, Instant};
-use orchflow::orchestrator::{Action, ShellType, PaneType};
+use orchflow::manager::{Action, ShellType, PaneType};
 
 #[derive(Debug)]
 struct BenchmarkResult {
@@ -71,6 +71,7 @@ fn main() {
             },
             Action::SaveSession {
                 session_id: "session-1".to_string(),
+                name: Some("Test Session".to_string()),
             },
             Action::GetFileTree { path: None, max_depth: Some(3) },
             Action::SearchFiles {

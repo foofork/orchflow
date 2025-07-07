@@ -18,7 +18,7 @@ For desktop applications, we'll use **different communication methods** based on
 
 This avoids the overhead of TCP/WebSocket for local inter-process communication while maintaining flexibility for remote scenarios.
 
-## Current State
+## Current State (Updated Jan 2025)
 
 ### ✅ What Exists
 - Rust Manager fully functional with MuxBackend abstraction for terminal/file management
@@ -26,22 +26,60 @@ This avoids the overhead of TCP/WebSocket for local inter-process communication 
 - Both have WebSocket servers (Manager: 7777, Orchestrator: 3000) but they don't connect
 - Clear architectural separation and purpose
 - Configuration hooks exist but aren't wired up
+- **NEW**: Modular architecture - large files refactored into domain modules
+- **NEW**: Zero compilation errors achieved
+- **NEW**: SimpleStateStore replacing SQLx for persistence
 
-### 🚧 What's Missing (Nothing implemented yet)
+### 🚧 What's Missing 
 - No spawning logic to start TypeScript Orchestrator from Manager
 - No IPC mechanism for local communication (stdin/stdout, pipes, or local sockets)
 - No WebSocket client for remote orchestrator connection
 - No handlers on either side for inter-process communication
 - No feature detection or capability negotiation
+- **CRITICAL**: No real-time terminal output streaming infrastructure
+  - PTY management not implemented
+  - WebSocket terminal I/O not connected
+  - Terminal state synchronization missing
 
 ## Phase 1: Foundation (Weeks 1-2)
 
-### 1.0 Code Clarity Refactor
-- [ ] Rename `/frontend/src-tauri/src/orchestrator.rs` to `manager.rs`
-- [ ] Update all imports and references from `orchestrator` to `manager`
-- [ ] Update Rust struct/type names to use "Manager" instead of "Orchestrator"
-- [ ] Update Tauri command names to reflect manager terminology
-- [ ] Update all documentation references
+### 1.0 Code Clarity Refactor ✅ COMPLETE (Jan 2025)
+- [x] Rename `/frontend/src-tauri/src/orchestrator.rs` to `manager.rs`
+- [x] Update all imports and references from `orchestrator` to `manager`
+- [x] Update Rust struct/type names to use "Manager" instead of "Orchestrator"
+- [x] Keep Tauri command names (`orchestrator_execute`, etc.) for API compatibility
+- [x] Update all internal documentation references
+- [x] Preserve event names for future TypeScript Orchestrator integration
+- [x] Refactor all large files (500+ lines) into modular structures:
+  - manager.rs → 12 modules (6 core + 6 handlers)
+  - file_manager.rs → 7 modules
+  - error.rs → 13 domain-specific error modules
+  - state_manager.rs → 8 modules
+  - simple_state_store.rs → 8 modules (sessions, panes, layouts, etc.)
+  - Plugin files → modular structures
+- [x] Achieve zero compilation errors
+- [x] Fix all FileError vs FileOperationError usage
+- [x] Update SimpleStateStore API usage throughout codebase
+
+### 1.0.5 Terminal Streaming Infrastructure (CRITICAL - Before Integration)
+- [ ] **PTY Management**
+  - [ ] Implement portable-pty for cross-platform terminal creation
+  - [ ] Bidirectional I/O handling with proper buffering
+  - [ ] Terminal resize event handling
+- [ ] **WebSocket Terminal Protocol**
+  - [ ] Design message format for terminal I/O
+  - [ ] Implement output streaming from PTY to WebSocket
+  - [ ] Handle input from WebSocket to PTY
+  - [ ] Add control messages (resize, mode change)
+- [ ] **Terminal State Management**
+  - [ ] Track active terminal per pane
+  - [ ] Cursor position and selection tracking
+  - [ ] Terminal mode (normal/insert/visual)
+  - [ ] Scrollback buffer management
+- [ ] **Performance & Reliability**
+  - [ ] Output throttling/debouncing
+  - [ ] Reconnection handling
+  - [ ] Process monitoring and recovery
 
 ### 1.1 Local IPC for Sidecar Mode
 - [ ] Implement child process spawning in Rust Manager

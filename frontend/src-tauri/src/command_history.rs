@@ -232,26 +232,15 @@ impl CommandHistory {
     }
 }
 
-// Extension trait for SimpleStateStore
+// Extension trait for SimpleStateStore - TODO: Complete migration to new API
 impl SimpleStateStore {
     pub async fn save_command_history(&self, entry: CommandEntry) -> std::result::Result<(), String> {
-        let conn = self.conn.lock().unwrap();
+        let key = format!("command_history:{}", entry.id);
+        let data = serde_json::to_string(&entry)
+            .map_err(|e| format!("Failed to serialize command entry: {}", e))?;
         
-        conn.execute(
-            "INSERT INTO command_history (id, pane_id, session_id, command, timestamp, working_dir, exit_code, duration_ms, shell_type)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
-            rusqlite::params![
-                entry.id,
-                entry.pane_id,
-                entry.session_id,
-                entry.command,
-                entry.timestamp.naive_utc(),
-                entry.working_dir,
-                entry.exit_code,
-                entry.duration_ms,
-                entry.shell_type.as_ref().map(|s| format!("{:?}", s))
-            ],
-        ).map_err(|e| format!("Failed to save command history: {}", e))?;
+        self.set(&key, &data).await
+            .map_err(|e| format!("Failed to save command history: {}", e))?;
         
         Ok(())
     }
@@ -263,102 +252,126 @@ impl SimpleStateStore {
         session_id: Option<&str>,
         limit: usize,
     ) -> std::result::Result<Vec<CommandEntry>, String> {
-        let conn = self.conn.lock().unwrap();
-        
-        let mut sql = String::from(
-            "SELECT id, pane_id, session_id, command, timestamp, working_dir, exit_code, duration_ms, shell_type 
-             FROM command_history 
-             WHERE command LIKE ?1"
-        );
-        
-        let mut params: Vec<Box<dyn rusqlite::ToSql>> = vec![
-            Box::new(format!("%{}%", query))
-        ];
-        
-        if let Some(pane) = pane_id {
-            sql.push_str(" AND pane_id = ?2");
-            params.push(Box::new(pane.to_string()));
-        }
-        
-        if let Some(session) = session_id {
-            let param_idx = params.len() + 1;
-            sql.push_str(&format!(" AND session_id = ?{}", param_idx));
-            params.push(Box::new(session.to_string()));
-        }
-        
-        sql.push_str(" ORDER BY timestamp DESC LIMIT ?");
-        params.push(Box::new(limit as i64));
-        
-        let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
-        
-        let param_refs: Vec<&dyn rusqlite::ToSql> = params.iter().map(|p| p.as_ref()).collect();
-        
-        let entries = stmt.query_map(&param_refs[..], |row| {
-            Ok(CommandEntry {
-                id: row.get(0)?,
-                pane_id: row.get(1)?,
-                session_id: row.get(2)?,
-                command: row.get(3)?,
-                timestamp: DateTime::from_naive_utc_and_offset(row.get(4)?, Utc),
-                working_dir: row.get(5)?,
-                exit_code: row.get(6)?,
-                duration_ms: row.get(7)?,
-                shell_type: row.get::<_, Option<String>>(8)?
-                    .and_then(|s| serde_json::from_str(&format!("\"{}\"", s)).ok()),
-            })
-        }).map_err(|e| e.to_string())?;
+        // Get all command history keys
+        let keys = self.keys_with_prefix("command_history:").await
+            .map_err(|e| format!("Failed to get command history keys: {}", e))?;
         
         let mut results = Vec::new();
-        for entry in entries {
-            results.push(entry.map_err(|e| e.to_string())?);
+        let mut count = 0;
+        
+        // Search through stored command entries
+        for key in keys {
+            if count >= limit {
+                break;
+            }
+            
+            if let Ok(data) = self.get(&key).await {
+                if let Some(data) = data {
+                    if let Ok(entry) = serde_json::from_str::<CommandEntry>(&data) {
+                        // Filter by query, pane_id, and session_id
+                        let matches_query = entry.command.contains(query);
+                        let matches_pane = pane_id.map_or(true, |id| entry.pane_id == id);
+                        let matches_session = session_id.map_or(true, |id| entry.session_id == id);
+                        
+                        if matches_query && matches_pane && matches_session {
+                            results.push(entry);
+                            count += 1;
+                        }
+                    }
+                }
+            }
         }
+        
+        // Sort by timestamp descending
+        results.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
         
         Ok(results)
     }
     
     pub async fn get_command_stats(&self, limit: usize) -> std::result::Result<Vec<CommandStats>, String> {
-        let conn = self.conn.lock().unwrap();
+        // Get all command history entries
+        let keys = self.keys_with_prefix("command_history:").await
+            .map_err(|e| format!("Failed to get command history keys: {}", e))?;
         
-        let mut stmt = conn.prepare(
-            "SELECT 
-                command,
-                COUNT(*) as frequency,
-                MAX(timestamp) as last_used,
-                AVG(duration_ms) as avg_duration,
-                SUM(CASE WHEN exit_code = 0 THEN 1 ELSE 0 END) * 100.0 / COUNT(*) as success_rate
-             FROM command_history
-             GROUP BY command
-             ORDER BY frequency DESC
-             LIMIT ?1"
-        ).map_err(|e| e.to_string())?;
+        let mut command_data: std::collections::HashMap<String, (usize, DateTime<Utc>, Vec<u64>, usize)> = std::collections::HashMap::new();
         
-        let stats = stmt.query_map(rusqlite::params![limit as i64], |row| {
-            Ok(CommandStats {
-                command: row.get(0)?,
-                frequency: row.get(1)?,
-                last_used: DateTime::from_naive_utc_and_offset(row.get(2)?, Utc),
-                average_duration_ms: row.get(3)?,
-                success_rate: row.get(4)?,
-            })
-        }).map_err(|e| e.to_string())?;
-        
-        let mut results = Vec::new();
-        for stat in stats {
-            results.push(stat.map_err(|e| e.to_string())?);
+        // Collect data for each command
+        for key in keys {
+            if let Ok(data) = self.get(&key).await {
+                if let Some(data) = data {
+                    if let Ok(entry) = serde_json::from_str::<CommandEntry>(&data) {
+                        let (frequency, last_used, durations, successes) = command_data
+                            .entry(entry.command.clone())
+                            .or_insert((0, entry.timestamp, Vec::new(), 0));
+                        
+                        *frequency += 1;
+                        if entry.timestamp > *last_used {
+                            *last_used = entry.timestamp;
+                        }
+                        if let Some(duration) = entry.duration_ms {
+                            durations.push(duration);
+                        }
+                        if entry.exit_code == Some(0) {
+                            *successes += 1;
+                        }
+                    }
+                }
+            }
         }
         
-        Ok(results)
+        // Convert to CommandStats and sort by frequency
+        let mut stats: Vec<CommandStats> = command_data
+            .into_iter()
+            .map(|(command, (frequency, last_used, durations, successes))| {
+                let average_duration_ms = if durations.is_empty() {
+                    None
+                } else {
+                    Some(durations.iter().sum::<u64>() / durations.len() as u64)
+                };
+                let success_rate = if frequency > 0 {
+                    (successes as f32 / frequency as f32) * 100.0
+                } else {
+                    0.0
+                };
+                
+                CommandStats {
+                    command,
+                    frequency,
+                    last_used,
+                    average_duration_ms,
+                    success_rate,
+                }
+            })
+            .collect();
+        
+        stats.sort_by(|a, b| b.frequency.cmp(&a.frequency));
+        stats.truncate(limit);
+        
+        Ok(stats)
     }
     
     pub async fn delete_old_command_history(&self, cutoff: DateTime<Utc>) -> std::result::Result<usize, String> {
-        let conn = self.conn.lock().unwrap();
+        // Get all command history keys
+        let keys = self.keys_with_prefix("command_history:").await
+            .map_err(|e| format!("Failed to get command history keys: {}", e))?;
         
-        let deleted = conn.execute(
-            "DELETE FROM command_history WHERE timestamp < ?1",
-            rusqlite::params![cutoff.naive_utc()],
-        ).map_err(|e| format!("Failed to delete old command history: {}", e))?;
+        let mut deleted_count = 0;
         
-        Ok(deleted)
+        for key in keys {
+            if let Ok(data) = self.get(&key).await {
+                if let Some(data) = data {
+                    if let Ok(entry) = serde_json::from_str::<CommandEntry>(&data) {
+                        if entry.timestamp < cutoff {
+                            if self.delete(&key).await.is_ok() {
+                                deleted_count += 1;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        Ok(deleted_count)
     }
     
     pub async fn get_all_command_history(
@@ -366,51 +379,30 @@ impl SimpleStateStore {
         pane_id: Option<&str>,
         session_id: Option<&str>,
     ) -> std::result::Result<Vec<CommandEntry>, String> {
-        let conn = self.conn.lock().unwrap();
-        
-        let mut sql = String::from(
-            "SELECT id, pane_id, session_id, command, timestamp, working_dir, exit_code, duration_ms, shell_type 
-             FROM command_history WHERE 1=1"
-        );
-        
-        let mut params: Vec<Box<dyn rusqlite::ToSql>> = vec![];
-        
-        if let Some(pane) = pane_id {
-            sql.push_str(" AND pane_id = ?1");
-            params.push(Box::new(pane.to_string()));
-        }
-        
-        if let Some(session) = session_id {
-            let param_idx = params.len() + 1;
-            sql.push_str(&format!(" AND session_id = ?{}", param_idx));
-            params.push(Box::new(session.to_string()));
-        }
-        
-        sql.push_str(" ORDER BY timestamp DESC");
-        
-        let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
-        
-        let param_refs: Vec<&dyn rusqlite::ToSql> = params.iter().map(|p| p.as_ref()).collect();
-        
-        let entries = stmt.query_map(&param_refs[..], |row| {
-            Ok(CommandEntry {
-                id: row.get(0)?,
-                pane_id: row.get(1)?,
-                session_id: row.get(2)?,
-                command: row.get(3)?,
-                timestamp: DateTime::from_naive_utc_and_offset(row.get(4)?, Utc),
-                working_dir: row.get(5)?,
-                exit_code: row.get(6)?,
-                duration_ms: row.get(7)?,
-                shell_type: row.get::<_, Option<String>>(8)?
-                    .and_then(|s| serde_json::from_str(&format!("\"{}\"", s)).ok()),
-            })
-        }).map_err(|e| e.to_string())?;
+        // Get all command history keys
+        let keys = self.keys_with_prefix("command_history:").await
+            .map_err(|e| format!("Failed to get command history keys: {}", e))?;
         
         let mut results = Vec::new();
-        for entry in entries {
-            results.push(entry.map_err(|e| e.to_string())?);
+        
+        for key in keys {
+            if let Ok(data) = self.get(&key).await {
+                if let Some(data) = data {
+                    if let Ok(entry) = serde_json::from_str::<CommandEntry>(&data) {
+                        // Filter by pane_id and session_id if provided
+                        let matches_pane = pane_id.map_or(true, |id| entry.pane_id == id);
+                        let matches_session = session_id.map_or(true, |id| entry.session_id == id);
+                        
+                        if matches_pane && matches_session {
+                            results.push(entry);
+                        }
+                    }
+                }
+            }
         }
+        
+        // Sort by timestamp descending
+        results.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
         
         Ok(results)
     }
