@@ -20,11 +20,11 @@ mod integration_tests {
     async fn test_backend_factory_with_env() {
         // Test tmux selection
         env::set_var("ORCH_MUX_BACKEND", "tmux");
-        let _backend = create_mux_backend();
+        let _backend = create_mux_backend_async().await;
         
         // Test muxd selection (falls back to tmux currently)
         env::set_var("ORCH_MUX_BACKEND", "muxd");
-        let _backend = create_mux_backend();
+        let _backend = create_mux_backend_async().await;
         
         // Clean up
         env::remove_var("ORCH_MUX_BACKEND");

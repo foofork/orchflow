@@ -24,7 +24,7 @@ mod benchmarks;
 pub use backend::{MuxBackend, MuxError, Session, Pane, SplitType, PaneSize};
 pub use tmux_backend::TmuxBackend;
 pub use muxd_backend::MuxdBackend;
-pub use factory::create_mux_backend;
+pub use factory::{create_mux_backend, create_mux_backend_async};
 
 #[cfg(test)]
 pub use mock_backend::MockBackend;
