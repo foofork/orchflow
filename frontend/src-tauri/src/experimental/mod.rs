@@ -1,2 +1,2 @@
 // Experimental features that may be integrated in the future
-pub mod test_parsers;
+// test_parsers removed - functionality moved to test_parser_commands.rs

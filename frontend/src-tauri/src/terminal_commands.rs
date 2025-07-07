@@ -231,7 +231,8 @@ pub async fn search_terminal_output(
     regex: bool,
 ) -> Result<Vec<SearchResult>> {
     // Use TerminalSearcher if available for more advanced searching
-    if let Some(terminal_searcher) = &orchestrator.terminal_searcher {
+    let terminal_searcher_lock = orchestrator.terminal_searcher.read().await;
+    if let Some(terminal_searcher) = terminal_searcher_lock.as_ref() {
         let options = crate::terminal_search::SearchOptions {
             regex,
             case_sensitive: true,

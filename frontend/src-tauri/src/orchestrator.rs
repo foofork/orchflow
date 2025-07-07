@@ -326,7 +326,7 @@ pub struct Orchestrator {
     pub file_watcher: Option<Arc<RwLock<AdvancedFileWatcher>>>,
     pub project_search: Option<Arc<AdvancedSearch>>,
     pub command_history: Arc<CommandHistory>,
-    pub terminal_searcher: Option<Arc<crate::terminal_search::TerminalSearcher>>,
+    pub terminal_searcher: Arc<RwLock<Option<Arc<crate::terminal_search::TerminalSearcher>>>>,
     
     // Plugin system
     plugins: Arc<RwLock<HashMap<String, Arc<tokio::sync::Mutex<Box<dyn Plugin>>>>>>,
@@ -368,9 +368,8 @@ impl Orchestrator {
         // Initialize command history
         let command_history = Arc::new(CommandHistory::new(store.clone()));
         
-        // We'll initialize terminal_searcher after the orchestrator is created
-        // because it needs a reference to the orchestrator
-        let terminal_searcher = None;
+        // Initialize as empty, will be set after orchestrator is created
+        let terminal_searcher = Arc::new(RwLock::new(None));
         
         let orchestrator = Self {
             state_manager,
@@ -416,6 +415,13 @@ impl Orchestrator {
         });
         
         orchestrator
+    }
+    
+    /// Initialize terminal searcher after orchestrator is created
+    pub async fn initialize_terminal_searcher(self: &Arc<Self>) {
+        let terminal_searcher = Arc::new(crate::terminal_search::TerminalSearcher::new(self.clone()));
+        let mut searcher_lock = self.terminal_searcher.write().await;
+        *searcher_lock = Some(terminal_searcher);
     }
     
     /// Create new orchestrator (backward compatibility - uses default MuxBackend)

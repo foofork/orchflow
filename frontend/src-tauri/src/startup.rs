@@ -66,6 +66,9 @@ pub async fn initialize_app(app: &AppHandle) -> Result<StartupMetrics, Box<dyn s
         state_store.clone(),
     ));
     
+    // Initialize terminal searcher after orchestrator is created
+    orchestrator.initialize_terminal_searcher().await;
+    
     // Initialize module loader
     let modules_dir = crate::app_dirs::get_project_dirs()?
         .data_subdir("modules")
