@@ -10,6 +10,7 @@ export interface Tab {
     filePath?: string;
     agentId?: string;
     command?: string;
+    paneId?: string;
   };
 }
 

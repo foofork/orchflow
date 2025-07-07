@@ -13,6 +13,8 @@ mod manager;
 mod state_manager;
 mod unified_state_commands;
 mod terminal_commands;
+mod terminal_stream;
+mod terminal_stream_commands;
 mod file_manager;
 mod file_commands;
 mod file_watcher;
@@ -67,6 +69,10 @@ async fn main() {
     tauri::Builder::default()
         .setup(|app| {
             let handle = app.handle();
+            
+            // Initialize terminal streaming manager
+            let terminal_stream_manager = Arc::new(terminal_stream::TerminalStreamManager::new(handle.clone()));
+            handle.manage(terminal_stream_manager);
             
             // Spawn async initialization without non-Send plugin registry
             let handle_clone = handle.clone();
@@ -189,6 +195,19 @@ async fn main() {
             terminal_commands::get_available_shells,
             terminal_commands::get_terminal_groups,
             terminal_commands::save_terminal_template,
+            // Terminal streaming commands
+            terminal_stream_commands::create_streaming_terminal,
+            terminal_stream_commands::send_terminal_input,
+            terminal_stream_commands::resize_streaming_terminal,
+            terminal_stream_commands::get_terminal_state,
+            terminal_stream_commands::stop_streaming_terminal,
+            terminal_stream_commands::send_terminal_key,
+            terminal_stream_commands::broadcast_terminal_input,
+            terminal_stream_commands::clear_terminal_scrollback,
+            terminal_stream_commands::search_streaming_terminal_output,
+            terminal_stream_commands::get_terminal_process_info,
+            terminal_stream_commands::monitor_terminal_health,
+            terminal_stream_commands::restart_terminal_process,
             // File management commands
             file_commands::get_file_tree,
             file_commands::create_file,

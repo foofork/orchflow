@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { browser } from '$app/environment';
-  import { orchestrator, terminalOutputs } from '$lib/stores/orchestrator';
+  import { manager, terminalOutputs } from '$lib/stores/manager';
   
   export let paneId: string;
   export let title: string = 'Terminal';
@@ -62,9 +62,9 @@
     terminal.open(container);
     fitAddon.fit();
     
-    // Handle input - now using the new orchestrator API
+    // Handle input - now using the new manager API
     terminal.onData((data: string) => {
-      orchestrator.sendInput(paneId, data);
+      manager.sendInput(paneId, data);
     });
     
     // Subscribe to output - structure is the same but source is different
@@ -84,8 +84,8 @@
         // Notify backend about terminal size
         const dimensions = fitAddon.proposeDimensions();
         if (dimensions) {
-          orchestrator.execute({
-            type: 'resize_pane',
+          manager.execute({
+            type: 'ResizePane',
             pane_id: paneId,
             width: dimensions.cols,
             height: dimensions.rows
@@ -97,11 +97,7 @@
     
     // Load existing output if any
     try {
-      const existingOutput = await orchestrator.execute<string>({
-        type: 'get_output',
-        pane_id: paneId,
-        lines: 1000
-      });
+      const existingOutput = await manager.getPaneOutput(paneId, 1000);
       if (existingOutput) {
         terminal.write(existingOutput);
       }
@@ -136,12 +132,12 @@
     // Ctrl+C to send interrupt
     else if (event.ctrlKey && event.key === 'c') {
       event.preventDefault();
-      orchestrator.sendInput(paneId, '\x03');
+      manager.sendInput(paneId, '\x03');
     }
     // Ctrl+D to send EOF
     else if (event.ctrlKey && event.key === 'd') {
       event.preventDefault();
-      orchestrator.sendInput(paneId, '\x04');
+      manager.sendInput(paneId, '\x04');
     }
   }
 </script>

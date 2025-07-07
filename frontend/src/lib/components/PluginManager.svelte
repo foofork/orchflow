@@ -1,70 +1,55 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { orchestratorClient } from '$lib/api/orchestrator-client';
+  import { plugins, loadedPlugins } from '$lib/stores/manager';
+  import { managerClient } from '$lib/api/manager-client';
+  import type { PluginInfo, PluginMetadata } from '$lib/api/manager-client';
   
-  interface Plugin {
-    id: string;
-    name: string;
-    version: string;
-    description: string;
-    author: { name: string; email?: string };
-    enabled: boolean;
-    status: 'loaded' | 'unloaded' | 'error';
-    permissions?: string[];
-  }
-  
-  let plugins: Plugin[] = [];
-  let loading = true;
+  let loading = false;
   let error: string | null = null;
-  let selectedPlugin: Plugin | null = null;
+  let selectedPlugin: PluginInfo | null = null;
+  let selectedMetadata: PluginMetadata | null = null;
   let showDetails = false;
   
-  onMount(() => {
-    loadPlugins();
-  });
+  // Plugins are automatically loaded via the store
+  $: availablePlugins = $plugins;
   
-  async function loadPlugins() {
+  async function refreshPlugins() {
     loading = true;
     error = null;
     
     try {
-      const result = await orchestratorClient.execute<Plugin[]>({ type: 'list_plugins' });
-      plugins = result;
+      await manager.refreshPlugins();
     } catch (err) {
-      error = err instanceof Error ? err.message : 'Failed to load plugins';
-      console.error('Failed to load plugins:', err);
+      error = err instanceof Error ? err.message : 'Failed to refresh plugins';
+      console.error('Failed to refresh plugins:', err);
     } finally {
       loading = false;
     }
   }
   
-  async function togglePlugin(plugin: Plugin) {
+  async function togglePlugin(plugin: PluginInfo) {
     try {
-      if (plugin.status === 'loaded') {
-        await orchestratorClient.execute({ 
-          type: 'unload_plugin', 
-          id: plugin.id 
-        });
-        plugin.status = 'unloaded';
-        plugin.enabled = false;
+      if (plugin.loaded) {
+        await manager.unloadPlugin(plugin.id);
       } else {
-        await orchestratorClient.execute({ 
-          type: 'load_plugin', 
-          id: plugin.id 
-        });
-        plugin.status = 'loaded';
-        plugin.enabled = true;
+        await manager.loadPlugin(plugin.id);
       }
-      plugins = plugins; // Trigger reactivity
     } catch (err) {
       console.error(`Failed to toggle plugin ${plugin.id}:`, err);
-      error = `Failed to ${plugin.status === 'loaded' ? 'unload' : 'load'} plugin`;
+      error = `Failed to ${plugin.loaded ? 'unload' : 'load'} plugin`;
     }
   }
   
-  function showPluginDetails(plugin: Plugin) {
+  async function showPluginDetails(plugin: PluginInfo) {
     selectedPlugin = plugin;
     showDetails = true;
+    
+    // Load full metadata
+    try {
+      selectedMetadata = await managerClient.getPluginMetadata(plugin.id);
+    } catch (err) {
+      console.error('Failed to load plugin metadata:', err);
+    }
   }
   
   function closeDetails() {
@@ -96,7 +81,7 @@
 <div class="plugin-manager">
   <div class="header">
     <h2>Plugin Manager</h2>
-    <button class="refresh-button" on:click={loadPlugins} disabled={loading}>
+    <button class="refresh-button" on:click={refreshPlugins} disabled={loading}>
       <svg class="icon" class:spinning={loading} width="16" height="16" viewBox="0 0 16 16" fill="none">
         <path d="M13.65 2.35a8 8 0 10-1.41 11.9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
         <path d="M11 2h3v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -133,9 +118,9 @@
             </div>
             <button 
               class="toggle-button"
-              class:active={plugin.status === 'loaded'}
+              class:active={plugin.loaded}
               on:click={() => togglePlugin(plugin)}
-              title={plugin.status === 'loaded' ? 'Disable plugin' : 'Enable plugin'}
+              title={plugin.loaded ? 'Disable plugin' : 'Enable plugin'}
             >
               <span class="toggle-slider" />
             </button>
@@ -176,23 +161,23 @@
             <dd>{selectedPlugin.version}</dd>
             
             <dt>Author</dt>
-            <dd>{selectedPlugin.author.name} {selectedPlugin.author.email ? `<${selectedPlugin.author.email}>` : ''}</dd>
+            <dd>{selectedMetadata?.author || selectedPlugin.author || 'Unknown'}</dd>
             
             <dt>Status</dt>
             <dd>
-              <span class="status-badge" style="background-color: {getStatusColor(selectedPlugin.status)}">
-                {selectedPlugin.status}
+              <span class="status-badge" style="background-color: {getStatusColor(selectedPlugin.loaded ? 'loaded' : 'unloaded')}">
+                {selectedPlugin.loaded ? 'loaded' : 'unloaded'}
               </span>
             </dd>
           </dl>
         </div>
         
-        {#if selectedPlugin.permissions && selectedPlugin.permissions.length > 0}
+        {#if selectedMetadata?.capabilities && selectedMetadata.capabilities.length > 0}
           <div class="detail-section">
-            <h4>Permissions</h4>
+            <h4>Capabilities</h4>
             <ul class="permissions-list">
-              {#each selectedPlugin.permissions as permission}
-                <li>{permission}</li>
+              {#each selectedMetadata.capabilities as capability}
+                <li>{capability}</li>
               {/each}
             </ul>
           </div>
@@ -200,17 +185,17 @@
         
         <div class="detail-section">
           <h4>Description</h4>
-          <p>{selectedPlugin.description}</p>
+          <p>{selectedMetadata?.description || selectedPlugin.description || 'No description available'}</p>
         </div>
       </div>
       
       <div class="modal-footer">
         <button 
           class="action-button"
-          class:danger={selectedPlugin.status === 'loaded'}
+          class:danger={selectedPlugin.loaded}
           on:click={() => togglePlugin(selectedPlugin)}
         >
-          {selectedPlugin.status === 'loaded' ? 'Disable Plugin' : 'Enable Plugin'}
+          {selectedPlugin.loaded ? 'Disable Plugin' : 'Enable Plugin'}
         </button>
       </div>
     </div>

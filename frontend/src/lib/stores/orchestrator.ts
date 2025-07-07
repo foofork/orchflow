@@ -1,5 +1,6 @@
 import { writable, derived } from 'svelte/store';
 import { orchestratorClient, type Session, type Pane, type OrchestratorEvent } from '../api/orchestrator-client';
+import type { Tab } from '../types';
 
 // ===== Store Types =====
 
@@ -12,6 +13,10 @@ interface OrchestratorState {
   isConnected: boolean;
   error?: string;
 }
+
+// ===== Tab Management Stores =====
+export const tabs = writable<Tab[]>([]);
+export const activeTabId = writable<string | null>(null);
 
 // ===== Main Store =====
 
@@ -263,8 +268,9 @@ export const terminalOutputs = derived(
 );
 
 // Utility function to get store value synchronously
-function get<T>(store: { subscribe: (fn: (value: T) => void) => void }): T | undefined {
+function get<T>(store: { subscribe: (fn: (value: T) => void) => () => void }): T | undefined {
   let value: T | undefined;
-  store.subscribe(v => value = v)();
+  const unsubscribe = store.subscribe(v => value = v);
+  unsubscribe();
   return value;
 }

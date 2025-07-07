@@ -8,25 +8,29 @@
   import StatusBar from '$lib/components/StatusBar.svelte';
   import ActivityBar from '$lib/components/ActivityBar.svelte';
   
-  // Content components
+  // Essential components loaded immediately
   import Terminal from '$lib/components/Terminal.svelte';
-  import DashboardEnhanced from '$lib/components/DashboardEnhanced.svelte';
-  import NeovimEditor from '$lib/components/NeovimEditor.svelte';
-  import TestResultsView from '$lib/components/TestResultsView.svelte';
   import UpdateNotification from '$lib/components/UpdateNotification.svelte';
-  import ShareDialog from '$lib/components/ShareDialog.svelte';
-  import ConfigPanel from '$lib/components/ConfigPanel.svelte';
   import CommandPalette from '$lib/components/CommandPalette.svelte';
-  import GitPanel from '$lib/components/GitPanel.svelte';
-  import SymbolOutline from '$lib/components/SymbolOutline.svelte';
-  import SettingsModal from '$lib/components/SettingsModal.svelte';
   
-  // Plugin components
-  import PluginManager from '$lib/components/PluginManager.svelte';
-  import PluginCommandPalette from '$lib/components/PluginCommandPalette.svelte';
+  // Lazy-loaded components
+  import LazyComponent from '$lib/components/LazyComponent.svelte';
+  import { preloadComponents } from '$lib/utils/lazyLoad';
   
-  // Stores - using new orchestrator
-  import { orchestrator, activeSession, activePane } from '$lib/stores/orchestrator';
+  // Component loaders for lazy loading
+  const DashboardEnhanced = () => import('$lib/components/DashboardEnhanced.svelte');
+  const NeovimEditor = () => import('$lib/components/NeovimEditor.svelte');
+  const TestResultsView = () => import('$lib/components/TestResultsView.svelte');
+  const ShareDialog = () => import('$lib/components/ShareDialog.svelte');
+  const ConfigPanel = () => import('$lib/components/ConfigPanel.svelte');
+  const GitPanel = () => import('$lib/components/GitPanel.svelte');
+  const SymbolOutline = () => import('$lib/components/SymbolOutline.svelte');
+  const SettingsModal = () => import('$lib/components/SettingsModal.svelte');
+  const PluginManager = () => import('$lib/components/PluginManager.svelte');
+  const PluginCommandPalette = () => import('$lib/components/PluginCommandPalette.svelte');
+  
+  // Stores - using new manager
+  import { manager, activeSession, activePane } from '$lib/stores/manager';
   import { settings } from '$lib/stores/settings';
   import { toggleTheme } from '$lib/services/theme';
   
@@ -80,8 +84,16 @@
     
     // Initialize with a default session
     if (!$activeSession) {
-      await orchestrator.createSession('Default Session');
+      await manager.createSession('Default Session');
     }
+    
+    // Preload commonly used components in the background
+    preloadComponents([
+      DashboardEnhanced,
+      PluginManager,
+      SettingsModal,
+      ShareDialog
+    ]);
     
     // Initialize Tauri-specific features
     if (isTauri && browser) {
@@ -141,11 +153,11 @@
   
   async function openTerminal() {
     if (!$activeSession) {
-      await orchestrator.createSession('Default Session');
+      await manager.createSession('Default Session');
     }
     
-    const pane = await orchestrator.createTerminal($activeSession!.id, {
-      title: 'Terminal'
+    const pane = await manager.createTerminal($activeSession!.id, {
+      name: 'Terminal'
     });
     
     const tab: Tab = {
@@ -220,7 +232,7 @@
     if (activeTab) {
       // If it's a terminal, close the pane
       if (activeTab.type === 'terminal' && activeTab.paneId) {
-        orchestrator.closePane(activeTab.paneId);
+        manager.closePane(activeTab.paneId);
       }
       
       // Remove from tabs
@@ -355,7 +367,9 @@
 <UpdateNotification />
 
 <!-- Share Dialog -->
-<ShareDialog bind:show={showShareDialog} />
+{#if showShareDialog}
+  <LazyComponent loader={ShareDialog} props={{ show: showShareDialog }} />
+{/if}
 
 <!-- Main Application -->
 <div class="app" class:sidebar-hidden={!sidebarVisible}>
@@ -408,25 +422,37 @@
               title={activeTab.title}
             />
           {:else if activeTab.type === 'dashboard'}
-            <DashboardEnhanced />
+            <LazyComponent loader={DashboardEnhanced} placeholder="Loading Dashboard..." />
           {:else if activeTab.type === 'file'}
-            <NeovimEditor 
-              filePath={activeTab.metadata?.filePath}
-              title={activeTab.title}
-              instanceId={activeTab.metadata?.instanceId}
+            <LazyComponent 
+              loader={NeovimEditor}
+              props={{
+                filePath: activeTab.metadata?.filePath,
+                title: activeTab.title,
+                instanceId: activeTab.metadata?.instanceId
+              }}
+              placeholder="Loading Editor..."
             />
           {:else if activeTab.type === 'test'}
-            <TestResultsView sessionId={$activeSession?.id || ''} />
+            <LazyComponent 
+              loader={TestResultsView}
+              props={{ sessionId: $activeSession?.id || '' }}
+              placeholder="Loading Test Results..."
+            />
           {:else if activeTab.type === 'settings'}
-            <ConfigPanel
-              title="Settings"
-              config={$settings}
-              show={true}
-              on:save={(e) => settings.update(() => e.detail)}
-              on:close={() => closeCurrentTab()}
+            <LazyComponent
+              loader={ConfigPanel}
+              props={{
+                title: "Settings",
+                config: $settings,
+                show: true,
+                onSave: (e) => settings.update(() => e.detail),
+                onClose: () => closeCurrentTab()
+              }}
+              placeholder="Loading Settings..."
             />
           {:else if activeTab.type === 'plugins'}
-            <PluginManager />
+            <LazyComponent loader={PluginManager} placeholder="Loading Plugin Manager..." />
           {/if}
         {:else}
           <div class="welcome">
@@ -498,10 +524,15 @@
   </div>
   
   <!-- Settings Modal -->
-  <SettingsModal
-    isOpen={showSettingsModal}
-    onClose={() => showSettingsModal = false}
-  />
+  {#if showSettingsModal}
+    <LazyComponent 
+      loader={SettingsModal}
+      props={{
+        isOpen: showSettingsModal,
+        onClose: () => showSettingsModal = false
+      }}
+    />
+  {/if}
   
   <!-- Command Palette -->
   <CommandPalette 
@@ -510,19 +541,34 @@
   />
   
   <!-- Plugin Command Palette -->
-  <PluginCommandPalette bind:show={showPluginCommands} />
+  {#if showPluginCommands}
+    <LazyComponent 
+      loader={PluginCommandPalette}
+      props={{ show: showPluginCommands }}
+    />
+  {/if}
   
   <!-- Git Panel -->
-  <GitPanel
-    bind:show={showGitPanel}
-    sessionId={$activeSession?.id || ''}
-  />
+  {#if showGitPanel}
+    <LazyComponent
+      loader={GitPanel}
+      props={{
+        show: showGitPanel,
+        sessionId: $activeSession?.id || ''
+      }}
+    />
+  {/if}
   
   <!-- Symbol Outline -->
-  <SymbolOutline
-    isOpen={showSymbolOutline}
-    onClose={() => showSymbolOutline = false}
-  />
+  {#if showSymbolOutline}
+    <LazyComponent
+      loader={SymbolOutline}
+      props={{
+        isOpen: showSymbolOutline,
+        onClose: () => showSymbolOutline = false
+      }}
+    />
+  {/if}
 </div>
 
 <style>

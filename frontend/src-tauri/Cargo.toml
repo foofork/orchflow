@@ -19,6 +19,14 @@ path = "src/main.rs"
 name = "perf_test" 
 path = "src/bin/perf_test.rs"
 
+[[bin]]
+name = "startup_test"
+path = "src/bin/startup_test.rs"
+
+[[bin]]
+name = "memory_test"
+path = "src/bin/memory_test.rs"
+
 [build-dependencies]
 tauri-build = { version = "1.5", features = [] }
 
@@ -48,6 +56,11 @@ reqwest = { version = "0.11", features = ["multipart", "json"] }
 whoami = "1.4"
 regex = "1.10"
 sysinfo = "0.30"
+which = "6.0"
+portable-pty = "0.8"
+bytes = "1.5"
+crossbeam-channel = "0.5"
+base64 = "0.21"
 thiserror = "1.0"
 log = "0.4"
 tracing = "0.1"
