@@ -97,6 +97,7 @@ num_cpus = "1.16"
 [dev-dependencies]
 tempfile = "3.8"
 criterion = { version = "0.5", features = ["html_reports"] }
+futures = "0.3"
 
 # Plugin System
 wasmtime = "25.0"

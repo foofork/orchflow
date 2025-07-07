@@ -235,3 +235,6 @@ pub enum HealthStatus {
     Unhealthy(String),
     Stopped,
 }
+
+#[cfg(test)]
+mod tests;
