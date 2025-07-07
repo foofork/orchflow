@@ -1,0 +1,36 @@
+{
+  "name": "@orchflow/orchestrator",
+  "version": "0.1.0",
+  "description": "AI-driven orchestration layer for OrchFlow",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "license": "MIT OR Apache-2.0",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "demo": "tsx src/demo-unified.ts",
+    "demo:basic": "tsx src/demo.ts",
+    "demo:enhanced": "tsx src/enhanced-demo.ts",
+    "demo:gui": "tsx examples/gui-server.ts",
+    "start:gui": "tsx examples/gui-server.ts",
+    "test": "vitest",
+    "test:all": "tsx tests/test-all-features.ts",
+    "test:unit": "tsx tests/test-unit.ts",
+    "test:example": "tsx examples/unified-usage.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "ws": "^8.16.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/ws": "^8.5.10",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,0 +1,125 @@
+{
+  "id": "dev.orchflow.kubernetes",
+  "name": "Kubernetes Integration",
+  "version": "1.0.0",
+  "description": "Kubernetes cluster management for Orchflow",
+  "author": {
+    "name": "Orchflow Team",
+    "email": "plugins@orchflow.dev"
+  },
+  "repository": "https://github.com/orchflow/k8s-plugin",
+  "license": "MIT",
+  "engines": {
+    "orchflow": ">=1.0.0"
+  },
+  "main": "dist/index.js",
+  "activationEvents": [
+    "onCommand:k8s.getPods",
+    "onCommand:k8s.getServices",
+    "onCommand:k8s.apply",
+    "onFileSystem:*.yaml",
+    "onFileSystem:*.yml"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "k8s.getPods",
+        "title": "Kubernetes: Get Pods",
+        "category": "Kubernetes"
+      },
+      {
+        "command": "k8s.getServices",
+        "title": "Kubernetes: Get Services",
+        "category": "Kubernetes"
+      },
+      {
+        "command": "k8s.getDeployments",
+        "title": "Kubernetes: Get Deployments",
+        "category": "Kubernetes"
+      },
+      {
+        "command": "k8s.describe",
+        "title": "Kubernetes: Describe Resource",
+        "category": "Kubernetes"
+      },
+      {
+        "command": "k8s.logs",
+        "title": "Kubernetes: View Pod Logs",
+        "category": "Kubernetes"
+      },
+      {
+        "command": "k8s.exec",
+        "title": "Kubernetes: Execute in Pod",
+        "category": "Kubernetes"
+      },
+      {
+        "command": "k8s.apply",
+        "title": "Kubernetes: Apply Configuration",
+        "category": "Kubernetes"
+      },
+      {
+        "command": "k8s.delete",
+        "title": "Kubernetes: Delete Resource",
+        "category": "Kubernetes"
+      },
+      {
+        "command": "k8s.portForward",
+        "title": "Kubernetes: Port Forward",
+        "category": "Kubernetes"
+      },
+      {
+        "command": "k8s.switchContext",
+        "title": "Kubernetes: Switch Context",
+        "category": "Kubernetes"
+      }
+    ],
+    "configuration": {
+      "title": "Kubernetes",
+      "properties": {
+        "kubernetes.namespace": {
+          "type": "string",
+          "default": "default",
+          "description": "Default namespace"
+        },
+        "kubernetes.outputFormat": {
+          "type": "string",
+          "default": "wide",
+          "enum": ["wide", "json", "yaml"],
+          "description": "Default output format"
+        },
+        "kubernetes.autoRefresh": {
+          "type": "boolean",
+          "default": true,
+          "description": "Auto-refresh resource views"
+        }
+      }
+    },
+    "keybindings": [
+      {
+        "command": "k8s.getPods",
+        "key": "ctrl+k ctrl+p"
+      },
+      {
+        "command": "k8s.logs",
+        "key": "ctrl+k ctrl+l"
+      }
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "kubernetesExplorer",
+          "name": "Kubernetes",
+          "icon": "$(cloud)",
+          "when": "kubernetes.enabled"
+        }
+      ]
+    }
+  },
+  "permissions": [
+    "terminal.read",
+    "terminal.write",
+    "system.exec",
+    "filesystem.read",
+    "network.fetch"
+  ]
+}

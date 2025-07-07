@@ -1,0 +1,128 @@
+/* VS Code-inspired theme variables */
+:root {
+  /* Dark theme colors (default) */
+  --bg-primary: #1e1e1e;
+  --bg-secondary: #252526;
+  --bg-tertiary: #2d2d30;
+  --bg-active: #094771;
+  --bg-hover: #2a2d2e;
+  
+  --fg-primary: #cccccc;
+  --fg-secondary: #858585;
+  --fg-active: #ffffff;
+  
+  --border: #3e3e42;
+  --accent: #007acc;
+  --success: #4ec9b0;
+  --warning: #dcdcaa;
+  --error: #f44747;
+  
+  /* Syntax colors */
+  --syntax-keyword: #569cd6;
+  --syntax-string: #ce9178;
+  --syntax-comment: #6a9955;
+  --syntax-function: #dcdcaa;
+  
+  /* Modal backdrop */
+  --backdrop-color: rgba(0, 0, 0, 0.5);
+  
+  /* Fonts */
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Consolas', 'Courier New', monospace;
+  
+  /* Sizes */
+  --top-bar-height: 35px;
+  --status-bar-height: 22px;
+  --sidebar-width: 50px;
+  --tab-height: 35px;
+}
+
+/* Light theme */
+:root[data-theme="light"] {
+  /* Light theme colors */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f3f3f3;
+  --bg-tertiary: #ececec;
+  --bg-active: #0060c0;
+  --bg-hover: #e8e8e8;
+  
+  --fg-primary: #333333;
+  --fg-secondary: #6e6e6e;
+  --fg-active: #ffffff;
+  
+  --border: #e5e5e5;
+  --accent: #0066cc;
+  --success: #008000;
+  --warning: #cc6600;
+  --error: #cc0000;
+  
+  /* Syntax colors */
+  --syntax-keyword: #0000ff;
+  --syntax-string: #a31515;
+  --syntax-comment: #008000;
+  --syntax-function: #795e26;
+  
+  /* Modal backdrop */
+  --backdrop-color: rgba(0, 0, 0, 0.3);
+}
+
+/* Reset and base styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-family);
+  background: var(--bg-primary);
+  color: var(--fg-primary);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+/* Utility classes */
+.hidden {
+  display: none !important;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--fg-secondary);
+}
+
+/* Selection */
+::selection {
+  background: var(--accent);
+  color: var(--fg-active);
+}
+
+/* Focus styles */
+:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+button:focus,
+input:focus {
+  outline-offset: 0;
+}

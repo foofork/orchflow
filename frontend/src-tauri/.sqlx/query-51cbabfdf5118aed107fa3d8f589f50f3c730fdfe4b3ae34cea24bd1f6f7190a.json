@@ -1,0 +1,50 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT \n                id as \"id!: String\",\n                name as \"name!: String\",\n                tmux_session as \"tmux_session?: String\",\n                created_at as \"created_at!: NaiveDateTime\",\n                last_active as \"last_active!: NaiveDateTime\",\n                metadata as \"metadata?: String\"\n            FROM sessions\n            ORDER BY last_active DESC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: String",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "name!: String",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "tmux_session?: String",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at!: NaiveDateTime",
+        "ordinal": 3,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "last_active!: NaiveDateTime",
+        "ordinal": 4,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "metadata?: String",
+        "ordinal": 5,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true,
+      false,
+      true,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "51cbabfdf5118aed107fa3d8f589f50f3c730fdfe4b3ae34cea24bd1f6f7190a"
+}

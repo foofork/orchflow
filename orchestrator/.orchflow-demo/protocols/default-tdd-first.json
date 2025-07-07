@@ -1,0 +1,27 @@
+{
+  "type": "directive",
+  "name": "TDD First",
+  "description": "Always write tests before implementation",
+  "scope": "development",
+  "conditions": {
+    "taskType": [
+      "feature",
+      "bug-fix"
+    ]
+  },
+  "actions": {
+    "suggestCommands": [
+      "test",
+      "test:watch"
+    ],
+    "enforceOrder": [
+      "test",
+      "implement",
+      "refactor"
+    ]
+  },
+  "priority": 100,
+  "enabled": true,
+  "id": "default-tdd-first",
+  "createdAt": "2025-07-05T17:46:44.735Z"
+}

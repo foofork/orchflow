@@ -1,0 +1,108 @@
+{
+  "id": "dev.orchflow.docker",
+  "name": "Docker Integration",
+  "version": "1.0.0",
+  "description": "Docker container management for Orchflow",
+  "author": {
+    "name": "Orchflow Team",
+    "email": "plugins@orchflow.dev"
+  },
+  "repository": "https://github.com/orchflow/docker-plugin",
+  "license": "MIT",
+  "engines": {
+    "orchflow": ">=1.0.0"
+  },
+  "main": "dist/index.js",
+  "activationEvents": [
+    "onCommand:docker.ps",
+    "onCommand:docker.images",
+    "onCommand:docker.compose.up",
+    "onFileSystem:docker-compose.yml",
+    "onFileSystem:Dockerfile"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "docker.ps",
+        "title": "Docker: List Containers",
+        "category": "Docker"
+      },
+      {
+        "command": "docker.images",
+        "title": "Docker: List Images",
+        "category": "Docker"
+      },
+      {
+        "command": "docker.run",
+        "title": "Docker: Run Container",
+        "category": "Docker"
+      },
+      {
+        "command": "docker.stop",
+        "title": "Docker: Stop Container",
+        "category": "Docker"
+      },
+      {
+        "command": "docker.logs",
+        "title": "Docker: View Logs",
+        "category": "Docker"
+      },
+      {
+        "command": "docker.exec",
+        "title": "Docker: Execute Command",
+        "category": "Docker"
+      },
+      {
+        "command": "docker.compose.up",
+        "title": "Docker Compose: Up",
+        "category": "Docker"
+      },
+      {
+        "command": "docker.compose.down",
+        "title": "Docker Compose: Down",
+        "category": "Docker"
+      }
+    ],
+    "configuration": {
+      "title": "Docker",
+      "properties": {
+        "docker.defaultShell": {
+          "type": "string",
+          "default": "/bin/sh",
+          "description": "Default shell for docker exec"
+        },
+        "docker.showAllContainers": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show all containers (including stopped)"
+        }
+      }
+    },
+    "keybindings": [
+      {
+        "command": "docker.ps",
+        "key": "ctrl+shift+d p"
+      },
+      {
+        "command": "docker.compose.up",
+        "key": "ctrl+shift+d u"
+      }
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "dockerContainers",
+          "name": "Docker Containers",
+          "icon": "$(package)",
+          "when": "docker.enabled"
+        }
+      ]
+    }
+  },
+  "permissions": [
+    "terminal.read",
+    "terminal.write",
+    "system.exec",
+    "filesystem.read"
+  ]
+}

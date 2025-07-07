@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            UPDATE layouts\n            SET is_active = FALSE\n            WHERE session_id = ?1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "48cf11939e2dee81aace1e829523b038e8ba55450d0ce85212c468d37617ba21"
+}

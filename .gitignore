@@ -1,0 +1,21 @@
+# Ignore all root directory .md files except README.md
+/*.md
+!README.md
+
+# Common ignores
+node_modules/
+dist/
+build/
+*.log
+.DS_Store
+.env
+.env.local
+.env.*.local
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.iml
+coverage/
+.nyc_output/

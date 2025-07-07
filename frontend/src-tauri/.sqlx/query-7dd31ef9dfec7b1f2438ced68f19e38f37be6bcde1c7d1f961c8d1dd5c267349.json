@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            UPDATE panes\n            SET content = ?1\n            WHERE id = ?2\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "7dd31ef9dfec7b1f2438ced68f19e38f37be6bcde1c7d1f961c8d1dd5c267349"
+}

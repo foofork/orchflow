@@ -1,0 +1,23 @@
+<script lang="ts">
+  import { onMount } from 'svelte';
+  import { orchestrator } from '$lib/stores/orchestrator';
+  import UpdateNotification from '$lib/components/UpdateNotification.svelte';
+  import { initTheme, setupThemeShortcut } from '$lib/services/theme';
+  import '../app.css';
+  
+  onMount(() => {
+    // Initialize theme
+    initTheme();
+    setupThemeShortcut();
+    
+    // Connect to orchestrator on app start
+    orchestrator.connect();
+    
+    return () => {
+      orchestrator.disconnect();
+    };
+  });
+</script>
+
+<UpdateNotification />
+<slot />

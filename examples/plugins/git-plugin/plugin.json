@@ -1,0 +1,104 @@
+{
+  "id": "dev.orchflow.git",
+  "name": "Git Integration",
+  "version": "1.0.0",
+  "description": "Git version control integration for Orchflow",
+  "author": {
+    "name": "Orchflow Team",
+    "email": "plugins@orchflow.dev"
+  },
+  "repository": "https://github.com/orchflow/git-plugin",
+  "license": "MIT",
+  "engines": {
+    "orchflow": ">=1.0.0"
+  },
+  "main": "dist/index.js",
+  "activationEvents": [
+    "onCommand:git.status",
+    "onCommand:git.commit",
+    "onCommand:git.push",
+    "onCommand:git.pull",
+    "onFileSystem:.git"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "git.status",
+        "title": "Git: Status",
+        "category": "Git"
+      },
+      {
+        "command": "git.commit",
+        "title": "Git: Commit",
+        "category": "Git"
+      },
+      {
+        "command": "git.push",
+        "title": "Git: Push",
+        "category": "Git"
+      },
+      {
+        "command": "git.pull",
+        "title": "Git: Pull",
+        "category": "Git"
+      },
+      {
+        "command": "git.branch",
+        "title": "Git: Switch Branch",
+        "category": "Git"
+      },
+      {
+        "command": "git.diff",
+        "title": "Git: View Changes",
+        "category": "Git"
+      }
+    ],
+    "configuration": {
+      "title": "Git",
+      "properties": {
+        "git.autoFetch": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically fetch from remotes"
+        },
+        "git.confirmSync": {
+          "type": "boolean",
+          "default": true,
+          "description": "Confirm before synchronizing"
+        }
+      }
+    },
+    "keybindings": [
+      {
+        "command": "git.status",
+        "key": "ctrl+shift+g s"
+      },
+      {
+        "command": "git.commit",
+        "key": "ctrl+shift+g c"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "git.status"
+        },
+        {
+          "command": "git.commit"
+        },
+        {
+          "command": "git.push"
+        },
+        {
+          "command": "git.pull"
+        }
+      ]
+    }
+  },
+  "permissions": [
+    "terminal.read",
+    "terminal.write",
+    "filesystem.read",
+    "filesystem.write"
+  ]
+}

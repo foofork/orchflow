@@ -1,0 +1,20 @@
+{
+  "type": "pattern",
+  "name": "Smart File Navigation",
+  "description": "Intelligent file opening based on context",
+  "scope": "navigation",
+  "conditions": {
+    "fileType": [
+      "code",
+      "config"
+    ]
+  },
+  "actions": {
+    "useAgent": "file-navigator",
+    "cacheResults": true
+  },
+  "priority": 50,
+  "enabled": true,
+  "id": "default-smart-file-navigation",
+  "createdAt": "2025-07-05T17:46:44.736Z"
+}

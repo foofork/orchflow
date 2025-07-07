@@ -1,0 +1,50 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            INSERT INTO sessions (id, name, tmux_session, created_at, last_active)\n            VALUES (?1, ?2, ?3, ?4, ?5)\n            RETURNING \n                id as \"id!: String\",\n                name as \"name!: String\",\n                tmux_session as \"tmux_session?: String\",\n                created_at as \"created_at!: NaiveDateTime\",\n                last_active as \"last_active!: NaiveDateTime\",\n                metadata as \"metadata?: String\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: String",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "name!: String",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "tmux_session?: String",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at!: NaiveDateTime",
+        "ordinal": 3,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "last_active!: NaiveDateTime",
+        "ordinal": 4,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "metadata?: String",
+        "ordinal": 5,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": [
+      true,
+      false,
+      true,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "f29471f5e9505c02d8c4d183a80188a5863db60e29fea2928162a8993b2f2414"
+}
