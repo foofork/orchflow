@@ -55,49 +55,59 @@ function createManagerStore() {
         }),
 
         managerClient.onEvent('SessionDeleted', (event) => {
-          update(state => {
-            state.sessions = state.sessions.filter(s => s.id !== event.session_id);
-            if (state.activeSessionId === event.session_id) {
-              state.activeSessionId = state.sessions[0]?.id;
-            }
-            return state;
-          });
+          if (event.type === 'SessionDeleted') {
+            update(state => {
+              state.sessions = state.sessions.filter(s => s.id !== event.session_id);
+              if (state.activeSessionId === event.session_id) {
+                state.activeSessionId = state.sessions[0]?.id;
+              }
+              return state;
+            });
+          }
         }),
 
         managerClient.onEvent('PaneCreated', (event) => {
-          refreshPanes(event.session_id);
+          if (event.type === 'PaneCreated') {
+            refreshPanes(event.session_id);
+          }
         }),
 
         managerClient.onEvent('PaneClosed', (event) => {
-          update(state => {
-            state.panes.delete(event.pane_id);
-            state.terminalOutputs.delete(event.pane_id);
-            if (state.activePaneId === event.pane_id) {
-              const panes = Array.from(state.panes.values());
-              state.activePaneId = panes[0]?.id;
-            }
-            return state;
-          });
+          if (event.type === 'PaneClosed') {
+            update(state => {
+              state.panes.delete(event.pane_id);
+              state.terminalOutputs.delete(event.pane_id);
+              if (state.activePaneId === event.pane_id) {
+                const panes = Array.from(state.panes.values());
+                state.activePaneId = panes[0]?.id;
+              }
+              return state;
+            });
+          }
         }),
 
         managerClient.onEvent('PaneOutput', (event) => {
-          update(state => {
-            const outputs = state.terminalOutputs.get(event.pane_id) || [];
-            outputs.push(event.data);
-            // Keep last 1000 lines
-            if (outputs.length > 1000) {
-              outputs.splice(0, outputs.length - 1000);
-            }
-            state.terminalOutputs.set(event.pane_id, outputs);
-            return state;
-          });
+          if (event.type === 'PaneOutput') {
+            update(state => {
+              const outputs = state.terminalOutputs.get(event.pane_id) || [];
+              outputs.push(event.data);
+              // Keep last 1000 lines
+              if (outputs.length > 1000) {
+                outputs.splice(0, outputs.length - 1000);
+              }
+              state.terminalOutputs.set(event.pane_id, outputs);
+              return state;
+            });
+          }
         }),
 
         managerClient.onEvent('PaneFocused', (event) => {
-          update(state => ({
-            ...state,
-            activePaneId: event.pane_id
-          }));
+          if (event.type === 'PaneFocused') {
+            update(state => ({
+              ...state,
+              activePaneId: event.pane_id
+            }));
+          }
         }),
 
         managerClient.onEvent('PluginLoaded', (event) => {

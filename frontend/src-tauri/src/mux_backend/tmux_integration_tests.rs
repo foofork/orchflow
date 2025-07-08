@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tmux_integration_tests {
-    use crate::mux_backend::{TmuxBackend, MuxBackend, SplitType, PaneSize};
+    use crate::mux_backend::{MuxBackend, SplitType, PaneSize};
+    use crate::mux_backend::tmux_backend::TmuxBackend;
     use std::process::Command;
     
     /// Check if tmux is available on the system

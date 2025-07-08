@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { orchestratorClient } from '$lib/api/orchestrator-client';
+  import { ManagerClient } from '$lib/api/manager-client';
   
   interface PluginStatus {
     id: string;
@@ -14,29 +14,31 @@
   let showTooltip = false;
   let tooltipPlugin: PluginStatus | null = null;
   let tooltipElement: HTMLElement;
+  let pluginClient: ManagerClient;
   
   // Subscribe to plugin events
   onMount(async () => {
+    pluginClient = new ManagerClient();
     await loadPluginStatuses();
     
     // Subscribe to plugin events
-    await orchestratorClient.subscribe(['plugin_loaded', 'plugin_unloaded', 'plugin_event']);
+    await pluginClient.subscribe(['plugin_loaded', 'plugin_unloaded', 'plugin_event']);
     
     const unsubscribers = [
-      orchestratorClient.onEvent('plugin_loaded', (event) => {
-        if (event.type === 'plugin_loaded') {
+      pluginClient.onEvent('PluginLoaded', (event) => {
+        if (event.type === 'PluginLoaded') {
           loadPluginStatuses();
         }
       }),
       
-      orchestratorClient.onEvent('plugin_unloaded', (event) => {
-        if (event.type === 'plugin_unloaded') {
+      pluginClient.onEvent('PluginUnloaded', (event) => {
+        if (event.type === 'PluginUnloaded') {
           loadPluginStatuses();
         }
       }),
       
-      orchestratorClient.onEvent('plugin_event', (event) => {
-        if (event.type === 'plugin_event' && event.event_type === 'status_update') {
+      pluginClient.onEvent('PluginEvent', (event) => {
+        if (event.type === 'PluginEvent' && event.event_type === 'status_update') {
           updatePluginStatus(event.plugin_id, event.data);
         }
       })
@@ -49,10 +51,10 @@
   
   async function loadPluginStatuses() {
     try {
-      const loadedPlugins = await orchestratorClient.execute<any[]>({ type: 'list_plugins' });
+      const loadedPlugins = await pluginClient.listPlugins();
       
       plugins = loadedPlugins
-        .filter(p => p.status === 'loaded')
+        .filter(p => p.loaded)
         .map(p => ({
           id: p.id,
           name: p.name,

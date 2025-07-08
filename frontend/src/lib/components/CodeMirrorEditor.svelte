@@ -36,7 +36,7 @@
   };
   
   function getLanguageSupport(lang: string) {
-    return languages[lang] || languages.javascript;
+    return languages[lang as keyof typeof languages] || languages.javascript;
   }
   
   onMount(async () => {

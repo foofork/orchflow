@@ -6,10 +6,13 @@
   --bg-tertiary: #2d2d30;
   --bg-active: #094771;
   --bg-hover: #2a2d2e;
+  --bg-selection: #3a3d41;
   
   --fg-primary: #cccccc;
   --fg-secondary: #858585;
+  --fg-tertiary: #666666;
   --fg-active: #ffffff;
+  --fg-selection: #ffffff;
   
   --border: #3e3e42;
   --accent: #007acc;
@@ -45,10 +48,13 @@
   --bg-tertiary: #ececec;
   --bg-active: #0060c0;
   --bg-hover: #e8e8e8;
+  --bg-selection: #add6ff;
   
   --fg-primary: #333333;
   --fg-secondary: #6e6e6e;
+  --fg-tertiary: #999999;
   --fg-active: #ffffff;
+  --fg-selection: #ffffff;
   
   --border: #e5e5e5;
   --accent: #0066cc;

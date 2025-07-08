@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod benchmarks {
     use super::super::*;
+    use crate::mux_backend::tmux_backend::TmuxBackend;
     use std::time::{Duration, Instant};
     
     /// Benchmark result for a single operation

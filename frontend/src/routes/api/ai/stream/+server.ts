@@ -23,7 +23,7 @@ export const POST: RequestHandler = async ({ request }) => {
     if (selection?.text) {
       const lines = selection.text.split('\n');
       diff = `@@ -${selection.start},${lines.length} +${selection.start},${lines.length} @@\n`;
-      lines.forEach(line => {
+      lines.forEach((line: string) => {
         diff += `-${line}\n`;
         diff += `+${line} // refactored\n`;
       });
@@ -37,7 +37,7 @@ export const POST: RequestHandler = async ({ request }) => {
       diff += `+/**\n`;
       diff += `+ * Documentation for this code\n`;
       diff += `+ */\n`;
-      lines.forEach(line => {
+      lines.forEach((line: string) => {
         diff += ` ${line}\n`;
       });
     }

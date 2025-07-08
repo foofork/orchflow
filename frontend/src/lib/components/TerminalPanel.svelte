@@ -1,0 +1,728 @@
+<script lang="ts">
+  import { createEventDispatcher, onMount, onDestroy } from 'svelte';
+  import { writable, derived } from 'svelte/store';
+  import StreamingTerminal from './StreamingTerminal.svelte';
+  import { invoke } from '@tauri-apps/api/tauri';
+  
+  const dispatch = createEventDispatcher();
+  
+  interface Terminal {
+    id: string;
+    title: string;
+    cwd: string;
+    shell?: string;
+    isActive: boolean;
+    processId?: number;
+    isRunning: boolean;
+  }
+  
+  interface TerminalGroup {
+    id: string;
+    name: string;
+    terminals: string[];
+  }
+  
+  export let layout: 'single' | 'split-horizontal' | 'split-vertical' | 'grid' = 'single';
+  export let defaultShell: string | undefined = undefined;
+  
+  const terminals = writable<Terminal[]>([]);
+  const activeTerminalId = writable<string | null>(null);
+  const terminalGroups = writable<TerminalGroup[]>([]);
+  const availableShells = writable<string[]>([]);
+  
+  const activeTerminal = derived(
+    [terminals, activeTerminalId],
+    ([$terminals, $activeId]) => $terminals.find(t => t.id === $activeId) || null
+  );
+  
+  let terminalContainer: HTMLElement;
+  let showNewTerminalMenu = false;
+  let searchQuery = '';
+  let showSearchBar = false;
+  
+  onMount(async () => {
+    // Load available shells
+    try {
+      const shells = await invoke('get_available_shells');
+      availableShells.set(shells as string[]);
+    } catch (err) {
+      console.error('Failed to get available shells:', err);
+      availableShells.set(['/bin/bash', '/bin/zsh', '/bin/sh']);
+    }
+    
+    // Load saved terminal groups
+    loadTerminalGroups();
+  });
+  
+  async function createTerminal(shell?: string, cwd?: string, title?: string) {
+    try {
+      const terminalId = crypto.randomUUID();
+      const terminal: Terminal = {
+        id: terminalId,
+        title: title || `Terminal ${$terminals.length + 1}`,
+        cwd: cwd || await invoke('get_current_dir') as string,
+        shell: shell || defaultShell,
+        isActive: true,
+        isRunning: true
+      };
+      
+      // Set all other terminals as inactive
+      terminals.update(terms => terms.map(t => ({ ...t, isActive: false })));
+      
+      // Add new terminal
+      terminals.update(terms => [...terms, terminal]);
+      activeTerminalId.set(terminalId);
+      
+      dispatch('terminalCreated', { terminal });
+    } catch (err) {
+      console.error('Failed to create terminal:', err);
+      dispatch('error', { message: `Failed to create terminal: ${err}` });
+    }
+  }
+  
+  function closeTerminal(id: string) {
+    terminals.update(terms => {
+      const filtered = terms.filter(t => t.id !== id);
+      
+      // If closing active terminal, activate another
+      if ($activeTerminalId === id && filtered.length > 0) {
+        const newActive = filtered[filtered.length - 1];
+        newActive.isActive = true;
+        activeTerminalId.set(newActive.id);
+      } else if (filtered.length === 0) {
+        activeTerminalId.set(null);
+      }
+      
+      return filtered;
+    });
+    
+    dispatch('terminalClosed', { id });
+  }
+  
+  function activateTerminal(id: string) {
+    terminals.update(terms => terms.map(t => ({
+      ...t,
+      isActive: t.id === id
+    })));
+    activeTerminalId.set(id);
+    dispatch('terminalActivated', { id });
+  }
+  
+  function renameTerminal(id: string, newTitle: string) {
+    terminals.update(terms => terms.map(t => 
+      t.id === id ? { ...t, title: newTitle } : t
+    ));
+  }
+  
+  function splitTerminal(direction: 'horizontal' | 'vertical') {
+    const current = $activeTerminal;
+    if (!current) {
+      createTerminal();
+      return;
+    }
+    
+    // Update layout based on split direction
+    if (layout === 'single') {
+      layout = direction === 'horizontal' ? 'split-horizontal' : 'split-vertical';
+    } else if (layout === 'split-horizontal' || layout === 'split-vertical') {
+      layout = 'grid';
+    }
+    
+    // Create new terminal in same directory
+    createTerminal(current.shell, current.cwd, `${current.title} (2)`);
+  }
+  
+  async function broadcastCommand(command: string, groupId?: string) {
+    const targetTerminals = groupId 
+      ? $terminals.filter(t => {
+          const group = $terminalGroups.find(g => g.id === groupId);
+          return group?.terminals.includes(t.id);
+        })
+      : $terminals;
+    
+    try {
+      await invoke('broadcast_terminal_input', {
+        terminal_ids: targetTerminals.map(t => t.id),
+        input_type: 'text',
+        data: command + '\n'
+      });
+    } catch (err) {
+      console.error('Failed to broadcast command:', err);
+    }
+  }
+  
+  function createTerminalGroup(name: string, terminalIds: string[]) {
+    const group: TerminalGroup = {
+      id: crypto.randomUUID(),
+      name,
+      terminals: terminalIds
+    };
+    
+    terminalGroups.update(groups => [...groups, group]);
+    saveTerminalGroups();
+  }
+  
+  function loadTerminalGroups() {
+    const saved = localStorage.getItem('orchflow_terminal_groups');
+    if (saved) {
+      try {
+        terminalGroups.set(JSON.parse(saved));
+      } catch (err) {
+        console.error('Failed to load terminal groups:', err);
+      }
+    }
+  }
+  
+  function saveTerminalGroups() {
+    localStorage.setItem('orchflow_terminal_groups', JSON.stringify($terminalGroups));
+  }
+  
+  function handleTerminalKey(event: KeyboardEvent) {
+    // Handle keyboard shortcuts
+    const isMac = navigator.platform.toLowerCase().includes('mac');
+    const modKey = isMac ? event.metaKey : event.ctrlKey;
+    
+    if (modKey) {
+      switch (event.key) {
+        case 't':
+          event.preventDefault();
+          createTerminal();
+          break;
+        case 'w':
+          event.preventDefault();
+          if ($activeTerminalId) {
+            closeTerminal($activeTerminalId);
+          }
+          break;
+        case '\\':
+          event.preventDefault();
+          splitTerminal('vertical');
+          break;
+        case '-':
+          event.preventDefault();
+          splitTerminal('horizontal');
+          break;
+        case 'f':
+          event.preventDefault();
+          showSearchBar = !showSearchBar;
+          break;
+        case 'Tab':
+          event.preventDefault();
+          // Cycle through terminals
+          const terms = $terminals;
+          if (terms.length > 1) {
+            const currentIndex = terms.findIndex(t => t.id === $activeTerminalId);
+            const nextIndex = event.shiftKey 
+              ? (currentIndex - 1 + terms.length) % terms.length
+              : (currentIndex + 1) % terms.length;
+            activateTerminal(terms[nextIndex].id);
+          }
+          break;
+      }
+      
+      // Number keys to switch terminals
+      if (event.key >= '1' && event.key <= '9') {
+        event.preventDefault();
+        const index = parseInt(event.key) - 1;
+        if ($terminals[index]) {
+          activateTerminal($terminals[index].id);
+        }
+      }
+    }
+  }
+  
+  function getLayoutClasses() {
+    switch (layout) {
+      case 'split-horizontal':
+        return 'terminal-grid horizontal';
+      case 'split-vertical':
+        return 'terminal-grid vertical';
+      case 'grid':
+        return 'terminal-grid grid';
+      default:
+        return 'terminal-single';
+    }
+  }
+  
+  // Handle terminal output for process detection
+  function handleTerminalOutput(event: CustomEvent) {
+    const { terminalId, data } = event.detail;
+    
+    // Update terminal state based on output
+    terminals.update(terms => terms.map(t => {
+      if (t.id === terminalId) {
+        // You could parse the output here to detect running processes
+        // For now, just mark as running
+        return { ...t, isRunning: true };
+      }
+      return t;
+    }));
+  }
+</script>
+
+<div class="terminal-panel" on:keydown={handleTerminalKey}>
+  <div class="terminal-header">
+    <div class="terminal-tabs">
+      {#each $terminals as terminal}
+        <button
+          class="terminal-tab"
+          class:active={terminal.isActive}
+          on:click={() => activateTerminal(terminal.id)}
+          on:auxclick={(e) => { if (e.button === 1) closeTerminal(terminal.id); }}
+          title="{terminal.title} - {terminal.cwd}"
+        >
+          <span class="tab-icon">
+            {terminal.isRunning ? '🟢' : '⚫'}
+          </span>
+          <span class="tab-title">{terminal.title}</span>
+          <button
+            class="tab-close"
+            on:click|stopPropagation={() => closeTerminal(terminal.id)}
+          >
+            ×
+          </button>
+        </button>
+      {/each}
+      
+      <button
+        class="new-terminal-btn"
+        on:click={() => showNewTerminalMenu = !showNewTerminalMenu}
+        title="New Terminal"
+      >
+        +
+      </button>
+      
+      {#if showNewTerminalMenu}
+        <div class="new-terminal-menu">
+          <div class="menu-title">New Terminal</div>
+          {#each $availableShells as shell}
+            <button
+              class="menu-item"
+              on:click={() => {
+                createTerminal(shell);
+                showNewTerminalMenu = false;
+              }}
+            >
+              💻 {shell.split('/').pop()}
+            </button>
+          {/each}
+          <hr />
+          <button
+            class="menu-item"
+            on:click={() => {
+              splitTerminal('horizontal');
+              showNewTerminalMenu = false;
+            }}
+          >
+            ➖ Split Horizontal
+          </button>
+          <button
+            class="menu-item"
+            on:click={() => {
+              splitTerminal('vertical');
+              showNewTerminalMenu = false;
+            }}
+          >
+            ➕ Split Vertical
+          </button>
+        </div>
+      {/if}
+    </div>
+    
+    <div class="terminal-actions">
+      <button
+        class="action-btn"
+        on:click={() => splitTerminal('vertical')}
+        title="Split Vertical"
+      >
+        ⏸
+      </button>
+      <button
+        class="action-btn"
+        on:click={() => splitTerminal('horizontal')}
+        title="Split Horizontal"
+      >
+        ⏹
+      </button>
+      <button
+        class="action-btn"
+        on:click={() => showSearchBar = !showSearchBar}
+        title="Search (Ctrl+F)"
+        class:active={showSearchBar}
+      >
+        🔍
+      </button>
+      <button
+        class="action-btn"
+        on:click={() => dispatch('openSettings')}
+        title="Terminal Settings"
+      >
+        ⚙️
+      </button>
+    </div>
+  </div>
+  
+  {#if showSearchBar}
+    <div class="search-bar">
+      <input
+        type="text"
+        placeholder="Search terminal output..."
+        bind:value={searchQuery}
+        class="search-input"
+      />
+      <button class="search-btn">Find</button>
+      <button class="search-close" on:click={() => showSearchBar = false}>×</button>
+    </div>
+  {/if}
+  
+  <div class="terminal-container {getLayoutClasses()}" bind:this={terminalContainer}>
+    {#if $terminals.length === 0}
+      <div class="empty-state">
+        <div class="empty-icon">💻</div>
+        <h3>No terminals open</h3>
+        <p>Create a new terminal to get started</p>
+        <button class="primary-btn" on:click={() => createTerminal()}>
+          New Terminal
+        </button>
+      </div>
+    {:else}
+      {#each $terminals as terminal (terminal.id)}
+        <div
+          class="terminal-wrapper"
+          class:active={terminal.isActive}
+          style="display: {terminal.isActive || layout !== 'single' ? 'block' : 'none'}"
+        >
+          <StreamingTerminal
+            terminalId={terminal.id}
+            initialCwd={terminal.cwd}
+            shell={terminal.shell}
+            on:output={handleTerminalOutput}
+            on:exit={() => closeTerminal(terminal.id)}
+          />
+        </div>
+      {/each}
+    {/if}
+  </div>
+  
+  {#if $terminals.length > 0}
+    <div class="terminal-status">
+      <span class="status-item">
+        📁 {$activeTerminal?.cwd || 'Unknown'}
+      </span>
+      <span class="status-item">
+        🐚 {$activeTerminal?.shell?.split('/').pop() || 'Unknown'}
+      </span>
+      <span class="status-item">
+        📟 {$terminals.length} terminal{$terminals.length !== 1 ? 's' : ''}
+      </span>
+    </div>
+  {/if}
+</div>
+
+<style>
+  .terminal-panel {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-primary);
+    color: var(--fg-primary);
+  }
+  
+  .terminal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    height: 36px;
+  }
+  
+  .terminal-tabs {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    overflow-x: auto;
+    position: relative;
+  }
+  
+  .terminal-tabs::-webkit-scrollbar {
+    height: 3px;
+  }
+  
+  .terminal-tabs::-webkit-scrollbar-thumb {
+    background: var(--border);
+  }
+  
+  .terminal-tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: none;
+    border: none;
+    border-right: 1px solid var(--border);
+    color: var(--fg-secondary);
+    cursor: pointer;
+    font-size: 13px;
+    min-width: 120px;
+    max-width: 200px;
+    transition: all 0.2s;
+  }
+  
+  .terminal-tab:hover {
+    background: var(--bg-hover);
+    color: var(--fg-primary);
+  }
+  
+  .terminal-tab.active {
+    background: var(--bg-primary);
+    color: var(--fg-primary);
+  }
+  
+  .tab-icon {
+    font-size: 8px;
+  }
+  
+  .tab-title {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  .tab-close {
+    background: none;
+    border: none;
+    color: var(--fg-tertiary);
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 0 4px;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  
+  .terminal-tab:hover .tab-close {
+    opacity: 1;
+  }
+  
+  .tab-close:hover {
+    color: var(--fg-primary);
+  }
+  
+  .new-terminal-btn {
+    padding: 6px 12px;
+    background: none;
+    border: none;
+    color: var(--fg-secondary);
+    cursor: pointer;
+    font-size: 18px;
+    transition: all 0.2s;
+  }
+  
+  .new-terminal-btn:hover {
+    background: var(--bg-hover);
+    color: var(--fg-primary);
+  }
+  
+  .new-terminal-menu {
+    position: absolute;
+    top: 100%;
+    left: auto;
+    right: 60px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    min-width: 180px;
+    z-index: 100;
+  }
+  
+  .menu-title {
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--fg-secondary);
+    border-bottom: 1px solid var(--border);
+  }
+  
+  .menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 12px;
+    background: none;
+    border: none;
+    color: var(--fg-primary);
+    cursor: pointer;
+    font-size: 13px;
+    text-align: left;
+    transition: background 0.1s;
+  }
+  
+  .menu-item:hover {
+    background: var(--bg-hover);
+  }
+  
+  .terminal-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 8px;
+  }
+  
+  .action-btn {
+    background: none;
+    border: none;
+    color: var(--fg-secondary);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: all 0.2s;
+  }
+  
+  .action-btn:hover {
+    background: var(--bg-hover);
+    color: var(--fg-primary);
+  }
+  
+  .action-btn.active {
+    background: var(--bg-tertiary);
+    color: var(--fg-primary);
+  }
+  
+  .search-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+  }
+  
+  .search-input {
+    flex: 1;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 13px;
+    color: var(--fg-primary);
+    outline: none;
+  }
+  
+  .search-btn {
+    padding: 4px 12px;
+    background: var(--accent);
+    border: none;
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  
+  .search-close {
+    background: none;
+    border: none;
+    color: var(--fg-secondary);
+    cursor: pointer;
+    font-size: 18px;
+    padding: 0 4px;
+  }
+  
+  .terminal-container {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+  }
+  
+  .terminal-container.terminal-single {
+    display: block;
+  }
+  
+  .terminal-container.terminal-grid {
+    display: grid;
+    gap: 1px;
+    background: var(--border);
+  }
+  
+  .terminal-container.horizontal {
+    grid-template-rows: 1fr 1fr;
+  }
+  
+  .terminal-container.vertical {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .terminal-container.grid {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+  
+  .terminal-wrapper {
+    height: 100%;
+    background: var(--bg-primary);
+  }
+  
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 16px;
+    color: var(--fg-tertiary);
+  }
+  
+  .empty-icon {
+    font-size: 64px;
+    opacity: 0.5;
+  }
+  
+  .empty-state h3 {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--fg-secondary);
+    margin: 0;
+  }
+  
+  .empty-state p {
+    font-size: 14px;
+    margin: 0;
+  }
+  
+  .primary-btn {
+    padding: 8px 16px;
+    background: var(--accent);
+    border: none;
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: opacity 0.2s;
+  }
+  
+  .primary-btn:hover {
+    opacity: 0.9;
+  }
+  
+  .terminal-status {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 4px 12px;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--fg-secondary);
+  }
+  
+  .status-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+</style>

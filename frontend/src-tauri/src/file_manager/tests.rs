@@ -493,6 +493,8 @@ mod tests {
 #[cfg(all(test, not(target_os = "windows")))]
 mod unix_tests {
     use super::*;
+    use tempfile::TempDir;
+    use crate::file_manager::FileManager;
     
     #[tokio::test]
     async fn test_symlink_handling() -> Result<()> {

@@ -1,6 +1,8 @@
 #[cfg(test)]
 mod integration_tests {
     use super::super::*;
+    use crate::mux_backend::factory::create_mux_backend_async;
+    use crate::mux_backend::tmux_backend::TmuxBackend;
     use std::env;
     
     #[tokio::test]
