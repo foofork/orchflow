@@ -42,6 +42,8 @@ mod sharing_service;
 mod command_history_commands;
 mod backend_commands;
 mod test_parser_commands;
+#[cfg(test)]
+mod project_search_tests;
 
 use tmux::*;
 use layout::*;

@@ -6,6 +6,8 @@ pub mod history;
 pub mod tree;
 pub mod operations;
 pub mod utils;
+#[cfg(test)]
+mod tests;
 
 // Re-export commonly used types
 pub use types::{

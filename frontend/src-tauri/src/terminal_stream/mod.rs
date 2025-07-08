@@ -8,6 +8,8 @@ pub mod ipc_handler;
 pub mod protocol;
 pub mod state;
 pub mod buffer;
+#[cfg(test)]
+mod simple_tests;
 
 pub use pty_manager::{PtyManager, PtyHandle};
 pub use ipc_handler::{IpcHandler, TerminalEvent};

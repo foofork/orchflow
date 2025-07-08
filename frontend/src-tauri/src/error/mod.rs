@@ -22,6 +22,7 @@ pub use context::ErrorCategory;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use thiserror::Error;
+use std::io;
 
 // ===== Main Application Error Enum =====
 
@@ -328,3 +329,12 @@ impl OrchflowError {
 
 // ===== Result Type Alias =====
 pub type Result<T> = std::result::Result<T, OrchflowError>;
+
+// ===== Conversions =====
+impl From<io::Error> for OrchflowError {
+    fn from(err: io::Error) -> Self {
+        OrchflowError::FileError {
+            reason: err.to_string(),
+        }
+    }
+}
