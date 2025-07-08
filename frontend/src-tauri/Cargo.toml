@@ -88,7 +88,7 @@ dap = { version = "0.4.1-alpha1" }
 
 # File Watching
 notify = "6.1"
-notify-debouncer-mini = "0.4"
+notify-debouncer-mini = "0.6"
 
 # Search (from ripgrep)
 ignore = "0.4"
