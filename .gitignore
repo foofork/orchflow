@@ -1,6 +1,9 @@
-# Ignore all root directory .md files except README.md
+# Ignore all root directory .md files except README.md and important docs
 /*.md
 !README.md
+!DEVELOPMENT_ROADMAP.md
+!MANAGER_ORCHESTRATOR_INTEGRATION_ROADMAP.md
+!TESTING_SUMMARY.md
 
 # Common ignores
 node_modules/

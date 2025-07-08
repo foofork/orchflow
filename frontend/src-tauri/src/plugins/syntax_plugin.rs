@@ -2,8 +2,8 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::HashMap;
-use tree_sitter::{Language, Parser, Query, QueryCursor, QueryCapture, Node};
-use tree_sitter_highlight::{HighlightConfiguration, HighlightEvent, Highlighter};
+use tree_sitter::{Language, Parser, Node};
+use tree_sitter_highlight::{HighlightConfiguration, Highlighter};
 use crate::manager::{Plugin, PluginMetadata, PluginContext, Event};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -205,7 +205,7 @@ impl SyntaxPlugin {
         
         // Simple highlighting based on node types
         // (In real implementation, would use highlight configurations)
-        let mut cursor = tree.walk();
+        let cursor = tree.walk();
         self.visit_node(cursor.node(), code, &mut highlights);
         
         Ok(highlights)

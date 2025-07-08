@@ -3,7 +3,6 @@ use crate::manager::{Manager as OrchflowManager, Action, PaneType, ShellType};
 use tauri::Manager;
 use tauri::State;
 use crate::AppState;
-use serde_json::Value;
 
 #[tauri::command]
 pub async fn create_layout(session_id: String, state: State<'_, AppState>) -> Result<GridLayout, String> {

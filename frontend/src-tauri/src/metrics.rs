@@ -186,7 +186,7 @@ pub fn get_system_metrics(state: State<MetricsState>) -> Result<SystemMetrics, S
 }
 
 // WebSocket handler for streaming metrics
-pub async fn stream_metrics(state: State<'_, MetricsState>, mut tx: tokio::sync::mpsc::UnboundedSender<String>) {
+pub async fn stream_metrics(state: State<'_, MetricsState>, tx: tokio::sync::mpsc::UnboundedSender<String>) {
     let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(2));
     
     loop {

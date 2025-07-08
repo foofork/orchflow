@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
 use serde::{Deserialize, Serialize};
-use grep::regex::{RegexMatcher, RegexMatcherBuilder};
+use grep::regex::RegexMatcherBuilder;
 use grep::searcher::{Searcher, SearcherBuilder, Sink, SinkMatch};
 use ignore::{WalkBuilder, WalkState};
 use std::collections::HashMap;
@@ -71,10 +71,12 @@ impl Default for SearchOptions {
     }
 }
 
-/// Project-wide search engine
+/// Project-wide search engine with advanced features
 pub struct ProjectSearch {
     root_path: PathBuf,
     search_cache: Arc<RwLock<HashMap<String, Vec<FileSearchResult>>>>,
+    search_history: Arc<RwLock<Vec<String>>>,
+    saved_searches: Arc<RwLock<HashMap<String, SearchOptions>>>,
 }
 
 impl ProjectSearch {
@@ -82,11 +84,18 @@ impl ProjectSearch {
         Self {
             root_path,
             search_cache: Arc::new(RwLock::new(HashMap::new())),
+            search_history: Arc::new(RwLock::new(Vec::new())),
+            saved_searches: Arc::new(RwLock::new(HashMap::new())),
         }
     }
     
     /// Perform a project-wide search
     pub async fn search(&self, options: SearchOptions) -> Result<Vec<FileSearchResult>> {
+        // Add to history
+        if !options.pattern.is_empty() {
+            self.search_history.write().await.push(options.pattern.clone());
+        }
+        
         let search_path = options.path.as_ref().unwrap_or(&self.root_path);
         
         // Build the pattern matcher
@@ -235,70 +244,6 @@ impl ProjectSearch {
     pub async fn clear_cache(&self) {
         self.search_cache.write().await.clear();
     }
-}
-
-/// Collector for search matches within a file
-struct MatchCollector {
-    path: PathBuf,
-    matches: Vec<SearchMatch>,
-}
-
-impl MatchCollector {
-    fn new(path: PathBuf) -> Self {
-        Self {
-            path,
-            matches: Vec::new(),
-        }
-    }
-}
-
-impl Sink for MatchCollector {
-    type Error = std::io::Error;
-    
-    fn matched(&mut self, _searcher: &Searcher, mat: &SinkMatch<'_>) -> std::result::Result<bool, Self::Error> {
-        let line_text = String::from_utf8_lossy(mat.bytes()).to_string();
-        
-        let match_start = mat.absolute_byte_offset() as usize;
-        let match_end = match_start + mat.bytes().len();
-        
-        let search_match = SearchMatch {
-            line_number: mat.line_number().unwrap_or(0),
-            line_text: line_text.trim_end().to_string(),
-            match_start,
-            match_end,
-            context_before: vec![], // TODO: Implement context collection
-            context_after: vec![],  // TODO: Implement context collection
-        };
-        
-        self.matches.push(search_match);
-        Ok(true)
-    }
-}
-
-/// Advanced search features
-pub struct AdvancedSearch {
-    search_engine: ProjectSearch,
-    search_history: Arc<RwLock<Vec<String>>>,
-    saved_searches: Arc<RwLock<HashMap<String, SearchOptions>>>,
-}
-
-impl AdvancedSearch {
-    pub fn new(root_path: PathBuf) -> Self {
-        Self {
-            search_engine: ProjectSearch::new(root_path),
-            search_history: Arc::new(RwLock::new(Vec::new())),
-            saved_searches: Arc::new(RwLock::new(HashMap::new())),
-        }
-    }
-    
-    /// Search with history tracking
-    pub async fn search_with_history(&self, options: SearchOptions) -> Result<Vec<FileSearchResult>> {
-        // Add to history
-        self.search_history.write().await.push(options.pattern.clone());
-        
-        // Perform search
-        self.search_engine.search(options).await
-    }
     
     /// Save a search for later use
     pub async fn save_search(&self, name: String, options: SearchOptions) {
@@ -327,7 +272,7 @@ impl AdvancedSearch {
         replacement: &str,
         dry_run: bool,
     ) -> Result<Vec<ReplaceResult>> {
-        let search_results = self.search_engine.search(search_options.clone()).await?;
+        let search_results = self.search(search_options.clone()).await?;
         let mut replace_results = Vec::new();
         
         for file_result in search_results {
@@ -451,12 +396,46 @@ impl AdvancedSearch {
         
         Ok(count)
     }
+}
 
-    /// Clear search cache
-    pub async fn clear_cache(&self) {
-        self.search_engine.clear_cache().await;
+/// Collector for search matches within a file
+struct MatchCollector {
+    path: PathBuf,
+    matches: Vec<SearchMatch>,
+}
+
+impl MatchCollector {
+    fn new(path: PathBuf) -> Self {
+        Self {
+            path,
+            matches: Vec::new(),
+        }
     }
 }
+
+impl Sink for MatchCollector {
+    type Error = std::io::Error;
+    
+    fn matched(&mut self, _searcher: &Searcher, mat: &SinkMatch<'_>) -> std::result::Result<bool, Self::Error> {
+        let line_text = String::from_utf8_lossy(mat.bytes()).to_string();
+        
+        let match_start = mat.absolute_byte_offset() as usize;
+        let match_end = match_start + mat.bytes().len();
+        
+        let search_match = SearchMatch {
+            line_number: mat.line_number().unwrap_or(0),
+            line_text: line_text.trim_end().to_string(),
+            match_start,
+            match_end,
+            context_before: vec![], // TODO: Implement context collection
+            context_after: vec![],  // TODO: Implement context collection
+        };
+        
+        self.matches.push(search_match);
+        Ok(true)
+    }
+}
+
 
 /// Result of a replace operation
 #[derive(Debug, Clone, Serialize, Deserialize)]

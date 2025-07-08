@@ -14,8 +14,8 @@ pub mod replacer;
 pub mod commands;
 
 // Re-export main types for easy access
-pub use types::{SearchOptions, SearchResult, FileSearchRequest, FileSearchResponse};
-pub use types::{ReplaceRequest, ReplaceResponse, ReplaceResult};
+pub use types::{SearchOptions, FileSearchRequest};
+pub use types::ReplaceRequest;
 pub use commands::SearchCommands;
 
 use async_trait::async_trait;

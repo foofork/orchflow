@@ -3,6 +3,7 @@
   import { browser } from '$app/environment';
   import FileTree from './FileTree.svelte';
   import ContextMenu from './ContextMenu.svelte';
+  import Dialog from './Dialog.svelte';
   import type { TreeNode } from '$lib/types';
   
   const dispatch = createEventDispatcher();
@@ -13,6 +14,15 @@
   let error = '';
   let loading = false;
   let contextMenu: { x: number; y: number; node: TreeNode } | null = null;
+  
+  // Dialog states
+  let showNewFileDialog = false;
+  let showNewFolderDialog = false;
+  let showRenameDialog = false;
+  let showDeleteDialog = false;
+  let dialogInputValue = '';
+  let dialogError = '';
+  let currentNode: TreeNode | null = null;
   
   // Agent status tracking - in real implementation, this would come from orchestrator
   let agents = new Map<string, { status: string; pid?: number }>();
@@ -166,13 +176,21 @@
   }
   
   async function handleNewFile() {
-    // TODO: Implement new file dialog
-    dispatch('newFile');
+    const targetPath = selectedPath && tree.find(n => n.path === selectedPath)?.isDirectory 
+      ? selectedPath 
+      : rootPath;
+    dialogInputValue = '';
+    dialogError = '';
+    showNewFileDialog = true;
   }
   
   async function handleNewFolder() {
-    // TODO: Implement new folder dialog
-    dispatch('newFolder');
+    const targetPath = selectedPath && tree.find(n => n.path === selectedPath)?.isDirectory 
+      ? selectedPath 
+      : rootPath;
+    dialogInputValue = '';
+    dialogError = '';
+    showNewFolderDialog = true;
   }
   
   async function handleRefresh() {
@@ -182,15 +200,111 @@
   }
   
   function handleRename(node: TreeNode) {
-    // TODO: Implement rename functionality
-    console.log('Rename:', node.path);
+    currentNode = node;
+    dialogInputValue = node.name;
+    dialogError = '';
+    showRenameDialog = true;
     closeContextMenu();
   }
   
   function handleDelete(node: TreeNode) {
-    // TODO: Implement delete functionality
-    console.log('Delete:', node.path);
+    currentNode = node;
+    showDeleteDialog = true;
     closeContextMenu();
+  }
+  
+  async function createFile() {
+    if (!dialogInputValue.trim()) {
+      dialogError = 'File name cannot be empty';
+      return;
+    }
+    
+    try {
+      const targetDir = selectedPath && tree.find(n => n.path === selectedPath)?.isDirectory 
+        ? selectedPath 
+        : rootPath;
+      
+      const { invoke } = await import('@tauri-apps/api/tauri');
+      const { join } = await import('@tauri-apps/api/path');
+      
+      const newPath = await join(targetDir, dialogInputValue);
+      await invoke('create_file', { path: newPath, content: '' });
+      
+      showNewFileDialog = false;
+      await handleRefresh();
+      dispatch('fileCreated', newPath);
+    } catch (err) {
+      dialogError = `Failed to create file: ${err}`;
+    }
+  }
+  
+  async function createFolder() {
+    if (!dialogInputValue.trim()) {
+      dialogError = 'Folder name cannot be empty';
+      return;
+    }
+    
+    try {
+      const targetDir = selectedPath && tree.find(n => n.path === selectedPath)?.isDirectory 
+        ? selectedPath 
+        : rootPath;
+      
+      const { invoke } = await import('@tauri-apps/api/tauri');
+      const { join } = await import('@tauri-apps/api/path');
+      
+      const newPath = await join(targetDir, dialogInputValue);
+      await invoke('create_directory', { path: newPath });
+      
+      showNewFolderDialog = false;
+      await handleRefresh();
+      dispatch('folderCreated', newPath);
+    } catch (err) {
+      dialogError = `Failed to create folder: ${err}`;
+    }
+  }
+  
+  async function renameItem() {
+    if (!currentNode || !dialogInputValue.trim()) {
+      dialogError = 'Name cannot be empty';
+      return;
+    }
+    
+    if (dialogInputValue === currentNode.name) {
+      showRenameDialog = false;
+      return;
+    }
+    
+    try {
+      const { invoke } = await import('@tauri-apps/api/tauri');
+      const { dirname, join } = await import('@tauri-apps/api/path');
+      
+      const dir = await dirname(currentNode.path);
+      const newPath = await join(dir, dialogInputValue);
+      
+      await invoke('rename_path', { oldPath: currentNode.path, newPath });
+      
+      showRenameDialog = false;
+      await handleRefresh();
+      dispatch('itemRenamed', { oldPath: currentNode.path, newPath });
+    } catch (err) {
+      dialogError = `Failed to rename: ${err}`;
+    }
+  }
+  
+  async function deleteItem() {
+    if (!currentNode) return;
+    
+    try {
+      const { invoke } = await import('@tauri-apps/api/tauri');
+      await invoke('delete_path', { path: currentNode.path, permanent: false });
+      
+      showDeleteDialog = false;
+      await handleRefresh();
+      dispatch('itemDeleted', currentNode.path);
+    } catch (err) {
+      error = `Failed to delete: ${err}`;
+      showDeleteDialog = false;
+    }
   }
   
   function handleCopyPath(node: TreeNode) {
@@ -282,6 +396,116 @@
     </button>
   </ContextMenu>
 {/if}
+
+<!-- New File Dialog -->
+<Dialog 
+  title="New File" 
+  show={showNewFileDialog}
+  on:close={() => showNewFileDialog = false}
+>
+  <div class="dialog-form">
+    <label for="new-file-name">File name:</label>
+    <input 
+      id="new-file-name"
+      type="text" 
+      bind:value={dialogInputValue}
+      on:keydown={(e) => e.key === 'Enter' && createFile()}
+      placeholder="filename.txt"
+    />
+    {#if dialogError}
+      <div class="dialog-error">{dialogError}</div>
+    {/if}
+  </div>
+  
+  <div slot="actions">
+    <button class="btn btn-secondary" on:click={() => showNewFileDialog = false}>
+      Cancel
+    </button>
+    <button class="btn btn-primary" on:click={createFile}>
+      Create
+    </button>
+  </div>
+</Dialog>
+
+<!-- New Folder Dialog -->
+<Dialog 
+  title="New Folder" 
+  show={showNewFolderDialog}
+  on:close={() => showNewFolderDialog = false}
+>
+  <div class="dialog-form">
+    <label for="new-folder-name">Folder name:</label>
+    <input 
+      id="new-folder-name"
+      type="text" 
+      bind:value={dialogInputValue}
+      on:keydown={(e) => e.key === 'Enter' && createFolder()}
+      placeholder="folder-name"
+    />
+    {#if dialogError}
+      <div class="dialog-error">{dialogError}</div>
+    {/if}
+  </div>
+  
+  <div slot="actions">
+    <button class="btn btn-secondary" on:click={() => showNewFolderDialog = false}>
+      Cancel
+    </button>
+    <button class="btn btn-primary" on:click={createFolder}>
+      Create
+    </button>
+  </div>
+</Dialog>
+
+<!-- Rename Dialog -->
+<Dialog 
+  title="Rename" 
+  show={showRenameDialog}
+  on:close={() => showRenameDialog = false}
+>
+  <div class="dialog-form">
+    <label for="rename-input">New name:</label>
+    <input 
+      id="rename-input"
+      type="text" 
+      bind:value={dialogInputValue}
+      on:keydown={(e) => e.key === 'Enter' && renameItem()}
+    />
+    {#if dialogError}
+      <div class="dialog-error">{dialogError}</div>
+    {/if}
+  </div>
+  
+  <div slot="actions">
+    <button class="btn btn-secondary" on:click={() => showRenameDialog = false}>
+      Cancel
+    </button>
+    <button class="btn btn-primary" on:click={renameItem}>
+      Rename
+    </button>
+  </div>
+</Dialog>
+
+<!-- Delete Confirmation Dialog -->
+<Dialog 
+  title="Confirm Delete" 
+  show={showDeleteDialog}
+  on:close={() => showDeleteDialog = false}
+>
+  <div class="dialog-form">
+    <p>Are you sure you want to delete "{currentNode?.name}"?</p>
+    <p class="dialog-warning">This action will move the item to trash.</p>
+  </div>
+  
+  <div slot="actions">
+    <button class="btn btn-secondary" on:click={() => showDeleteDialog = false}>
+      Cancel
+    </button>
+    <button class="btn btn-danger" on:click={deleteItem}>
+      Delete
+    </button>
+  </div>
+</Dialog>
 
 <style>
   .file-explorer-enhanced {
@@ -413,5 +637,95 @@
     height: 1px;
     background: var(--border);
     margin: 4px 0;
+  }
+  
+  /* Dialog styles */
+  .dialog-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .dialog-form label {
+    font-size: 13px;
+    color: var(--fg-secondary);
+    font-weight: 500;
+  }
+  
+  .dialog-form input {
+    width: 100%;
+    padding: 8px 12px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--fg-primary);
+    font-size: 14px;
+    font-family: inherit;
+  }
+  
+  .dialog-form input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+  
+  .dialog-error {
+    color: var(--error);
+    font-size: 13px;
+    margin-top: 4px;
+  }
+  
+  .dialog-warning {
+    color: var(--warning);
+    font-size: 13px;
+    margin-top: 8px;
+  }
+  
+  .dialog-form p {
+    margin: 0;
+    font-size: 14px;
+    color: var(--fg-primary);
+  }
+  
+  /* Button styles */
+  .btn {
+    padding: 6px 16px;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.1s;
+  }
+  
+  .btn:active {
+    transform: scale(0.98);
+  }
+  
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+  }
+  
+  .btn-primary:hover {
+    background: var(--accent-hover);
+  }
+  
+  .btn-secondary {
+    background: var(--bg-tertiary);
+    color: var(--fg-primary);
+  }
+  
+  .btn-secondary:hover {
+    background: var(--bg-hover);
+  }
+  
+  .btn-danger {
+    background: var(--error);
+    color: white;
+  }
+  
+  .btn-danger:hover {
+    background: var(--error-hover);
   }
 </style>

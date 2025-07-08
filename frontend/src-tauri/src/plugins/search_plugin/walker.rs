@@ -3,7 +3,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use ignore::{WalkBuilder, WalkState};
+use ignore::WalkBuilder;
 use super::types::SearchOptions;
 use super::matcher::MatcherBuilder;
 

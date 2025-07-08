@@ -17,7 +17,7 @@ pub mod terminal;
 pub mod validation;
 
 // Re-export commonly used types
-pub use context::{ErrorCategory, ErrorContext, ErrorSeverity, ContextualError};
+pub use context::ErrorCategory;
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;

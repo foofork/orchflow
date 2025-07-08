@@ -12,11 +12,10 @@ pub mod buffer;
 pub use pty_manager::{PtyManager, PtyHandle};
 pub use ipc_handler::{IpcHandler, TerminalEvent};
 pub use protocol::{
-    TerminalMessage, TerminalInput, TerminalOutput, ControlMessage,
+    TerminalInput, ControlMessage,
     CreateTerminalOptions, TerminalMetadata,
 };
-pub use state::{TerminalState, TerminalMode, CursorPosition};
-pub use buffer::{ScrollbackBuffer, OutputBuffer};
+pub use state::{TerminalState, TerminalMode};
 
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -97,7 +96,7 @@ impl TerminalStreamManager {
         }
         
         // Update terminal state
-        if let Some(mut terminals) = self.terminals.write().await.get_mut(terminal_id) {
+        if let Some(terminals) = self.terminals.write().await.get_mut(terminal_id) {
             terminals.resize(rows, cols);
         }
         

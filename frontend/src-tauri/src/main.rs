@@ -111,7 +111,7 @@ async fn main() {
         .manage(SharingService::new())
         .manage(MetricsState::new())
         .manage({
-            let mut store = SimpleStateStore::new_with_file("orchflow.db").unwrap();
+            let store = SimpleStateStore::new_with_file("orchflow.db").unwrap();
             // Initialize SQLx pool synchronously in setup since we can't await here
             // The pool will be initialized during startup
             Arc::new(store)

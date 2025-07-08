@@ -1,7 +1,6 @@
 // LSP protocol implementation
 
 use serde_json::{json, Value};
-use lsp_types::*;
 
 pub struct LspProtocol;
 

@@ -9,7 +9,7 @@ pub mod utils;
 
 // Re-export commonly used types
 pub use types::{
-    FileNode, FileNodeType, GitStatus, FileOperation, FileOperationType,
+    FileNode, FileOperation,
     FileEntry, FileEntryType, FileOperationResult
 };
 

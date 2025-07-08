@@ -5,7 +5,6 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tauri::State;
-use uuid::Uuid;
 
 use crate::simple_state_store::SimpleStateStore;
 use crate::error::OrchflowError;

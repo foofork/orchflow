@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use serde_json::{json, Value};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use regex::Regex;
 use crate::manager::{Plugin, PluginMetadata, PluginContext, Event, Action, PaneType};
 

@@ -11,7 +11,7 @@ use bytes::Bytes;
 use serde::{Serialize, Deserialize};
 
 use super::pty_manager::PtyHandle;
-use super::protocol::{TerminalMessage, TerminalInput, TerminalOutput, ControlMessage};
+use super::protocol::{TerminalInput, ControlMessage};
 
 /// Events emitted to frontend
 #[derive(Debug, Clone, Serialize)]

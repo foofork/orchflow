@@ -2,15 +2,13 @@
 //
 // Tauri commands for terminal I/O streaming and management
 
-use tauri::{State, AppHandle};
+use tauri::State;
 use crate::terminal_stream::{
-    TerminalStreamManager, TerminalInput, CreateTerminalOptions,
-    TerminalEvent, TerminalMode, TerminalMetadata,
+    TerminalStreamManager, TerminalInput, TerminalMetadata,
 };
 use crate::error::Result;
 use serde_json::Value;
 use std::sync::Arc;
-use tokio::sync::RwLock;
 
 // Note: Terminal streaming manager should be initialized in main.rs setup, not via command
 

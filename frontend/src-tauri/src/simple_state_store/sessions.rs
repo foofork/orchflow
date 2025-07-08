@@ -1,7 +1,7 @@
 // Session management operations
 
 use rusqlite::{params, OptionalExtension, Result as SqliteResult};
-use chrono::{Utc, NaiveDateTime};
+use chrono::Utc;
 use uuid::Uuid;
 use super::types::{Session, CreateSession, UpdateSession};
 use super::connection::ConnectionManager;

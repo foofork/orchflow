@@ -2,7 +2,7 @@
 
 use std::path::Path;
 use tokio::fs;
-use super::types::{SearchOptions, ReplaceRequest, ReplaceResult};
+use super::types::{ReplaceRequest, ReplaceResult};
 use super::matcher::MatcherBuilder;
 
 pub struct TextReplacer;

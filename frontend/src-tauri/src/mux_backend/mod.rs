@@ -22,9 +22,7 @@ mod tmux_integration_tests;
 mod benchmarks;
 
 pub use backend::{MuxBackend, MuxError, Session, Pane, SplitType, PaneSize};
-pub use tmux_backend::TmuxBackend;
-pub use muxd_backend::MuxdBackend;
-pub use factory::{create_mux_backend, create_mux_backend_async};
+pub use factory::create_mux_backend;
 
 #[cfg(test)]
 pub use mock_backend::MockBackend;

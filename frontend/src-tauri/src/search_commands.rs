@@ -82,13 +82,16 @@ pub async fn search_text(
 #[tauri::command]
 pub async fn replace_in_files(
     manager: State<'_, Manager>,
-    _search_options: SearchOptions,
-    _replacement: String,
-    _dry_run: bool,
+    search_options: SearchOptions,
+    replacement: String,
+    dry_run: bool,
 ) -> Result<Vec<ReplaceResult>> {
-    if let Some(_project_search) = &manager.project_search {
-        // TODO: Implement replace_in_files functionality
-        Ok(Vec::new())
+    if let Some(project_search) = &manager.project_search {
+        project_search.replace_in_files(search_options, &replacement, dry_run).await
+            .map_err(|e| crate::error::OrchflowError::SearchError {
+                operation: "replace_in_files".to_string(),
+                reason: e.to_string(),
+            })
     } else {
         Err(crate::error::OrchflowError::ConfigurationError {
             component: "project_search".to_string(),
@@ -101,11 +104,10 @@ pub async fn replace_in_files(
 #[tauri::command]
 pub async fn get_search_history(
     manager: State<'_, Manager>,
-    _limit: Option<usize>,
+    limit: Option<usize>,
 ) -> Result<Vec<String>> {
-    if let Some(_project_search) = &manager.project_search {
-        // TODO: Implement search history functionality
-        Ok(Vec::new())
+    if let Some(project_search) = &manager.project_search {
+        Ok(project_search.get_history(limit.unwrap_or(50)).await)
     } else {
         Err(crate::error::OrchflowError::ConfigurationError {
             component: "project_search".to_string(),
@@ -118,11 +120,11 @@ pub async fn get_search_history(
 #[tauri::command]
 pub async fn save_search(
     manager: State<'_, Manager>,
-    _name: String,
-    _options: SearchOptions,
+    name: String,
+    options: SearchOptions,
 ) -> Result<()> {
-    if let Some(_project_search) = &manager.project_search {
-        // TODO: Implement save_search functionality
+    if let Some(project_search) = &manager.project_search {
+        project_search.save_search(name, options).await;
         Ok(())
     } else {
         Err(crate::error::OrchflowError::ConfigurationError {
@@ -136,11 +138,10 @@ pub async fn save_search(
 #[tauri::command]
 pub async fn load_saved_search(
     manager: State<'_, Manager>,
-    _name: String,
+    name: String,
 ) -> Result<Option<SearchOptions>> {
-    if let Some(_project_search) = &manager.project_search {
-        // TODO: Implement load_search functionality
-        Ok(None)
+    if let Some(project_search) = &manager.project_search {
+        Ok(project_search.load_search(&name).await)
     } else {
         Err(crate::error::OrchflowError::ConfigurationError {
             component: "project_search".to_string(),
