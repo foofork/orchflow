@@ -15,13 +15,16 @@ pub use types::{
     FileNode, FileOperation,
     FileEntry, FileEntryType, FileOperationResult
 };
+pub use git::{GitStatus, BranchInfo, FileGitStatus};
 
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
 use crate::error::Result;
 use history::OperationHistory;
 use tree::FileTreeCache;
 use operations::FileOperations;
 use trash::TrashManager;
+use git::{GitIntegration};
 
 pub struct FileManager {
     root_path: PathBuf,
@@ -29,6 +32,7 @@ pub struct FileManager {
     history: OperationHistory,
     operations: FileOperations,
     trash_manager: TrashManager,
+    git_integration: Option<Arc<Mutex<GitIntegration>>>,
     gitignore_patterns: Vec<String>,
     max_file_size: u64,
 }
@@ -49,12 +53,18 @@ impl FileManager {
             .join("orchflow");
         let trash_manager = TrashManager::new(app_data_dir);
         
+        // Try to initialize git integration
+        let git_integration = GitIntegration::new(&root_path)
+            .ok()
+            .map(|git| Arc::new(Mutex::new(git)));
+        
         Self {
             root_path,
             cache: cache.clone(),
             history: history.clone(),
             operations,
             trash_manager,
+            git_integration,
             gitignore_patterns: Vec::new(),
             max_file_size: 10 * 1024 * 1024, // 10MB default
         }
@@ -62,7 +72,13 @@ impl FileManager {
     
     /// Initialize the file manager (load gitignore patterns, etc.)
     pub async fn init(&mut self) -> Result<()> {
-        self.gitignore_patterns = git::load_gitignore_patterns(&self.root_path).await;
+        // If we have git integration, use it for gitignore patterns
+        if let Some(ref git) = self.git_integration {
+            // Git integration already loaded patterns
+        } else {
+            // Fall back to simple pattern loading
+            self.gitignore_patterns = git::load_gitignore_patterns(&self.root_path).await;
+        }
         Ok(())
     }
     
@@ -333,17 +349,80 @@ impl FileManager {
     pub async fn empty_trash(&self) -> Result<()> {
         self.trash_manager.empty_trash().await
     }
+    
+    // ===== Git Operations =====
+    
+    /// Check if a path is ignored by git
+    pub fn is_git_ignored(&self, path: &Path) -> bool {
+        if let Some(ref git) = self.git_integration {
+            git.lock().unwrap().check_ignore(path)
+        } else {
+            // Fall back to simple pattern matching
+            git::is_ignored(path, &self.gitignore_patterns)
+        }
+    }
+    
+    /// Get git status for a file
+    pub fn get_git_status(&self, path: &Path) -> Result<Option<FileGitStatus>> {
+        if let Some(ref git) = self.git_integration {
+            git.lock().unwrap().get_file_status(path)
+        } else {
+            Ok(None)
+        }
+    }
+    
+    /// Get git status for all files
+    pub fn get_all_git_statuses(&self) -> Result<std::collections::HashMap<PathBuf, FileGitStatus>> {
+        if let Some(ref git) = self.git_integration {
+            git.lock().unwrap().get_all_statuses()
+        } else {
+            Ok(std::collections::HashMap::new())
+        }
+    }
+    
+    /// Get current git branch info
+    pub fn get_git_branch_info(&self) -> Result<Option<BranchInfo>> {
+        if let Some(ref git) = self.git_integration {
+            Ok(Some(git.lock().unwrap().get_branch_info()?))
+        } else {
+            Ok(None)
+        }
+    }
+    
+    /// Check if repository has uncommitted changes
+    pub fn has_uncommitted_changes(&self) -> Result<bool> {
+        if let Some(ref git) = self.git_integration {
+            git.lock().unwrap().has_uncommitted_changes()
+        } else {
+            Ok(false)
+        }
+    }
+    
+    /// Check if git is available for this repository
+    pub fn has_git(&self) -> bool {
+        self.git_integration.is_some()
+    }
 }
 
 // Make FileManager cloneable by wrapping internals in Arc
 impl Clone for FileManager {
     fn clone(&self) -> Self {
+        // Note: GitIntegration is not cloneable, so we need to recreate it
+        let git_integration = if self.git_integration.is_some() {
+            GitIntegration::new(&self.root_path)
+                .ok()
+                .map(|git| Arc::new(Mutex::new(git)))
+        } else {
+            None
+        };
+        
         Self {
             root_path: self.root_path.clone(),
             cache: self.cache.clone(),
             history: self.history.clone(),
             operations: self.operations.clone(),
             trash_manager: self.trash_manager.clone(),
+            git_integration,
             gitignore_patterns: self.gitignore_patterns.clone(),
             max_file_size: self.max_file_size,
         }

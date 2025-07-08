@@ -43,6 +43,7 @@ mod command_history_commands;
 mod backend_commands;
 mod test_parser_commands;
 mod trash_commands;
+mod git_commands;
 #[cfg(test)]
 mod project_search_tests;
 
@@ -304,6 +305,13 @@ async fn main() {
             trash_commands::cleanup_old_trash,
             trash_commands::empty_trash,
             trash_commands::get_trash_location,
+            // Git commands
+            git_commands::get_file_git_status,
+            git_commands::get_all_git_statuses,
+            git_commands::get_git_branch_info,
+            git_commands::has_uncommitted_changes,
+            git_commands::has_git_integration,
+            git_commands::is_git_ignored,
             // Utility commands
             get_current_dir,
         ])

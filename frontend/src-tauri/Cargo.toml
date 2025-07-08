@@ -98,6 +98,9 @@ num_cpus = "1.16"
 # Trash functionality
 trash = "3.3"
 
+# Git integration
+git2 = "0.18"
+
 [dev-dependencies]
 tempfile = "3.8"
 criterion = { version = "0.5", features = ["html_reports"] }

@@ -109,7 +109,7 @@ impl FileTreeCache {
                 }
             }
             
-            if git::matches_gitignore_pattern(&path, gitignore_patterns) {
+            if git::is_ignored(&path, gitignore_patterns) {
                 continue;
             }
             
@@ -153,13 +153,14 @@ impl FileTreeCache {
             .unwrap_or_else(|_| Utc::now());
         
         let is_git_ignored = if check_git {
-            git::is_git_ignored(path).await || git::matches_gitignore_pattern(path, gitignore_patterns)
+            git::is_ignored(path, gitignore_patterns)
         } else {
             false
         };
         
         let git_status = if check_git && !is_git_ignored {
-            git::get_git_status(path).await
+            // Git status will be filled by FileManager when needed
+            None
         } else {
             None
         };

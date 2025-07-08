@@ -3,6 +3,7 @@
 use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
+use super::git::GitStatus;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileNode {
@@ -26,17 +27,7 @@ pub enum FileNodeType {
     Symlink,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum GitStatus {
-    Untracked,
-    Modified,
-    Added,
-    Deleted,
-    Renamed,
-    Copied,
-    Unmerged,
-}
+// GitStatus is now imported from git module
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileOperation {

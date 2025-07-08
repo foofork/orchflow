@@ -2,6 +2,8 @@
   import { onMount, onDestroy } from 'svelte';
   import { createEventDispatcher } from 'svelte';
   import { fade } from 'svelte/transition';
+  import Fuse from 'fuse.js';
+  import { invoke } from '@tauri-apps/api/tauri';
   
   export let show = false;
   
@@ -22,6 +24,39 @@
   let searchInput: HTMLInputElement;
   let filteredCommands: Command[] = [];
   let categories: string[] = [];
+  let hasGitIntegration = false;
+  let recentCommands: string[] = [];
+  let fuse: Fuse<Command>;
+  
+  // Check git availability on mount
+  async function checkGitAvailability() {
+    try {
+      hasGitIntegration = await invoke('has_git_integration');
+    } catch (err) {
+      console.error('Failed to check git availability:', err);
+      hasGitIntegration = false;
+    }
+  }
+  
+  // Load recent commands from localStorage
+  function loadRecentCommands() {
+    const stored = localStorage.getItem('orchflow_recent_commands');
+    if (stored) {
+      try {
+        recentCommands = JSON.parse(stored);
+      } catch (err) {
+        recentCommands = [];
+      }
+    }
+  }
+  
+  // Save recent command
+  function saveRecentCommand(commandId: string) {
+    if (!recentCommands.includes(commandId)) {
+      recentCommands = [commandId, ...recentCommands].slice(0, 10);
+      localStorage.setItem('orchflow_recent_commands', JSON.stringify(recentCommands));
+    }
+  }
   
   // All available commands
   const commands: Command[] = [
@@ -75,6 +110,18 @@
     { id: 'editor.moveLineDown', label: 'Move Line Down', icon: '⬇️', category: 'Editor', shortcut: 'Alt+Down', action: () => dispatch('command', { action: 'moveLineDown' }) },
     
     // Git Commands
+    { id: 'git.status', label: 'Git: Show Status', icon: '📊', category: 'Git', action: async () => {
+      if (hasGitIntegration) {
+        const status = await invoke('get_all_git_statuses');
+        dispatch('command', { action: 'gitStatus', data: status });
+      }
+    }, keywords: ['changes', 'diff'] },
+    { id: 'git.branch', label: 'Git: Show Branch Info', icon: '🌿', category: 'Git', action: async () => {
+      if (hasGitIntegration) {
+        const branch = await invoke('get_git_branch_info');
+        dispatch('command', { action: 'gitBranch', data: branch });
+      }
+    } },
     { id: 'git.commit', label: 'Git: Commit', icon: '💾', category: 'Git', shortcut: 'Ctrl+Enter', action: () => dispatch('command', { action: 'gitCommit' }) },
     { id: 'git.pull', label: 'Git: Pull', icon: '⬇️', category: 'Git', action: () => dispatch('command', { action: 'gitPull' }) },
     { id: 'git.push', label: 'Git: Push', icon: '⬆️', category: 'Git', action: () => dispatch('command', { action: 'gitPush' }) },
@@ -82,7 +129,6 @@
     { id: 'git.stage', label: 'Git: Stage Changes', icon: '➕', category: 'Git', action: () => dispatch('command', { action: 'gitStage' }) },
     { id: 'git.unstage', label: 'Git: Unstage Changes', icon: '➖', category: 'Git', action: () => dispatch('command', { action: 'gitUnstage' }) },
     { id: 'git.stash', label: 'Git: Stash Changes', icon: '📦', category: 'Git', action: () => dispatch('command', { action: 'gitStash' }) },
-    { id: 'git.branch', label: 'Git: Create Branch', icon: '🌿', category: 'Git', action: () => dispatch('command', { action: 'gitBranch' }) },
     { id: 'git.checkout', label: 'Git: Checkout Branch', icon: '🔀', category: 'Git', action: () => dispatch('command', { action: 'gitCheckout' }) },
     { id: 'git.merge', label: 'Git: Merge Branch', icon: '🔀', category: 'Git', action: () => dispatch('command', { action: 'gitMerge' }) },
     
@@ -118,6 +164,9 @@
     { id: 'help.releaseNotes', label: 'Release Notes', icon: '📋', category: 'Help', action: () => dispatch('command', { action: 'releaseNotes' }) },
     { id: 'help.reportIssue', label: 'Report Issue', icon: '🐛', category: 'Help', action: () => dispatch('command', { action: 'reportIssue' }) },
     { id: 'help.about', label: 'About', icon: 'ℹ️', category: 'Help', action: () => dispatch('command', { action: 'about' }) },
+    
+    // Trash command
+    { id: 'file.trash', label: 'Open Trash Manager', icon: '🗑️', category: 'File', action: () => dispatch('command', { action: 'openTrash' }), keywords: ['deleted', 'recycle', 'bin'] },
     
     // AI Commands
     { id: 'ai.assist', label: 'AI: Assist', icon: '🤖', category: 'AI', shortcut: 'Ctrl+Enter', action: () => dispatch('command', { action: 'aiAssist' }), keywords: ['copilot', 'claude'] },
@@ -161,63 +210,46 @@
   // Extract unique categories
   categories = [...new Set(commands.map(cmd => cmd.category).filter(Boolean))].sort();
   
-  // Fuzzy search function
-  function fuzzySearch(query: string, text: string): number {
-    if (!query) return 1;
-    
-    query = query.toLowerCase();
-    text = text.toLowerCase();
-    
-    // Exact match
-    if (text === query) return 1;
-    
-    // Starts with
-    if (text.startsWith(query)) return 0.9;
-    
-    // Contains
-    if (text.includes(query)) return 0.8;
-    
-    // Fuzzy match
-    let queryIndex = 0;
-    let textIndex = 0;
-    let score = 0;
-    
-    while (queryIndex < query.length && textIndex < text.length) {
-      if (query[queryIndex] === text[textIndex]) {
-        score++;
-        queryIndex++;
-      }
-      textIndex++;
-    }
-    
-    return queryIndex === query.length ? score / query.length * 0.7 : 0;
+  // Initialize Fuse.js
+  function initializeFuse() {
+    fuse = new Fuse(commands, {
+      keys: [
+        { name: 'label', weight: 0.5 },
+        { name: 'category', weight: 0.2 },
+        { name: 'keywords', weight: 0.3 }
+      ],
+      threshold: 0.4,
+      includeScore: true,
+      useExtendedSearch: true,
+      ignoreLocation: true
+    });
   }
   
   // Filter commands based on search query
   function filterCommands(query: string) {
     if (!query) {
-      filteredCommands = commands;
+      // Show recent commands first when no query
+      const recentCmds = commands.filter(cmd => recentCommands.includes(cmd.id));
+      const otherCmds = commands.filter(cmd => !recentCommands.includes(cmd.id));
+      
+      // Filter out git commands if git is not available
+      filteredCommands = [...recentCmds, ...otherCmds].filter(cmd => {
+        if (cmd.category === 'Git' && !hasGitIntegration) return false;
+        return true;
+      });
       return;
     }
     
     const startTime = performance.now();
     
-    const scored = commands.map(cmd => {
-      const labelScore = fuzzySearch(query, cmd.label);
-      const categoryScore = cmd.category ? fuzzySearch(query, cmd.category) * 0.5 : 0;
-      const keywordScore = cmd.keywords ? 
-        Math.max(...cmd.keywords.map(kw => fuzzySearch(query, kw))) * 0.7 : 0;
-      
-      return {
-        command: cmd,
-        score: Math.max(labelScore, categoryScore, keywordScore)
-      };
-    });
-    
-    filteredCommands = scored
-      .filter(item => item.score > 0.3)
-      .sort((a, b) => b.score - a.score)
-      .map(item => item.command);
+    const results = fuse.search(query);
+    filteredCommands = results
+      .map(result => result.item)
+      .filter(cmd => {
+        // Filter out git commands if git is not available
+        if (cmd.category === 'Git' && !hasGitIntegration) return false;
+        return true;
+      });
     
     const endTime = performance.now();
     console.log(`Command palette search took ${(endTime - startTime).toFixed(2)}ms`);
@@ -256,6 +288,7 @@
   
   function executeCommand(command: Command) {
     command.action();
+    saveRecentCommand(command.id);
     close();
   }
   
@@ -273,7 +306,11 @@
   
   $: filterCommands(searchQuery);
   
-  onMount(() => {
+  onMount(async () => {
+    await checkGitAvailability();
+    loadRecentCommands();
+    initializeFuse();
+    
     if (show && searchInput) {
       searchInput.focus();
     }
