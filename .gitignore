@@ -22,3 +22,12 @@ build/
 *.iml
 coverage/
 .nyc_output/
+
+# Claude-related files
+.claude/
+claude-flow
+claude-flow.bat
+claude-flow.ps1
+memory/
+hive*
+memory.db
