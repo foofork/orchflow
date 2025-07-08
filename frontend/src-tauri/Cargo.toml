@@ -105,7 +105,7 @@ futures = "0.3"
 
 # Plugin System
 wasmtime = "25.0"
-deno_core = "0.311"
+deno_core = "0.352"
 
 # Diagnostics
 codespan-reporting = "0.11"
