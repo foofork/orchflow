@@ -96,7 +96,7 @@ grep = "0.3"
 num_cpus = "1.16"
 
 # Trash functionality
-trash = "3.3"
+trash = "5.2"
 
 # Git integration
 git2 = "0.18"
