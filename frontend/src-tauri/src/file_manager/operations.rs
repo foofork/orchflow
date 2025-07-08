@@ -142,13 +142,13 @@ impl FileOperations {
                     })?;
             }
         } else {
-            // Move to trash - for now, just error out
-            // TODO: Implement trash functionality or add trash crate as dependency
-            return Err(OrchflowError::FileOperationError {
-                path: path.to_path_buf(),
-                operation: "move to trash".to_string(),
-                reason: "Trash functionality not implemented. Use permanent delete instead.".to_string(),
-            });
+            // Move to trash
+            trash::delete(path)
+                .map_err(|e| OrchflowError::FileOperationError {
+                    path: path.to_path_buf(),
+                    operation: "move to trash".to_string(),
+                    reason: e.to_string(),
+                })?;
         }
         
         // Record operation

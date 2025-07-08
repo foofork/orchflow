@@ -48,6 +48,7 @@ tokio = { version = "1.35", features = ["full"] }
 uuid = { version = "1.6", features = ["v4", "serde"] }
 rusqlite = { version = "0.30", features = ["bundled", "serde_json", "chrono", "uuid"] }
 home = "0.5"
+dirs = "5.0"
 futures = "0.3"
 async-trait = "0.1"
 tokio-tungstenite = "0.24"
@@ -93,6 +94,9 @@ notify-debouncer-mini = "0.4"
 ignore = "0.4"
 grep = "0.3"
 num_cpus = "1.16"
+
+# Trash functionality
+trash = "3.3"
 
 [dev-dependencies]
 tempfile = "3.8"

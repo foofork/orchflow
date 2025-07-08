@@ -1,224 +1,154 @@
 # orchflow
 
-A powerful terminal-based IDE that combines Neovim's editing capabilities with intelligent terminal orchestration, delivered through a modern desktop application.
+A next-generation terminal-based IDE that orchestrates multiple tools and workflows into a unified development environment. Think of it as VS Code meets tmux, but built from the ground up for developers who prefer terminal-first workflows.
 
-## Overview
+## What is orchflow?
 
-orchflow is a next-generation development environment that bridges the gap between terminal-based workflows and modern IDE features. Built with Rust for performance and SvelteKit for the UI, it provides a VS Code-like experience while maintaining the power and efficiency of terminal-first development.
+orchflow is designed to solve a fundamental problem: modern development requires juggling multiple terminals, editors, build processes, and tools. Instead of alt-tabbing between windows or managing complex tmux sessions, orchflow provides intelligent orchestration of all these tools in a single, fast desktop application.
 
-## Core Features
+### Core Capabilities
 
-### Terminal Management
-- **MuxBackend Abstraction**: Flexible terminal multiplexer support (currently tmux, with muxd planned)
-- **Session & Pane Management**: Create, resize, and control multiple terminal sessions
-- **Intelligent Orchestration**: Coordinate multiple terminals for complex workflows
-- **Terminal Search**: Search across all terminal outputs with regex support
+- **Intelligent Terminal Orchestration**: Manage multiple terminal sessions with automatic layout management, command history tracking, and the ability to broadcast commands across multiple panes. Built on a flexible MuxBackend abstraction that currently uses tmux but can support other backends.
 
-### File Operations
-- **Advanced File Browser**: Tree view with virtual file system for performance
-- **File Watching**: Real-time file change notifications with intelligent debouncing
-- **Project Search**: Lightning-fast search powered by ripgrep
-- **Operation History**: Undo/redo support for file operations
+- **Real-time Terminal Streaming**: Full PTY (pseudo-terminal) implementation with bidirectional I/O, supporting any shell or terminal application. Features include scrollback buffers, terminal search, process health monitoring, and automatic restart on crashes.
 
-### Developer Experience
-- **Neovim Integration**: Full Neovim capabilities within terminal panes
-- **Command History**: Persistent command history with frecency scoring
-- **Plugin System**: Extensible architecture with hot-reload support
-- **State Management**: Unified state with automatic persistence
-- **Auto-Updates**: Built-in update system for seamless upgrades
+- **Advanced File Management**: Beyond basic file operations - includes trash support with metadata tracking, operation history with undo/redo, Git integration (in progress), virtual file system for performance, and project-wide search using ripgrep.
 
-### Modern UI
-- **Desktop Application**: Native performance with Tauri
-- **VS Code-like Interface**: Familiar layout with activity bar, file explorer, and terminal panels
-- **Real-time Updates**: WebSocket-based communication for instant feedback
-- **Theme Support**: Customizable appearance (coming soon)
+- **Unified State Management**: All application state is managed through a central StateManager with SQLite persistence, event-driven updates, and automatic synchronization between frontend and backend.
 
-## Architecture
+- **Extensible Plugin System**: Write plugins in JavaScript/TypeScript with hot-reload support, full API access to terminal/file/state management, and example plugins for Git, Docker, and test runners.
 
-orchflow uses a modern, modular architecture designed for extensibility and performance:
+- **Neovim Integration**: Use Neovim as the editor within terminal panes, with full RPC support planned for deeper integration.
+
+### Where It's Headed
+
+**Phase 7 (Current)**: Building essential UI components
+- Command palette with fuzzy search and plugin commands
+- Advanced file explorer with Git status indicators
+- Integrated terminal panel with tabs and splits
+- Search and replace across projects
+- Git integration panel with diff viewer
+
+**Future Vision**:
+- **AI-Powered Orchestration**: Connect to LLMs for intelligent command suggestions, automated workflow creation, and code understanding
+- **Collaborative Development**: Real-time session sharing, pair programming support, and team workspaces
+- **Language Intelligence**: Full LSP support with inline diagnostics, intelligent code completion, and refactoring tools
+- **Workflow Automation**: Record and replay complex workflows, conditional command execution, and scheduled tasks
+- **Cloud Integration**: Sync settings and sessions across machines, remote development support, and cloud-based plugin marketplace
+
+### What Makes It Different
+
+1. **Terminal-First Philosophy**: Unlike VS Code which bolts on terminal support, orchflow is built around terminal workflows from day one.
+
+2. **Performance Obsessed**: <100ms startup time, ~10MB base memory usage, and aggressive optimization throughout.
+
+3. **True Orchestration**: Not just running commands - orchflow understands relationships between processes, can coordinate multiple tools, and provides intelligent automation.
+
+4. **Hybrid Architecture**: Combines the best of desktop apps (native performance, system integration) with web technologies (flexible UI, easy customization).
+
+## Project Status
+
+**Development Stage**: Pre-release (Active Development)
+
+- ✅ **Phases 1-6 Complete**: Core infrastructure including terminal streaming, file management, state system, plugin architecture
+- 🚧 **Phase 7 In Progress**: Essential UI components 
+- 📋 **High-Priority Tech Debt**: Git integration, WASM plugin support, module registry
+
+The foundation is solid and feature-complete. We're now building the UI layer that will make these powerful capabilities accessible.
+
+## Prerequisites
+
+- Rust 1.70+
+- Node.js 20+
+- tmux 3.0+ (for terminal multiplexing)
+- Git (for version control features)
+
+## Installation
+
+```bash
+# Clone repository
+git clone https://github.com/orchflow/orchflow.git
+cd orchflow
+
+# Install frontend dependencies
+cd frontend
+npm install
+
+# Run in development mode
+npm run tauri dev
+
+# Build for production
+npm run tauri build
+```
+
+## Development
+
+### Project Structure
 
 ```
 orchflow/
-├── frontend/              # SvelteKit + Tauri desktop application
-│   ├── src-tauri/        # Rust backend with core functionality
-│   │   ├── mux_backend/  # Terminal multiplexer abstraction
-│   │   ├── plugins/      # Built-in plugin implementations
-│   │   └── src/          # Core modules and commands
-│   └── src/              # SvelteKit frontend
-├── orchestrator/         # AI-powered orchestration engine
-├── muxd/                 # Custom terminal multiplexer daemon (future)
-└── docs/                 # Documentation
+├── frontend/                 # Svelte frontend
+│   ├── src/                 # Frontend source
+│   └── src-tauri/           # Rust backend
+│       └── src/             # Backend source
+├── docs/                    # Documentation
+└── .github/                 # CI/CD workflows
 ```
 
-### Key Components
-
-- **MuxBackend**: Trait-based abstraction supporting multiple terminal backends
-- **StateManager**: Unified state management with event-driven updates
-- **Plugin System**: Two-tier architecture for simple and complex plugins
-- **OrchflowError**: Comprehensive error handling with rich context
-- **FileManager**: Virtual file system with advanced operations
-
-## Development Status
-
-### ✅ Production Ready
-- Terminal session and pane management
-- File browser with tree operations
-- Project-wide search with ripgrep
-- Command history with persistence
-- State management and synchronization
-- Error handling and recovery
-- WebSocket communication
-- Basic plugin architecture
-
-### 🚧 In Development
-- Frontend migration to new orchestrator API
-- Plugin UI components
-- AI agent orchestration
-- Language Server Protocol integration
-- Advanced debugging features
-
-### 📋 Planned Features
-- Collaborative editing
-- Cloud synchronization
-- Plugin marketplace
-- WASM plugin support
-- Advanced AI capabilities
-
-## Quick Start
-
-### Prerequisites
-- **Rust**: Latest stable version
-- **Node.js**: 18+ (for frontend development)
-- **tmux**: 3.0+ (for terminal multiplexing)
-- **Neovim**: 0.9+ (optional, for enhanced editing)
-
-### Installation
+### Running Tests
 
 ```bash
-# Clone the repository
-git clone https://github.com/foofork/orchflow.git
-cd orchflow
+# Backend tests
+cd frontend/src-tauri
+cargo test
 
-# Build the desktop application
+# Frontend tests
 cd frontend
-npm install
-npm run tauri:build
+npm test
 
-# Or run in development mode
-npm run tauri:dev
+# Test coverage
+cd frontend/src-tauri
+./scripts/test-coverage.sh
 ```
 
-### Usage
+### Code Quality
 
-#### Terminal Management
-```bash
-# Create a new session
-orchflow session create my-project
+- Rust: `cargo clippy` (no warnings)
+- TypeScript: ESLint configured
+- Test Coverage: >85% requirement
+- CI/CD: GitHub Actions for all platforms
 
-# Split panes
-orchflow pane split --horizontal
-orchflow pane split --vertical
+## Architecture
 
-# Send commands to panes
-orchflow pane send "npm run dev"
-```
+- **Backend**: Tauri + Rust for system operations
+- **Frontend**: SvelteKit for UI
+- **IPC**: Type-safe commands between frontend/backend
+- **Storage**: SQLite via SimpleStateStore
+- **Terminal**: PTY management with portable-pty
 
-#### File Operations
-```bash
-# Search across project
-orchflow search "TODO" --type rust
+## Roadmap
 
-# Watch for file changes
-orchflow watch src/
+See [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md) for detailed progress.
 
-# Browse files
-orchflow files tree
-```
-
-#### Plugin Management
-```bash
-# List available plugins
-orchflow plugin list
-
-# Install a plugin
-orchflow plugin install git-integration
-
-# Configure plugins
-orchflow plugin config git-integration
-```
-
-### Configuration
-
-Configuration files are stored in `~/.config/orchflow/`:
-
-```toml
-# config.toml
-[terminal]
-shell = "zsh"
-default_layout = "development"
-
-[search]
-ignore_patterns = ["node_modules", "target", ".git"]
-max_results = 1000
-
-[plugins]
-auto_load = ["git", "lsp", "file-browser"]
-```
-
-## Performance
-
-orchflow is designed for speed and efficiency:
-
-- **Startup Time**: < 100ms to functional UI
-- **Memory Usage**: < 150MB base footprint
-- **File Operations**: Virtual file system for instant tree rendering
-- **Search Performance**: Leverages ripgrep for blazing-fast searches
-- **Binary Size**: Optimized with LTO and stripping
-
-## Security
-
-- **Plugin Sandboxing**: Planned isolation for third-party plugins
-- **Input Validation**: All user inputs are validated and sanitized
-- **Error Recovery**: Graceful degradation with helpful error messages
-- **Secure Updates**: Cryptographically signed update packages
+- ✅ Phase 1-6: Core infrastructure (complete)
+- 🚧 Phase 7: Essential UI components (in progress)
+- 📋 Future: Plugin marketplace, collaboration features
 
 ## Contributing
 
-We welcome contributions! Please see our [Contributing Guide](docs/CONTRIBUTING.md) for details.
-
-### Development Setup
-
-```bash
-# Clone and setup
-git clone https://github.com/foofork/orchflow.git
-cd orchflow
-
-# Backend development
-cd frontend/src-tauri
-cargo build
-cargo test
-
-# Frontend development  
-cd frontend
-npm install
-npm run dev
-```
-
-## Community
-
-- **Discord**: [Join our community](https://discord.gg/orchflow) (coming soon)
-- **GitHub Discussions**: [Ask questions and share ideas](https://github.com/foofork/orchflow/discussions)
-- **Twitter**: [@orchflow](https://twitter.com/orchflow) (coming soon)
+This project is in early development. Contribution guidelines will be established once we reach beta.
 
 ## License
 
-Licensed under either of
+MIT OR Apache-2.0 (dual licensed)
 
- * Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
- * MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+## Acknowledgments
 
-at your option.
+Built with:
+- [Tauri](https://tauri.app/) - Desktop application framework
+- [portable-pty](https://github.com/wez/portable-pty) - Cross-platform PTY
+- [Svelte](https://svelte.dev/) - UI framework
 
-### Contribution
+---
 
-Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in orchflow by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.
+*Note: This is pre-release software under active development. APIs and features may change.*

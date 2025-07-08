@@ -6,6 +6,7 @@ pub mod history;
 pub mod tree;
 pub mod operations;
 pub mod utils;
+pub mod trash;
 #[cfg(test)]
 mod tests;
 
@@ -20,12 +21,14 @@ use crate::error::Result;
 use history::OperationHistory;
 use tree::FileTreeCache;
 use operations::FileOperations;
+use trash::TrashManager;
 
 pub struct FileManager {
     root_path: PathBuf,
     cache: FileTreeCache,
     history: OperationHistory,
     operations: FileOperations,
+    trash_manager: TrashManager,
     gitignore_patterns: Vec<String>,
     max_file_size: u64,
 }
@@ -40,11 +43,18 @@ impl FileManager {
             root_path.clone()
         );
         
+        // Get app data directory for trash metadata
+        let app_data_dir = dirs::data_dir()
+            .unwrap_or_else(|| PathBuf::from("."))
+            .join("orchflow");
+        let trash_manager = TrashManager::new(app_data_dir);
+        
         Self {
             root_path,
             cache: cache.clone(),
             history: history.clone(),
             operations,
+            trash_manager,
             gitignore_patterns: Vec::new(),
             max_file_size: 10 * 1024 * 1024, // 10MB default
         }
@@ -276,6 +286,53 @@ impl FileManager {
         }
         Ok(())
     }
+    
+    // ===== Trash Operations =====
+    
+    /// Move file/directory to trash with metadata tracking
+    pub async fn move_to_trash(&self, path: &Path) -> Result<trash::TrashedItem> {
+        let item = self.trash_manager.move_to_trash(path).await?;
+        
+        // Invalidate cache
+        self.cache.invalidate_path(path).await;
+        
+        Ok(item)
+    }
+    
+    /// List all trashed items
+    pub async fn list_trash(&self) -> Vec<trash::TrashedItem> {
+        self.trash_manager.list_trashed_items().await
+    }
+    
+    /// Get trashed items from a specific directory
+    pub async fn get_trash_from_directory(&self, dir: &Path) -> Vec<trash::TrashedItem> {
+        self.trash_manager.get_trashed_from_directory(dir).await
+    }
+    
+    /// Search trash by name
+    pub async fn search_trash(&self, query: &str) -> Vec<trash::TrashedItem> {
+        self.trash_manager.search_trashed_items(query).await
+    }
+    
+    /// Get trash statistics
+    pub async fn get_trash_stats(&self) -> trash::TrashStats {
+        self.trash_manager.get_trash_stats().await
+    }
+    
+    /// Get recently trashed items
+    pub async fn get_recent_trash(&self, limit: usize) -> Vec<trash::TrashedItem> {
+        self.trash_manager.get_recent_trashed(limit).await
+    }
+    
+    /// Clean up old trash items
+    pub async fn cleanup_old_trash(&self, days: i64) -> Result<Vec<trash::TrashedItem>> {
+        self.trash_manager.cleanup_old_items(days).await
+    }
+    
+    /// Empty trash (platform-specific)
+    pub async fn empty_trash(&self) -> Result<()> {
+        self.trash_manager.empty_trash().await
+    }
 }
 
 // Make FileManager cloneable by wrapping internals in Arc
@@ -286,6 +343,7 @@ impl Clone for FileManager {
             cache: self.cache.clone(),
             history: self.history.clone(),
             operations: self.operations.clone(),
+            trash_manager: self.trash_manager.clone(),
             gitignore_patterns: self.gitignore_patterns.clone(),
             max_file_size: self.max_file_size,
         }

@@ -42,6 +42,7 @@ mod sharing_service;
 mod command_history_commands;
 mod backend_commands;
 mod test_parser_commands;
+mod trash_commands;
 #[cfg(test)]
 mod project_search_tests;
 
@@ -294,6 +295,15 @@ async fn main() {
             // Test parser commands
             test_parser_commands::parse_and_store_test_output,
             test_parser_commands::get_supported_test_frameworks,
+            // Trash commands
+            trash_commands::list_trash,
+            trash_commands::get_trash_from_directory,
+            trash_commands::search_trash,
+            trash_commands::get_trash_stats,
+            trash_commands::get_recent_trash,
+            trash_commands::cleanup_old_trash,
+            trash_commands::empty_trash,
+            trash_commands::get_trash_location,
             // Utility commands
             get_current_dir,
         ])
