@@ -26,9 +26,14 @@ mod terminal_search;
 mod plugins;
 mod websocket_server;
 mod modules;
+mod module_commands;
 mod startup;
 mod updater;
-// mod test_results; // TODO: Migrate from SQLx to SimpleStateStore
+// mod test_results; // Legacy SQLx-based implementation - DEPRECATED
+mod test_results_v2; // New SimpleStateStore implementation
+mod test_results_v2_tests; // Tests for v2 implementation
+mod error_handling_tests; // Tests for error handling
+mod integration_tests; // Integration tests
 mod experimental;
 mod window_state;
 mod metrics;
@@ -49,7 +54,8 @@ use neovim::*;
 // use file_commands::*; // Unused top-level import - commands accessed via module::
 use modules::*;
 use updater::*;
-// use test_results::*; // TODO: Migrate from SQLx to SimpleStateStore
+// Legacy SQLx-based implementation removed - use test_results_v2
+// test_results_v2 commands imported explicitly in invoke_handler
 use metrics::*;
 use sharing_service::SharingService;
 use simple_state_store::SimpleStateStore;
@@ -110,6 +116,15 @@ async fn main() {
             // The pool will be initialized during startup
             Arc::new(store)
         })
+        .manage({
+            // Initialize ModuleLoader
+            let store = Arc::new(SimpleStateStore::new_with_file("orchflow.db").unwrap());
+            let modules_dir = app_dirs::get_modules_dir().unwrap_or_else(|_| {
+                std::env::current_dir().unwrap().join("modules")
+            });
+            let module_loader = ModuleLoader::new(modules_dir, store);
+            Arc::new(tokio::sync::Mutex::new(module_loader))
+        })
         .invoke_handler(tauri::generate_handler![
             // Tmux commands
             tmux_create_session,
@@ -159,16 +174,25 @@ async fn main() {
             manager::save_file,
             manager::watch_file,
             manager::unwatch_file,
-            // Test results commands
-            // create_test_suite, // TODO: Migrate from SQLx to SimpleStateStore
-            // start_test_run, // TODO: Migrate from SQLx to SimpleStateStore
-            // update_test_run, // TODO: Migrate from SQLx to SimpleStateStore
-            // add_test_result, // TODO: Migrate from SQLx to SimpleStateStore
-            // add_test_coverage, // TODO: Migrate from SQLx to SimpleStateStore
-            // get_test_history, // TODO: Migrate from SQLx to SimpleStateStore
-            // get_test_results, // TODO: Migrate from SQLx to SimpleStateStore
-            // get_test_coverage, // TODO: Migrate from SQLx to SimpleStateStore
-            // get_test_failure_trends, // TODO: Migrate from SQLx to SimpleStateStore
+            // Test results commands (legacy SQLx-based - DEPRECATED)
+            // NOTE: These commands are no longer functional as SQLx pool has been removed
+            // Use the v2 commands below instead
+            // test_results::create_test_suite,
+            // test_results::start_test_run,
+            // test_results::update_test_run,
+            // test_results::add_test_result,
+            // test_results::add_test_coverage,
+            // test_results::get_test_history,
+            // test_results::get_test_results,
+            // test_results::get_test_coverage,
+            // test_results::get_test_failure_trends,
+            // Test results commands (new SimpleStateStore-based implementation)
+            test_results_v2::create_test_suite_v2,
+            test_results_v2::create_test_run_v2,
+            test_results_v2::create_test_result_v2,
+            test_results_v2::get_test_run_summaries_v2,
+            test_results_v2::get_test_results_for_run_v2,
+            test_results_v2::get_test_failure_trends_v2,
             // Metrics commands
             get_system_metrics,
             // Unified State commands (NEW - using StateManager)
@@ -187,8 +211,20 @@ async fn main() {
             // Settings and modules (unified modern API)
             unified_state_commands::set_setting,
             unified_state_commands::get_setting,
-            // unified_state_commands::install_module, // TODO: Implement through ModuleSystem
-            // unified_state_commands::list_modules, // TODO: Implement through ModuleSystem
+            // Module commands (NEW - using ModuleLoader)
+            module_commands::install_module,
+            module_commands::list_modules,
+            module_commands::get_module,
+            module_commands::enable_module,
+            module_commands::uninstall_module,
+            module_commands::execute_module_command,
+            module_commands::get_module_commands,
+            module_commands::update_module_config,
+            module_commands::get_module_config,
+            module_commands::search_module_registry,
+            module_commands::get_module_details_from_registry,
+            module_commands::validate_module_manifest,
+            module_commands::create_module_template,
             // Terminal commands (Enhanced Terminal Management)
             terminal_commands::create_terminal,
             terminal_commands::rename_terminal,

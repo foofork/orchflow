@@ -25,7 +25,7 @@ use thiserror::Error;
 
 // ===== Main Application Error Enum =====
 
-#[derive(Debug, Error, Clone, Serialize, Deserialize)]
+#[derive(Debug, Error, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "type", content = "details")]
 pub enum OrchflowError {
     // ===== State Management Errors =====
@@ -109,6 +109,16 @@ pub enum OrchflowError {
     
     #[error("Plugin initialization failed: {plugin_id} - {reason}")]
     PluginInitError { plugin_id: String, reason: String },
+
+    // ===== Module Errors =====
+    #[error("Module not found: {name}")]
+    ModuleNotFound { name: String },
+    
+    #[error("Module error in {module_name}: {operation} - {reason}")]
+    ModuleError { module_name: String, operation: String, reason: String },
+    
+    #[error("Module initialization failed: {module_name} - {reason}")]
+    ModuleInitError { module_name: String, reason: String },
 
     // ===== Configuration Errors =====
     #[error("Configuration error: {key} - {reason}")]
@@ -241,6 +251,18 @@ impl OrchflowError {
         }
     }
     
+    pub fn module_not_found(name: impl Into<String>) -> Self {
+        OrchflowError::ModuleNotFound { name: name.into() }
+    }
+    
+    pub fn module_error(module_name: impl Into<String>, operation: impl Into<String>, reason: impl Into<String>) -> Self {
+        OrchflowError::ModuleError { 
+            module_name: module_name.into(), 
+            operation: operation.into(), 
+            reason: reason.into() 
+        }
+    }
+    
     /// Get the error category
     pub fn category(&self) -> ErrorCategory {
         match self {
@@ -274,6 +296,10 @@ impl OrchflowError {
             OrchflowError::PluginError { .. } |
             OrchflowError::PluginNotFound { .. } |
             OrchflowError::PluginInitError { .. } => ErrorCategory::Plugin,
+            
+            OrchflowError::ModuleError { .. } |
+            OrchflowError::ModuleNotFound { .. } |
+            OrchflowError::ModuleInitError { .. } => ErrorCategory::Plugin,
             
             OrchflowError::ConfigError { .. } |
             OrchflowError::ConfigurationError { .. } |

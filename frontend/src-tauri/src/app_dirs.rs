@@ -104,3 +104,10 @@ impl AppDirs {
 pub fn get_project_dirs() -> Result<AppDirs, Box<dyn std::error::Error>> {
     AppDirs::new()
 }
+
+/// Get the modules directory for storing orchflow modules
+pub fn get_modules_dir() -> Result<PathBuf, Box<dyn std::error::Error>> {
+    let app_dirs = AppDirs::new()?;
+    app_dirs.data_subdir("modules")
+        .ok_or_else(|| "Could not determine modules directory".into())
+}

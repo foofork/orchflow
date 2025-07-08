@@ -34,7 +34,7 @@ pub struct ModuleDependency {
     pub version: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum Permission {
     FileSystem,     // Access to file system

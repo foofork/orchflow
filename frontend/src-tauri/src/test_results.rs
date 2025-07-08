@@ -5,6 +5,8 @@ use std::sync::Arc;
 use tauri::State;
 use uuid::Uuid;
 
+use crate::error::OrchflowError;
+
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct TestSuite {
     pub id: String,
@@ -101,8 +103,11 @@ pub async fn create_test_suite(
     name: String,
     project_path: String,
     test_framework: String,
-) -> Result<TestSuite, String> {
-    let pool = state.pool.as_ref().ok_or("SQLx pool not initialized")?;
+) -> Result<TestSuite, OrchflowError> {
+    let pool = state.pool.as_ref().ok_or_else(|| OrchflowError::DatabaseError {
+        operation: "initialize".to_string(),
+        reason: "SQLx pool not initialized".to_string()
+    })?;
     let id = Uuid::new_v4().to_string();
     let now = Utc::now();
 
@@ -121,7 +126,10 @@ pub async fn create_test_suite(
     .bind(&now)
     .execute(pool)
     .await
-    .map_err(|e| format!("Failed to create test suite: {}", e))?;
+    .map_err(|e| OrchflowError::DatabaseError {
+        operation: "create_test_suite".to_string(),
+        reason: format!("Failed to create test suite: {}", e)
+    })?;
 
     Ok(TestSuite {
         id,
@@ -141,8 +149,11 @@ pub async fn start_test_run(
     suite_id: String,
     session_id: String,
     command: String,
-) -> Result<TestRun, String> {
-    let pool = state.pool.as_ref().ok_or("SQLx pool not initialized")?;
+) -> Result<TestRun, OrchflowError> {
+    let pool = state.pool.as_ref().ok_or_else(|| OrchflowError::DatabaseError {
+        operation: "initialize".to_string(),
+        reason: "SQLx pool not initialized".to_string()
+    })?;
     let id = Uuid::new_v4().to_string();
     let now = Utc::now();
 
@@ -163,7 +174,10 @@ pub async fn start_test_run(
     .bind(&now)
     .execute(pool)
     .await
-    .map_err(|e| format!("Failed to start test run: {}", e))?;
+    .map_err(|e| OrchflowError::DatabaseError {
+        operation: "start_test_run".to_string(),
+        reason: format!("Failed to start test run: {}", e)
+    })?;
 
     Ok(TestRun {
         id,
@@ -197,8 +211,11 @@ pub async fn update_test_run(
     duration_ms: Option<i32>,
     coverage_percent: Option<f64>,
     error_output: Option<String>,
-) -> Result<(), String> {
-    let pool = state.pool.as_ref().ok_or("SQLx pool not initialized")?;
+) -> Result<(), OrchflowError> {
+    let pool = state.pool.as_ref().ok_or_else(|| OrchflowError::DatabaseError {
+        operation: "initialize".to_string(),
+        reason: "SQLx pool not initialized".to_string()
+    })?;
     let completed_at = if status != "running" {
         Some(Utc::now())
     } else {
@@ -226,7 +243,10 @@ pub async fn update_test_run(
     .bind(&run_id)
     .execute(pool)
     .await
-    .map_err(|e| format!("Failed to update test run: {}", e))?;
+    .map_err(|e| OrchflowError::DatabaseError {
+        operation: "update_test_run".to_string(),
+        reason: format!("Failed to update test run: {}", e)
+    })?;
 
     Ok(())
 }
@@ -244,8 +264,11 @@ pub async fn add_test_result(
     duration_ms: Option<i32>,
     error_message: Option<String>,
     error_stack: Option<String>,
-) -> Result<(), String> {
-    let pool = state.pool.as_ref().ok_or("SQLx pool not initialized")?;
+) -> Result<(), OrchflowError> {
+    let pool = state.pool.as_ref().ok_or_else(|| OrchflowError::DatabaseError {
+        operation: "initialize".to_string(),
+        reason: "SQLx pool not initialized".to_string()
+    })?;
     let id = Uuid::new_v4().to_string();
 
     sqlx::query(
@@ -269,7 +292,10 @@ pub async fn add_test_result(
     .bind(error_stack)
     .execute(pool)
     .await
-    .map_err(|e| format!("Failed to add test result: {}", e))?;
+    .map_err(|e| OrchflowError::DatabaseError {
+        operation: "add_test_result".to_string(),
+        reason: format!("Failed to add test result: {}", e)
+    })?;
 
     Ok(())
 }
@@ -289,8 +315,11 @@ pub async fn add_test_coverage(
     statements_total: i32,
     statements_covered: i32,
     uncovered_lines: Option<Vec<i32>>,
-) -> Result<(), String> {
-    let pool = state.pool.as_ref().ok_or("SQLx pool not initialized")?;
+) -> Result<(), OrchflowError> {
+    let pool = state.pool.as_ref().ok_or_else(|| OrchflowError::DatabaseError {
+        operation: "initialize".to_string(),
+        reason: "SQLx pool not initialized".to_string()
+    })?;
     let id = Uuid::new_v4().to_string();
     let uncovered_lines_json = uncovered_lines.map(|lines| serde_json::to_string(&lines).unwrap());
 
@@ -318,7 +347,10 @@ pub async fn add_test_coverage(
     .bind(uncovered_lines_json)
     .execute(pool)
     .await
-    .map_err(|e| format!("Failed to add test coverage: {}", e))?;
+    .map_err(|e| OrchflowError::DatabaseError {
+        operation: "add_test_coverage".to_string(),
+        reason: format!("Failed to add test coverage: {}", e)
+    })?;
 
     Ok(())
 }
@@ -329,8 +361,11 @@ pub async fn get_test_history(
     state: State<'_, Arc<crate::SimpleStateStore>>,
     session_id: Option<String>,
     limit: i32,
-) -> Result<Vec<TestRunSummary>, String> {
-    let pool = state.pool.as_ref().ok_or("SQLx pool not initialized")?;
+) -> Result<Vec<TestRunSummary>, OrchflowError> {
+    let pool = state.pool.as_ref().ok_or_else(|| OrchflowError::DatabaseError {
+        operation: "initialize".to_string(),
+        reason: "SQLx pool not initialized".to_string()
+    })?;
     
     let query = if let Some(session_id) = session_id {
         sqlx::query_as::<_, TestRunSummary>(
@@ -355,7 +390,10 @@ pub async fn get_test_history(
     query
         .fetch_all(pool)
         .await
-        .map_err(|e| format!("Failed to get test history: {}", e))
+        .map_err(|e| OrchflowError::DatabaseError {
+            operation: "get_test_history".to_string(),
+            reason: format!("Failed to get test history: {}", e)
+        })
 }
 
 /// Get test results for a run
@@ -363,8 +401,11 @@ pub async fn get_test_history(
 pub async fn get_test_results(
     state: State<'_, Arc<crate::SimpleStateStore>>,
     run_id: String,
-) -> Result<Vec<TestResult>, String> {
-    let pool = state.pool.as_ref().ok_or("SQLx pool not initialized")?;
+) -> Result<Vec<TestResult>, OrchflowError> {
+    let pool = state.pool.as_ref().ok_or_else(|| OrchflowError::DatabaseError {
+        operation: "initialize".to_string(),
+        reason: "SQLx pool not initialized".to_string()
+    })?;
 
     sqlx::query_as::<_, TestResult>(
         r#"
@@ -376,7 +417,10 @@ pub async fn get_test_results(
     .bind(&run_id)
     .fetch_all(pool)
     .await
-    .map_err(|e| format!("Failed to get test results: {}", e))
+    .map_err(|e| OrchflowError::DatabaseError {
+        operation: "get_test_results".to_string(),
+        reason: format!("Failed to get test results: {}", e)
+    })
 }
 
 /// Get test coverage for a run
@@ -384,8 +428,11 @@ pub async fn get_test_results(
 pub async fn get_test_coverage(
     state: State<'_, Arc<crate::SimpleStateStore>>,
     run_id: String,
-) -> Result<Vec<TestCoverage>, String> {
-    let pool = state.pool.as_ref().ok_or("SQLx pool not initialized")?;
+) -> Result<Vec<TestCoverage>, OrchflowError> {
+    let pool = state.pool.as_ref().ok_or_else(|| OrchflowError::DatabaseError {
+        operation: "initialize".to_string(),
+        reason: "SQLx pool not initialized".to_string()
+    })?;
 
     sqlx::query_as::<_, TestCoverage>(
         r#"
@@ -397,7 +444,10 @@ pub async fn get_test_coverage(
     .bind(&run_id)
     .fetch_all(pool)
     .await
-    .map_err(|e| format!("Failed to get test coverage: {}", e))
+    .map_err(|e| OrchflowError::DatabaseError {
+        operation: "get_test_coverage".to_string(),
+        reason: format!("Failed to get test coverage: {}", e)
+    })
 }
 
 /// Get test failure trends
@@ -405,8 +455,11 @@ pub async fn get_test_coverage(
 pub async fn get_test_failure_trends(
     state: State<'_, Arc<crate::SimpleStateStore>>,
     days: i32,
-) -> Result<Vec<TestFailureTrend>, String> {
-    let pool = state.pool.as_ref().ok_or("SQLx pool not initialized")?;
+) -> Result<Vec<TestFailureTrend>, OrchflowError> {
+    let pool = state.pool.as_ref().ok_or_else(|| OrchflowError::DatabaseError {
+        operation: "initialize".to_string(),
+        reason: "SQLx pool not initialized".to_string()
+    })?;
 
     sqlx::query_as::<_, TestFailureTrend>(
         r#"
@@ -418,7 +471,10 @@ pub async fn get_test_failure_trends(
     .bind(days)
     .fetch_all(pool)
     .await
-    .map_err(|e| format!("Failed to get test failure trends: {}", e))
+    .map_err(|e| OrchflowError::DatabaseError {
+        operation: "get_test_failure_trends".to_string(),
+        reason: format!("Failed to get test failure trends: {}", e)
+    })
 }
 
 // Test parsing utilities have been moved to src/experimental/test_parsers.rs

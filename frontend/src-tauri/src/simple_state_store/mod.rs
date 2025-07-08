@@ -199,6 +199,11 @@ impl SimpleStateStore {
         self.modules.uninstall_module(module_id).await
     }
     
+    /// Uninstall a module by name
+    pub async fn uninstall_module_by_name(&self, name: &str) -> SqliteResult<bool> {
+        self.modules.uninstall_module_by_name(name).await
+    }
+    
     // ===== Key-Value Operations =====
     
     /// Set a key-value pair
@@ -219,6 +224,11 @@ impl SimpleStateStore {
     /// List keys with a prefix
     pub async fn keys_with_prefix(&self, prefix: &str) -> SqliteResult<Vec<String>> {
         self.keyvalue.keys_with_prefix(prefix).await
+    }
+    
+    /// List key-value pairs with a prefix
+    pub async fn list_with_prefix(&self, prefix: &str) -> SqliteResult<Vec<KeyValue>> {
+        self.keyvalue.list_with_prefix(prefix).await
     }
     
     /// Set a setting (alias for set)
