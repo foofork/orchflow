@@ -235,12 +235,25 @@ ws.onmessage = (event) => {
 
 ## Future Architecture
 
-orchflow is designed with a unified architecture that will eventually support both desktop and web deployments. See [Unified Architecture](architecture/UNIFIED_ARCHITECTURE.md) for the long-term vision.
+orchflow is designed with a unified architecture supporting both desktop and web deployments, with AI-driven development at its core. See [Unified Architecture](architecture/UNIFIED_ARCHITECTURE.md) for the complete vision.
 
-Future additions will include:
-- **AI Agent API**: Natural language commands and agent orchestration
-- **Cloud Sync API**: Settings and session synchronization
-- **Collaboration API**: Real-time shared sessions
-- **Plugin Marketplace API**: Discovery and installation
+### Planned API Extensions
 
-Currently, all APIs are desktop-focused using Tauri IPC.
+**AI Orchestration APIs**:
+- **Natural Language Interface**: Chat-based commands for development tasks
+- **Swarm Monitor API**: Visual tracking of multi-agent workflows
+- **Agent Runtime API**: ruv-FANN integration for ephemeral neural networks
+- **Command Adapter API**: Support for claude-flow, GPT tools, and custom AI adapters
+
+**Platform APIs**:
+- **Service Abstraction Layer**: Unified TerminalService, FileService, AIService, StateService
+- **Web API Gateway**: RESTful/GraphQL endpoints for web deployment
+- **Container Management**: Docker/K8s integration for web platform
+- **Cloud Database API**: Distributed state management
+
+**Collaboration Features**:
+- **Real-time Session Sharing**: Multi-user terminal sessions
+- **Agent Coordination**: Cross-user AI agent communication
+- **Shared State Sync**: Collaborative editing and debugging
+
+Currently, all APIs are desktop-focused using Tauri IPC. The architecture supports 90% code reuse between desktop and web platforms.
