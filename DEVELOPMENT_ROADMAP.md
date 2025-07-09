@@ -1,5 +1,32 @@
 # Orchflow Development Roadmap
 
+## 📋 Roadmap Maintenance Rules
+
+**Update Frequency:**
+- **Weekly**: Update task status, mark completions, add blockers
+- **Sprint End**: Move completed phases, update metrics, revise timelines
+- **Monthly**: Review priorities, update risk assessment, clean technical debt
+
+**Update Process:**
+1. **Status First**: Update current phase status before adding new items
+2. **Evidence Required**: Include PR#, commit hash, or date for completions
+3. **Preserve History**: Move completed items to "Completed Phases" not delete
+4. **Link Docs**: Add doc links for new features/APIs in relevant sections
+5. **Update Metrics**: Keep performance numbers, test coverage current
+
+**Content Rules:**
+- **One Truth**: This is THE roadmap - deprecate conflicting docs
+- **Actionable Items**: Tasks must be specific, measurable, achievable
+- **Priority Clear**: Use HIGH/MEDIUM/LOW + week estimates
+- **Dependencies Explicit**: Note blocking tasks/prerequisites
+- **AI-Friendly**: Include doc links for context, use clear section headers
+
+**Format Standards:**
+- **Phase Structure**: Number → Title → Status → Achievement Summary → Details
+- **Task Format**: `- [ ] Task description (Component: Status) EST: X weeks`
+- **Completion**: `- [x] ~~Task~~ ✅ COMPLETE (Date)`
+- **Blockers**: `⚠️ BLOCKED: Reason - Link to issue/discussion`
+
 ## 🎉 Major Milestone: Phase 5 Complete!
 
 ### Executive Summary

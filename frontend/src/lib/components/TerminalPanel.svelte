@@ -60,6 +60,10 @@
   let showNewTerminalMenu = false;
   let searchQuery = '';
   let showSearchBar = false;
+  let showGroupsMenu = false;
+  let showQuickCommandsMenu = false;
+  let renamingTerminalId: string | null = null;
+  let renameValue = '';
   
   onMount(async () => {
     // Load available shells
@@ -313,6 +317,43 @@
       dispatch('search', { query: searchQuery });
     }
   }
+
+  function startRename(terminalId: string, currentTitle: string) {
+    renamingTerminalId = terminalId;
+    renameValue = currentTitle;
+    // Focus the input after it's rendered
+    setTimeout(() => {
+      const input = document.querySelector('.tab-rename-input') as HTMLInputElement;
+      if (input) {
+        input.focus();
+        input.select();
+      }
+    }, 0);
+  }
+
+  function handleRenameKeydown(event: KeyboardEvent, terminalId: string) {
+    if (event.key === 'Enter') {
+      finishRename(terminalId);
+    } else if (event.key === 'Escape') {
+      cancelRename();
+    }
+  }
+
+  function finishRename(terminalId: string) {
+    if (renameValue.trim() && renameValue !== renamingTerminalId) {
+      if (onTerminalRename) {
+        onTerminalRename(terminalId, renameValue.trim());
+      } else {
+        renameTerminal(terminalId, renameValue.trim());
+      }
+    }
+    cancelRename();
+  }
+
+  function cancelRename() {
+    renamingTerminalId = null;
+    renameValue = '';
+  }
 </script>
 
 <div class="terminal-panel" on:keydown={handleTerminalKey}>
@@ -327,13 +368,25 @@
           aria-controls="terminal-{terminal.id}"
           id="tab-{terminal.id}"
           on:click={() => activateTerminal(terminal.id)}
+          on:dblclick={() => startRename(terminal.id, terminal.title)}
           on:auxclick={(e) => { if (e.button === 1) closeTerminal(terminal.id); }}
           title="{terminal.title} - {terminal.cwd}"
         >
           <span class="tab-icon">
             {terminal.isRunning ? '🟢' : '⚫'}
           </span>
-          <span class="tab-title">{terminal.title}</span>
+          {#if renamingTerminalId === terminal.id}
+            <input
+              type="text"
+              class="tab-rename-input"
+              bind:value={renameValue}
+              on:keydown={(e) => handleRenameKeydown(e, terminal.id)}
+              on:blur={() => finishRename(terminal.id)}
+              on:click|stopPropagation
+            />
+          {:else}
+            <span class="tab-title">{terminal.title}</span>
+          {/if}
           <button
             class="tab-close"
             on:click|stopPropagation={() => closeTerminal(terminal.id)}
@@ -435,10 +488,17 @@
       </button>
       <button
         class="action-btn"
-        on:click={() => dispatch('showGroups')}
+        on:click={() => showGroupsMenu = !showGroupsMenu}
         title="Terminal groups"
       >
         👥
+      </button>
+      <button
+        class="action-btn"
+        on:click={() => showQuickCommandsMenu = !showQuickCommandsMenu}
+        title="Quick commands"
+      >
+        ⚡
       </button>
     </div>
   </div>
@@ -454,6 +514,50 @@
       />
       <button class="search-btn" on:click={handleSearch}>Find</button>
       <button class="search-close" on:click={() => showSearchBar = false}>×</button>
+    </div>
+  {/if}
+  
+  {#if showGroupsMenu}
+    <div class="groups-menu">
+      <div class="menu-title">Terminal Groups</div>
+      {#each terminalGroups as groupName}
+        <button
+          class="menu-item"
+          on:click={() => {
+            dispatch('selectGroup', { group: groupName });
+            showGroupsMenu = false;
+          }}
+        >
+          👥 {groupName}
+        </button>
+      {/each}
+      {#if terminalGroups.length === 0}
+        <div class="menu-item disabled">No groups available</div>
+      {/if}
+    </div>
+  {/if}
+  
+  {#if showQuickCommandsMenu}
+    <div class="quick-commands-menu">
+      <div class="menu-title">Quick Commands</div>
+      {#each quickCommands as cmd}
+        <button
+          class="menu-item"
+          on:click={() => {
+            if (onQuickCommand) {
+              onQuickCommand(cmd.command);
+            } else {
+              dispatch('quickCommand', { command: cmd.command });
+            }
+            showQuickCommandsMenu = false;
+          }}
+        >
+          ⚡ {cmd.label}
+        </button>
+      {/each}
+      {#if quickCommands.length === 0}
+        <div class="menu-item disabled">No quick commands available</div>
+      {/if}
     </div>
   {/if}
   

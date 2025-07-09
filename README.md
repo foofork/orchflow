@@ -1,6 +1,6 @@
 # orchflow
 
-A terminal-based IDE that combines the editing capabilities of Neovim with intelligent terminal orchestration in a fast desktop application.
+A terminal-based IDE that combines the editing capabilities of Neovim with intelligent, ai driven, terminal orchestration in a fast desktop application.
 
 ## Overview
 

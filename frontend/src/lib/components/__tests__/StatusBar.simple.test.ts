@@ -54,12 +54,13 @@ describe('StatusBarEnhanced - Simple Unit Test', () => {
         activePlugins: 5,
         notifications: [
           { id: '1', message: 'Test notification', type: 'info' }
-        ]
+        ],
+        showNotifications: true
       }
     });
     
-    expect(getByText('3')).toBeInTheDocument();
-    expect(getByText('5')).toBeInTheDocument();
-    expect(getByText('1')).toBeInTheDocument();
+    expect(getByText('3 running')).toBeInTheDocument();
+    expect(getByText('5 plugins')).toBeInTheDocument();
+    expect(getByText('🔔 1')).toBeInTheDocument();
   });
 });
