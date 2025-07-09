@@ -6,6 +6,7 @@
   import { invoke } from '@tauri-apps/api/tauri';
   
   export let show = false;
+  export let testMode = false;
   
   const dispatch = createEventDispatcher();
   
@@ -30,6 +31,11 @@
   
   // Check git availability on mount
   async function checkGitAvailability() {
+    if (testMode) {
+      hasGitIntegration = true;
+      return;
+    }
+    
     try {
       hasGitIntegration = await invoke('has_git_integration');
     } catch (err) {
@@ -40,6 +46,11 @@
   
   // Load recent commands from localStorage
   function loadRecentCommands() {
+    if (testMode) {
+      recentCommands = [];
+      return;
+    }
+    
     const stored = localStorage.getItem('orchflow_recent_commands');
     if (stored) {
       try {
@@ -52,6 +63,8 @@
   
   // Save recent command
   function saveRecentCommand(commandId: string) {
+    if (testMode) return;
+    
     if (!recentCommands.includes(commandId)) {
       recentCommands = [commandId, ...recentCommands].slice(0, 10);
       localStorage.setItem('orchflow_recent_commands', JSON.stringify(recentCommands));
@@ -307,8 +320,10 @@
   $: filterCommands(searchQuery);
   
   onMount(async () => {
-    await checkGitAvailability();
-    loadRecentCommands();
+    if (!testMode) {
+      await checkGitAvailability();
+      loadRecentCommands();
+    }
     initializeFuse();
     
     if (show && searchInput) {

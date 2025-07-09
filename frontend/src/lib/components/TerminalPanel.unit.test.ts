@@ -156,13 +156,13 @@ describe('TerminalPanel - Unit Tests', () => {
     });
 
     it('supports keyboard navigation', async () => {
-      const onTerminalSwitch = vi.fn();
+      const onTabSwitch = vi.fn();
       
       const { getAllByRole } = render(TerminalPanel, {
         props: {
           terminals: mockTerminals,
           activeTerminalId: 'term-1',
-          onTerminalSwitch,
+          onTabSwitch,
         },
       });
       
@@ -174,7 +174,7 @@ describe('TerminalPanel - Unit Tests', () => {
         new KeyboardEvent('keydown', { key: 'ArrowRight' })
       );
       
-      expect(onTerminalSwitch).toHaveBeenCalledWith('term-2');
+      expect(onTabSwitch).toHaveBeenCalledWith('term-2');
     });
   });
 });

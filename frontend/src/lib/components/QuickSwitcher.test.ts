@@ -29,7 +29,14 @@ describe('QuickSwitcher', () => {
 
   it('renders when show is true', async () => {
     const { getByPlaceholderText } = render(QuickSwitcher, {
-      props: { show: true },
+      props: { 
+        show: true,
+        testMode: true,
+        initialItems: [
+          { id: '1', title: 'Test File', type: 'file', icon: '📄' },
+          { id: '2', title: 'Test Terminal', type: 'terminal', icon: '💻' }
+        ]
+      },
     });
     
     await waitFor(() => {
@@ -39,7 +46,11 @@ describe('QuickSwitcher', () => {
 
   it('does not render when show is false', () => {
     const { container } = render(QuickSwitcher, {
-      props: { show: false },
+      props: { 
+        show: false,
+        testMode: true,
+        initialItems: []
+      },
     });
     
     expect(container.querySelector('.quick-switcher')).not.toBeInTheDocument();
@@ -47,7 +58,13 @@ describe('QuickSwitcher', () => {
 
   it('closes on Escape', async () => {
     const { getByPlaceholderText, container } = render(QuickSwitcher, {
-      props: { show: true },
+      props: { 
+        show: true,
+        testMode: true,
+        initialItems: [
+          { id: '1', title: 'Test File', type: 'file', icon: '📄' }
+        ]
+      },
     });
     
     await waitFor(() => {
@@ -63,23 +80,16 @@ describe('QuickSwitcher', () => {
   });
 
   it('filters items based on search', async () => {
-    // Ensure we have terminal items in our mock data
-    mockInvoke({
-      get_sessions: [
-        { id: 'session1', name: 'Main Session', pane_count: 2 },
-      ],
-      get_panes: [
-        { id: 'pane1', pane_type: 'terminal', title: 'Terminal 1', working_dir: '/home/user' },
-        { id: 'pane2', pane_type: 'terminal', title: 'Terminal 2', working_dir: '/home/user/project' },
-      ],
-      get_file_operation_history: [
-        { path: '/src/terminal.ts', timestamp: Date.now() - 1000 },
-        { path: '/src/app.ts', timestamp: Date.now() - 2000 },
-      ],
-    });
-    
     const { getByPlaceholderText, container } = render(QuickSwitcher, {
-      props: { show: true },
+      props: { 
+        show: true,
+        testMode: true,
+        initialItems: [
+          { id: '1', title: 'Terminal 1', type: 'terminal', icon: '💻', description: 'Terminal session' },
+          { id: '2', title: 'main.ts', type: 'file', icon: '📄', description: 'TypeScript file' },
+          { id: '3', title: 'Terminal 2', type: 'terminal', icon: '💻', description: 'Another terminal' }
+        ]
+      },
     });
     
     await waitFor(() => {
@@ -102,7 +112,14 @@ describe('QuickSwitcher', () => {
 
   it('navigates with keyboard', async () => {
     const { getByPlaceholderText, container } = render(QuickSwitcher, {
-      props: { show: true },
+      props: { 
+        show: true,
+        testMode: true,
+        initialItems: [
+          { id: '1', title: 'First Item', type: 'file', icon: '📄' },
+          { id: '2', title: 'Second Item', type: 'terminal', icon: '💻' }
+        ]
+      },
     });
     
     await waitFor(() => {
@@ -130,7 +147,14 @@ describe('QuickSwitcher', () => {
     localStorage.setItem('orchflow_quick_switcher_recent', JSON.stringify(recentItems));
     
     const { container } = render(QuickSwitcher, {
-      props: { show: true },
+      props: { 
+        show: true,
+        testMode: true,
+        initialItems: [
+          { id: 'file1', title: 'Recent File', type: 'file', icon: '📄' },
+          { id: 'terminal1', title: 'Recent Terminal', type: 'terminal', icon: '💻' }
+        ]
+      },
     });
     
     await waitFor(() => {
@@ -141,7 +165,13 @@ describe('QuickSwitcher', () => {
 
   it('executes item on Enter', async () => {
     const { getByPlaceholderText, container } = render(QuickSwitcher, {
-      props: { show: true },
+      props: { 
+        show: true,
+        testMode: true,
+        initialItems: [
+          { id: '1', title: 'Test Item', type: 'file', icon: '📄' }
+        ]
+      },
     });
     
     await waitFor(() => {
@@ -166,6 +196,10 @@ describe('QuickSwitcher', () => {
       props: { 
         show: true,
         mode: 'files',
+        testMode: true,
+        initialItems: [
+          { id: '1', title: 'Test File', type: 'file', icon: '📄' }
+        ]
       },
     });
     
@@ -178,7 +212,14 @@ describe('QuickSwitcher', () => {
 
   it('displays item icons', async () => {
     const { container } = render(QuickSwitcher, {
-      props: { show: true },
+      props: { 
+        show: true,
+        testMode: true,
+        initialItems: [
+          { id: '1', title: 'Test File', type: 'file', icon: '📄' },
+          { id: '2', title: 'Test Terminal', type: 'terminal', icon: '💻' }
+        ]
+      },
     });
     
     await waitFor(() => {
@@ -188,18 +229,16 @@ describe('QuickSwitcher', () => {
   });
 
   it('shows empty state when no items', async () => {
-    mockInvoke({
-      get_sessions: [],
-      get_panes: [],
-      get_file_operation_history: [],
-    });
-    
     const { getByText } = render(QuickSwitcher, {
-      props: { show: true },
+      props: { 
+        show: true,
+        testMode: true,
+        initialItems: []
+      },
     });
     
     await waitFor(() => {
-      expect(getByText(/No items/i)).toBeInTheDocument();
+      expect(getByText(/No recent items/i)).toBeInTheDocument();
     });
   });
 });

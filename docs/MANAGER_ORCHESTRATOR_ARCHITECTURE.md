@@ -1,578 +1,384 @@
-# Manager + Orchestrator Architecture Guide
+# Manager + Orchestrator Architecture Decision Guide
 
 > **Last Updated**: January 2025  
-> **Status**: Current architecture documentation  
-> **Replaces**: Various migration and analysis documents
+> **Status**: Current architecture decision guide  
+> **Companion to**: [ORCHFLOW_UNIFIED_ARCHITECTURE.md](./ORCHFLOW_UNIFIED_ARCHITECTURE.md)
 
-## Table of Contents
+## Purpose
 
-1. [Overview](#overview)
-2. [Architecture Philosophy](#architecture-philosophy)
-3. [Manager vs Orchestrator](#manager-vs-orchestrator)
-4. [Feature Comparison](#feature-comparison)
-5. [When to Use Which](#when-to-use-which)
-6. [Deployment Models](#deployment-models)
-7. [Integration Guide](#integration-guide)
-8. [Technical Specifications](#technical-specifications)
-9. [Future Roadmap](#future-roadmap)
-10. [FAQ](#faq)
+This document helps you understand when and how to use orchflow's Manager vs Orchestrator components. For comprehensive implementation details, see the [Unified Architecture](./ORCHFLOW_UNIFIED_ARCHITECTURE.md) and [Component Responsibilities](./COMPONENT_RESPONSIBILITIES.md) documents.
 
-## Overview
+## Architecture Overview
 
-orchflow implements a **Manager + Orchestrator architecture** that provides maximum flexibility for users. Rather than forcing a single implementation, the project offers two complementary systems:
+orchflow uses a **dual-component architecture** that provides flexibility for different use cases:
 
-1. **Rust Manager** - Embedded infrastructure/platform manager for core IDE features and terminal management
-2. **TypeScript Orchestrator** - Optional service for advanced AI orchestration and automation features
+1. **Rust Manager** - Core infrastructure for terminal management, file operations, and system integration
+2. **TypeScript Orchestrator** - Optional AI-powered coordination, agent management, and workflow automation
 
-This architecture allows users to choose their complexity level: from a simple, fast terminal IDE to a powerful AI-assisted development environment.
+## Component Responsibilities
 
-## Architecture Philosophy
+### Rust Manager (`frontend/src-tauri/src/manager/`)
 
-### Core Principle: "Pay for What You Use"
+**What it does:**
+- Terminal lifecycle management (create, destroy, stream)
+- File system operations (read, write, watch, search)
+- State persistence (SQLite)
+- Plugin system (load, execute, manage)
+- MuxBackend abstraction (tmux, muxd)
+- WebSocket server for external clients
 
-```
-Simple Terminal IDE → Rust Only → Fast, Lightweight, Zero Dependencies
-AI-Assisted Development → Rust + TypeScript → Full Feature Set
-Multi-Tool Orchestration → TypeScript Service → Shared Across IDEs
-```
+**What it doesn't do:**
+- AI agent coordination
+- Task scheduling and routing
+- Inter-agent communication
+- Complex workflow orchestration
 
-### Design Goals
+### TypeScript Orchestrator (`orchestrator/src/`)
 
-1. **No Forced Dependencies** - Don't require Node.js for basic terminal management
-2. **Progressive Enhancement** - Start simple, add features as needed
-3. **Tool Agnostic** - Advanced orchestrator can serve multiple clients
-4. **Performance First** - Basic operations must be fast
-5. **Flexibility** - Support diverse workflows and preferences
+**What it does:**
+- AI agent management and coordination
+- Intelligent task routing and scheduling
+- Swarm coordination (multiple agents working together)
+- Command adapters (claude-flow, GPT tools)
+- Memory and context management
+- Workflow automation
 
-## Manager vs Orchestrator
+**What it doesn't do:**
+- Terminal process management
+- File system operations
+- State persistence
+- Low-level system integration
 
-### Rust Manager (Infrastructure/Platform)
+## Usage Decision Matrix
 
-**Location**: `/frontend/src-tauri/src/manager.rs`
+### Use Manager Only When:
 
-**Purpose**: Provide fast, native infrastructure management including terminal sessions, file operations, and platform integration
-
-**Key Components**:
-```rust
-- Session & Pane Management (manager.rs) // Infrastructure layer
-- MuxBackend Abstraction (mux_backend/) // Terminal backend management
-- File Operations (file_manager.rs) // Direct filesystem access
-- State Management (state_manager.rs) // Platform state
-- Plugin System (plugin_system/) // Platform extensions
-- Command History (command_history.rs) // Terminal history
-- Search Functions (project_search.rs, terminal_search.rs) // File search
-```
-
-**Characteristics**:
-- Embedded in Tauri desktop app
-- Direct system integration
-- Millisecond response times
+✅ **You want a fast, lightweight terminal IDE**
+- Startup time: <100ms
+- Memory usage: <10MB base
 - No external dependencies
-- Always available
 
-### TypeScript Orchestrator (AI/Automation)
+✅ **You don't need AI assistance**
+- Manual terminal management
+- Direct command execution
+- Simple file operations
 
-**Location**: `/orchestrator/`
+✅ **You prefer minimal complexity**
+- Single binary deployment
+- No additional services
+- Straightforward configuration
 
-**Purpose**: Provide true orchestration - intelligent command routing, AI coordination, and workflow automation
-
-**Key Components**:
-```typescript
-- Agent Management & Routing (agent-manager.ts, agent-router.ts) // Orchestration logic
-- AI Integration (mcp/, modes/) // AI model coordination
-- Distributed Computing (coordination/swarm-coordinator.ts) // Multi-agent orchestration
-- Memory & Context (memory/) // Persistent orchestration state
-- Fault Tolerance (circuit-breaker.ts) // Orchestration reliability
-- Resource Management (resource-manager.ts) // Orchestration resource locks
-- Task Scheduling (task-scheduler.ts) // Workflow automation
-- Protocol System (protocol-manager.ts) // Development rules
-```
-
-**Characteristics**:
-- Runs as optional service or sidecar
-- Feature-rich with modular design
-- AI and automation focused
-- Extensible plugin system
-- Cross-tool compatible
-
-## Feature Comparison
-
-### Core Features (Both Have)
-
-| Feature | Rust Implementation | TypeScript Implementation |
-|---------|-------------------|--------------------------|
-| Session Management | ✅ Native via MuxBackend | ✅ Via EventBus |
-| Pane Control | ✅ Direct tmux integration | ✅ Terminal adapters |
-| Command Execution | ✅ Synchronous/Async | ✅ Async with queuing |
-| Basic Plugins | ✅ Trait-based | ✅ Module-based |
-| State Persistence | ✅ SQLite | ✅ File-based |
-
-### Exclusive to Rust Manager
-
-| Feature | Description | Benefit |
-|---------|-------------|---------|
-| MuxBackend Abstraction | Flexible terminal backend support | Future-proof |
-| Native File Operations | Direct filesystem access | High performance |
-| Integrated Search | Ripgrep-powered project search | Fast searching |
-| Command History | SQLite with frecency scoring | Smart history |
-| Tauri IPC | Direct desktop integration | Low latency |
-| File Browser Plugin | Navigate, create, edit, delete files | Complete file management |
-| Test Runner Plugin | Multi-framework test detection & execution | Universal test support |
-| Session Templates | Workspace snapshots and templates | Quick environment setup |
-
-### Exclusive to TypeScript Orchestrator
-
-| Feature | Description | Use Case |
-|---------|-------------|----------|
-| **Agent Router** | Intelligent command routing to specialized agents | Auto-select dev/test/build agents |
-| **Agent Types** | Specialized terminals (dev, test, repl, build, lint) | Task-specific environments |
-| **MCP Integration** | Model Context Protocol for AI servers | Claude, GPT integration |
-| **Swarm Coordination** | Distributed task execution | Multi-agent workflows |
-| **Memory Manager** | Persistent context across sessions | Long-term project memory |
-| **Circuit Breakers** | Fault tolerance with automatic recovery | Reliability |
-| **Resource Manager** | Lock management to prevent conflicts | Concurrent operations |
-| **Protocol System** | Development rules and constraints | Team standards |
-| **SPARC Modes** | Specialized behaviors (TDD, Debug, Architect) | Context-aware assistance |
-| **Task Scheduler** | Cron-like task scheduling | Automation |
-| **Output Streaming** | Real-time terminal output streaming | Live monitoring |
-| **Metrics Collection** | Prometheus-compatible metrics | Performance monitoring |
-
-## When to Use Which
-
-### Use Rust Manager Only When:
-
-- You want a fast, lightweight terminal IDE
-- You don't need AI assistance
-- You prefer minimal resource usage
-- You're working on a single project
-- You value simplicity and speed
-
-**Example Configuration**:
-```toml
-[orchestrator]
-mode = "embedded"
-```
+**Example Use Cases:**
+- System administration
+- Simple development tasks
+- Resource-constrained environments
+- Quick terminal sessions
 
 ### Use Manager + Orchestrator When:
 
-- You want AI-powered development assistance
-- You need intelligent command routing
-- You work with complex, multi-agent workflows
-- You want persistent memory across sessions
-- You need advanced automation features
+🤖 **You want AI-powered development assistance**
+- Natural language task requests
+- Intelligent command routing
+- Context-aware suggestions
 
-**Example Configuration**:
-```toml
-[orchestrator]
-mode = "sidecar"
+🔄 **You need multi-agent coordination**
+- Complex build processes
+- Parallel task execution
+- Specialized agent roles (architect, frontend dev, tester)
 
-[features]
-ai_agents = true
-memory_manager = true
-mcp_integration = true
+📊 **You want visual workflow monitoring**
+- Real-time agent status in tmux panes
+- Swarm progress visualization
+- Task dependency tracking
+
+**Example Use Cases:**
+- Full-stack development
+- Large project management
+- Team collaboration
+- Complex deployment workflows
+
+## AI Swarm Architecture
+
+When using Manager + Orchestrator, you get access to the **AI Swarm** features:
+
+### Visual Agent Separation
+```
+┌─────────────────────────────────────────────────────────┐
+│                 Swarm Monitor Grid                       │
+├─────────────────┬─────────────────┬─────────────────────┤
+│ 👑 Architect    │ 💻 Frontend Dev │ 📘 TypeScript      │
+│ ✅ Structure    │ 🔄 Building     │ ✅ Types defined   │
+│ [tmux pane 1]   │ [tmux pane 2]   │ [tmux pane 3]      │
+├─────────────────┼─────────────────┼─────────────────────┤
+│ 🧪 Tester       │ 🔨 Builder      │ 📊 Monitor         │
+│ ⏳ Waiting...   │ ⏳ Waiting...   │ System metrics     │
+│ [tmux pane 4]   │ [tmux pane 5]   │ [tmux pane 6]      │
+└─────────────────┴─────────────────┴─────────────────────┘
 ```
 
-### Use TypeScript as Service When:
-
-- You want to share orchestration across multiple tools
-- You need distributed task execution
-- You're managing multiple projects simultaneously
-- You want a central orchestration hub
-- You're building custom development tools
-
-**Example Configuration**:
-```toml
-[orchestrator]
-mode = "service"
-service_url = "ws://localhost:3000"
+### Natural AI Interaction
+```
+User: "Build a React app with TypeScript and tests"
+  ↓
+AI Chat Interface
+  ↓
+Orchestrator creates specialized agents:
+  → Architect (designs structure)
+  → Frontend Dev (implements React)
+  → TypeScript Expert (adds types)
+  → Test Engineer (writes tests)
+  → Build Engineer (configures bundling)
+  ↓
+Manager creates tmux panes for each agent
+  ↓
+User sees all agents working in real-time
 ```
 
-## Deployment Models
+## Communication Architecture
 
-### 1. Embedded Mode (Default)
+### Manager ↔ Orchestrator Bridge
 
-```
-┌─────────────────────────────┐
-│   orchflow Desktop App      │
-│  ┌──────────────────────┐   │
-│  │     Rust Manager     │   │
-│  │  - Fast & Native     │   │
-│  │  - Zero Dependencies │   │
-│  └──────────────────────┘   │
-└─────────────────────────────┘
-```
-
-**Start Command**: `orchflow`
-
-### 2. Sidecar Mode (AI-Enhanced)
-
-```
-┌─────────────────────────────┐     ┌──────────────────────────┐
-│   orchflow Desktop App      │     │  TypeScript Orchestrator │
-│  ┌──────────────────────┐   │ WS  │  (Child Process)         │
-│  │     Rust Manager     ├───┼─────┤  - AI Orchestration     │
-│  │  - Infrastructure    │   │     │  - Memory Manager       │
-│  └──────────────────────┘   │     │  - Agent Router         │
-└─────────────────────────────┘     └──────────────────────────┘
-```
-
-**Start Command**: `orchflow --ai-mode`
-
-### 3. Service Mode (Multi-Tool)
-
-```
-                           ┌──────────────────────────────┐
-                           │  TypeScript Orchestrator     │
-                           │  (System Service :3000)      │
-                           │  - Shared Agent Pool         │
-                           │  - Persistent Memory         │
-                           │  - Cross-Project Context     │
-                           └─────────────┬────────────────┘
-                                         │ WebSocket
-                ┌────────────────────────┼────────────────────────┐
-                │                        │                        │
-    ┌───────────▼──────────┐  ┌─────────▼──────────┐  ┌─────────▼──────────┐
-    │ orchflow Desktop     │  │ VS Code Extension  │  │ CLI Tools          │
-    │   (Rust Manager)     │  │                    │  │                    │
-    └──────────────────────┘  └────────────────────┘  └────────────────────┘
-```
-
-**Start Service**: `orchflow-service start`  
-**Connect Client**: `orchflow --connect-service`
-
-## Integration Guide
-
-### Current State
-
-- **Rust Manager**: Fully integrated with desktop app ✅
-  - WebSocket server on port 7777 for AI integration
-  - Full plugin system with file browser, test runner, git, etc.
-  - Handles infrastructure and platform management
-- **TypeScript Orchestrator**: Runs independently ✅
-  - WebSocket server on port 3000 (configurable)
-  - Advanced AI orchestration and automation
-  - Handles intelligent routing and coordination
-- **Integration**: Not yet connected (planned) 🚧
-
-### Planned Integration
-
-```typescript
-// TypeScript orchestrator as a service
-const orchestrator = new Orchestrator({
-  mode: 'service',
-  enableWebSocket: true,
-  port: 3000,
-});
-
-// Rust manager connects to orchestrator when needed
-match config.ai_features {
-  true => {
-    let orchestrator_client = WebSocketClient::connect("ws://localhost:3000").await?;
-    // Forward orchestration requests
-  }
-  false => {
-    // Use embedded manager only
-  }
-}
-```
-
-### Communication Protocol
-
-The Manager and Orchestrator communicate using JSON-RPC 2.0:
-
-```json
-// Request from Rust Manager to TypeScript Orchestrator
-{
-  "jsonrpc": "2.0",
-  "method": "agent.route",
-  "params": {
-    "input": "run tests for authentication",
-    "context": { "project": "webapp" }
-  },
-  "id": 1
-}
-
-// Response from TypeScript Orchestrator
-{
-  "jsonrpc": "2.0",
-  "result": {
-    "agent_type": "test",
-    "suggested_command": "npm test -- --grep auth",
-    "confidence": 0.95
-  },
-  "id": 1
-}
-```
-
-#### Common API Methods
-
-```typescript
-// Agent management
-"agent.create": { type: string, name: string, command?: string }
-"agent.list": {}
-"agent.send": { agentId: string, input: string }
-"agent.stop": { agentId: string }
-
-// Session management
-"session.create": { name: string, metadata?: object }
-"session.restore": { sessionId: string }
-"session.save": { sessionId: string }
-
-// AI features (TypeScript orchestrator only)
-"ai.route": { input: string, context?: object }
-"ai.complete": { prompt: string, mode?: string }
-"memory.store": { key: string, value: any, metadata?: object }
-"memory.search": { query: string, limit?: number }
-```
-
-## Technical Specifications
-
-### Performance Targets
-
-| Operation | Rust Manager | TypeScript Orchestrator |
-|-----------|------------------|------------------------|
-| Startup | <50ms | <200ms |
-| Command Execution | <10ms | <25ms |
-| Memory Usage | <100MB | <200MB (configurable) |
-| CPU Idle | <1% | <2% |
-
-### API Compatibility
-
-Both systems expose compatible APIs for their respective domains:
-
-```typescript
-// Common Interface (simplified)
-interface Orchestrator {
-  createSession(name: string): Promise<Session>;
-  createPane(sessionId: string, type: PaneType): Promise<Pane>;
-  executeCommand(paneId: string, command: string): Promise<void>;
-  // ... more methods
-}
-```
-
-## Future Direction
-
-The Manager + Orchestrator architecture is the foundation for orchflow's flexibility. Future development will focus on:
-
-1. **Integration** - Enabling seamless communication between the Rust Manager and TypeScript Orchestrator
-2. **Clear Separation** - Maintaining distinct responsibilities: infrastructure (Rust) vs orchestration (TypeScript)
-3. **Plugin Ecosystem** - Standardizing plugin APIs appropriate to each system's role
-4. **Performance** - Continuous optimization while maintaining feature richness
-
-For detailed development plans and roadmap, see [DEVELOPMENT_ROADMAP_UPDATED.md](/DEVELOPMENT_ROADMAP_UPDATED.md).
-
-## FAQ
-
-### Q: Why separate Manager and Orchestrator instead of one system?
-
-**A**: Different responsibilities require different architectures. Rust excels at infrastructure management (terminals, files, platform integration), while TypeScript excels at orchestration (AI coordination, intelligent routing, workflow automation). This separation of concerns creates a cleaner, more maintainable architecture.
-
-### Q: Will the TypeScript orchestrator be removed?
-
-**A**: No. Initial plans to remove it have been abandoned. The Manager + Orchestrator architecture is now a core design principle of orchflow.
-
-### Q: Do I need both systems?
-
-**A**: No. The Rust Manager provides a complete terminal IDE experience with infrastructure management. The TypeScript Orchestrator adds advanced AI orchestration and automation features for users who want them.
-
-### Q: Can they work together?
-
-**A**: Not yet, but this is actively being developed. The plan is to allow seamless integration while maintaining independence.
-
-### Q: Which should I contribute to?
-
-**A**: 
-- Infrastructure/platform features → Rust Manager
-- AI/orchestration features → TypeScript Orchestrator
-- Integration layer → Both
-
-### Q: Is this technical debt?
-
-**A**: No. This is intentional architecture that provides clear separation of concerns. The Rust Manager handles infrastructure, the TypeScript Orchestrator handles intelligent coordination. Each system is well-maintained and serves distinct purposes.
-
-## Debugging & Troubleshooting
-
-### Check Connection Status
-
-```bash
-# Is TypeScript orchestrator running?
-lsof -i :3000
-
-# Check WebSocket connections
-netstat -an | grep 3000
-
-# View orchestrator logs
-tail -f ~/.config/orchflow/orchestrator.log
-```
-
-### Enable Debug Logging
-
-```typescript
-// In TypeScript orchestrator
-const orchestrator = await createOrchestrator({
-    debug: true,
-    logLevel: 'verbose',
-    logFile: '~/.config/orchflow/orchestrator.log',
-});
-```
+The two components communicate via **JSON-RPC over stdio/socket**:
 
 ```rust
-// In Rust app
-env_logger::Builder::from_env(
-    env_logger::Env::default()
-        .default_filter_or("orchflow=debug")
-).init();
+// Manager (Rust) - src-tauri/src/bridge/orchestrator_bridge.rs
+pub struct OrchestratorBridge {
+    rpc_client: JsonRpcClient,
+    event_bus: Arc<EventBus>,
+}
+
+impl OrchestratorBridge {
+    pub async fn create_swarm(&self, task: &str) -> Result<String, OrchflowError> {
+        // Request swarm creation from orchestrator
+        let result = self.rpc_client.call("swarm.create", json!({
+            "task": task,
+            "agent_count": 5,
+        })).await?;
+        
+        // Create visual tmux session for swarm
+        let swarm_id = result["swarmId"].as_str().unwrap();
+        self.create_visual_swarm_session(swarm_id).await?;
+        
+        Ok(swarm_id.to_string())
+    }
+}
 ```
+
+```typescript
+// Orchestrator (TypeScript) - orchestrator/src/bridge/manager-bridge.ts
+export class ManagerBridge {
+    private rpcServer: JsonRpcServer;
+    
+    constructor(private orchestrator: Orchestrator) {
+        this.setupHandlers();
+    }
+    
+    private setupHandlers() {
+        this.rpcServer.method('swarm.create', async (params) => {
+            const { task, agent_count } = params;
+            
+            // Create AI swarm
+            const swarm = await this.orchestrator.createSwarm(task, {
+                agentCount: agent_count,
+                roles: ['Architect', 'Frontend Dev', 'TypeScript Expert', 'Test Engineer', 'Build Engineer']
+            });
+            
+            return { swarmId: swarm.id };
+        });
+    }
+}
+```
+
+## Deployment Configurations
+
+### 1. Manager Only (Embedded Mode)
+```toml
+# .orchflow.toml
+[orchestrator]
+enabled = false
+
+[manager]
+mode = "standalone"
+features = ["terminals", "files", "plugins", "search"]
+```
+
+### 2. Manager + Orchestrator (Sidecar Mode)
+```toml
+# .orchflow.toml
+[orchestrator]
+enabled = true
+mode = "sidecar"
+startup_timeout = 30
+bridge_protocol = "stdio"
+
+[manager]
+mode = "bridge"
+orchestrator_bridge = true
+
+[ai]
+enabled = true
+default_provider = "claude"
+swarm_coordination = true
+```
+
+### 3. Orchestrator as Service (Future)
+```toml
+# .orchflow.toml
+[orchestrator]
+enabled = true
+mode = "service"
+service_url = "ws://localhost:3000"
+auto_reconnect = true
+
+[manager]
+mode = "client"
+service_discovery = true
+```
+
+## Integration Patterns
+
+### 1. Terminal Creation with AI Context
+
+```typescript
+// User requests via AI chat
+const userRequest = "Set up a development environment";
+
+// Orchestrator determines needed agents
+const agents = await orchestrator.analyzeTask(userRequest);
+// Returns: [{ role: 'Frontend Dev', tools: ['node', 'npm'] }]
+
+// Manager creates terminals for each agent
+for (const agent of agents) {
+    const terminalId = await manager.createTerminal({
+        agent_id: agent.id,
+        agent_role: agent.role,
+        shell: agent.preferredShell,
+        working_dir: agent.workingDir,
+        tmux_pane_title: agent.role
+    });
+    
+    // Link terminal to agent
+    await orchestrator.attachTerminal(agent.id, terminalId);
+}
+```
+
+### 2. Command Routing
+
+```typescript
+// User types command in terminal
+const command = "npm test";
+
+// Manager detects command and asks orchestrator for routing
+const intent = await orchestrator.parseIntent(command);
+// Returns: { purpose: 'test', confidence: 0.95, agentId: 'test-agent-123' }
+
+// Manager routes to appropriate agent terminal
+if (intent.confidence > 0.8) {
+    await manager.sendToTerminal(intent.agentId, command);
+} else {
+    await manager.sendToTerminal(activeTerminalId, command);
+}
+```
+
+## Performance Characteristics
+
+### Manager Performance
+- **Startup time**: <100ms
+- **Memory usage**: ~10MB base
+- **Command latency**: <5ms
+- **File operations**: <10ms
+
+### Orchestrator Performance  
+- **Agent spawn time**: <20ms (with ruv-FANN)
+- **Task routing**: <50ms
+- **Swarm coordination**: <100ms for 5 agents
+- **Memory per agent**: <5MB
+
+### Combined Performance
+- **AI-enhanced startup**: <2 seconds
+- **Swarm creation**: <5 seconds
+- **Multi-agent coordination**: Sub-second response times
+
+## Migration Path
+
+### From Manager-Only to Manager+Orchestrator
+
+1. **Install orchestrator dependencies**:
+   ```bash
+   cd orchestrator && npm install
+   ```
+
+2. **Update configuration**:
+   ```toml
+   [orchestrator]
+   enabled = true
+   mode = "sidecar"
+   ```
+
+3. **Restart orchflow**:
+   - Manager will automatically spawn orchestrator
+   - AI features become available
+   - Existing terminals continue working
+
+4. **No code changes required**:
+   - All existing functionality preserved
+   - AI features added progressively
+   - Backwards compatible
+
+## Troubleshooting
 
 ### Common Issues
 
-1. **Port conflicts**: Check if port 3000 is already in use
-2. **Permission errors**: Ensure orchflow has terminal access permissions
-3. **Connection timeouts**: Verify firewall settings for localhost connections
+**Manager won't start orchestrator**:
+- Check Node.js installation
+- Verify orchestrator dependencies
+- Review orchestrator logs
 
-## Technology Stack
+**Bridge communication fails**:
+- Check JSON-RPC protocol logs
+- Verify stdio/socket connectivity
+- Restart both components
 
-### Core Components
+**AI features not working**:
+- Confirm orchestrator is running
+- Check AI provider configuration
+- Verify API keys and permissions
 
-| Component | Technology | Purpose |
-|-----------|------------|---------|
-| Shell wrapper | Tauri | Native window chrome, auto-updater, OS integration |
-| UI framework | SvelteKit (static) | Zero SSR overhead, hot reload, reactive UI |
-| Editor kernel | Neovim RPC | Modal editing, extensibility, cross-platform |
-| Code editor | CodeMirror (partial) | Configuration panels, lightweight editing |
-| Terminal runtime | MuxBackend (tmux/muxd) | Terminal multiplexing abstraction |
-| Infrastructure Manager | Rust | Terminal/file/plugin management |
-| AI Orchestrator | TypeScript | Task coordination, agent management |
-| State store | SQLite (sqlx) | Persistent storage, zero-config database |
-| Event bus | WebSocket | Real-time communication, event streaming |
-| Modules | Flatfiles + SQLite | Plugin system, dynamic loading |
-
-### Key Design Decisions
-
-1. **Manager + Orchestrator Architecture**: Rust Manager for infrastructure, TypeScript Orchestrator for AI coordination
-2. **MuxBackend Abstraction**: Flexibility to use tmux, muxd, or other terminal multiplexers
-3. **Headless Neovim**: Multiple Neovim instances managed via RPC for isolation
-4. **Module System**: Dynamic loading with manifest-based configuration
-5. **SQLite Everything**: Single-file database for all persistent state
-
-## Data Flow
-
-### 1. Command Execution Flow
-```
-User Input → Frontend → Tauri IPC → Rust Manager → MuxBackend → tmux/Neovim → Response
-```
-
-### 2. Orchestration Flow (when enabled)
-```
-Natural Language → TypeScript Orchestrator → Agent Router → Rust Manager → Execution
-```
-
-### 3. Event Flow
-```
-Component Event → Event Bus → Manager/Orchestrator → WebSocket → Frontend Update
-```
-
-### 4. Module Loading Flow
-```
-Discover Modules → Validate Manifests → Load Dependencies → Initialize → Register Commands
-```
-
-## Module System
-
-Dynamic plugin system supporting:
-- **Layout Modules** - Custom workspace layouts
-- **Agent Modules** - AI/automation agents
-- **Tool Modules** - Development tools
-- **Provider Modules** - External service integrations
-
-**Module Structure:**
-```
-module-name/
-├── manifest.json    # Module metadata and config schema
-├── index.js        # Entry point (CommonJS or ES modules)
-└── assets/         # Optional resources
-```
-
-## Performance Optimizations
-
-1. **Startup Performance** (<100ms target)
-   - Parallel initialization of components
-   - Lazy loading of non-critical features
-   - Optimized Rust binary (LTO, size optimization)
-
-2. **Runtime Performance**
-   - Event debouncing and batching
-   - Virtual scrolling for large outputs
-   - Incremental UI updates
-   - Resource pooling (terminal instances)
-
-3. **Binary Size**
-   - Rust opt-level "z" (size optimization)
-   - Symbol stripping in release builds
-   - Code splitting in frontend
-   - Dynamic imports for heavy dependencies
-
-## Security Considerations
-
-1. **Process Isolation**
-   - Each Neovim instance runs in separate process
-   - Terminal sessions isolated via MuxBackend
-   - Modules run in restricted context
-
-2. **IPC Security**
-   - Tauri's secure IPC bridge
-   - Command allowlisting
-   - Input sanitization
-
-3. **Module Security**
-   - Permission-based module system
-   - Manifest validation
-   - Sandboxed execution context
-
-## Development Workflow
-
-### Building from Source
+### Debug Commands
 
 ```bash
-# Install dependencies
-cd frontend
-npm install
+# Check orchestrator process
+ps aux | grep orchestrator
 
-# Development mode
-npm run tauri dev
+# View bridge communication
+tail -f ~/.config/orchflow/bridge.log
 
-# Production build
-npm run tauri build
+# Test JSON-RPC manually
+echo '{"jsonrpc":"2.0","method":"swarm.create","params":{"task":"test"},"id":1}' | nc localhost 3000
 ```
 
-### Testing
+## Future Enhancements
 
-```bash
-# Run all tests
-./test-orchestrator.sh
-./test-desktop.sh
+### Planned Features
+- **ruv-FANN integration**: Ephemeral neural networks for agent coordination
+- **Command adapters**: Support for claude-flow, GPT tools, custom adapters
+- **Web deployment**: Orchestrator as shared service across multiple IDEs
+- **Advanced scheduling**: Cron-like task automation
+- **Metrics dashboard**: Real-time performance monitoring
 
-# Test specific component
-cd orchestrator && npm test
-cd frontend && npm test
-cd frontend/src-tauri && cargo test
-```
+### Evolution Path
+1. **Phase 1**: Current Manager + Orchestrator bridge
+2. **Phase 2**: ruv-FANN neural coordination
+3. **Phase 3**: Command adapter ecosystem
+4. **Phase 4**: Web deployment and multi-tenant support
 
-### Module Development
+## Related Documentation
 
-1. Create module directory in `modules/`
-2. Add `manifest.json` with metadata
-3. Implement `index.js` with required exports
-4. Test with module loader
-
-See `modules/example-terminal-agent/` for reference implementation.
-
-## Summary
-
-The Manager + Orchestrator architecture represents orchflow's commitment to user choice and flexibility. By separating infrastructure management (Rust Manager) from intelligent orchestration (TypeScript Orchestrator), orchflow can serve everyone from minimalist terminal users to AI-powered development teams.
-
-This architecture is not a transition state—it's the destination. The Manager provides rock-solid infrastructure, while the Orchestrator adds optional intelligence on top.
+- [ORCHFLOW_UNIFIED_ARCHITECTURE.md](./ORCHFLOW_UNIFIED_ARCHITECTURE.md) - Comprehensive architecture overview
+- [COMPONENT_RESPONSIBILITIES.md](./COMPONENT_RESPONSIBILITIES.md) - Detailed component boundaries
+- [TERMINAL_MANAGER_ENHANCEMENTS.md](./TERMINAL_MANAGER_ENHANCEMENTS.md) - Implementation roadmap
+- [TODO_REPORT.md](./TODO_REPORT.md) - Outstanding implementation tasks
 
 ---
 
-*This document consolidates and replaces previous migration plans, analyses, and the original ARCHITECTURE.md. For historical context, see git history.*
+*This document serves as a decision guide for choosing between Manager-only and Manager+Orchestrator configurations. For implementation details, see the companion architecture documents.*

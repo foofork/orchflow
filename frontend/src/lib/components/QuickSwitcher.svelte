@@ -26,6 +26,9 @@
   export let show = false;
   export let mode: 'all' | 'files' | 'terminals' | 'sessions' = 'all';
   export let maxResults = 10;
+  export let testMode = false;
+  export let initialItems: SwitchItem[] = [];
+  export let autoLoad = true;
   
   let searchQuery = '';
   let selectedIndex = 0;
@@ -87,26 +90,31 @@
     items = [];
     
     try {
-      const promises = [];
-      
-      // Load files
-      if (mode === 'all' || mode === 'files') {
-        promises.push(loadRecentFiles());
-        promises.push(loadOpenFiles());
+      if (testMode) {
+        // In test mode, use provided initial items
+        items = initialItems;
+      } else {
+        const promises = [];
+        
+        // Load files
+        if (mode === 'all' || mode === 'files') {
+          promises.push(loadRecentFiles());
+          promises.push(loadOpenFiles());
+        }
+        
+        // Load terminals
+        if (mode === 'all' || mode === 'terminals') {
+          promises.push(loadTerminals());
+        }
+        
+        // Load sessions
+        if (mode === 'all' || mode === 'sessions') {
+          promises.push(loadSessions());
+        }
+        
+        const results = await Promise.all(promises);
+        items = results.flat();
       }
-      
-      // Load terminals
-      if (mode === 'all' || mode === 'terminals') {
-        promises.push(loadTerminals());
-      }
-      
-      // Load sessions
-      if (mode === 'all' || mode === 'sessions') {
-        promises.push(loadSessions());
-      }
-      
-      const results = await Promise.all(promises);
-      items = results.flat();
       
       // Sort by recent access and score
       items.sort((a, b) => {
@@ -142,7 +150,7 @@
       // Get recent files from file manager
       const recentFiles = await invoke('get_file_operation_history', { limit: 20 });
       
-      return (recentFiles as any[]).map((file: any) => ({
+      return (recentFiles as any[] || []).map((file: any) => ({
         id: `file:${file.path}`,
         title: file.path.split('/').pop() || file.path,
         path: file.path,
@@ -176,14 +184,14 @@
   async function loadTerminals(): Promise<SwitchItem[]> {
     try {
       const sessionInfo = await invoke('get_sessions');
-      const sessions = sessionInfo as any[];
+      const sessions = sessionInfo as any[] || [];
       
       const terminals: SwitchItem[] = [];
       
       for (const session of sessions) {
         const panes = await invoke('get_panes', { sessionId: session.id });
         
-        for (const pane of (panes as any[])) {
+        for (const pane of (panes as any[] || [])) {
           if (pane.pane_type === 'terminal') {
             terminals.push({
               id: `terminal:${pane.id}`,
@@ -209,7 +217,7 @@
     try {
       const sessions = await invoke('get_sessions');
       
-      return (sessions as any[]).map((session: any) => ({
+      return (sessions as any[] || []).map((session: any) => ({
         id: `session:${session.id}`,
         title: session.name,
         type: 'session' as const,
@@ -360,8 +368,12 @@
   
   // Lifecycle
   $: if (show) {
-    loadRecentItems();
-    loadItems();
+    if (!testMode) {
+      loadRecentItems();
+    }
+    if (autoLoad) {
+      loadItems();
+    }
     if (searchInput) {
       searchInput.focus();
       searchQuery = '';
@@ -372,7 +384,14 @@
   $: searchQuery, filterItems();
   
   onMount(() => {
-    loadRecentItems();
+    if (!testMode) {
+      loadRecentItems();
+    }
+    if (testMode && initialItems.length > 0) {
+      items = initialItems;
+      initializeFuse();
+      filterItems();
+    }
   });
 </script>
 

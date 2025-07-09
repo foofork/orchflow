@@ -1,0 +1,674 @@
+<script lang="ts">
+  import { createEventDispatcher, onMount, onDestroy } from 'svelte';
+  import { slide, fade } from 'svelte/transition';
+  import { invoke } from '@tauri-apps/api/tauri';
+  import { listen } from '@tauri-apps/api/event';
+  import ContextMenu from './ContextMenu.svelte';
+  
+  const dispatch = createEventDispatcher();
+  
+  interface GitStatus {
+    path: string;
+    status: 'untracked' | 'modified' | 'added' | 'deleted' | 'renamed' | 'conflicted' | 'ignored';
+    staged: boolean;
+  }
+  
+  interface FileNode {
+    name: string;
+    path: string;
+    isDirectory: boolean;
+    children?: FileNode[];
+    expanded?: boolean;
+    loading?: boolean;
+    size?: number;
+    modified?: string;
+    gitStatus?: GitStatus;
+    icon?: string;
+  }
+  
+  export let rootPath = '';
+  export let showHidden = false;
+  export let showGitStatus = true;
+  
+  let tree: FileNode[] = [];
+  let selectedPath = '';
+  let selectedNode: FileNode | null = null;
+  let searchQuery = '';
+  let filteredTree: FileNode[] = [];
+  let gitStatuses: Record<string, GitStatus> = {};
+  let hasGit = false;
+  let contextMenuPosition = { x: 0, y: 0 };
+  let showContextMenu = false;
+  let unlisten: Function | null = null;
+  
+  // File type icons
+  const fileIcons: Record<string, string> = {
+    // Folders
+    folder: '📁',
+    folderOpen: '📂',
+    
+    // Code files
+    js: '🟨',
+    ts: '🔷',
+    jsx: '⚛️',
+    tsx: '⚛️',
+    svelte: '🧡',
+    vue: '💚',
+    py: '🐍',
+    rs: '🦀',
+    go: '🐹',
+    java: '☕',
+    c: '🔵',
+    cpp: '🔵',
+    cs: '🟣',
+    
+    // Config files
+    json: '📋',
+    yaml: '📋',
+    yml: '📋',
+    toml: '📋',
+    xml: '📋',
+    env: '⚙️',
+    
+    // Web files
+    html: '🌐',
+    css: '🎨',
+    scss: '🎨',
+    sass: '🎨',
+    
+    // Documentation
+    md: '📝',
+    txt: '📄',
+    pdf: '📕',
+    doc: '📘',
+    
+    // Media
+    png: '🖼️',
+    jpg: '🖼️',
+    jpeg: '🖼️',
+    gif: '🖼️',
+    svg: '🖼️',
+    mp4: '🎬',
+    mp3: '🎵',
+    
+    // Other
+    zip: '🗜️',
+    tar: '🗜️',
+    gz: '🗜️',
+    lock: '🔒',
+    gitignore: '🚫',
+    dockerfile: '🐳',
+    sh: '📜',
+    default: '📄'
+  };
+  
+  // Git status indicators
+  const gitStatusIcons: Record<string, string> = {
+    untracked: '❓',
+    modified: '✏️',
+    added: '➕',
+    deleted: '➖',
+    renamed: '📝',
+    conflicted: '⚠️',
+    ignored: '🚫'
+  };
+  
+  onMount(async () => {
+    // Check if git is available
+    try {
+      hasGit = await invoke('has_git_integration');
+    } catch (err) {
+      console.error('Failed to check git status:', err);
+      hasGit = false;
+    }
+    
+    if (!rootPath) {
+      try {
+        rootPath = await invoke('get_current_dir');
+      } catch (err) {
+        console.error('Failed to get current directory:', err);
+      }
+    }
+    
+    if (rootPath) {
+      await loadFileTree();
+      if (hasGit && showGitStatus) {
+        await loadGitStatuses();
+      }
+    }
+    
+    // Listen for file changes
+    unlisten = await listen('file-changed', async (event) => {
+      console.log('File changed:', event.payload);
+      await refreshNode(event.payload as string);
+    });
+  });
+  
+  onDestroy(() => {
+    if (unlisten) {
+      unlisten();
+    }
+  });
+  
+  async function loadFileTree() {
+    try {
+      const result = await invoke('get_file_tree', { 
+        path: rootPath,
+        showHidden 
+      });
+      tree = transformFileTree(result as any);
+      filterTree();
+    } catch (err) {
+      console.error('Failed to load file tree:', err);
+      dispatch('error', { message: `Failed to load file tree: ${err}` });
+    }
+  }
+  
+  async function loadGitStatuses() {
+    if (!hasGit) return;
+    
+    try {
+      const statuses = await invoke('get_all_git_statuses');
+      gitStatuses = statuses as Record<string, GitStatus>;
+      
+      // Update tree with git statuses
+      updateTreeWithGitStatus(tree);
+      tree = [...tree]; // Trigger reactivity
+    } catch (err) {
+      console.error('Failed to load git statuses:', err);
+    }
+  }
+  
+  function updateTreeWithGitStatus(nodes: FileNode[]) {
+    for (const node of nodes) {
+      if (gitStatuses[node.path]) {
+        node.gitStatus = gitStatuses[node.path];
+      }
+      if (node.children) {
+        updateTreeWithGitStatus(node.children);
+      }
+    }
+  }
+  
+  function transformFileTree(data: any): FileNode[] {
+    if (!data) return [];
+    
+    const transform = (item: any): FileNode => {
+      const ext = getFileExtension(item.name);
+      const isDir = item.node_type === 'directory';
+      
+      return {
+        name: item.name,
+        path: item.path,
+        isDirectory: isDir,
+        children: item.children ? item.children.map(transform) : undefined,
+        expanded: item.is_expanded || false,
+        size: item.size,
+        modified: item.modified,
+        gitStatus: item.git_status,
+        icon: isDir ? (item.expanded ? fileIcons.folderOpen : fileIcons.folder) : 
+               (fileIcons[ext] || fileIcons.default)
+      };
+    };
+    
+    if (Array.isArray(data)) {
+      return data.map(transform);
+    } else if (data.children) {
+      return data.children.map(transform);
+    } else {
+      return [];
+    }
+  }
+  
+  function getFileExtension(filename: string): string {
+    const parts = filename.toLowerCase().split('.');
+    return parts.length > 1 ? parts[parts.length - 1] : '';
+  }
+  
+  function filterTree() {
+    if (!searchQuery) {
+      filteredTree = tree;
+      return;
+    }
+    
+    const query = searchQuery.toLowerCase();
+    
+    function filterNodes(nodes: FileNode[]): FileNode[] {
+      return nodes.reduce((acc: FileNode[], node) => {
+        const nameMatches = node.name.toLowerCase().includes(query);
+        const childrenFiltered = node.children ? filterNodes(node.children) : [];
+        
+        if (nameMatches || childrenFiltered.length > 0) {
+          acc.push({
+            ...node,
+            children: childrenFiltered.length > 0 ? childrenFiltered : node.children,
+            expanded: childrenFiltered.length > 0 ? true : node.expanded
+          });
+        }
+        
+        return acc;
+      }, []);
+    }
+    
+    filteredTree = filterNodes(tree);
+  }
+  
+  async function toggleNode(node: FileNode) {
+    if (!node.isDirectory) {
+      selectedPath = node.path;
+      selectedNode = node;
+      dispatch('openFile', { path: node.path, node });
+      return;
+    }
+    
+    node.expanded = !node.expanded;
+    node.icon = node.expanded ? fileIcons.folderOpen : fileIcons.folder;
+    
+    if (node.expanded && (!node.children || node.children.length === 0)) {
+      node.loading = true;
+      try {
+        const result = await invoke('expand_directory', { path: node.path });
+        node.children = transformFileTree(result as any);
+        
+        if (hasGit && showGitStatus) {
+          updateTreeWithGitStatus(node.children);
+        }
+      } catch (err) {
+        console.error('Failed to expand directory:', err);
+        dispatch('error', { message: `Failed to expand directory: ${err}` });
+      } finally {
+        node.loading = false;
+      }
+    } else if (!node.expanded) {
+      try {
+        await invoke('collapse_directory', { path: node.path });
+      } catch (err) {
+        console.error('Failed to collapse directory:', err);
+      }
+    }
+    
+    tree = [...tree]; // Trigger reactivity
+  }
+  
+  async function refreshNode(path: string) {
+    // Find and refresh the parent directory of the changed file
+    const parentPath = path.substring(0, path.lastIndexOf('/'));
+    
+    function findAndRefresh(nodes: FileNode[]): boolean {
+      for (const node of nodes) {
+        if (node.path === parentPath && node.isDirectory && node.expanded) {
+          refreshDirectory(node);
+          return true;
+        }
+        if (node.children && findAndRefresh(node.children)) {
+          return true;
+        }
+      }
+      return false;
+    }
+    
+    findAndRefresh(tree);
+  }
+  
+  async function refreshDirectory(node: FileNode) {
+    try {
+      const result = await invoke('expand_directory', { path: node.path });
+      node.children = transformFileTree(result as any);
+      
+      if (hasGit && showGitStatus) {
+        await loadGitStatuses();
+      }
+      
+      tree = [...tree]; // Trigger reactivity
+    } catch (err) {
+      console.error('Failed to refresh directory:', err);
+    }
+  }
+  
+  function handleContextMenu(event: MouseEvent, node: FileNode) {
+    event.preventDefault();
+    selectedNode = node;
+    selectedPath = node.path;
+    contextMenuPosition = { x: event.clientX, y: event.clientY };
+    showContextMenu = true;
+  }
+  
+  async function handleContextAction(action: string) {
+    if (!selectedNode) return;
+    
+    showContextMenu = false;
+    
+    switch (action) {
+      case 'rename':
+        dispatch('rename', { path: selectedNode.path, node: selectedNode });
+        break;
+      case 'delete':
+        dispatch('delete', { path: selectedNode.path, node: selectedNode });
+        break;
+      case 'newFile':
+        dispatch('newFile', { parent: selectedNode.isDirectory ? selectedNode.path : getParentPath(selectedNode.path) });
+        break;
+      case 'newFolder':
+        dispatch('newFolder', { parent: selectedNode.isDirectory ? selectedNode.path : getParentPath(selectedNode.path) });
+        break;
+      case 'copy':
+        dispatch('copy', { path: selectedNode.path, node: selectedNode });
+        break;
+      case 'cut':
+        dispatch('cut', { path: selectedNode.path, node: selectedNode });
+        break;
+      case 'paste':
+        dispatch('paste', { path: selectedNode.path, node: selectedNode });
+        break;
+      case 'openInTerminal':
+        dispatch('openInTerminal', { path: selectedNode.isDirectory ? selectedNode.path : getParentPath(selectedNode.path) });
+        break;
+      case 'revealInFinder':
+        dispatch('revealInFinder', { path: selectedNode.path });
+        break;
+    }
+  }
+  
+  function getParentPath(path: string): string {
+    const lastSlash = path.lastIndexOf('/');
+    return lastSlash > 0 ? path.substring(0, lastSlash) : '/';
+  }
+  
+  function formatFileSize(bytes: number): string {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  }
+  
+  $: searchQuery, filterTree();
+</script>
+
+<div class="file-explorer">
+  <div class="explorer-header">
+    <div class="explorer-title">
+      <span class="title-icon">📁</span>
+      <span class="title-text">Explorer</span>
+    </div>
+    <div class="explorer-actions">
+      <button 
+        class="action-btn" 
+        title="New File"
+        on:click={() => dispatch('newFile', { parent: rootPath })}
+      >
+        📄
+      </button>
+      <button 
+        class="action-btn" 
+        title="New Folder"
+        on:click={() => dispatch('newFolder', { parent: rootPath })}
+      >
+        📁
+      </button>
+      <button 
+        class="action-btn" 
+        title="Refresh"
+        on:click={loadFileTree}
+      >
+        🔄
+      </button>
+      <button 
+        class="action-btn" 
+        title="Toggle Hidden Files"
+        class:active={showHidden}
+        on:click={() => { showHidden = !showHidden; loadFileTree(); }}
+      >
+        👁️
+      </button>
+    </div>
+  </div>
+  
+  <div class="search-container">
+    <span class="search-icon">🔍</span>
+    <input
+      type="text"
+      placeholder="Search files..."
+      bind:value={searchQuery}
+      class="search-input"
+    />
+  </div>
+  
+  <div class="tree-container">
+    {#if filteredTree.length === 0}
+      <div class="empty-state">
+        {#if searchQuery}
+          No files found matching "{searchQuery}"
+        {:else}
+          No files in this directory
+        {/if}
+      </div>
+    {:else}
+      <div class="tree">
+        {#each filteredTree as node}
+          <TreeNode 
+            {node} 
+            level={0}
+            {selectedPath}
+            on:toggle={e => toggleNode(e.detail)}
+            on:select={e => { selectedPath = e.detail.path; selectedNode = e.detail; }}
+            on:contextmenu={e => handleContextMenu(e.detail.event, e.detail.node)}
+          />
+        {/each}
+      </div>
+    {/if}
+  </div>
+  
+  {#if selectedNode && selectedNode.size !== undefined}
+    <div class="file-info">
+      <span class="info-item">📏 {formatFileSize(selectedNode.size)}</span>
+      {#if selectedNode.modified}
+        <span class="info-item">🕐 {new Date(selectedNode.modified).toLocaleString()}</span>
+      {/if}
+    </div>
+  {/if}
+</div>
+
+{#if showContextMenu}
+  <ContextMenu
+    x={contextMenuPosition.x}
+    y={contextMenuPosition.y}
+    on:close={() => showContextMenu = false}
+    on:action={e => handleContextAction(e.detail)}
+  >
+    {#if selectedNode?.isDirectory}
+      <button on:click={() => handleContextAction('newFile')}>📄 New File</button>
+      <button on:click={() => handleContextAction('newFolder')}>📁 New Folder</button>
+      <hr />
+    {/if}
+    <button on:click={() => handleContextAction('rename')}>✏️ Rename</button>
+    <button on:click={() => handleContextAction('delete')}>🗑️ Delete</button>
+    <hr />
+    <button on:click={() => handleContextAction('copy')}>📋 Copy</button>
+    <button on:click={() => handleContextAction('cut')}>✂️ Cut</button>
+    <button on:click={() => handleContextAction('paste')}>📋 Paste</button>
+    <hr />
+    <button on:click={() => handleContextAction('openInTerminal')}>💻 Open in Terminal</button>
+    <button on:click={() => handleContextAction('revealInFinder')}>📂 Reveal in Finder</button>
+  </ContextMenu>
+{/if}
+
+<style>
+  .file-explorer {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-primary);
+    color: var(--fg-primary);
+  }
+  
+  .explorer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  
+  .explorer-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  
+  .title-icon {
+    font-size: 16px;
+  }
+  
+  .explorer-actions {
+    display: flex;
+    gap: 4px;
+  }
+  
+  .action-btn {
+    background: none;
+    border: none;
+    color: var(--fg-secondary);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 16px;
+    transition: all 0.2s;
+  }
+  
+  .action-btn:hover {
+    background: var(--bg-secondary);
+    color: var(--fg-primary);
+  }
+  
+  .action-btn.active {
+    background: var(--bg-tertiary);
+    color: var(--fg-primary);
+  }
+  
+  .search-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  
+  .search-icon {
+    font-size: 14px;
+    opacity: 0.6;
+  }
+  
+  .search-input {
+    flex: 1;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 13px;
+    color: var(--fg-primary);
+    outline: none;
+  }
+  
+  .search-input:focus {
+    border-color: var(--accent);
+  }
+  
+  .tree-container {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 8px 0;
+  }
+  
+  .empty-state {
+    text-align: center;
+    padding: 32px;
+    color: var(--fg-tertiary);
+    font-size: 13px;
+  }
+  
+  .tree {
+    font-size: 13px;
+  }
+  
+  .file-info {
+    display: flex;
+    gap: 16px;
+    padding: 8px 16px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--fg-secondary);
+  }
+  
+  .info-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  
+  /* Scrollbar */
+  .tree-container::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .tree-container::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .tree-container::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 4px;
+  }
+  
+  .tree-container::-webkit-scrollbar-thumb:hover {
+    background: var(--fg-tertiary);
+  }
+</style>
+
+>
+  <button
+    class="node-content"
+    on:click={() => dispatch('toggle', node)}
+    on:contextmenu|preventDefault={e => dispatch('contextmenu', { event: e, node })}
+  >
+    {#if node.isDirectory}
+      <span class="node-arrow" class:expanded={node.expanded}>
+        {#if node.loading}
+          ⏳
+        {:else}
+          ▶
+        {/if}
+      </span>
+    {:else}
+      <span class="node-spacer"></span>
+    {/if}
+    
+    <span class="node-icon">{node.icon}</span>
+    <span class="node-name">{node.name}</span>
+    
+    {#if node.gitStatus}
+      <span class="git-status" title={node.gitStatus.status}>
+        {gitStatusIcons[node.gitStatus.status] || ''}
+      </span>
+    {/if}
+  </button>
+  
+  {#if node.isDirectory && node.expanded && node.children}
+    <div class="tree-children" transition:slide={{ duration: 200 }}>
+      {#each node.children as child}
+        <svelte:self 
+          node={child} 
+          level={level + 1}
+          {selectedPath}
+          on:toggle
+          on:select
+          on:contextmenu
+        />
+      {/each}
+    </div>
+  {/if}
+</div>
+

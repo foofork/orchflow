@@ -138,7 +138,8 @@ orchflow is an AI-driven development environment that enables users to interact 
 │  │  • TypeScript orchestration engine                        │  │
 │  │  • ruv-FANN integration                                   │  │
 │  │  • Command adapters                                       │  │
-│  │  • Connected via JSON-RPC                                 │  │
+│  │  • Connected via JSON-RPC over stdio/socket               │  │
+│  │  • Event bus for agent coordination                       │  │
 │  └──────────────────────────────────────────────────────────┘  │
 │                                                                 │
 │  ┌──────────────────────────────────────────────────────────┐  │
