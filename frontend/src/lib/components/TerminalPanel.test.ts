@@ -297,7 +297,10 @@ describe('TerminalPanel', () => {
     await fireEvent.contextMenu(terminalTab);
     
     await waitFor(() => {
-      expect(getByText(/Rename|Duplicate|Close|Move/)).toBeInTheDocument();
+      expect(getByText(/Rename/)).toBeInTheDocument();
+      expect(getByText(/Duplicate/)).toBeInTheDocument();
+      expect(getByText(/Close/)).toBeInTheDocument();
+      expect(getByText(/Move/)).toBeInTheDocument();
     });
   });
 

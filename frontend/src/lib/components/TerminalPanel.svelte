@@ -65,6 +65,11 @@
   let showLayoutMenu = false;
   let renamingTerminalId: string | null = null;
   let renameValue = '';
+  let showContextMenu = false;
+  let contextMenuTerminalId: string | null = null;
+  let contextMenuPosition = { x: 0, y: 0 };
+  let draggedTerminalId: string | null = null;
+  let draggedOverId: string | null = null;
   
   onMount(async () => {
     // Load available shells
@@ -83,6 +88,16 @@
     
     // Load saved terminal groups
     loadTerminalGroups();
+    
+    // Global click handler to close menus
+    const handleGlobalClick = () => {
+      showContextMenu = false;
+    };
+    document.addEventListener('click', handleGlobalClick);
+    
+    return () => {
+      document.removeEventListener('click', handleGlobalClick);
+    };
   });
   
   async function createTerminal(shell?: string, cwd?: string, title?: string) {
@@ -364,13 +379,68 @@
         <button
           class="terminal-tab"
           class:active={terminal.isActive}
+          class:drag-over={draggedOverId === terminal.id}
           role="tab"
           aria-selected={terminal.isActive}
           aria-controls="terminal-{terminal.id}"
           id="tab-{terminal.id}"
+          draggable="true"
           on:click={() => activateTerminal(terminal.id)}
           on:dblclick={() => startRename(terminal.id, terminal.title)}
           on:auxclick={(e) => { if (e.button === 1) closeTerminal(terminal.id); }}
+          on:contextmenu={(e) => {
+            e.preventDefault();
+            contextMenuTerminalId = terminal.id;
+            contextMenuPosition = { x: e.clientX, y: e.clientY };
+            showContextMenu = true;
+          }}
+          on:keydown={(e) => {
+            if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+              e.preventDefault();
+              const terms = $terminalsStore;
+              const currentIndex = terms.findIndex(t => t.id === terminal.id);
+              if (e.key === 'ArrowRight' && currentIndex < terms.length - 1) {
+                activateTerminal(terms[currentIndex + 1].id);
+              } else if (e.key === 'ArrowLeft' && currentIndex > 0) {
+                activateTerminal(terms[currentIndex - 1].id);
+              }
+            }
+          }}
+          on:dragstart={(e) => {
+            draggedTerminalId = terminal.id;
+            if (e.dataTransfer) {
+              e.dataTransfer.effectAllowed = 'move';
+              e.dataTransfer.setData('text/plain', terminal.id);
+            }
+          }}
+          on:dragover={(e) => {
+            e.preventDefault();
+            if (e.dataTransfer) {
+              e.dataTransfer.dropEffect = 'move';
+            }
+            if (draggedTerminalId && draggedTerminalId !== terminal.id) {
+              draggedOverId = terminal.id;
+            }
+          }}
+          on:dragleave={() => {
+            draggedOverId = null;
+          }}
+          on:drop={(e) => {
+            e.preventDefault();
+            if (draggedTerminalId && draggedTerminalId !== terminal.id) {
+              const fromIndex = $terminalsStore.findIndex(t => t.id === draggedTerminalId);
+              const toIndex = $terminalsStore.findIndex(t => t.id === terminal.id);
+              if (fromIndex !== -1 && toIndex !== -1 && onTabReorder) {
+                onTabReorder(fromIndex, toIndex);
+              }
+            }
+            draggedTerminalId = null;
+            draggedOverId = null;
+          }}
+          on:dragend={() => {
+            draggedTerminalId = null;
+            draggedOverId = null;
+          }}
           title="{terminal.title} - {terminal.cwd}"
         >
           <span class="tab-icon">
@@ -599,6 +669,55 @@
     </div>
   {/if}
   
+  {#if showContextMenu && contextMenuTerminalId}
+    <div
+      class="context-menu"
+      style="position: fixed; left: {contextMenuPosition.x}px; top: {contextMenuPosition.y}px;"
+      on:click|stopPropagation
+    >
+      <button
+        class="menu-item"
+        on:click={() => {
+          startRename(contextMenuTerminalId, $terminalsStore.find(t => t.id === contextMenuTerminalId)?.title || '');
+          showContextMenu = false;
+        }}
+      >
+        ✏️ Rename
+      </button>
+      <button
+        class="menu-item"
+        on:click={() => {
+          const terminal = $terminalsStore.find(t => t.id === contextMenuTerminalId);
+          if (terminal) {
+            createTerminal(terminal.shell, terminal.cwd, `${terminal.title} (copy)`);
+          }
+          showContextMenu = false;
+        }}
+      >
+        📋 Duplicate
+      </button>
+      <button
+        class="menu-item"
+        on:click={() => {
+          if (contextMenuTerminalId) closeTerminal(contextMenuTerminalId);
+          showContextMenu = false;
+        }}
+      >
+        ❌ Close
+      </button>
+      <button
+        class="menu-item"
+        on:click={() => {
+          // Move to new window functionality
+          dispatch('moveToWindow', { terminalId: contextMenuTerminalId });
+          showContextMenu = false;
+        }}
+      >
+        🪟 Move to New Window
+      </button>
+    </div>
+  {/if}
+  
   <div class="terminal-container {getLayoutClasses()}" bind:this={terminalContainer}>
     {#if $terminalsStore.length === 0}
       <div class="empty-state">
@@ -707,6 +826,10 @@
   .terminal-tab.active {
     background: var(--bg-primary);
     color: var(--fg-primary);
+  }
+  
+  .terminal-tab.drag-over {
+    border-left: 2px solid var(--accent);
   }
   
   .tab-icon {
@@ -959,7 +1082,8 @@
   .new-terminal-menu,
   .groups-menu,
   .quick-commands-menu,
-  .layout-menu {
+  .layout-menu,
+  .context-menu {
     position: absolute;
     top: 40px;
     right: 100px;
@@ -970,6 +1094,12 @@
     min-width: 200px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     z-index: 100;
+  }
+  
+  .context-menu {
+    position: fixed !important;
+    top: auto !important;
+    right: auto !important;
   }
   
   .new-terminal-menu {

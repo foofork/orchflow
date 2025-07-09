@@ -13,8 +13,32 @@
 2. Move completed work to "Completed Phases"
 3. Keep metrics current (performance, coverage)
 4. Link relevant documentation
+5. **FINISH THE JOB**: No task complete without passing tests
+
+**TDD Requirement:**
+- **MANDATORY**: Write tests FIRST, then code
+- **Red → Green → Refactor**: Follow TDD cycle
+- **>90% Coverage**: Maintain test coverage
+- **See**: [Test Strategy Guide](docs/TEST_STRATEGY.md)
+
+**Documentation Discipline:**
+- **Roadmap Items** → HERE, not scattered in code comments
+- **Architecture Decisions** → docs/ORCHFLOW_UNIFIED_ARCHITECTURE.md
+- **API Changes** → Relevant API docs
+- **NO SPRAWL**: Don't document roadmap items in random files
 
 ## 🎉 Major Milestone: Phase 5 Complete!
+
+### 🚨 CRITICAL: Test-Driven Development is MANDATORY
+
+**FINISH THE JOB** - No feature is complete without:
+1. **Tests Written FIRST** - TDD is not optional
+2. **All Tests PASSING** - Red → Green → Refactor
+3. **Coverage >90%** - Measure and maintain
+4. **CI/CD Green** - No merging with failing tests
+
+> **📖 See [Test Strategy Guide](docs/TEST_STRATEGY.md) for testing approach**
+> **📖 See [Contributing Guide](docs/CONTRIBUTING.md) for TDD workflow**
 
 ### Executive Summary
 Orchflow has successfully completed **all infrastructure and core implementation phases** (Phases 1-5), establishing a production-ready foundation with:
@@ -144,11 +168,30 @@ await manager.createTerminal(sessionId, options);
 
 ## Current Development Focus 🚧
 
+### ⚠️ TDD Requirements for Active Work
+**EVERY feature below MUST follow TDD:**
+1. Write failing tests FIRST
+2. Implement minimal code to pass
+3. Refactor with confidence
+4. Document test scenarios
+
 ### Active Work
 - **Git Integration Panel**: Branch management, diff viewer, commit interface
+  - [ ] Write component tests for GitPanel
+  - [ ] Write integration tests for git operations
+  - [ ] Implement features to pass tests
 - **Notification System**: Toast notifications, progress indicators
+  - [ ] Write tests for notification queue
+  - [ ] Write tests for toast animations
+  - [ ] Implement notification system
 - **Workspace Manager**: Session persistence and switching
+  - [ ] Write tests for session serialization
+  - [ ] Write tests for workspace switching
+  - [ ] Implement workspace features
 - **Plugin Manager UI**: Installation and configuration interface
+  - [ ] Write tests for plugin installation flow
+  - [ ] Write tests for configuration UI
+  - [ ] Implement plugin manager
 
 ### Recently Completed (Phase 7)
 - ✅ **Command Palette**: Fuzzy search with frecency scoring
@@ -299,11 +342,13 @@ The focus now shifts to enhancing test coverage, completing remaining features (
 
 Based on the comprehensive component analysis, professional testing implementation, and TODO analysis, the remaining high-priority items are:
 
-### Testing & Quality (Week 1-2)
+### Testing & Quality (Week 1-2) 🚨 CRITICAL PRIORITY
 1. **Test Coverage**: Current status 51 failing / 139 total tests
+   - **FINISH THE JOB**: Fix ALL failing tests before new features
    - Fix remaining xterm.js canvas rendering issues
    - Improve mock strategies for complex components
    - Target >90% test coverage across all components
+   - **NO NEW FEATURES UNTIL TESTS PASS**
 
 2. **Component Enhancement**: Missing functionality identified
    - **Dialog**: Advanced modal types, form validation, stacking support

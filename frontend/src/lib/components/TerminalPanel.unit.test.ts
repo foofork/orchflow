@@ -108,7 +108,7 @@ describe('TerminalPanel - Unit Tests', () => {
       
       // Process info is shown in status bar
       const statusBar = container.querySelector('.terminal-status');
-      expect(statusBar?.textContent).toContain('Unknown'); // Shell info
+      expect(statusBar?.textContent).toContain('bash'); // Shell info
       expect(statusBar?.textContent).toContain('2 terminals'); // Terminal count
     });
   });
