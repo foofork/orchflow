@@ -186,6 +186,31 @@ Orchflow has successfully completed **all infrastructure and core implementation
 2. **Plugin System**: Complete WASM/native loading and activation events
 3. **Testing**: Fix remaining test failures and improve test coverage
 4. **Component Enhancement**: Add missing functionality identified in component analysis
+5. **Frontend API Consolidation**: Complete migration from orchestrator to manager API
+
+#### Frontend API Consolidation (Technical Debt)
+**Status**: Partially complete - some components still use old orchestrator store  
+**Issue**: Mixed API usage creates maintenance burden and inconsistent behavior
+
+**Remaining Components to Migrate**:
+- [ ] **StatusBar.svelte** - Still imports from `orchestrator` store
+- [ ] **CommandBar.svelte** - Still uses `orchestrator.createTerminal()`, `orchestrator.execute()`
+- [ ] **Component Audit** - Review all components for mixed API usage patterns
+
+**Migration Pattern**:
+```typescript
+// Old: orchestrator store (legacy)
+import { orchestrator } from '$lib/stores/orchestrator';
+await orchestrator.createTerminal(sessionId, options);
+
+// New: manager store (current)
+import { manager } from '$lib/stores/manager';
+await manager.createTerminal(sessionId, options);
+```
+
+**Benefits**: Unified API, better performance, full type safety, consistent error handling  
+**Timeline**: 1-2 weeks to complete remaining components  
+**Priority**: High - reduces maintenance burden and API confusion
 
 ### Medium Priority (Remaining)
 1. **Terminal Features**: Implement scrollback search and process tracking

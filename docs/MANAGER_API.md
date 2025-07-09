@@ -1,8 +1,14 @@
 # Manager API Documentation
 
+> **Last Updated**: January 2025  
+> **Status**: Current API documentation for orchflow Manager  
+> **Companion to**: [COMPONENT_RESPONSIBILITIES.md](./COMPONENT_RESPONSIBILITIES.md)
+
 ## Overview
 
-The Manager is the core orchestration component of orchflow, responsible for coordinating sessions, panes, plugins, and backend operations. It provides a unified API for the frontend to interact with all IDE functionality.
+The Manager is the core Rust backend component of orchflow, responsible for terminal management, file operations, plugin orchestration, and state persistence. It provides a unified Tauri API for the frontend to interact with all IDE functionality.
+
+**Architecture**: The Manager operates as a standalone Rust service with optional Orchestrator integration for AI features.
 
 ## Architecture
 
@@ -262,54 +268,44 @@ export class ManagerClient {
 }
 ```
 
-### Svelte Store (`manager.ts`)
+### Current Svelte Store (`manager.ts`)
+
+The actual implementation provides a comprehensive store with automatic event handling:
 
 ```typescript
 import { writable, derived } from 'svelte/store';
-import { ManagerClient } from '$lib/api/manager-client';
+import { managerClient, type Session, type Pane, type PluginInfo } from '../api/manager-client';
 
-class ManagerStore {
-  private client = new ManagerClient();
-  private ws: WebSocket | null = null;
-  
-  // State stores
-  sessions = writable<Session[]>([]);
-  activeSessionId = writable<string | null>(null);
-  panes = writable<Map<string, Pane[]>>(new Map());
-  plugins = writable<PluginInfo[]>([]);
-  
-  // Derived stores
-  activeSession = derived(
-    [this.sessions, this.activeSessionId],
-    ([$sessions, $activeId]) => 
-      $sessions.find(s => s.id === $activeId)
-  );
-  
-  activePanes = derived(
-    [this.panes, this.activeSessionId],
-    ([$panes, $activeId]) => 
-      $activeId ? $panes.get($activeId) || [] : []
-  );
-  
-  // Methods
-  async createSession(name: string) {
-    const session = await this.client.createSession(name);
-    this.sessions.update(sessions => [...sessions, session]);
-    return session;
-  }
-  
-  async createTerminal(sessionId: string, options?: CreateTerminalOptions) {
-    return await this.client.createPane({
-      session_id: sessionId,
-      pane_type: 'Terminal',
-      title: options?.name || 'Terminal',
-      parent_id: options?.parentId,
-      direction: options?.direction
-    });
-  }
-}
+// Main store with automatic initialization
+export const manager = createManagerStore();
 
-export const manager = new ManagerStore();
+// Derived stores for easy component access
+export const sessions = derived(manager, $manager => $manager.sessions);
+export const activeSession = derived(
+  manager,
+  $manager => $manager.sessions.find(s => s.id === $manager.activeSessionId)
+);
+export const panes = derived(manager, $manager => $manager.panes);
+export const activePane = derived(
+  manager,
+  $manager => $manager.activePaneId ? $manager.panes.get($manager.activePaneId) : undefined
+);
+export const plugins = derived(manager, $manager => $manager.plugins);
+export const terminalOutputs = derived(manager, $manager => $manager.terminalOutputs);
+export const isConnected = derived(manager, $manager => $manager.isConnected);
+
+// Usage in components
+import { manager, sessions, activeSession } from '$lib/stores/manager';
+
+// Create session
+const session = await manager.createSession('My Project');
+
+// Create terminal
+const terminal = await manager.createTerminal(session.id, {
+  name: 'Development',
+  command: 'npm run dev'
+});
+```
 ```
 
 ## Plugin System
@@ -344,15 +340,19 @@ pub struct PluginContext {
 }
 ```
 
-### Built-in Plugins
+### Current Plugin System
 
-1. **Terminal Plugin** - Terminal emulation and PTY management
-2. **Session Plugin** - Session persistence and restoration
-3. **File Browser Plugin** - File system navigation
-4. **Search Plugin** - Project-wide search functionality
-5. **Git Plugin** - Version control integration
-6. **LSP Plugin** - Language Server Protocol support
-7. **Test Runner Plugin** - Test execution and result parsing
+The Manager includes these core plugins implemented in Rust:
+
+1. **Terminal Plugin** - PTY management with real-time streaming
+2. **File Manager Plugin** - File operations with trash support
+3. **Search Plugin** - Project-wide search with ripgrep integration  
+4. **Git Plugin** - Version control operations and status
+5. **LSP Plugin** - Language server integration (in development)
+6. **Test Parser Plugin** - Test result parsing for multiple frameworks
+7. **Module System** - Plugin lifecycle and hot-reload support
+
+**Note**: Plugin system supports both Rust and WASM plugins, with hot-reload capabilities.
 
 ## Error Handling
 
@@ -370,25 +370,24 @@ pub enum ManagerError {
 }
 ```
 
-## WebSocket Events (Port 50505)
+## Event System (Tauri IPC)
 
-The Manager broadcasts events via WebSocket for real-time updates:
+The Manager broadcasts events via Tauri's event system for real-time updates:
 
 ```typescript
-const ws = new WebSocket('ws://localhost:50505');
+import { listen } from '@tauri-apps/api/event';
 
-ws.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-  switch (data.type) {
-    case 'SessionCreated':
-      // Handle new session
-      break;
-    case 'PaneOutput':
-      // Handle terminal output
-      break;
-    // ... handle other events
-  }
-};
+// Listen to terminal output
+const unlisten = await listen('terminal_output', (event) => {
+  const { pane_id, data } = event.payload;
+  console.log(`Terminal ${pane_id}: ${data}`);
+});
+
+// Listen to session events
+const unlistenSession = await listen('session_created', (event) => {
+  const session = event.payload;
+  console.log('New session:', session);
+});
 ```
 
 ## Best Practices
@@ -415,72 +414,70 @@ ws.onmessage = (event) => {
 
 ## Migration Guide
 
-### From Orchestrator to Manager
+### Migration Status
 
-1. Update imports:
-   ```typescript
-   // Old
-   import { orchestrator } from '$lib/stores/orchestrator';
-   
-   // New
-   import { manager } from '$lib/stores/manager';
-   ```
+**Current Status**: Migration from orchestrator to manager API is largely complete (Phase 6.1 ✅)
 
-2. Update method calls:
-   ```typescript
-   // Old
-   orchestrator.createSession(name);
-   
-   // New
-   manager.createSession(name);
-   ```
+**Remaining Components** (see [DEVELOPMENT_ROADMAP.md](../DEVELOPMENT_ROADMAP.md#frontend-api-consolidation)):
+- StatusBar.svelte - Still imports from `orchestrator` store
+- CommandBar.svelte - Still uses `orchestrator.createTerminal()`, `orchestrator.execute()`
 
-3. Update action types to PascalCase:
-   ```typescript
-   // Old
-   { type: 'create_session', name: 'Test' }
-   
-   // New
-   { type: 'CreateSession', params: { name: 'Test' } }
-   ```
+**Migration Pattern**:
+```typescript
+// Old: orchestrator store (legacy)
+import { orchestrator } from '$lib/stores/orchestrator';
+await orchestrator.createTerminal(sessionId, options);
+
+// New: manager store (current)
+import { manager } from '$lib/stores/manager';
+await manager.createTerminal(sessionId, options);
+```
 
 ## Advanced Features
 
-### Custom Actions
+### Terminal Streaming
 
-Extend the Manager with custom actions:
-
-```rust
-// In your plugin
-match action {
-    "custom_action" => {
-        // Handle custom action
-        Ok(json!({ "status": "completed" }))
-    }
-    _ => Err("Unknown action".to_string())
-}
-```
-
-### Event Filtering
-
-Subscribe to specific event types:
+Real-time terminal output via Tauri events:
 
 ```typescript
-manager.onEvent('PaneOutput', (event) => {
-  if (event.pane_id === myPaneId) {
-    // Handle output for specific pane
+import { listen } from '@tauri-apps/api/event';
+
+// Subscribe to terminal output
+const unlisten = await listen('terminal_output', (event) => {
+  const { pane_id, data } = event.payload;
+  // Base64 decode the data
+  const decoded = atob(data);
+  terminal.write(decoded);
+});
+```
+
+### Plugin Commands
+
+Execute plugin-specific functionality:
+
+```typescript
+// Load a plugin
+await manager.loadPlugin('git-plugin');
+
+// Execute plugin command via manager
+const result = await managerClient.execute({
+  type: 'ExecutePluginCommand',
+  params: {
+    plugin_id: 'git-plugin',
+    command: 'status',
+    args: { path: '/project/path' }
   }
 });
 ```
 
-### State Snapshots
+### State Persistence
 
-Create and restore state snapshots:
+Automatic state persistence with manual triggers:
 
-```rust
-// Create snapshot
-let snapshot = manager.create_snapshot().await?;
+```typescript
+// Trigger manual state save
+await manager.persistState();
 
-// Restore snapshot
-manager.restore_snapshot(snapshot).await?;
+// State is automatically persisted on changes
+// and restored on application startup
 ```
