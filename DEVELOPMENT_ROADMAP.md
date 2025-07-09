@@ -67,11 +67,18 @@ Orchflow has successfully completed **all infrastructure and core implementation
 - [Component Architecture Guide](docs/COMPONENT_RESPONSIBILITIES.md) - Component boundaries and responsibilities
 - [Architecture Decision Guide](docs/MANAGER_ORCHESTRATOR_ARCHITECTURE.md) - Manager vs Orchestrator usage
 
+**System Architecture Docs:**
+- [PTY Architecture](docs/architecture/PTY_ARCHITECTURE.md) - Terminal implementation details
+- [State Management Architecture](docs/architecture/STATE_MANAGEMENT_ARCHITECTURE.md) - Unified state system
+- [Manager Pattern Architecture](docs/architecture/MANAGER_PATTERN_ARCHITECTURE.md) - Central orchestration
+- [IPC Command Architecture](docs/architecture/IPC_COMMAND_ARCHITECTURE.md) - Frontend-backend communication
+- [Plugin System Architecture](docs/architecture/PLUGIN_SYSTEM_ARCHITECTURE.md) - Extensibility framework
+- [Search Integration Architecture](docs/architecture/SEARCH_INTEGRATION_ARCHITECTURE.md) - Ripgrep integration
+
 **APIs & Integration:**
 - [Complete API Reference](docs/API.md) - All OrchFlow integration points
 - [Manager API Documentation](docs/MANAGER_API.md) - Core Rust Manager API
 - [Terminal Streaming API](docs/TERMINAL_STREAMING_API.md) - Real-time terminal integration
-- [PTY Architecture](docs/architecture/PTY_ARCHITECTURE.md) - Terminal implementation details
 - [Plugin API Specification](docs/plugin-api-spec.md) - Extension development guide
 - [Muxd Protocol Specification](docs/muxd-protocol-spec.md) - Multiplexer protocol
 
