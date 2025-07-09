@@ -138,6 +138,11 @@ impl std::fmt::Debug for Pty {
     }
 }
 
+
+#[cfg(test)]
+#[path = "pty_test.rs"]
+mod pty_test;
+
 impl Drop for Pty {
     fn drop(&mut self) {
         // Try to kill the process on drop

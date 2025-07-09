@@ -70,6 +70,26 @@ Orchflow has successfully completed **all infrastructure and core implementation
 
 This changes our immediate priorities from fixing tests to improving coverage!
 
+## 🚧 Recent Development Work (January 2025)
+
+**Test Infrastructure Improvements:**
+- ✅ Fixed 21 compilation errors in Tauri backend tests (reduced from 132 to 111)
+- ✅ Fixed CreatePane struct field mismatches
+- ✅ Fixed CreateSession Default trait usage
+- ✅ Added comprehensive unit tests for Rust Terminal Manager (muxd):
+  - PTY tests (8 tests covering creation, spawning, I/O, resize, kill)
+  - Pane tests (10 tests covering lifecycle, I/O, resize, working directory)
+  - SessionManager tests (11 tests covering session/pane management, limits, concurrency)
+  - Integration tests for end-to-end scenarios
+
+**Known Issues to Address:**
+- ⚠️ **TerminalStreamManager testability** - Currently requires tauri::AppHandle, making unit tests impossible
+  - TODO: Refactor to use dependency injection for IPC communication
+  - TODO: Create trait-based abstraction for Tauri-specific functionality
+  - TODO: Move integration tests requiring Tauri runtime to separate test suite
+- ⚠️ **111 remaining compilation errors** in Tauri backend tests
+- ⚠️ **Missing terminal_stream exports** in various test files
+
 ## 📚 Essential Documentation for AI Agents
 
 **Architecture Documentation:**
@@ -151,6 +171,15 @@ This changes our immediate priorities from fixing tests to improving coverage!
 - [ ] Write tests for FileExplorer, FileManager components (TDD)
 - [ ] Write tests for Editor, EditorPane components (TDD)
 - [ ] Achieve >90% test coverage across all modules
+
+**Fix Test Infrastructure** (Week 1) 🚨 NEW PRIORITY
+- [ ] Refactor TerminalStreamManager for testability
+  - [ ] Extract IPC communication to trait
+  - [ ] Create mock implementations for testing
+  - [ ] Move Tauri-dependent tests to integration suite
+- [ ] Fix remaining 111 compilation errors in Tauri backend
+- [ ] Ensure all terminal_stream exports are properly exposed
+- [ ] Run and fix all muxd tests to ensure they pass
 
 **Complete Terminal Features** (Week 1-2)
 - [ ] Process ID tracking from PTY (TODO in terminal_stream)

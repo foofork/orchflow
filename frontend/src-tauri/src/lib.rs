@@ -20,6 +20,7 @@ pub mod backend_commands;
 pub mod test_parser_commands;
 pub mod modules;
 pub mod module_commands;
+pub mod terminal_stream;
 
 #[cfg(test)]
 mod working_tests;

@@ -277,3 +277,6 @@ impl SessionManager {
         }
     }
 }
+#[cfg(test)]
+#[path = "manager_test.rs"]
+mod manager_test;

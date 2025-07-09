@@ -197,3 +197,7 @@ impl Pane {
         });
     }
 }
+
+#[cfg(test)]
+#[path = "pane_test.rs"]
+mod pane_test;
