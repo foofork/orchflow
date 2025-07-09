@@ -89,87 +89,35 @@ Orchflow has successfully completed **all infrastructure and core implementation
 
 ## Completed Phases ✅
 
-### Phase 1: MuxBackend Abstraction Layer ✅
-- **Core Achievement**: Production-ready terminal multiplexer abstraction with TmuxBackend and MockBackend implementations
-- **Key Features**: Factory pattern for backend selection, sub-millisecond test performance, comprehensive benchmarks
-> **📖 See [Muxd Protocol Architecture](docs/architecture/MUXD_PROTOCOL_ARCHITECTURE.md) for multiplexer protocol details**
+| Phase | Achievement | Key Metric |
+|-------|-------------|------------|
+| 1 | MuxBackend Abstraction | Sub-ms test performance |
+| 2 | Unified State Management | <5ms operations |
+| 3 | Error System + File Ops | 12 error categories |
+| 4 | Muxd + Plugin System | Hot-reload support |
+| 5 | System Integration | Complete test parsers |
+| 6 | Terminal Streaming | Real-time PTY via IPC |
+| 7 | Desktop UI Complete | All core components |
 
-### Phase 2: State Management Consolidation ✅
-- **Core Achievement**: Unified StateManager replacing AppState duplication with event-driven persistence
-- **Key Features**: Real-time state notifications, sub-5ms operations, 100% backward compatibility
-> **📖 See [Manager API Documentation](docs/MANAGER_API.md) for core system APIs**
+## Technical Debt 🔧
 
-### Phase 3: Core System Architecture ✅
-- **Core Achievement**: Typed error system (12 categories), enhanced terminal management, complete file operations
-- **Key Features**: FileManager with undo/redo, ripgrep project search, CodeMirror editor, file watching with debouncing
+### High Priority
+| Item | Status | Details |
+|------|--------|---------|
+| Fix 51 failing tests | 🚧 | xterm.js mocks, Tauri handles |
+| Git Integration | ❌ | Complete panel UI, operations |
+| Plugin System | ❌ | WASM/native loading |
+| Frontend API | ⚠️ | StatusBar, CommandBar using old orchestrator |
+| Component Enhancement | ❌ | Missing Dialog, ContextMenu features |
 
-### Phase 4: Muxd Backend & Plugin Ecosystem ✅
-- **Core Achievement**: High-performance WebSocket daemon with comprehensive plugin system
-- **Key Features**: JSON-RPC 2.0 protocol, hot-reload support, example plugins (Git, Docker, K8s)
-> **📖 See [Plugin API Architecture](docs/architecture/PLUGIN_API_ARCHITECTURE.md) for extension development guide**
+### Medium Priority
+- Terminal scrollback search
+- Search result syntax highlighting  
+- Real file permissions (not hardcoded)
 
-### Phase 5: Implementation Completion & System Integration ✅
-- **Core Achievement**: Complete system integration with terminal search, test parsers, and event dispatch
-- **Key Features**: Regex terminal search, test parser integration (Jest/Vitest/pytest/Rust/Go), legacy code removal
-
-### Phase 6-7: Frontend & UI Implementation ✅
-- **Core Achievement**: Complete desktop IDE with all essential UI components and <100ms startup
-- **Phase 6 Features**: Terminal streaming via PTY, Manager API migration, modularized architecture
-- **Phase 7 Features**: Command palette, file explorer with Git integration, terminal panels, search/replace UI
-> **📖 See [Terminal Streaming API](docs/TERMINAL_STREAMING_API.md) and [UI Implementation Plan](docs/PHASE_7_IMPLEMENTATION_PLAN.md)**
-
-## Technical Debt Items 🔧
-
-### Completed ✅
-1. **Error Types**: ✅ Complete migration from String errors to typed errors
-2. **Test Coverage**: ✅ Add comprehensive integration tests for new features
-3. **Performance Monitoring**: ✅ Add metrics collection and dashboards
-4. **SQLx to SimpleStateStore Migration**: ✅ Migrated test_results_v2.rs implementation
-5. **Module Commands**: ✅ Implement module commands through ModuleSystem
-6. **File Operations**: ✅ Add trash functionality with metadata tracking
-7. **Search & Replace**: ✅ Implement project-wide search and replace
-8. **CI/CD Pipeline**: ✅ GitHub Actions for testing, quality, and releases
-
-### High Priority (Remaining)
-1. **Git Integration**: Complete git panel UI and advanced git operations
-2. **Plugin System**: Complete WASM/native loading and activation events
-3. **Testing**: Fix remaining test failures and improve test coverage
-4. **Component Enhancement**: Add missing functionality identified in component analysis
-5. **Frontend API Consolidation**: Complete migration from orchestrator to manager API
-
-#### Frontend API Consolidation (Technical Debt)
-**Status**: Partially complete - some components still use old orchestrator store  
-**Issue**: Mixed API usage creates maintenance burden and inconsistent behavior
-
-**Remaining Components to Migrate**:
-- [ ] **StatusBar.svelte** - Still imports from `orchestrator` store
-- [ ] **CommandBar.svelte** - Still uses `orchestrator.createTerminal()`, `orchestrator.execute()`
-- [ ] **Component Audit** - Review all components for mixed API usage patterns
-
-**Migration Pattern**:
-```typescript
-// Old: orchestrator store (legacy)
-import { orchestrator } from '$lib/stores/orchestrator';
-await orchestrator.createTerminal(sessionId, options);
-
-// New: manager store (current)
-import { manager } from '$lib/stores/manager';
-await manager.createTerminal(sessionId, options);
-```
-
-**Benefits**: Unified API, better performance, full type safety, consistent error handling  
-**Timeline**: 1-2 weeks to complete remaining components  
-**Priority**: High - reduces maintenance burden and API confusion
-
-### Medium Priority (Remaining)
-1. **Terminal Features**: Implement scrollback search and process tracking
-2. **Search Enhancements**: Add syntax highlighting and context to results
-3. **File Permissions**: Get actual file permissions instead of hardcoded values
-
-### Low Priority (Remaining)
-1. **Legacy Cleanup**: Remove AppState after full migration
-2. **Test Improvements**: Fix unit test Tauri app handle issues
-3. **Documentation**: Update architecture docs to reflect current state
+### Low Priority
+- Remove legacy AppState
+- Update architecture docs
 
 ## Current Development Focus 🚧
 
@@ -184,67 +132,116 @@ await manager.createTerminal(sessionId, options);
 
 > **📖 See [Professional Roadmap](docs/PROFESSIONAL_ROADMAP.md) for long-term vision**
 
-#### Phase 1: Fix Failing Tests & Complete Core Manager (ACTIVE) ⚡ CRITICAL
-- **Test Suite Recovery** (51 failing / 139 total) - Week 1
-  - [ ] Fix xterm.js canvas rendering mocks
-  - [ ] Fix Tauri app handle in unit tests
-  - [ ] Fix all remaining test failures
-  - [ ] Achieve >90% test coverage
-  - [ ] **NO NEW FEATURES UNTIL ALL TESTS PASS**
+#### Phase 1: Complete Rust Terminal Manager (ACTIVE) ⚡ CRITICAL
 
-- **Complete Terminal Features** - Week 1-2
-  - [ ] Process ID tracking from PTY (TODO in terminal_stream)
-  - [ ] Terminal scrollback search implementation
-  - [ ] Active terminal tracking
-  - [ ] Session ID retrieval for terminals
-  - [ ] Terminal state persistence
+**Research & Planning** (Week 0)
+- [ ] Analyze all 51 failing tests to categorize issues
+- [ ] Document terminal manager architecture gaps
+- [ ] Create test plan for >90% coverage
 
-- **Finish File Manager** - Week 2
-  - [ ] Git ignore checking (TODO in file_manager/git.rs)
-  - [ ] Git status checking implementation
-  - [ ] Real file permissions retrieval (not hardcoded)
-  - [ ] Complete trash functionality
+**Test Suite Recovery** (Week 1) - BLOCKER
+- [ ] Fix xterm.js canvas rendering mocks
+- [ ] Fix Tauri app handle in unit tests
+- [ ] Fix all remaining test failures
+- [ ] Add integration tests for terminal operations
+- [ ] **NO NEW FEATURES UNTIL ALL TESTS PASS**
 
-- **Complete Search/Replace** - Week 2-3
-  - [ ] Implement replace_in_files functionality
-  - [ ] Add search history persistence
-  - [ ] Implement save/load search
-  - [ ] Add syntax highlighting to results
+**Complete Terminal Features** (Week 1-2)
+- [ ] Process ID tracking from PTY (TODO in terminal_stream)
+- [ ] Terminal scrollback search implementation
+- [ ] Active terminal tracking
+- [ ] Session ID retrieval for terminals
+- [ ] Terminal state persistence
+- [ ] Write tests for each feature FIRST
 
-- **Module System Completion** - Week 3
-  - [ ] WASM plugin loading
-  - [ ] Native plugin loading
-  - [ ] Config validation against schema
-  - [ ] Module registry integration
+**Finish File Manager** (Week 2)
+- [ ] Git ignore checking (TODO in file_manager/git.rs)
+- [ ] Git status checking implementation
+- [ ] Real file permissions retrieval (not hardcoded)
+- [ ] Complete trash functionality
+- [ ] Integration tests with git operations
 
-#### Phase 2: Terminal Intelligence Layer (Weeks 4-5)
-- **Terminal Metadata System**
-  - [ ] Terminal type classification (Build, Test, REPL, Debug, Agent)
-  - [ ] Purpose-driven terminal management
-  - [ ] Context tracking per terminal
-  - [ ] Process lifecycle monitoring
-  - [ ] Error pattern detection
+**Complete Search/Replace** (Week 2-3)
+- [ ] Implement replace_in_files functionality
+- [ ] Add search history persistence
+- [ ] Implement save/load search
+- [ ] Add syntax highlighting to results
+- [ ] Performance tests for large codebases
 
-#### Phase 3: Production Hardening (Week 6)
-- **Performance & Monitoring**
-  - [ ] OpenTelemetry integration
-  - [ ] Performance profiling
-  - [ ] Memory leak detection
-  - [ ] Comprehensive error recovery
-- **Distribution**
-  - [ ] Auto-updater setup
-  - [ ] Release pipeline
-  - [ ] Code signing
+**Module System Completion** (Week 3)
+- [ ] WASM plugin loading
+- [ ] Native plugin loading
+- [ ] Config validation against schema
+- [ ] Module registry integration
+- [ ] Security tests for plugin sandboxing
 
-#### Phase 4: Future AI & Web Foundations (After Core Complete)
-- **Service Abstraction Layer**
-  - [ ] Define service interfaces
-  - [ ] Platform detection
-  - [ ] Service factory pattern
-- **AI Integration Prep**
-  - [ ] Manager ↔ Orchestrator protocol
-  - [ ] AI Chat component
-  - [ ] Command routing system
+#### Phase 2: Terminal Intelligence & Production (Weeks 4-6)
+
+**Terminal Metadata System** (Week 4-5)
+- [ ] Research terminal classification patterns
+- [ ] Terminal type classification (Build, Test, REPL, Debug, Agent)
+- [ ] Purpose-driven terminal management
+- [ ] Context tracking per terminal
+- [ ] Process lifecycle monitoring
+- [ ] Error pattern detection
+- [ ] Write comprehensive tests
+
+**Production Hardening** (Week 6)
+- [ ] Performance profiling and optimization
+- [ ] Memory leak detection and fixes
+- [ ] OpenTelemetry integration
+- [ ] Auto-updater setup
+- [ ] Release pipeline
+- [ ] Code signing
+- [ ] Load testing with 100+ terminals
+
+#### Phase 3: Orchestrator Layer (Weeks 7-9)
+
+**Research & Design** (Week 7)
+- [ ] Study existing orchestrator patterns
+- [ ] Design Manager ↔ Orchestrator protocol
+- [ ] Plan TypeScript project structure
+- [ ] Define agent lifecycle management
+
+**Orchestrator Implementation** (Week 8-9)
+- [ ] Create TypeScript orchestrator project
+- [ ] Implement JSON-RPC 2.0 protocol
+- [ ] WebSocket connection to Manager
+- [ ] Basic agent framework
+- [ ] Command adapter system
+- [ ] Mock AI provider for testing
+- [ ] Integration tests with Manager
+
+#### Phase 4: AI Integration (Weeks 10-11)
+
+**AI Components** (Week 10)
+- [ ] AI Chat UI component
+- [ ] Intent detection system
+- [ ] Command routing logic
+- [ ] Agent spawning interface
+- [ ] Swarm monitoring view
+
+**Integration & Testing** (Week 11)
+- [ ] Connect to real AI providers
+- [ ] End-to-end swarm tests
+- [ ] Performance optimization
+- [ ] Error handling for AI failures
+
+#### Phase 5: Web Platform (Weeks 12+)
+
+**Service Abstraction Layer** (Week 12)
+- [ ] Research web terminal solutions
+- [ ] Define service interfaces
+- [ ] Platform detection logic
+- [ ] Service factory pattern
+- [ ] Mock web services for testing
+
+**Web Implementation** (Week 13+)
+- [ ] Web terminal service
+- [ ] Container orchestration
+- [ ] Multi-tenancy support
+- [ ] Security hardening
+- [ ] Load testing
 
 ### Active Feature Work (BLOCKED until Phase 1 complete)
 - **Git Integration Panel**: Branch management, diff viewer, commit interface
@@ -275,39 +272,32 @@ await manager.createTerminal(sessionId, options);
 ## Future Enhancements 📅
 
 > **Important**: For architecture decisions on Manager vs Orchestrator usage, see [Manager/Orchestrator Architecture](docs/architecture/MANAGER_ORCHESTRATOR_ARCHITECTURE.md)
-> This includes guidance on when to use Manager vs Orchestrator components.
 
 ### Near-term (Month 2)
 1. **Advanced Muxd Features**
-   - Resource limits per pane
-   - Enhanced event streaming
-   - Security policies
-   - Performance metrics
+   - [ ] Resource limits per pane
+   - [ ] Enhanced event streaming
+   - [ ] Security policies
+   - [ ] Performance metrics
 
 2. **Additional Plugins**
-   - Debugger plugin (DAP protocol)
-   - Database client plugin
-   - API testing plugin
-   - Cloud provider plugins (AWS, GCP, Azure)
+   - [ ] Debugger plugin (DAP protocol)
+   - [ ] Database client plugin
+   - [ ] API testing plugin
+   - [ ] Cloud provider plugins (AWS, GCP, Azure)
 
 ### Long-term (Month 3+)
-1. **Plugin Marketplace** (FUTURE - not immediate priority)
-   - Centralized plugin hosting service
-   - Version management and updates
-   - Community contributions
-   - Security scanning
+1. **Collaboration Features**
+   - [ ] Session sharing
+   - [ ] Real-time collaboration
+   - [ ] Presence indicators
+   - [ ] Shared terminals
 
-2. **Collaboration Features**
-   - Session sharing
-   - Real-time collaboration
-   - Presence indicators
-   - Shared terminals
-
-3. **Enterprise Features**
-   - SSO integration
-   - Audit logging
-   - Compliance tools
-   - Team management
+2. **Enterprise Features**
+   - [ ] SSO integration
+   - [ ] Audit logging
+   - [ ] Compliance tools
+   - [ ] Team management
 
 ## Success Metrics 📊
 
@@ -350,157 +340,52 @@ await manager.createTerminal(sessionId, options);
 - **Active community**: Regular contributions
 - **Documentation quality**: Clear, comprehensive, up-to-date
 
-## Risk Assessment and Mitigation 🛡️
-
-### Technical Risks
-
-1. **Test Suite Technical Debt** 🚨 CRITICAL
-   - **Risk**: 51 failing tests indicate unstable foundation
-   - **Impact**: Cannot ship reliable software with failing tests
-   - **Mitigation**: 
-     - Fix tests FIRST before ANY new development
-     - Enforce "no merge with failing tests" policy
-     - Add pre-commit hooks to run tests
-
-2. **Service Abstraction Complexity**
-   - **Risk**: Introducing abstraction layer may break existing functionality
-   - **Impact**: Desktop app regression while preparing for web
-   - **Mitigation**:
-     - Incremental migration with feature flags
-     - Maintain backward compatibility
-     - Comprehensive integration tests
-     - Parallel implementation (old and new)
-
-3. **Performance Regression**
-   - **Risk**: New features impacting <100ms startup time
-   - **Impact**: Loss of key competitive advantage
-   - **Mitigation**:
-     - Continuous benchmarking in CI
-     - Performance budget enforcement
-     - Lazy loading for new features
-     - Regular profiling sessions
-
-4. **Plugin Security**
-   - **Risk**: Malicious or buggy plugins compromising system
-   - **Impact**: Security vulnerabilities, data loss
-   - **Mitigation**:
-     - Sandboxed execution environment
-     - Permission manifest system
-     - Code signing for plugins
-     - Resource usage limits
-
-5. **Integration Complexity**
-   - **Risk**: Manager ↔ Orchestrator protocol issues
-   - **Impact**: AI features may not work reliably
-   - **Mitigation**:
-     - Mock implementations first
-     - Comprehensive protocol tests
-     - Version negotiation support
-     - Graceful degradation
-
-### Resource Risks
-
-1. **Timeline Pressure**
-   - **Risk**: Rushing to add AI features before core is stable
-   - **Impact**: Technical debt, quality issues
-   - **Mitigation**:
-     - Strict phase gates (tests must pass)
-     - Quality over feature velocity
-     - Regular retrospectives
-
-2. **Scope Creep**
-   - **Risk**: Adding features while core has TODOs
-   - **Impact**: Never finishing core functionality
-   - **Mitigation**:
-     - TODO tracking and prioritization
-     - Feature freeze until tests pass
-     - Clear phase boundaries
-
-3. **Documentation Drift**
-   - **Risk**: Docs becoming outdated as code evolves
-   - **Impact**: Confusion, wasted time, poor onboarding
-   - **Mitigation**:
-     - Docs updates required in PRs
-     - Regular doc audits
-     - Auto-generated API docs
-
-### Strategic Risks
-
-1. **Market Timing**
-   - **Risk**: Competitors releasing AI IDEs first
-   - **Impact**: Loss of first-mover advantage
-   - **Mitigation**:
-     - Focus on quality over speed
-     - Unique terminal-first approach
-     - Strong community building
-
-2. **Technology Choices**
-   - **Risk**: Rust/Tauri may limit web deployment
-   - **Impact**: Difficult web platform migration
-   - **Mitigation**:
-     - Service abstraction layer
-     - Platform-agnostic architecture
-     - Prototype web version early
 
 ## Technical Achievements 🏆
-
-### Infrastructure
-- **MuxBackend abstraction** enabling future backend flexibility
-- **Unified state management** with event-driven updates
-- **Comprehensive error handling** with user-friendly messages
-- **Plugin system** with hot-reload and TypeScript support
-
-### Performance
-- Sub-100ms startup time achievable
-- Efficient file watching with intelligent debouncing
-- Optimized search with ripgrep integration
-- High-performance WebSocket communication
-
-### Developer Experience
-- Production-ready example plugins
-- Comprehensive API documentation
-- Clear development patterns
-- Strong typing throughout
+- MuxBackend abstraction, unified state, plugin system
+- <100ms startup, efficient file watching, ripgrep search
+- Strong typing, comprehensive docs, example plugins
 
 ## Next Actions 🚀
 
 > **📖 For AI-driven terminal enhancements, see [Terminal Enhancement Guide](docs/TERMINAL_MANAGER_ENHANCEMENTS.md)**
 
-### Immediate (Week 1) - FIX TESTS FIRST ⚡ CRITICAL
-1. **Test Suite Recovery**: Fix all 51 failing tests before ANY new development
-   - Fix xterm.js canvas rendering issues
-   - Fix Tauri app handle in unit tests
-   - NO NEW FEATURES until tests pass
-2. **Terminal Core Completion**: After tests pass, complete terminal TODOs
-   - Process ID tracking
-   - Scrollback search
-   - Active terminal tracking
+### Week 0: Research & Planning ⚡ CRITICAL
+1. **Analyze failing tests**: Categorize 51 failures by root cause
+2. **Document gaps**: Terminal manager architecture issues
+3. **Create test plan**: Path to >90% coverage
 
-### Short Term (Weeks 2-3) - Complete Core Manager
-1. **File Manager**: Git integration, real permissions, trash completion
-2. **Search/Replace**: Replace functionality, history, syntax highlighting
-3. **Module System**: WASM/native loading, config validation, registry
+### Week 1: Fix Tests FIRST
+1. **NO NEW FEATURES** until all 51 tests pass
+2. **Mock fixes**: xterm.js, Tauri app handles
+3. **Integration tests**: Terminal operations coverage
 
-### Medium Term (Weeks 4-5) - Terminal Intelligence
-1. **Terminal Metadata**: Type system, purpose tracking, context awareness
-2. **Process Management**: Lifecycle tracking, error detection, recovery
-3. **Command Intelligence**: History integration, error patterns
+### Weeks 2-3: Complete Rust Terminal Manager
+1. **Terminal**: PTY tracking, scrollback, state persistence
+2. **File Manager**: Git integration, permissions, trash
+3. **Search**: Replace, history, syntax highlighting
+4. **Modules**: WASM/native loading, validation
 
-### Long Term (Week 6+) - Production & Future
-1. **Production Hardening**: Telemetry, monitoring, auto-updater
-2. **AI Foundations**: Service abstraction, orchestrator protocol
-3. **Web Platform**: Platform detection, service interfaces
+### Weeks 4-6: Production Ready
+1. **Terminal Intelligence**: Metadata, lifecycle, error patterns
+2. **Hardening**: Profiling, leak detection, telemetry
+3. **Distribution**: Auto-updater, signing, release pipeline
+
+### Weeks 7-9: Orchestrator Layer
+1. **Research**: Orchestration patterns, protocol design
+2. **Implementation**: TypeScript project, JSON-RPC, agents
+3. **Testing**: Manager integration, mock AI providers
+
+### Weeks 10-11: AI Integration
+1. **UI Components**: Chat, swarm monitor, agent views
+2. **Integration**: Real AI providers, error handling
+
+### Weeks 12+: Web Platform
+1. **Abstraction**: Service interfaces, platform detection
+2. **Implementation**: Web terminals, containers, multi-tenancy
 
 ## What's Next
-With Phase 7 Core UI Components complete, orchflow has transformed into a fully functional IDE:
-
-1. **Architecture**: Clean abstractions, unified state, comprehensive error handling
-2. **Core Features**: Terminal streaming, file management, plugin system
-3. **Essential UI**: Command palette, file explorer, terminal panel, status bar, quick switcher
-4. **Quality**: Professional testing strategy, accessibility compliance, performance optimized
-5. **Developer Experience**: Clear APIs, migration guides, example projects
-
-The focus now shifts to enhancing test coverage, completing remaining features (Git panel, notifications, workspace management), and polishing the user experience. The remaining tech debt items (plugin completion, testing improvements) are the immediate priorities.
+Focus: Fix 51 failing tests → Complete TODOs → Polish features
 
 ## Component Analysis & Priorities 📊
 

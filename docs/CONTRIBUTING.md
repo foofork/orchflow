@@ -156,13 +156,26 @@ npm run tauri build
 
 ## Testing
 
+### Test-Driven Development (TDD) is MANDATORY
+
+**FINISH THE JOB** - No feature is complete without:
+1. **Tests Written FIRST** - TDD is not optional
+2. **All Tests PASSING** - Red → Green → Refactor
+3. **Coverage >90%** - Measure and maintain
+4. **CI/CD Green** - No merging with failing tests
+
 ### Test Requirements
 
-- **Minimum coverage**: 85% for new code
+- **Minimum coverage**: 90% for new code
 - **Test categories**:
   - Unit tests (`.test.ts`)
   - Integration tests (`.integration.test.ts`)
   - Component tests (Svelte components)
+- **TDD Cycle**:
+  1. Write failing test FIRST
+  2. Implement minimal code to pass
+  3. Refactor with confidence
+  4. Document test scenarios
 
 ### Running Tests
 
@@ -222,6 +235,53 @@ describe('Terminal', () => {
 - Clear, descriptive variable names
 - Comment complex logic only
 
+### Component Architecture
+
+```typescript
+// Consistent store pattern
+export const commandPalette = writable<CommandPaletteState>({
+  isOpen: false,
+  commands: [],
+  recentCommands: [],
+  searchQuery: ''
+});
+
+// Derived stores for filtering
+export const filteredCommands = derived(
+  [commandPalette],
+  ([$palette]) => filterCommands($palette)
+);
+```
+
+### Keyboard Shortcuts
+
+```typescript
+// Centralized shortcut manager
+export const shortcuts = {
+  'cmd+p': () => commandPalette.open(),
+  'cmd+shift+p': () => commandPalette.openWithActions(),
+  'cmd+b': () => fileExplorer.toggle(),
+  'cmd+j': () => terminalPanel.toggle(),
+  'cmd+shift+f': () => searchPanel.open()
+};
+```
+
+### Performance Considerations
+
+1. **Virtual Scrolling**: For file trees and long lists
+2. **Lazy Loading**: Components load on-demand
+3. **Debouncing**: Search and filter operations
+4. **Memoization**: Expensive computations
+5. **Web Workers**: Heavy processing tasks
+
+### Accessibility
+
+1. **ARIA Labels**: All interactive elements
+2. **Keyboard Navigation**: Full keyboard support
+3. **Focus Management**: Proper focus trapping
+4. **Screen Reader**: Announcements for actions
+5. **High Contrast**: Theme support
+
 ## Documentation
 
 ### When to Document
@@ -233,10 +293,11 @@ describe('Terminal', () => {
 
 ### Where to Document
 
-- **API changes** → `docs/API.md`
+- **API changes** → `docs/api/` folder
 - **Architecture** → `docs/architecture/`
 - **Testing** → `docs/TEST_STRATEGY.md`
 - **Roadmap items** → `DEVELOPMENT_ROADMAP.md`
+- **Implementation details** → `docs/IMPLEMENTATION_PLAN.md`
 
 ### Documentation Style
 
@@ -244,6 +305,27 @@ describe('Terminal', () => {
 - Include code examples
 - Update when implementation changes
 - Use markdown formatting
+
+### Roadmap Maintenance
+
+**When to Update DEVELOPMENT_ROADMAP.md:**
+- Task status changes
+- New blockers emerge
+- Priorities shift
+- Features complete
+
+**How to Update:**
+1. Update "Current Development Focus" first
+2. Move completed work to "Completed Phases"
+3. Keep metrics current (performance, coverage)
+4. Link relevant documentation
+5. **FINISH THE JOB**: No task complete without passing tests
+
+**Documentation Discipline:**
+- **Roadmap Updates** → DEVELOPMENT_ROADMAP.md only
+- **Architecture Decisions** → docs/architecture/UNIFIED_ARCHITECTURE.md
+- **API Changes** → docs/api/ folder
+- **NO SPRAWL**: Don't document roadmap items in random files
 
 ## Submitting Changes
 

@@ -1,8 +1,6 @@
 # orchflow Implementation Plan
 
-## Overview
-
-This document outlines the implementation roadmap for orchflow's remaining features, including UI components, AI-driven terminal enhancements, and system integrations. With all infrastructure phases complete, the focus is on building user-facing features and intelligent orchestration capabilities.
+This document provides technical specifications and implementation details for orchflow features. For current development status and priorities, see [DEVELOPMENT_ROADMAP.md](../DEVELOPMENT_ROADMAP.md).
 
 ## High Priority Tech Debt (Concurrent with UI Development)
 
@@ -252,76 +250,7 @@ impl ModuleRegistry {
 - Recent workspaces
 - Project templates
 
-## Implementation Guidelines
 
-### Component Architecture
-```typescript
-// Consistent store pattern
-export const commandPalette = writable<CommandPaletteState>({
-  isOpen: false,
-  commands: [],
-  recentCommands: [],
-  searchQuery: ''
-});
-
-// Derived stores for filtering
-export const filteredCommands = derived(
-  [commandPalette],
-  ([$palette]) => filterCommands($palette)
-);
-```
-
-### Keyboard Shortcuts
-```typescript
-// Centralized shortcut manager
-export const shortcuts = {
-  'cmd+p': () => commandPalette.open(),
-  'cmd+shift+p': () => commandPalette.openWithActions(),
-  'cmd+b': () => fileExplorer.toggle(),
-  'cmd+j': () => terminalPanel.toggle(),
-  'cmd+shift+f': () => searchPanel.open()
-};
-```
-
-### Performance Considerations
-1. **Virtual Scrolling**: For file trees and long lists
-2. **Lazy Loading**: Components load on-demand
-3. **Debouncing**: Search and filter operations
-4. **Memoization**: Expensive computations
-5. **Web Workers**: Heavy processing tasks
-
-### Accessibility
-1. **ARIA Labels**: All interactive elements
-2. **Keyboard Navigation**: Full keyboard support
-3. **Focus Management**: Proper focus trapping
-4. **Screen Reader**: Announcements for actions
-5. **High Contrast**: Theme support
-
-## Testing Strategy
-
-### Component Tests
-```typescript
-// Example: CommandPalette.test.ts
-describe('CommandPalette', () => {
-  it('filters commands based on search query');
-  it('executes selected command');
-  it('tracks recent commands');
-  it('handles keyboard navigation');
-});
-```
-
-### Integration Tests
-- Command execution flow
-- File operations
-- Terminal interactions
-- Plugin communication
-- State synchronization
-
-### E2E Tests
-- User workflows
-- Performance benchmarks
-- Accessibility compliance
-- Cross-platform testing
 
 ## Service Abstraction Layer (Foundation for Web & AI)
 
