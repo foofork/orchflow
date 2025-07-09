@@ -146,9 +146,9 @@ describe('TerminalPanel', () => {
     await fireEvent.click(groupButton);
     
     await waitFor(() => {
-      expect(getByText('default')).toBeInTheDocument();
-      expect(getByText('servers')).toBeInTheDocument();
-      expect(getByText('builds')).toBeInTheDocument();
+      expect(getByText(/default/i)).toBeInTheDocument();
+      expect(getByText(/servers/i)).toBeInTheDocument();
+      expect(getByText(/builds/i)).toBeInTheDocument();
     });
   });
 
@@ -179,9 +179,9 @@ describe('TerminalPanel', () => {
     await fireEvent.click(quickCommandsButton);
     
     await waitFor(() => {
-      expect(getByText('Clear')).toBeInTheDocument();
-      expect(getByText('List files')).toBeInTheDocument();
-      expect(getByText('Git status')).toBeInTheDocument();
+      expect(getByText(/Clear/i)).toBeInTheDocument();
+      expect(getByText(/List files/i)).toBeInTheDocument();
+      expect(getByText(/Git status/i)).toBeInTheDocument();
     });
   });
 
@@ -200,7 +200,7 @@ describe('TerminalPanel', () => {
     await fireEvent.click(quickCommandsButton);
     
     await waitFor(() => {
-      const clearCommand = getByText('Clear');
+      const clearCommand = getByText(/Clear/i);
       fireEvent.click(clearCommand);
     });
     

@@ -66,6 +66,7 @@ Orchflow has successfully completed **all infrastructure and core implementation
 **Development & Enhancement:**
 - [Developer Onboarding Guide](docs/DEVELOPER_ONBOARDING.md) - Getting started
 - [Contributing Guide](docs/CONTRIBUTING.md) - Development process
+- [Test Strategy Guide](docs/TEST_STRATEGY.md) - Professional testing approach
 - [Performance Guide](docs/PERFORMANCE_GUIDE.md) - Optimization strategies
 - [UI Implementation Plan](docs/PHASE_7_IMPLEMENTATION_PLAN.md) - Component roadmap
 - [Terminal Enhancement Guide](docs/TERMINAL_MANAGER_ENHANCEMENTS.md) - AI-driven terminal features

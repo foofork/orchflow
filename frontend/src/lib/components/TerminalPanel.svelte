@@ -62,6 +62,7 @@
   let showSearchBar = false;
   let showGroupsMenu = false;
   let showQuickCommandsMenu = false;
+  let showLayoutMenu = false;
   let renamingTerminalId: string | null = null;
   let renameValue = '';
   
@@ -500,6 +501,13 @@
       >
         ⚡
       </button>
+      <button
+        class="action-btn"
+        on:click={() => showLayoutMenu = !showLayoutMenu}
+        title="Layout options"
+      >
+        ⊞
+      </button>
     </div>
   </div>
   
@@ -520,18 +528,18 @@
   {#if showGroupsMenu}
     <div class="groups-menu">
       <div class="menu-title">Terminal Groups</div>
-      {#each terminalGroups as groupName}
+      {#each $terminalGroupsStore as group}
         <button
           class="menu-item"
           on:click={() => {
-            dispatch('selectGroup', { group: groupName });
+            dispatch('selectGroup', { group: group.name });
             showGroupsMenu = false;
           }}
         >
-          👥 {groupName}
+          👥 {group.name}
         </button>
       {/each}
-      {#if terminalGroups.length === 0}
+      {#if $terminalGroupsStore.length === 0}
         <div class="menu-item disabled">No groups available</div>
       {/if}
     </div>
@@ -558,6 +566,36 @@
       {#if quickCommands.length === 0}
         <div class="menu-item disabled">No quick commands available</div>
       {/if}
+    </div>
+  {/if}
+  
+  {#if showLayoutMenu}
+    <div class="layout-menu">
+      <div class="menu-title">Layout Options</div>
+      {#each supportedLayouts as layoutOption}
+        <button
+          class="menu-item"
+          class:active={layout === layoutOption}
+          on:click={() => {
+            if (onLayoutChange) {
+              onLayoutChange(layoutOption);
+            } else {
+              layout = layoutOption;
+            }
+            showLayoutMenu = false;
+          }}
+        >
+          {#if layoutOption === 'single'}
+            ⬜ Single
+          {:else if layoutOption === 'split'}
+            ⏸ Split
+          {:else if layoutOption === 'grid'}
+            ⊞ Grid
+          {:else}
+            {layoutOption}
+          {/if}
+        </button>
+      {/each}
     </div>
   {/if}
   
@@ -617,6 +655,7 @@
     flex-direction: column;
     background: var(--bg-primary);
     color: var(--fg-primary);
+    position: relative;
   }
   
   .terminal-header {
@@ -915,5 +954,74 @@
     display: flex;
     align-items: center;
     gap: 4px;
+  }
+  
+  .new-terminal-menu,
+  .groups-menu,
+  .quick-commands-menu,
+  .layout-menu {
+    position: absolute;
+    top: 40px;
+    right: 100px;
+    background: var(--bg-secondary, #2d2d2d);
+    border: 1px solid var(--border, #444);
+    border-radius: 4px;
+    padding: 8px 0;
+    min-width: 200px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    z-index: 100;
+  }
+  
+  .new-terminal-menu {
+    right: auto;
+    left: 20px;
+  }
+  
+  .quick-commands-menu {
+    right: 50px;
+  }
+  
+  .layout-menu {
+    right: 20px;
+  }
+  
+  .menu-title {
+    padding: 4px 12px;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--fg-secondary, #999);
+    border-bottom: 1px solid var(--border, #444);
+    margin-bottom: 4px;
+  }
+  
+  .menu-item {
+    display: block;
+    width: 100%;
+    padding: 6px 12px;
+    text-align: left;
+    background: none;
+    border: none;
+    color: var(--fg-primary, #f0f0f0);
+    cursor: pointer;
+    font-size: 13px;
+  }
+  
+  .menu-item:hover {
+    background: var(--bg-hover, #3a3a3a);
+  }
+  
+  .menu-item.disabled {
+    color: var(--fg-tertiary, #666);
+    cursor: default;
+  }
+  
+  .tab-rename-input {
+    background: var(--bg-secondary, #2d2d2d);
+    border: 1px solid var(--accent, #007acc);
+    color: var(--fg-primary, #f0f0f0);
+    padding: 2px 4px;
+    font-size: 12px;
+    width: 100px;
   }
 </style>

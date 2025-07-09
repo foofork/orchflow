@@ -2,7 +2,19 @@
 
 ## Overview
 
-This document outlines the professional testing approach for orchflow, addressing environment-related issues and ensuring comprehensive test coverage.
+This document outlines the professional testing approach for all parts of orchflow - frontend components, backend services, and integration points. It serves as the single source of truth for testing practices across the codebase.
+
+## Maintenance Rules
+
+**When to Update:**
+- New test patterns emerge
+- Coverage requirements change
+- Framework updates affect testing
+
+**How to Update:**
+1. Add real examples from working tests
+2. Document patterns, not theory
+3. Keep examples concise and focused
 
 ## Test Categories
 
@@ -198,6 +210,72 @@ it('renders menu items from slot', () => {
 4. **Parallel Test Execution**: Keep tests independent for parallel execution
 5. **Professional Debugging**: Fix the component when tests fail, don't skip the test
 
+## Backend Testing Strategy
+
+### Rust Unit Tests
+
+For Rust backend components in `src-tauri/`:
+
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_terminal_creation() {
+        let manager = TerminalManager::new();
+        let terminal = manager.create_terminal(Default::default());
+        assert!(terminal.is_ok());
+    }
+    
+    #[tokio::test]
+    async fn test_async_operations() {
+        let result = process_command("ls").await;
+        assert!(result.is_ok());
+    }
+}
+```
+
+### Rust Integration Tests
+
+Located in `src-tauri/tests/`:
+
+```rust
+use orchflow::prelude::*;
+
+#[test]
+fn test_full_terminal_lifecycle() {
+    let app = create_test_app();
+    let terminal = app.create_terminal();
+    terminal.send_input("echo test\n");
+    assert_eq!(terminal.read_output(), "test\n");
+}
+```
+
+### Tauri Command Tests
+
+Test IPC commands:
+
+```rust
+#[tauri::test]
+async fn test_get_file_tree_command() {
+    let app = tauri::test::mock_app();
+    let result: FileTree = tauri::test::call_command(
+        &app,
+        "get_file_tree",
+        json!({"path": "/tmp"})
+    ).await.unwrap();
+    assert!(result.entries.len() > 0);
+}
+```
+
+## Coverage Requirements
+
+- **Frontend Components**: 85% minimum
+- **Rust Backend**: 80% minimum  
+- **Integration Tests**: All critical paths
+- **E2E Tests**: Happy paths + key error scenarios
+
 ## CI/CD Integration
 
 ```yaml
@@ -207,9 +285,15 @@ test:
   strategy:
     matrix:
       test-type: [unit, integration, e2e]
+      platform: [frontend, backend]
   steps:
-    - name: Run ${{ matrix.test-type }} tests
-      run: npm run test:${{ matrix.test-type }}
+    - name: Run ${{ matrix.platform }} ${{ matrix.test-type }} tests
+      run: |
+        if [ "${{ matrix.platform }}" = "frontend" ]; then
+          cd frontend && npm run test:${{ matrix.test-type }}
+        else
+          cd frontend/src-tauri && cargo test
+        fi
 ```
 
 ## Performance Considerations
