@@ -177,13 +177,15 @@ Orchflow has successfully completed **all infrastructure and core implementation
 
 #### Phase 2: Terminal Intelligence & Production (Weeks 4-6)
 
-**Terminal Metadata System** (Week 4-5)
+**Terminal Metadata System** (Week 4-5) - AI Foundation
 - [ ] Research terminal classification patterns
 - [ ] Terminal type classification (Build, Test, REPL, Debug, Agent)
+- [ ] AI agent metadata support
 - [ ] Purpose-driven terminal management
 - [ ] Context tracking per terminal
 - [ ] Process lifecycle monitoring
 - [ ] Error pattern detection
+- [ ] Command intent detection preparation
 - [ ] Write comprehensive tests
 
 **Production Hardening** (Week 6)
@@ -203,40 +205,29 @@ Orchflow has successfully completed **all infrastructure and core implementation
 - [ ] Plan TypeScript project structure
 - [ ] Define agent lifecycle management
 
-**Orchestrator Implementation** (Week 8-9)
+**Orchestrator Implementation** (Week 8-9) - AI Coordination Layer
 - [ ] Create TypeScript orchestrator project
 - [ ] Implement JSON-RPC 2.0 protocol
 - [ ] WebSocket connection to Manager
-- [ ] Basic agent framework
-- [ ] Command adapter system
+- [ ] AI agent framework (spawn, monitor, terminate)
+- [ ] Command adapter system (claude-flow, GPT, etc.)
+- [ ] AI Chat UI component
+- [ ] Swarm monitoring view
+- [ ] Intent detection and routing
 - [ ] Mock AI provider for testing
 - [ ] Integration tests with Manager
+- [ ] End-to-end AI swarm tests
 
-#### Phase 4: AI Integration (Weeks 10-11)
+#### Phase 4: Web Platform (Weeks 10+)
 
-**AI Components** (Week 10)
-- [ ] AI Chat UI component
-- [ ] Intent detection system
-- [ ] Command routing logic
-- [ ] Agent spawning interface
-- [ ] Swarm monitoring view
-
-**Integration & Testing** (Week 11)
-- [ ] Connect to real AI providers
-- [ ] End-to-end swarm tests
-- [ ] Performance optimization
-- [ ] Error handling for AI failures
-
-#### Phase 5: Web Platform (Weeks 12+)
-
-**Service Abstraction Layer** (Week 12)
+**Service Abstraction Layer** (Week 10)
 - [ ] Research web terminal solutions
 - [ ] Define service interfaces
 - [ ] Platform detection logic
 - [ ] Service factory pattern
 - [ ] Mock web services for testing
 
-**Web Implementation** (Week 13+)
+**Web Implementation** (Week 11+)
 - [ ] Web terminal service
 - [ ] Container orchestration
 - [ ] Multi-tenancy support
@@ -376,11 +367,7 @@ Orchflow has successfully completed **all infrastructure and core implementation
 2. **Implementation**: TypeScript project, JSON-RPC, agents
 3. **Testing**: Manager integration, mock AI providers
 
-### Weeks 10-11: AI Integration
-1. **UI Components**: Chat, swarm monitor, agent views
-2. **Integration**: Real AI providers, error handling
-
-### Weeks 12+: Web Platform
+### Weeks 10+: Web Platform
 1. **Abstraction**: Service interfaces, platform detection
 2. **Implementation**: Web terminals, containers, multi-tenancy
 
