@@ -48,7 +48,7 @@ orchflow is being built with a focus on:
 
 **Next**: Git integration, plugins, workspaces.
 
-**Later**: The flexible architecture could support AI features, web deployment, and more. We'll see where it goes.
+**Later**: The flexible architecture is intended to support AI orchestration systems, web deployment, and more.
 
 ## Project Philosophy
 
