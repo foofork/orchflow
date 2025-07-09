@@ -235,7 +235,7 @@ ws.onmessage = (event) => {
 
 ## Future Architecture
 
-orchflow is designed with a unified architecture that will eventually support both desktop and web deployments. See [Unified Architecture](ORCHFLOW_UNIFIED_ARCHITECTURE.md) for the long-term vision.
+orchflow is designed with a unified architecture that will eventually support both desktop and web deployments. See [Unified Architecture](architecture/UNIFIED_ARCHITECTURE.md) for the long-term vision.
 
 Future additions will include:
 - **AI Agent API**: Natural language commands and agent orchestration

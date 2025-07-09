@@ -62,25 +62,23 @@ Orchflow has successfully completed **all infrastructure and core implementation
 
 ## 📚 Essential Documentation for AI Agents
 
-**Core Architecture & Design:**
-- [Unified Architecture Design](docs/ORCHFLOW_UNIFIED_ARCHITECTURE.md) - Complete system architecture
-- [Component Architecture Guide](docs/COMPONENT_RESPONSIBILITIES.md) - Component boundaries and responsibilities
-- [Architecture Decision Guide](docs/MANAGER_ORCHESTRATOR_ARCHITECTURE.md) - Manager vs Orchestrator usage
-
-**System Architecture Docs:**
+**Architecture Documentation:**
+- [Unified Architecture](docs/architecture/UNIFIED_ARCHITECTURE.md) - Complete system architecture
 - [PTY Architecture](docs/architecture/PTY_ARCHITECTURE.md) - Terminal implementation details
 - [State Management Architecture](docs/architecture/STATE_MANAGEMENT_ARCHITECTURE.md) - Unified state system
 - [Manager Pattern Architecture](docs/architecture/MANAGER_PATTERN_ARCHITECTURE.md) - Central orchestration
+- [Manager/Orchestrator Architecture](docs/architecture/MANAGER_ORCHESTRATOR_ARCHITECTURE.md) - Component usage decisions
 - [IPC Command Architecture](docs/architecture/IPC_COMMAND_ARCHITECTURE.md) - Frontend-backend communication
 - [Plugin System Architecture](docs/architecture/PLUGIN_SYSTEM_ARCHITECTURE.md) - Extensibility framework
+- [Plugin API Architecture](docs/architecture/PLUGIN_API_ARCHITECTURE.md) - Plugin API specification
 - [Search Integration Architecture](docs/architecture/SEARCH_INTEGRATION_ARCHITECTURE.md) - Ripgrep integration
+- [Muxd Protocol Architecture](docs/architecture/MUXD_PROTOCOL_ARCHITECTURE.md) - Multiplexer protocol
 
-**APIs & Integration:**
+**APIs & Component Docs:**
 - [Complete API Reference](docs/API.md) - All OrchFlow integration points
 - [Manager API Documentation](docs/MANAGER_API.md) - Core Rust Manager API
 - [Terminal Streaming API](docs/TERMINAL_STREAMING_API.md) - Real-time terminal integration
-- [Plugin API Specification](docs/plugin-api-spec.md) - Extension development guide
-- [Muxd Protocol Specification](docs/muxd-protocol-spec.md) - Multiplexer protocol
+- [Component Architecture Guide](docs/COMPONENT_RESPONSIBILITIES.md) - Component boundaries and responsibilities
 
 **Development & Enhancement:**
 - [Contributing Guide](docs/CONTRIBUTING.md) - Development setup and process
