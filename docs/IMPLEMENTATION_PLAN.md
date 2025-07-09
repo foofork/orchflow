@@ -7,6 +7,12 @@ This document outlines the implementation roadmap for orchflow's remaining featu
 ## High Priority Tech Debt (Concurrent with UI Development)
 
 ### 1. Git Integration (1 week)
+**Component**: Manager (Rust)  
+**Location**: `frontend/src-tauri/src/file_manager/git.rs`  
+**IPC Commands**: Will extend `git_commands.rs`  
+**Frontend Access**: Via `invoke()` commands  
+**Architecture**: Part of FileManager, see [Manager Pattern](../architecture/MANAGER_PATTERN_ARCHITECTURE.md)
+
 ```rust
 // file_manager/git.rs
 pub struct GitIntegration {
@@ -23,6 +29,12 @@ impl GitIntegration {
 ```
 
 ### 2. Plugin System Completion (1-2 weeks)
+**Component**: Manager (Rust)  
+**Location**: `frontend/src-tauri/src/modules.rs` and `plugin_system/`  
+**IPC Commands**: `module_commands.rs` - load, unload, list plugins  
+**Frontend Access**: Via PluginManager component  
+**Architecture**: See [Plugin System Architecture](../architecture/PLUGIN_SYSTEM_ARCHITECTURE.md)
+
 ```rust
 // modules/loader.rs
 impl ModuleLoader {
@@ -55,7 +67,11 @@ impl ModuleRegistry {
 ## Phase 7.1: Core Productivity Components (2-3 weeks)
 
 ### 1. Enhanced Command Palette
-**File**: `frontend/src/lib/components/CommandPalette.svelte`
+**Component**: Frontend (Svelte)  
+**Location**: `frontend/src/lib/components/CommandPalette.svelte`  
+**Backend**: Accesses Manager via `invoke()` for commands  
+**Data Flow**: User input → Frontend filtering → Manager execution  
+**Architecture**: See [IPC Command Architecture](../architecture/IPC_COMMAND_ARCHITECTURE.md)
 
 ```svelte
 <script lang="ts">
@@ -77,7 +93,12 @@ impl ModuleRegistry {
 ```
 
 ### 2. Advanced File Explorer
-**File**: `frontend/src/lib/components/FileExplorer.svelte`
+**Component**: Frontend (Svelte)  
+**Location**: `frontend/src/lib/components/FileExplorer.svelte`  
+**Backend**: FileManager (Rust) via `file_commands.rs`  
+**IPC Commands**: `get_file_tree`, `create_file`, `rename_file`, `delete_file`  
+**Real-time Updates**: File watcher events via WebSocket  
+**Architecture**: Integrates with [State Management](../architecture/STATE_MANAGEMENT_ARCHITECTURE.md)
 
 ```svelte
 <script lang="ts">
@@ -100,7 +121,12 @@ impl ModuleRegistry {
 ```
 
 ### 3. Integrated Terminal Panel
-**File**: `frontend/src/lib/components/TerminalPanel.svelte`
+**Component**: Frontend (Svelte)  
+**Location**: `frontend/src/lib/components/TerminalPanel.svelte`  
+**Backend**: TerminalStreamManager (Rust) via PTY  
+**IPC Commands**: `create_streaming_terminal`, `send_terminal_input`, `resize_terminal`  
+**WebSocket**: Real-time terminal output streaming  
+**Architecture**: See [PTY Architecture](../architecture/PTY_ARCHITECTURE.md) and [Terminal Streaming API](../api/TERMINAL_STREAMING_API.md)
 
 ```svelte
 <script lang="ts">
@@ -123,7 +149,11 @@ impl ModuleRegistry {
 ```
 
 ### 4. Enhanced Status Bar
-**File**: `frontend/src/lib/components/StatusBar.svelte`
+**Component**: Frontend (Svelte)  
+**Location**: `frontend/src/lib/components/StatusBar.svelte`  
+**Backend**: StateManager queries via `invoke()`  
+**Update Pattern**: Subscribe to state changes + periodic refresh  
+**Architecture**: Part of unified UI state management
 
 ```svelte
 <script lang="ts">
@@ -138,7 +168,11 @@ impl ModuleRegistry {
 ```
 
 ### 5. Quick File Switcher
-**File**: `frontend/src/lib/components/QuickSwitcher.svelte`
+**Component**: Frontend (Svelte)  
+**Location**: `frontend/src/lib/components/QuickSwitcher.svelte`  
+**Backend**: Caches recent files in StateManager  
+**Search**: Client-side fuzzy search with scoring  
+**Performance**: Virtual list for large file sets
 
 ```svelte
 <script lang="ts">
@@ -155,6 +189,12 @@ impl ModuleRegistry {
 ## Phase 7.2: Advanced Productivity Components (1 month)
 
 ### 1. Search and Replace Panel
+**Component**: Frontend (Svelte) + Backend (Rust)  
+**Frontend**: `frontend/src/lib/components/SearchReplace.svelte`  
+**Backend**: SearchPlugin via `search_commands.rs`  
+**IPC Commands**: `search_project`, `replace_in_files`  
+**Architecture**: See [Search Integration](../architecture/SEARCH_INTEGRATION_ARCHITECTURE.md)
+
 - Project-wide search with regex
 - Search in specific paths
 - Replace with preview
@@ -162,6 +202,12 @@ impl ModuleRegistry {
 - Context lines
 
 ### 2. Git Integration Panel
+**Component**: Frontend (Svelte) + Backend (Rust)  
+**Frontend**: `frontend/src/lib/components/GitPanel.svelte`  
+**Backend**: GitPlugin + FileManager integration  
+**IPC Commands**: `git_status`, `git_commit`, `git_branch_list`, `git_diff`  
+**Real-time**: File watcher triggers git status updates
+
 - Branch switcher
 - Staged/unstaged changes
 - Commit interface
@@ -169,6 +215,12 @@ impl ModuleRegistry {
 - Merge conflict resolver
 
 ### 3. Plugin Manager UI
+**Component**: Frontend (Svelte)  
+**Frontend**: `frontend/src/lib/components/PluginManager.svelte`  
+**Backend**: ModuleSystem via `module_commands.rs`  
+**IPC Commands**: `list_modules`, `install_module`, `get_module_config`  
+**Architecture**: See [Plugin System](../architecture/PLUGIN_SYSTEM_ARCHITECTURE.md)
+
 - Available plugins grid
 - Install/uninstall
 - Configuration UI
@@ -176,6 +228,11 @@ impl ModuleRegistry {
 - Update notifications
 
 ### 4. Notification System
+**Component**: Frontend (Svelte) - Client-side only  
+**Location**: `frontend/src/lib/components/NotificationCenter.svelte`  
+**State**: Svelte store for notification queue  
+**Integration**: Components dispatch via `$notifications.add()`
+
 - Toast notifications
 - Error messages
 - Progress indicators
@@ -183,6 +240,12 @@ impl ModuleRegistry {
 - Notification center
 
 ### 5. Workspace Manager
+**Component**: Frontend (Svelte) + Backend (Rust)  
+**Frontend**: `frontend/src/lib/components/WorkspaceManager.svelte`  
+**Backend**: StateManager for session persistence  
+**IPC Commands**: `save_workspace`, `load_workspace`, `list_workspaces`  
+**Storage**: SQLite for workspace configurations
+
 - Session creation/switching
 - Layout templates
 - Auto-save configs
@@ -268,6 +331,12 @@ orchflow's AI integration transforms development through natural language intera
 ### Core AI Capabilities
 
 #### 1. AI Agent Terminal System
+**Components**: Orchestrator (TypeScript) + Manager (Rust)  
+**Orchestrator**: `orchestrator/src/agents/` - Agent lifecycle and routing  
+**Manager**: Terminal creation and PTY management  
+**Integration**: Orchestrator requests terminals via Manager API  
+**Architecture**: See [Unified Architecture](../architecture/UNIFIED_ARCHITECTURE.md) and [Manager/Orchestrator Architecture](../architecture/MANAGER_ORCHESTRATOR_ARCHITECTURE.md)
+
 - **Visual Agent Separation**: Each AI agent operates in its own tmux pane
 - **Swarm Monitoring**: Grid view of all active agents and their progress
 - **Agent Roles**: Architect, Frontend Dev, Test Engineer, Build Engineer, etc.
