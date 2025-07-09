@@ -180,7 +180,73 @@ await manager.createTerminal(sessionId, options);
 3. Refactor with confidence
 4. Document test scenarios
 
-### Active Work
+### 🎯 STRATEGIC PRIORITY: Complete the Rust Manager First
+
+> **📖 See [Professional Roadmap](docs/PROFESSIONAL_ROADMAP.md) for long-term vision**
+
+#### Phase 1: Fix Failing Tests & Complete Core Manager (ACTIVE) ⚡ CRITICAL
+- **Test Suite Recovery** (51 failing / 139 total) - Week 1
+  - [ ] Fix xterm.js canvas rendering mocks
+  - [ ] Fix Tauri app handle in unit tests
+  - [ ] Fix all remaining test failures
+  - [ ] Achieve >90% test coverage
+  - [ ] **NO NEW FEATURES UNTIL ALL TESTS PASS**
+
+- **Complete Terminal Features** - Week 1-2
+  - [ ] Process ID tracking from PTY (TODO in terminal_stream)
+  - [ ] Terminal scrollback search implementation
+  - [ ] Active terminal tracking
+  - [ ] Session ID retrieval for terminals
+  - [ ] Terminal state persistence
+
+- **Finish File Manager** - Week 2
+  - [ ] Git ignore checking (TODO in file_manager/git.rs)
+  - [ ] Git status checking implementation
+  - [ ] Real file permissions retrieval (not hardcoded)
+  - [ ] Complete trash functionality
+
+- **Complete Search/Replace** - Week 2-3
+  - [ ] Implement replace_in_files functionality
+  - [ ] Add search history persistence
+  - [ ] Implement save/load search
+  - [ ] Add syntax highlighting to results
+
+- **Module System Completion** - Week 3
+  - [ ] WASM plugin loading
+  - [ ] Native plugin loading
+  - [ ] Config validation against schema
+  - [ ] Module registry integration
+
+#### Phase 2: Terminal Intelligence Layer (Weeks 4-5)
+- **Terminal Metadata System**
+  - [ ] Terminal type classification (Build, Test, REPL, Debug, Agent)
+  - [ ] Purpose-driven terminal management
+  - [ ] Context tracking per terminal
+  - [ ] Process lifecycle monitoring
+  - [ ] Error pattern detection
+
+#### Phase 3: Production Hardening (Week 6)
+- **Performance & Monitoring**
+  - [ ] OpenTelemetry integration
+  - [ ] Performance profiling
+  - [ ] Memory leak detection
+  - [ ] Comprehensive error recovery
+- **Distribution**
+  - [ ] Auto-updater setup
+  - [ ] Release pipeline
+  - [ ] Code signing
+
+#### Phase 4: Future AI & Web Foundations (After Core Complete)
+- **Service Abstraction Layer**
+  - [ ] Define service interfaces
+  - [ ] Platform detection
+  - [ ] Service factory pattern
+- **AI Integration Prep**
+  - [ ] Manager ↔ Orchestrator protocol
+  - [ ] AI Chat component
+  - [ ] Command routing system
+
+### Active Feature Work (BLOCKED until Phase 1 complete)
 - **Git Integration Panel**: Branch management, diff viewer, commit interface
   - [ ] Write component tests for GitPanel
   - [ ] Write integration tests for git operations
@@ -313,23 +379,30 @@ await manager.createTerminal(sessionId, options);
 
 > **📖 For AI-driven terminal enhancements, see [Terminal Enhancement Guide](docs/TERMINAL_MANAGER_ENHANCEMENTS.md)**
 
-### Immediate (This Week) - Testing & Enhancement
-1. **Test Coverage**: Fix remaining test failures and improve coverage to >90%
-2. **Component Enhancement**: Add missing functionality identified in component analysis
-3. **Git Integration**: Complete git panel UI for branch management and commits
-4. **Plugin System**: Complete WASM/native loading infrastructure
+### Immediate (Week 1) - FIX TESTS FIRST ⚡ CRITICAL
+1. **Test Suite Recovery**: Fix all 51 failing tests before ANY new development
+   - Fix xterm.js canvas rendering issues
+   - Fix Tauri app handle in unit tests
+   - NO NEW FEATURES until tests pass
+2. **Terminal Core Completion**: After tests pass, complete terminal TODOs
+   - Process ID tracking
+   - Scrollback search
+   - Active terminal tracking
 
-### Short Term (Next 2 Weeks) - Advanced Features
-1. **Notification System**: Toast notifications, progress indicators, action buttons
-2. **Workspace Manager**: Session templates, project switching, auto-save
-3. **Terminal Features**: Add scrollback search and process tracking
-4. **Search Enhancements**: Add syntax highlighting and context to results
+### Short Term (Weeks 2-3) - Complete Core Manager
+1. **File Manager**: Git integration, real permissions, trash completion
+2. **Search/Replace**: Replace functionality, history, syntax highlighting
+3. **Module System**: WASM/native loading, config validation, registry
 
-### Medium Term (Month 2) - Polish & Future Features
-1. **Plugin Manager UI**: Marketplace integration, configuration interface
-2. **Debug Panel**: Breakpoint management, variable inspector, call stack
-3. **LSP Integration UI**: Language server status, error list, symbol outline
-4. **Performance Monitor**: Memory/CPU graphs, process monitoring, metrics
+### Medium Term (Weeks 4-5) - Terminal Intelligence
+1. **Terminal Metadata**: Type system, purpose tracking, context awareness
+2. **Process Management**: Lifecycle tracking, error detection, recovery
+3. **Command Intelligence**: History integration, error patterns
+
+### Long Term (Week 6+) - Production & Future
+1. **Production Hardening**: Telemetry, monitoring, auto-updater
+2. **AI Foundations**: Service abstraction, orchestrator protocol
+3. **Web Platform**: Platform detection, service interfaces
 
 ## What's Next
 With Phase 7 Core UI Components complete, orchflow has transformed into a fully functional IDE:
