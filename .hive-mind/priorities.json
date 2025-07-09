@@ -1,0 +1,27 @@
+{
+  "1": {
+    "title": "Fix 51 failing tests",
+    "priority": "critical",
+    "description": "Address all failing tests to ensure stable foundation"
+  },
+  "2": {
+    "title": "Complete Rust Terminal Manager",
+    "priority": "high",
+    "description": "Core terminal management functionality in Rust"
+  },
+  "3": {
+    "title": "Terminal Intelligence",
+    "priority": "high",
+    "description": "Smart terminal features and automation"
+  },
+  "4": {
+    "title": "Orchestrator Layer",
+    "priority": "medium",
+    "description": "Coordination and workflow management"
+  },
+  "5": {
+    "title": "Web Platform",
+    "priority": "medium",
+    "description": "Web-based interface and API"
+  }
+}

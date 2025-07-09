@@ -1,0 +1,7 @@
+{
+  "topology": "hierarchical",
+  "queen": "strategic",
+  "consensus": "majority",
+  "workers": 4,
+  "initialized": "2025-01-09T00:00:00Z"
+}

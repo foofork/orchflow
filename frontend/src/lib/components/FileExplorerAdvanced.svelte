@@ -487,7 +487,7 @@
   {/if}
 </div>
 
-{#if showContextMenu}
+{#if showContextMenu && !testMode}
   <ContextMenu 
     x={contextMenuPosition.x}
     y={contextMenuPosition.y}

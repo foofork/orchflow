@@ -4,20 +4,6 @@ import userEvent from '@testing-library/user-event';
 import FileExplorerAdvanced from './FileExplorerAdvanced.svelte';
 import { mockInvoke, createMockFile } from '../../test/utils';
 
-// Mock ContextMenu component
-vi.mock('./ContextMenu.svelte', () => ({
-  default: {
-    $$render: (result: any, props: any) => {
-      const { x, y, children } = props.$$props;
-      if (props.$$slots.default) {
-        return `<div class="context-menu" style="position: fixed; left: ${x}px; top: ${y}px;">${props.$$slots.default[0]()}</div>`;
-      }
-      return '';
-    },
-    render: () => ({})
-  }
-}));
-
 describe('FileExplorerAdvanced', () => {
   let user: ReturnType<typeof userEvent.setup>;
   
