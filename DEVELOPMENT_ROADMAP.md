@@ -1,31 +1,18 @@
 # Orchflow Development Roadmap
 
-## 📋 Roadmap Maintenance Rules
+## 📋 Roadmap Maintenance
 
-**Update Frequency:**
-- **Weekly**: Update task status, mark completions, add blockers
-- **Sprint End**: Move completed phases, update metrics, revise timelines
-- **Monthly**: Review priorities, update risk assessment, clean technical debt
+**When to Update:**
+- Task status changes
+- New blockers emerge
+- Priorities shift
+- Features complete
 
-**Update Process:**
-1. **Status First**: Update current phase status before adding new items
-2. **Evidence Required**: Include PR#, commit hash, or date for completions
-3. **Preserve History**: Move completed items to "Completed Phases" not delete
-4. **Link Docs**: Add doc links for new features/APIs in relevant sections
-5. **Update Metrics**: Keep performance numbers, test coverage current
-
-**Content Rules:**
-- **One Truth**: This is THE roadmap - deprecate conflicting docs
-- **Actionable Items**: Tasks must be specific, measurable, achievable
-- **Priority Clear**: Use HIGH/MEDIUM/LOW + week estimates
-- **Dependencies Explicit**: Note blocking tasks/prerequisites
-- **AI-Friendly**: Include doc links for context, use clear section headers
-
-**Format Standards:**
-- **Phase Structure**: Number → Title → Status → Achievement Summary → Details
-- **Task Format**: `- [ ] Task description (Component: Status) EST: X weeks`
-- **Completion**: `- [x] ~~Task~~ ✅ COMPLETE (Date)`
-- **Blockers**: `⚠️ BLOCKED: Reason - Link to issue/discussion`
+**How to Update:**
+1. Update "Current Development Focus" first
+2. Move completed work to "Completed Phases"
+3. Keep metrics current (performance, coverage)
+4. Link relevant documentation
 
 ## 🎉 Major Milestone: Phase 5 Complete!
 
@@ -47,7 +34,7 @@ Orchflow has successfully completed **all infrastructure and core implementation
 - ✅ **Frontend migration** - Manager API replacing Orchestrator
 - ✅ **Performance optimized** - <100ms startup, ~10MB memory
 
-**Current Status**: Phase 6 Complete! All infrastructure phases done. Ready for Phase 7 - Essential UI Components
+**Current Status**: Phase 7 Complete! Core UI implemented. Working on remaining features and polish.
 
 ## 📚 Essential Documentation for AI Agents
 
@@ -74,164 +61,33 @@ Orchflow has successfully completed **all infrastructure and core implementation
 ## Completed Phases ✅
 
 ### Phase 1: MuxBackend Abstraction Layer ✅
-- **Trait-based terminal multiplexer abstraction** - Production-ready core infrastructure
-- **TmuxBackend implementation** - Full feature parity with comprehensive error handling
-- **MockBackend for testing** - Sub-millisecond performance, full test coverage
-- **Factory pattern** - Environment-based backend selection
-- **Performance benchmarks** - Automated testing infrastructure
-- **Complete documentation** - Architecture, usage, error handling guides
-
+- **Core Achievement**: Production-ready terminal multiplexer abstraction with TmuxBackend and MockBackend implementations
+- **Key Features**: Factory pattern for backend selection, sub-millisecond test performance, comprehensive benchmarks
 > **📖 See [Muxd Protocol Specification](docs/muxd-protocol-spec.md) for multiplexer protocol details**
 
 ### Phase 2: State Management Consolidation ✅
-**Achievement Summary:**
-- **StateManager**: Created unified state management system replacing AppState duplication
-- **Unified Commands**: New unified_state_commands.rs provides consistent API
-- **Event System**: Real-time state change notifications with automatic persistence
-- **Comprehensive Tests**: 6 test suites covering all state operations with 100% pass rate
-- **Backward Compatibility**: Legacy commands remain functional during transition
-- **Performance**: Sub-5ms state operations with automatic background persistence
-
+- **Core Achievement**: Unified StateManager replacing AppState duplication with event-driven persistence
+- **Key Features**: Real-time state notifications, sub-5ms operations, 100% backward compatibility
 > **📖 See [Manager API Documentation](docs/MANAGER_API.md) for core system APIs**
 
 ### Phase 3: Core System Architecture ✅
-**Achievement Summary:**
-- **Error Handling**: OrchflowError type system with 12 categories and 5 severity levels
-- **Enhanced Terminal Management**: ShellType enum with auto-detection, custom naming
-- **File Management**: FileManager with 14 operations, undo/redo, trash functionality
-- **Editor Integration**: Monaco removed, CodeMirror setup complete, Neovim integration working
-- **Project Search**: Full ripgrep integration with regex, context lines, and caching
-- **File Watching**: notify + debouncer with ignore patterns and rate limiting
+- **Core Achievement**: Typed error system (12 categories), enhanced terminal management, complete file operations
+- **Key Features**: FileManager with undo/redo, ripgrep project search, CodeMirror editor, file watching with debouncing
 
 ### Phase 4: Muxd Backend & Plugin Ecosystem ✅
-**Achievement Summary:**
-- **Muxd Protocol**: Designed and documented JSON-RPC 2.0 protocol specification
-- **Muxd Server**: Built high-performance Rust daemon with WebSocket transport
-- **MuxdBackend Client**: Full protocol compliance with session/pane management
-- **Plugin System**: Comprehensive API with JavaScript/TypeScript support
-- **Example Plugins**: Git integration, Docker management, Kubernetes operations
-- **Plugin Manager**: Complete lifecycle hooks and hot-reload support
-
+- **Core Achievement**: High-performance WebSocket daemon with comprehensive plugin system
+- **Key Features**: JSON-RPC 2.0 protocol, hot-reload support, example plugins (Git, Docker, K8s)
 > **📖 See [Plugin API Specification](docs/plugin-api-spec.md) for extension development guide**
 
 ### Phase 5: Implementation Completion & System Integration ✅
-**Achievement Summary:**
-- **Terminal Search Integration**: Connected TerminalSearcher with advanced regex support
-- **Legacy Code Removal**: Removed deprecated SimpleStateStore session/pane methods
-- **MuxBackend Commands**: Exposed backend session management via Tauri commands
-- **Plugin Event System**: Full async event dispatch loop with proper handling
-- **Test Parser Integration**: Connected parsers for Jest, Vitest, pytest, Rust, Go
-- **Code Quality**: Fixed unused variables, improved search implementation
+- **Core Achievement**: Complete system integration with terminal search, test parsers, and event dispatch
+- **Key Features**: Regex terminal search, test parser integration (Jest/Vitest/pytest/Rust/Go), legacy code removal
 
-## Phase 6: Frontend Integration & Polish ✅ COMPLETE
-
-### 6.0 Wire Up Missing Commands (Immediate Priority)
-- [x] ~~Rename orchestrator.rs to manager.rs for clarity~~ ✅ COMPLETE (Jan 2025)
-- [x] ~~Refactor large files into modular structures~~ ✅ COMPLETE (Jan 2025)
-  - manager.rs → 12 modules (core + handlers)
-  - file_manager.rs → 7 modules
-  - error.rs → 13 domain modules
-  - lsp_plugin.rs → 8 modules
-  - state_manager.rs → 8 modules
-  - search_plugin.rs → 7 modules
-  - simple_state_store.rs → 8 modules
-- [x] ~~Achieve zero compilation errors~~ ✅ COMPLETE (Jan 2025)
-- [x] ~~Implement `list_plugins` command~~ ✅ COMPLETE (Jan 2025)
-- [x] ~~Add `select_backend_pane` command~~ ✅ COMPLETE (Jan 2025)
-- [x] ~~Add `get_plugin_metadata` command~~ ✅ COMPLETE (Jan 2025)
-- [x] ~~Add `persist_state` command~~ ✅ COMPLETE (Jan 2025)
-- [x] ~~Fix LoadPlugin/UnloadPlugin implementation~~ ✅ COMPLETE (Jan 2025)
-
-### 6.0.5 Terminal Streaming Infrastructure (CRITICAL - Before UI) ✅
-- [x] ~~Implement real-time terminal output streaming via IPC~~ ✅ COMPLETE (Jan 2025)
-  - [x] ~~PTY management for bidirectional I/O~~ ✅ Using portable-pty
-  - [x] ~~Output buffering and replay mechanism~~ ✅ ScrollbackBuffer implemented
-  - [x] ~~Event-driven push to frontend~~ ✅ Via Tauri event system
-- [x] ~~Add terminal state synchronization~~ ✅ COMPLETE (Jan 2025)
-  - [x] ~~Active terminal tracking~~ ✅ TerminalState manager
-  - [x] ~~Terminal resize handling~~ ✅ PTY resize support
-  - [x] ~~Cursor position tracking~~ ✅ CursorPosition in state
-  - [x] ~~Terminal mode tracking (normal/insert/visual)~~ ✅ TerminalMode enum
-- [x] ~~Implement process lifecycle management~~ ✅ COMPLETE (Jan 2025)
-  - [x] ~~Process health monitoring~~ ✅ get_terminal_health command
-  - [x] ~~Process crash recovery~~ ✅ restart_terminal command
-  - [ ] Resource usage tracking (CPU/memory) - FUTURE
-- [x] ~~Add multi-terminal coordination~~ ✅ PARTIAL (Jan 2025)
-  - [x] ~~Broadcast commands to groups~~ ✅ broadcast_terminal_input
-  - [ ] Synchronized scrolling - FUTURE
-  - [ ] Session recording/replay - FUTURE
-- [x] ~~Performance optimizations~~ ✅ PARTIAL (Jan 2025)
-  - [x] ~~Output throttling/debouncing~~ ✅ 16ms flush interval
-  - [x] ~~Large output handling~~ ✅ Ring buffer implementation
-  - [ ] Connection pooling - Not needed for IPC
-
-> **📖 See [Terminal Streaming API](docs/TERMINAL_STREAMING_API.md) for real-time terminal integration**
-
-### 6.0.6 Terminal Frontend Components ✅ COMPLETE (Jan 2025)
-- [x] ~~Create StreamingTerminal.svelte component~~ ✅ COMPLETE
-  - [x] ~~Terminal renderer (xterm.js or similar)~~ ✅ Using @xterm/xterm
-  - [x] ~~IPC event handling for output~~ ✅ Base64 decoded streaming
-  - [x] ~~Input handling and key mapping~~ ✅ Full keyboard support
-  - [x] ~~Terminal resize support~~ ✅ ResizeObserver + fit addon
-- [x] ~~Create TerminalGrid.svelte component~~ ✅ COMPLETE
-  - [x] ~~Multiple terminal layout management~~ ✅ 5 layout options
-  - [x] ~~Dynamic terminal creation/destruction~~ ✅ Full lifecycle
-  - [x] ~~Focus management between terminals~~ ✅ Keyboard shortcuts
-  - [x] ~~Layout persistence~~ ✅ Via layout prop
-- [x] ~~Implement terminal-ipc.ts service~~ ✅ COMPLETE
-  - [x] ~~Tauri command wrappers~~ ✅ All commands wrapped
-  - [x] ~~Event subscription management~~ ✅ Auto cleanup
-  - [x] ~~Terminal state caching~~ ✅ Via Svelte stores
-  - [x] ~~Error handling and reconnection~~ ✅ Try/catch blocks
-
-### 6.1 Frontend Migration ✅ COMPLETE (Jan 2025)
-- [x] ~~Create manager-client.ts API wrapper~~ ✅ COMPLETE
-- [x] ~~Create manager.ts store with derived stores~~ ✅ COMPLETE
-- [x] ~~Write migration guide~~ ✅ COMPLETE
-- [x] ~~Update components to use new Manager API~~ ✅ COMPLETE
-  - [x] ~~Terminal components~~ ✅ Terminal.svelte migrated
-  - [x] ~~Session management components~~ ✅ Main +page.svelte migrated
-  - [x] ~~Plugin components~~ ✅ PluginManager.svelte migrated
-- [x] ~~Basic plugin UI functionality~~ ✅ COMPLETE
-  - [x] ~~Plugin list with enable/disable~~ ✅
-  - [x] ~~Plugin details modal~~ ✅
-  - [x] ~~Auto-refresh from store~~ ✅
-- [ ] Plugin marketplace UI - FUTURE (not immediate priority)
-
-### 6.2 Performance Optimization (High Priority) ✅ COMPLETE (Jan 2025)
-- [x] Remove unused WebSocket server (port 7777) - saved ~5-10ms ✅
-- [x] Implement lazy plugin loading - saved ~30-50ms ✅
-- [x] Optimize binary checks with 'which' crate - saved ~10-20ms ✅
-- [x] Defer module scanning to first use - saved ~20-30ms ✅
-- [x] Achieve startup time <100ms (reduced from ~150ms to ~40-85ms) ✅
-- [x] Reduce memory usage <100MB base (achieved ~10MB base) ✅
-- [x] Implement lazy loading for frontend components ✅
-  - Heavy components (Dashboard, Editor, etc.) now load on-demand
-  - Preloading of common components after initial render
-  - Loading placeholders for better UX
-
-### 6.3 Testing & Documentation ✅ COMPLETE (Jan 2025)
-- [x] Complete test coverage >85% for all components ✅
-  - [x] Error handling tests with 100% coverage ✅
-  - [x] Integration tests for all major features ✅
-  - [x] Performance benchmarks and test suite ✅
-  - [x] CI/CD pipeline with automated testing ✅
-- [x] Document all APIs and protocols ✅
-  - [x] Terminal Streaming API documentation ✅
-  - [x] Manager API documentation ✅
-  - [x] Migration guides included ✅
-- [x] Create developer guides ✅
-  - [x] Comprehensive onboarding guide ✅
-  - [x] Architecture overview ✅
-  - [x] Common tasks and examples ✅
-- [x] Build example projects ✅
-  - [x] Basic Terminal example with streaming API ✅
-  - [x] Plugin Development example with todo manager ✅
-  - [x] Examples index with navigation ✅
-
-> **📖 See [Developer Onboarding Guide](docs/DEVELOPER_ONBOARDING.md) for getting started**
-> **📖 See [Contributing Guide](docs/CONTRIBUTING.md) for development process**
-> **📖 See [Complete API Reference](docs/API.md) for all integration points**
+### Phase 6-7: Frontend & UI Implementation ✅
+- **Core Achievement**: Complete desktop IDE with all essential UI components and <100ms startup
+- **Phase 6 Features**: Terminal streaming via PTY, Manager API migration, modularized architecture
+- **Phase 7 Features**: Command palette, file explorer with Git integration, terminal panels, search/replace UI
+> **📖 See [Terminal Streaming API](docs/TERMINAL_STREAMING_API.md) and [UI Implementation Plan](docs/PHASE_7_IMPLEMENTATION_PLAN.md)**
 
 ## Technical Debt Items 🔧
 
@@ -286,60 +142,21 @@ await manager.createTerminal(sessionId, options);
 2. **Test Improvements**: Fix unit test Tauri app handle issues
 3. **Documentation**: Update architecture docs to reflect current state
 
-## Phase 7: Essential UI Components (4-6 weeks) 📋 ✅ COMPLETE
+## Current Development Focus 🚧
 
-> **📖 See [UI Implementation Plan](docs/PHASE_7_IMPLEMENTATION_PLAN.md) for detailed component roadmap**
+### Active Work
+- **Git Integration Panel**: Branch management, diff viewer, commit interface
+- **Notification System**: Toast notifications, progress indicators
+- **Workspace Manager**: Session persistence and switching
+- **Plugin Manager UI**: Installation and configuration interface
 
-### 7.1 Core Productivity Components (Immediate - 2-3 weeks) ✅ COMPLETE
-- [x] ~~**Enhanced Command Palette**~~ ✅ COMPLETE (Jan 2025)
-  - [x] ~~Fuzzy search across all commands, files, and symbols~~ ✅ Full fuzzy search with fuse.js
-  - [x] ~~Recent commands history and plugin-specific commands~~ ✅ Frecency scoring implemented
-  - [x] ~~Quick actions for git, terminal, and file operations~~ ✅ Git integration and terminal actions
-- [x] ~~**File Explorer with Advanced Features**~~ ✅ COMPLETE (Jan 2025)
-  - [x] ~~Tree view with Git status indicators~~ ✅ FileExplorerAdvanced with git integration
-  - [x] ~~Right-click context menu and drag & drop~~ ✅ Full context menu with accessibility
-  - [x] ~~File type icons and quick file operations~~ ✅ File operations and keyboard navigation
-- [x] ~~**Integrated Terminal Panel**~~ ✅ COMPLETE (Jan 2025)
-  - [x] ~~Multiple terminal tabs with split views~~ ✅ TerminalPanel with multiple terminals
-  - [x] ~~Terminal selector dropdown and process status~~ ✅ StreamingTerminal with status tracking
-  - [x] ~~Terminal history search and quick commands~~ ✅ Command history and search support
-- [x] ~~**Enhanced Status Bar**~~ ✅ COMPLETE (Jan 2025)
-  - [x] ~~Current file info (line/col, encoding, language)~~ ✅ StatusBarEnhanced with full file info
-  - [x] ~~Git branch status and running processes count~~ ✅ Git integration and process tracking
-  - [x] ~~Active plugins indicator and background task progress~~ ✅ Plugin status and task progress
-- [x] ~~**Quick File Switcher**~~ ✅ COMPLETE (Jan 2025)
-  - [x] ~~Recent files list with fuzzy search~~ ✅ QuickSwitcher with MRU and fuzzy search
-  - [x] ~~Open files tabs and file preview~~ ✅ File preview and keyboard navigation
-  - [x] ~~Keyboard shortcuts for rapid navigation~~ ✅ Full keyboard support
-
-### 7.2 Advanced Productivity Components (Short-term - 1 month) ✅ PARTIAL
-- [x] ~~**Search and Replace Panel**~~ ✅ COMPLETE (Jan 2025)
-  - [x] ~~Project-wide search with regex support~~ ✅ SearchReplace with ripgrep integration
-  - [x] ~~Search in specific files/folders with context~~ ✅ Context lines and path filtering
-  - [x] ~~Replace functionality and search history~~ ✅ Replace with preview and history
-- [ ] **Git Integration Panel** (IN PROGRESS)
-  - [ ] Branch switcher and staged/unstaged changes
-  - [ ] Commit interface and diff viewer
-  - [ ] Merge conflict resolver and remote operations
-- [ ] **Enhanced Plugin Manager UI** (FUTURE)
-  - [ ] Available plugins grid with install/uninstall
-  - [ ] Plugin configuration and enable/disable toggles
-  - [ ] Plugin marketplace integration (future)
-- [ ] **Notification System** (FUTURE)
-  - [ ] Toast notifications and error messages
-  - [ ] Progress indicators with action buttons
-  - [ ] Persistent notifications center
-- [ ] **Workspace/Session Manager** (FUTURE)
-  - [ ] Session creation/deletion with layout templates
-  - [ ] Session switching and auto-save configurations
-  - [ ] Recent workspaces and project templates
-
-### 7.3 Advanced IDE Features (Future - 2-3 months)
-- [ ] **Debug Panel** - Breakpoint management, variable inspector, call stack
-- [ ] **LSP Integration UI** - Language server status, error list, symbol outline
-- [ ] **Task Runner Interface** - npm/cargo/make scripts, custom tasks, output viewer
-- [ ] **Themes and Customization** - Color scheme editor, font settings, keybindings
-- [ ] **Performance Monitor** - Memory/CPU graphs, process monitoring, metrics
+### Recently Completed (Phase 7)
+- ✅ **Command Palette**: Fuzzy search with frecency scoring
+- ✅ **File Explorer**: Tree view with Git status, context menus
+- ✅ **Terminal Panel**: Multiple terminals with streaming
+- ✅ **Status Bar**: File info, Git status, system metrics
+- ✅ **Quick Switcher**: MRU files with fuzzy search
+- ✅ **Search & Replace**: Project-wide with regex support
 
 ## Future Enhancements 📅
 
@@ -467,27 +284,7 @@ await manager.createTerminal(sessionId, options);
 3. **LSP Integration UI**: Language server status, error list, symbol outline
 4. **Performance Monitor**: Memory/CPU graphs, process monitoring, metrics
 
-## Recent Achievements 🎯
-
-### Infrastructure Complete (Jan 2025)
-- ✅ **Comprehensive Testing**: >85% coverage with integration tests
-- ✅ **CI/CD Pipeline**: GitHub Actions for testing, quality, releases
-- ✅ **Error System**: Fully typed errors with rich context
-- ✅ **File Operations**: Advanced trash support with metadata
-- ✅ **Search & Replace**: Project-wide operations with ripgrep
-- ✅ **Performance**: Startup <100ms, memory <10MB base
-
-### Phase 7 UI Components Complete (Jan 2025)
-- ✅ **Enhanced Command Palette**: Fuzzy search, frecency scoring, git integration
-- ✅ **FileExplorerAdvanced**: Tree view, git status, context menus, accessibility
-- ✅ **Integrated Terminal Panel**: Multiple terminals, streaming, process tracking
-- ✅ **StatusBarEnhanced**: File info, git status, system metrics, notifications
-- ✅ **QuickSwitcher**: MRU files, fuzzy search, keyboard navigation
-- ✅ **SearchReplace**: Project-wide search, regex, replace with preview
-- ✅ **Dialog & ContextMenu**: Full accessibility, focus management, keyboard navigation
-- ✅ **Professional Testing**: Test strategy, mocking, component testability
-
-### What's Next
+## What's Next
 With Phase 7 Core UI Components complete, orchflow has transformed into a fully functional IDE:
 
 1. **Architecture**: Clean abstractions, unified state, comprehensive error handling
