@@ -1,11 +1,3 @@
-# Ignore all root directory .md files except README.md and important docs
-/*.md
-!README.md
-!DEVELOPMENT_ROADMAP.md
-!MANAGER_ORCHESTRATOR_INTEGRATION_ROADMAP.md
-!TESTING_SUMMARY.md
-!CLAUDE.md
-
 # Common ignores
 node_modules/
 dist/
@@ -23,12 +15,3 @@ build/
 *.iml
 coverage/
 .nyc_output/
-
-# Claude-related files (commented out to track in git)
-# .claude/
-# claude-flow
-# claude-flow.bat
-# claude-flow.ps1
-# memory/
-# hive*
-# memory.db
