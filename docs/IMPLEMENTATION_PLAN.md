@@ -323,6 +323,155 @@ describe('CommandPalette', () => {
 - Accessibility compliance
 - Cross-platform testing
 
+## Service Abstraction Layer (Foundation for Web & AI)
+
+### Overview
+The service abstraction layer enables 90% code reuse between desktop and web platforms, preparing orchflow for both web deployment and AI integration without coupling the frontend to platform-specific APIs.
+
+### Implementation
+
+#### 1. Service Interfaces
+```typescript
+// frontend/src/lib/services/index.ts
+export interface Services {
+  terminal: TerminalService;
+  file: FileService;
+  ai: AIService;
+  state: StateService;
+}
+
+// Terminal service contract
+interface TerminalService {
+  createSession(config: SessionConfig): Promise<Session>;
+  createPane(sessionId: string, options?: PaneOptions): Promise<Pane>;
+  sendInput(paneId: string, data: string): Promise<void>;
+  onOutput(paneId: string, callback: (data: string) => void): Unsubscribe;
+  resizePane(paneId: string, cols: number, rows: number): Promise<void>;
+  closePane(paneId: string): Promise<void>;
+}
+
+// File service contract  
+interface FileService {
+  readFile(path: string): Promise<string>;
+  writeFile(path: string, content: string): Promise<void>;
+  listDirectory(path: string): Promise<FileEntry[]>;
+  createDirectory(path: string): Promise<void>;
+  deleteFile(path: string): Promise<void>;
+  watchFile(path: string, callback: (event: FileEvent) => void): Unsubscribe;
+}
+
+// AI service contract
+interface AIService {
+  chat(message: string, context?: Context): Promise<AIResponse>;
+  detectIntent(message: string): Promise<Intent>;
+  createSwarm(config: SwarmConfig): Promise<SwarmSession>;
+  getSwarmStatus(sessionId: string): Promise<SwarmStatus>;
+}
+```
+
+#### 2. Platform Detection & Factory
+```typescript
+// frontend/src/lib/services/platform.ts
+export function detectPlatform(): 'desktop' | 'web' {
+  return typeof window.__TAURI__ !== 'undefined' ? 'desktop' : 'web';
+}
+
+// Service factory for platform-specific implementations
+class ServiceFactory {
+  static createServices(platform: 'desktop' | 'web'): Services {
+    if (platform === 'desktop') {
+      return {
+        terminal: new TauriTerminalService(),
+        file: new TauriFileService(),
+        ai: new LocalAIService(),
+        state: new SQLiteStateService()
+      };
+    } else {
+      return {
+        terminal: new WebTerminalService(),
+        file: new APIFileService(),
+        ai: new CloudAIService(),
+        state: new PostgresStateService()
+      };
+    }
+  }
+}
+
+// Usage in components
+export function initializeApp() {
+  const platform = detectPlatform();
+  const services = ServiceFactory.createServices(platform);
+  
+  // Set globally accessible services
+  setContext('terminal', services.terminal);
+  setContext('file', services.file);
+  setContext('ai', services.ai);
+  setContext('state', services.state);
+}
+```
+
+#### 3. Migration Strategy
+1. **Define all service interfaces** first
+2. **Implement desktop services** using existing Tauri commands
+3. **Create mock services** for testing
+4. **Add feature flags** for gradual migration
+5. **Migrate components** one at a time to use abstract services
+
+### Manager ↔ Orchestrator Protocol
+
+#### Overview
+The Manager-Orchestrator protocol enables AI agents to control terminals through a well-defined JSON-RPC 2.0 interface over WebSocket.
+
+#### Implementation
+```rust
+// frontend/src-tauri/src/orchestrator_bridge.rs
+pub struct OrchestratorBridge {
+    websocket: WebSocketServer,
+    manager: Arc<Manager>,
+}
+
+impl OrchestratorBridge {
+    pub async fn start(&self, port: u16) -> Result<()> {
+        // JSON-RPC 2.0 over WebSocket
+        self.websocket.listen(port, |msg| {
+            match msg.method.as_str() {
+                "terminal.create" => self.handle_create_terminal(msg.params),
+                "terminal.sendInput" => self.handle_send_input(msg.params),
+                "terminal.resize" => self.handle_resize(msg.params),
+                "swarm.status" => self.handle_swarm_status(msg.params),
+                _ => Err("Unknown method")
+            }
+        })
+    }
+}
+```
+
+#### Protocol Specification
+```typescript
+// Protocol messages
+interface TerminalCreateRequest {
+  jsonrpc: "2.0";
+  method: "terminal.create";
+  params: {
+    sessionId: string;
+    terminalType: "build" | "test" | "repl" | "debug" | "agent";
+    agentId?: string;
+    metadata?: Record<string, any>;
+  };
+  id: number;
+}
+
+interface TerminalOutputEvent {
+  jsonrpc: "2.0";
+  method: "terminal.output";
+  params: {
+    terminalId: string;
+    data: string;
+    timestamp: number;
+  };
+}
+```
+
 ## AI-Driven Features
 
 ### Vision

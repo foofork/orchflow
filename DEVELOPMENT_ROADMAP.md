@@ -316,44 +316,131 @@ await manager.createTerminal(sessionId, options);
 - **Command latency**: <10ms for all operations
 - **Memory usage**: <100MB base footprint ✅ (achieved ~10MB base)
 - **Binary size**: <50MB distributable
+- **Terminal operation latency**: <5ms perceived
+- **File operation response**: <10ms for common operations
 
 > **📖 See [Performance Guide](docs/PERFORMANCE_GUIDE.md) for optimization strategies**
 
 ### Quality
-- **Test coverage**: >85% across all modules
-- **Type safety**: 100% typed error handling
+- **Test coverage**: >90% across all modules (currently 51 failing / 139 total)
+- **Type safety**: 100% typed error handling ✅
 - **Documentation**: 100% API coverage
 - **Zero critical bugs** in production
+- **Code review**: 100% PR review before merge
+- **CI/CD**: All tests pass before merge
+
+### Technical Excellence
+- **Architecture**: Clean abstractions, no circular dependencies
+- **API Design**: Consistent, intuitive, well-documented
+- **Error Handling**: User-friendly messages, graceful degradation
+- **Code Sharing**: 90% code reuse between platforms (future)
+- **Plugin System**: Secure, performant, easy to develop
+
+### User Experience
+- **Time to first action**: <5 seconds from launch
+- **AI response time**: <2 seconds (future)
+- **UI responsiveness**: <50ms for all interactions
+- **Error recovery**: Automatic where possible, clear guidance otherwise
+- **Accessibility**: WCAG 2.1 AA compliance
 
 ### Adoption
 - **Plugin ecosystem**: 10+ community plugins
 - **User satisfaction**: >90% positive feedback
 - **Developer onboarding**: <30 minutes to first contribution
 - **Active community**: Regular contributions
+- **Documentation quality**: Clear, comprehensive, up-to-date
 
 ## Risk Assessment and Mitigation 🛡️
 
 ### Technical Risks
-1. **Frontend Migration Complexity**
-   - **Risk**: Breaking changes in API migration
-   - **Mitigation**: Incremental migration with feature flags
 
-2. **Performance Regression**
-   - **Risk**: New features impacting performance
-   - **Mitigation**: Continuous benchmarking and profiling
+1. **Test Suite Technical Debt** 🚨 CRITICAL
+   - **Risk**: 51 failing tests indicate unstable foundation
+   - **Impact**: Cannot ship reliable software with failing tests
+   - **Mitigation**: 
+     - Fix tests FIRST before ANY new development
+     - Enforce "no merge with failing tests" policy
+     - Add pre-commit hooks to run tests
 
-3. **Plugin Security**
-   - **Risk**: Malicious or buggy plugins
-   - **Mitigation**: Sandboxing and permission system
+2. **Service Abstraction Complexity**
+   - **Risk**: Introducing abstraction layer may break existing functionality
+   - **Impact**: Desktop app regression while preparing for web
+   - **Mitigation**:
+     - Incremental migration with feature flags
+     - Maintain backward compatibility
+     - Comprehensive integration tests
+     - Parallel implementation (old and new)
+
+3. **Performance Regression**
+   - **Risk**: New features impacting <100ms startup time
+   - **Impact**: Loss of key competitive advantage
+   - **Mitigation**:
+     - Continuous benchmarking in CI
+     - Performance budget enforcement
+     - Lazy loading for new features
+     - Regular profiling sessions
+
+4. **Plugin Security**
+   - **Risk**: Malicious or buggy plugins compromising system
+   - **Impact**: Security vulnerabilities, data loss
+   - **Mitigation**:
+     - Sandboxed execution environment
+     - Permission manifest system
+     - Code signing for plugins
+     - Resource usage limits
+
+5. **Integration Complexity**
+   - **Risk**: Manager ↔ Orchestrator protocol issues
+   - **Impact**: AI features may not work reliably
+   - **Mitigation**:
+     - Mock implementations first
+     - Comprehensive protocol tests
+     - Version negotiation support
+     - Graceful degradation
 
 ### Resource Risks
+
 1. **Timeline Pressure**
-   - **Risk**: Rushing features leading to bugs
-   - **Mitigation**: Focus on quality over speed
+   - **Risk**: Rushing to add AI features before core is stable
+   - **Impact**: Technical debt, quality issues
+   - **Mitigation**:
+     - Strict phase gates (tests must pass)
+     - Quality over feature velocity
+     - Regular retrospectives
 
 2. **Scope Creep**
-   - **Risk**: Adding features during polish phase
-   - **Mitigation**: Strict feature freeze for Phase 6
+   - **Risk**: Adding features while core has TODOs
+   - **Impact**: Never finishing core functionality
+   - **Mitigation**:
+     - TODO tracking and prioritization
+     - Feature freeze until tests pass
+     - Clear phase boundaries
+
+3. **Documentation Drift**
+   - **Risk**: Docs becoming outdated as code evolves
+   - **Impact**: Confusion, wasted time, poor onboarding
+   - **Mitigation**:
+     - Docs updates required in PRs
+     - Regular doc audits
+     - Auto-generated API docs
+
+### Strategic Risks
+
+1. **Market Timing**
+   - **Risk**: Competitors releasing AI IDEs first
+   - **Impact**: Loss of first-mover advantage
+   - **Mitigation**:
+     - Focus on quality over speed
+     - Unique terminal-first approach
+     - Strong community building
+
+2. **Technology Choices**
+   - **Risk**: Rust/Tauri may limit web deployment
+   - **Impact**: Difficult web platform migration
+   - **Mitigation**:
+     - Service abstraction layer
+     - Platform-agnostic architecture
+     - Prototype web version early
 
 ## Technical Achievements 🏆
 
