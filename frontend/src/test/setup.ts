@@ -173,3 +173,6 @@ Element.prototype.scrollIntoView = vi.fn();
 // Mock browser environment check
 (globalThis as any).browser = true;
 
+// Mock self global for xterm.js addons
+(globalThis as any).self = globalThis;
+

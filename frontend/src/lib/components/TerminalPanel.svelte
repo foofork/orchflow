@@ -298,11 +298,15 @@
 
 <div class="terminal-panel" on:keydown={handleTerminalKey}>
   <div class="terminal-header">
-    <div class="terminal-tabs">
+    <div class="terminal-tabs" role="tablist" aria-label="Terminal tabs">
       {#each $terminalsStore as terminal}
         <button
           class="terminal-tab"
           class:active={terminal.isActive}
+          role="tab"
+          aria-selected={terminal.isActive}
+          aria-controls="terminal-{terminal.id}"
+          id="tab-{terminal.id}"
           on:click={() => activateTerminal(terminal.id)}
           on:auxclick={(e) => { if (e.button === 1) closeTerminal(terminal.id); }}
           title="{terminal.title} - {terminal.cwd}"
@@ -426,6 +430,9 @@
         <div
           class="terminal-wrapper"
           class:active={terminal.isActive}
+          id="terminal-{terminal.id}"
+          role="tabpanel"
+          aria-labelledby="tab-{terminal.id}"
           style="display: {terminal.isActive || layout !== 'single' ? 'block' : 'none'}"
         >
           <StreamingTerminal

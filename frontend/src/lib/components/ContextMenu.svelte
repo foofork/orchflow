@@ -30,8 +30,6 @@
   }
   
   function focusItem(index: number) {
-    if (testMode) return;
-    
     menuItems = getMenuItems();
     if (menuItems.length === 0) return;
     
@@ -49,7 +47,10 @@
     if (item) {
       item.classList.add('focused');
       item.setAttribute('aria-selected', 'true');
-      item.focus();
+      // Only call focus() if not in test mode to avoid jsdom issues
+      if (!testMode) {
+        item.focus();
+      }
     }
   }
   
@@ -126,24 +127,26 @@
   }
   
   async function setupMenu() {
-    if (!menu || testMode) return;
+    if (!menu) return;
     
     await tick();
     
-    // Adjust position to keep menu on screen
-    const rect = menu.getBoundingClientRect();
-    const windowWidth = window.innerWidth;
-    const windowHeight = window.innerHeight;
-    
-    adjustedX = x;
-    adjustedY = y;
-    
-    if (x + rect.width > windowWidth) {
-      adjustedX = x - rect.width;
-    }
-    
-    if (y + rect.height > windowHeight) {
-      adjustedY = y - rect.height;
+    // Adjust position to keep menu on screen (skip in test mode to avoid DOM issues)
+    if (!testMode) {
+      const rect = menu.getBoundingClientRect();
+      const windowWidth = window.innerWidth;
+      const windowHeight = window.innerHeight;
+      
+      adjustedX = x;
+      adjustedY = y;
+      
+      if (x + rect.width > windowWidth) {
+        adjustedX = x - rect.width;
+      }
+      
+      if (y + rect.height > windowHeight) {
+        adjustedY = y - rect.height;
+      }
     }
     
     // Set up menu items

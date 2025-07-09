@@ -21,6 +21,8 @@
   let searchPath = '';
   let includePatterns: string[] = [];
   let excludePatterns: string[] = ['node_modules/**', 'target/**', '.git/**'];
+  let includePatternsText = '';
+  let excludePatternsText = excludePatterns.join('\n');
   
   // Results state
   let searchResults: SearchResults | null = null;
@@ -260,6 +262,8 @@
     searchPath = search.options.path || '';
     includePatterns = search.options.include_patterns || [];
     excludePatterns = search.options.exclude_patterns || [];
+    includePatternsText = includePatterns.join('\n');
+    excludePatternsText = excludePatterns.join('\n');
   }
   
   function toggleFileSelection(path: string) {
@@ -368,9 +372,10 @@
           <label>Include patterns (one per line):</label>
           <textarea
             rows="3"
-            bind:value={includePatterns}
+            bind:value={includePatternsText}
             placeholder="*.js&#10;src/**/*.ts"
             disabled={loading || replacing}
+            on:input={() => includePatterns = includePatternsText.split('\n').filter(p => p.trim())}
           />
         </div>
         
@@ -378,9 +383,10 @@
           <label>Exclude patterns (one per line):</label>
           <textarea
             rows="3"
-            bind:value={excludePatterns}
+            bind:value={excludePatternsText}
             placeholder="node_modules/**&#10;*.log"
             disabled={loading || replacing}
+            on:input={() => excludePatterns = excludePatternsText.split('\n').filter(p => p.trim())}
           />
         </div>
       </details>

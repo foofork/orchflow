@@ -78,15 +78,10 @@ describe('SearchReplace', () => {
   });
 
   it('shows replace input when in replace mode', async () => {
-    const { getByPlaceholderText, getByTitle } = renderSearchReplace();
+    const { getByPlaceholderText } = renderSearchReplace();
     
-    // Toggle replace mode - look for button by title or icon
-    const toggleButton = getByTitle(/Replace mode|Toggle replace/i);
-    await user.click(toggleButton);
-    
-    await waitFor(() => {
-      expect(getByPlaceholderText(/Replace with|Replace pattern/i)).toBeInTheDocument();
-    });
+    // The replace input should always be visible in the component
+    expect(getByPlaceholderText('Replace with...')).toBeInTheDocument();
   });
 
   it('performs search on Enter', async () => {

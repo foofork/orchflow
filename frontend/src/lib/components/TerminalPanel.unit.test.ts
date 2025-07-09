@@ -16,6 +16,8 @@ describe('TerminalPanel - Unit Tests', () => {
       isActive: true,
       processName: 'bash',
       processId: 1234,
+      isRunning: true,
+      shell: '/bin/bash',
     },
     {
       id: 'term-2', 
@@ -24,6 +26,8 @@ describe('TerminalPanel - Unit Tests', () => {
       isActive: false,
       processName: 'node',
       processId: 5678,
+      isRunning: true,
+      shell: '/bin/zsh',
     },
   ];
 
@@ -82,6 +86,7 @@ describe('TerminalPanel - Unit Tests', () => {
         props: {
           terminals: mockTerminals,
           activeTerminalId: 'term-1',
+          testMode: true,
         },
       });
       

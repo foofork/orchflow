@@ -342,16 +342,11 @@ describe('FileExplorerAdvanced', () => {
     
     // Wait for context menu and click rename
     await waitFor(() => {
-      const renameOption = container.querySelector('button:has-text("Rename")');
-      if (!renameOption) {
-        // If querySelector doesn't support :has-text, look for button containing Rename
-        const buttons = container.querySelectorAll('.context-menu button');
-        const rename = Array.from(buttons).find(btn => btn.textContent?.includes('Rename'));
-        if (rename) {
-          fireEvent.click(rename);
-        }
-      } else {
-        fireEvent.click(renameOption);
+      // Look for button containing "Rename" text
+      const buttons = container.querySelectorAll('.context-menu button');
+      const rename = Array.from(buttons).find(btn => btn.textContent?.includes('Rename'));
+      if (rename) {
+        fireEvent.click(rename);
       }
     }, { timeout: 100 });
     
@@ -383,16 +378,11 @@ describe('FileExplorerAdvanced', () => {
     
     // Wait for context menu and click delete
     await waitFor(() => {
-      const deleteOption = container.querySelector('button:has-text("Delete")');
-      if (!deleteOption) {
-        // If querySelector doesn't support :has-text, look for button containing Delete
-        const buttons = container.querySelectorAll('.context-menu button');
-        const del = Array.from(buttons).find(btn => btn.textContent?.includes('Delete'));
-        if (del) {
-          fireEvent.click(del);
-        }
-      } else {
-        fireEvent.click(deleteOption);
+      // Look for button containing "Delete" text
+      const buttons = container.querySelectorAll('.context-menu button');
+      const del = Array.from(buttons).find(btn => btn.textContent?.includes('Delete'));
+      if (del) {
+        fireEvent.click(del);
       }
     }, { timeout: 100 });
     
