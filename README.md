@@ -62,7 +62,7 @@ orchflow's philosophy is simple:
 
 ## Status for Users
 
-While the core is working, orchflow is not yet ready for general use. The project is in pre-release development with active work on the user interface. Developers comfortable with early-stage software are welcome to explore and contribute.
+While the core is working, orchflow is not yet ready for general use. The project is in pre-release development with active work on the user interface. Developers comfortable with early-stage software are welcome to explore and contribute or connect.
 
 ## The Vision
 
