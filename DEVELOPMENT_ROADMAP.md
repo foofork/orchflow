@@ -71,6 +71,7 @@ Orchflow has successfully completed **all infrastructure and core implementation
 - [Complete API Reference](docs/API.md) - All OrchFlow integration points
 - [Manager API Documentation](docs/MANAGER_API.md) - Core Rust Manager API
 - [Terminal Streaming API](docs/TERMINAL_STREAMING_API.md) - Real-time terminal integration
+- [PTY Architecture](docs/architecture/PTY_ARCHITECTURE.md) - Terminal implementation details
 - [Plugin API Specification](docs/plugin-api-spec.md) - Extension development guide
 - [Muxd Protocol Specification](docs/muxd-protocol-spec.md) - Multiplexer protocol
 

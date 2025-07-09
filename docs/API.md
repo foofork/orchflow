@@ -1,587 +1,246 @@
-# OrchFlow API Reference
+# orchflow API Reference
 
 ## Overview
 
-OrchFlow provides multiple APIs for different integration points:
+orchflow provides a comprehensive API through Tauri IPC commands for terminal management, file operations, and development workflow orchestration.
 
-1. **Tauri IPC API** - Frontend to backend communication
-2. **WebSocket API** - Real-time event streaming
-3. **Module API** - Module development interface
-4. **REST API** - HTTP endpoints for external tools
+## Current Architecture
 
-## Tauri IPC API
+The API is built on:
+- **Manager Pattern**: Centralized management of terminals, files, and state
+- **PTY Streaming**: Real-time terminal I/O using portable-pty
+- **Unified State**: Consistent state management across all components
+- **WebSocket Events**: Real-time updates for UI synchronization
 
-All IPC commands return promises and handle errors automatically.
+See [PTY Architecture](architecture/PTY_ARCHITECTURE.md) for terminal implementation details.
 
-### Session Management
+## Terminal Streaming API
 
-#### `db_create_session`
+### `create_streaming_terminal`
+Create a new streaming terminal with PTY support.
+
+```typescript
+const terminal = await invoke('create_streaming_terminal', {
+  config: {
+    shell: '/bin/zsh',  // optional, defaults to system shell
+    cwd: '/path/to/project',  // optional
+    env: { KEY: 'value' },  // optional environment variables
+    rows: 24,
+    cols: 80
+  }
+});
+// Returns: { terminal_id: string }
+```
+
+### `send_terminal_input`
+Send input to a terminal.
+
+```typescript
+// Text input
+await invoke('send_terminal_input', {
+  terminalId: 'term-123',
+  data: 'ls -la\n'
+});
+
+// Special keys
+await invoke('send_terminal_key', {
+  terminalId: 'term-123',
+  key: 'Enter',
+  modifiers: { ctrl: true }
+});
+```
+
+### `resize_streaming_terminal`
+Resize terminal dimensions.
+
+```typescript
+await invoke('resize_streaming_terminal', {
+  terminalId: 'term-123',
+  rows: 30,
+  cols: 120
+});
+```
+
+### Terminal Events
+
+Listen for terminal output and state changes:
+
+```typescript
+import { listen } from '@tauri-apps/api/event';
+
+// Terminal output (Base64 encoded)
+await listen('terminal:output', (event) => {
+  const { terminal_id, data } = event.payload;
+  const decoded = atob(data);  // Decode Base64
+  // Update terminal display
+});
+
+// Terminal exit
+await listen('terminal:exit', (event) => {
+  const { terminal_id, exit_code } = event.payload;
+});
+```
+
+## File Management API
+
+### `get_file_tree`
+Get directory tree structure.
+
+```typescript
+const tree = await invoke('get_file_tree', {
+  path: '/project/path',
+  showHidden: false,
+  gitStatus: true  // Include git status
+});
+// Returns: FileNode with children
+```
+
+### `create_file` / `create_directory`
+Create files and directories.
+
+```typescript
+await invoke('create_file', {
+  path: '/project/src/new-file.ts',
+  content: '// New file'
+});
+
+await invoke('create_directory', {
+  path: '/project/src/components'
+});
+```
+
+### `move_files` / `copy_files`
+Move or copy files with trash support.
+
+```typescript
+await invoke('move_files', {
+  sources: ['/path/file1.ts', '/path/file2.ts'],
+  destination: '/new/path/',
+  useTrash: true  // Move to trash instead of delete
+});
+```
+
+## Search API
+
+### `search_project`
+Project-wide search with ripgrep.
+
+```typescript
+const results = await invoke('search_project', {
+  query: 'TODO',
+  options: {
+    regex: true,
+    caseSensitive: false,
+    wholeWord: false,
+    includePatterns: ['*.ts', '*.tsx'],
+    excludePatterns: ['node_modules', '.git'],
+    maxResults: 1000
+  }
+});
+// Returns: SearchResult[] with matches and context
+```
+
+### `replace_in_files`
+Search and replace across files.
+
+```typescript
+const changes = await invoke('replace_in_files', {
+  searchQuery: 'oldFunction',
+  replaceWith: 'newFunction',
+  files: ['/src/file1.ts', '/src/file2.ts'],
+  options: { regex: false, caseSensitive: true }
+});
+// Returns: FileChange[] with preview
+```
+
+## Git Integration API
+
+### `get_file_git_status`
+Get git status for files.
+
+```typescript
+const status = await invoke('get_file_git_status', {
+  path: '/project/src/file.ts'
+});
+// Returns: 'modified' | 'untracked' | 'ignored' | etc.
+```
+
+### `get_git_branch_info`
+Get current branch information.
+
+```typescript
+const branch = await invoke('get_git_branch_info', {
+  projectPath: '/project'
+});
+// Returns: { name: string, remote: string, ahead: number, behind: number }
+```
+
+## State Management API
+
+### `create_session`
 Create a new development session.
 
 ```typescript
-const session = await invoke('db_create_session', {
+const session = await invoke('create_session', {
   name: 'My Project',
   projectPath: '/path/to/project'
 });
-// Returns: { id: string, name: string, created_at: string }
+// Returns: Session object with id
 ```
 
-#### `db_get_session`
-Get session by ID.
+### `get_unified_layout`
+Get current layout configuration.
 
 ```typescript
-const session = await invoke('db_get_session', {
-  id: 'session-uuid'
+const layout = await invoke('get_unified_layout', {
+  sessionId: 'session-123'
 });
+// Returns: LayoutNode tree structure
 ```
 
-#### `db_list_sessions`
-List all sessions.
+## Manager/Orchestrator API
+
+### `orchestrator_execute`
+Execute orchestrator actions (terminal, file, plugin operations).
 
 ```typescript
-const sessions = await invoke('db_list_sessions');
-// Returns: Session[]
-```
-
-### Terminal Management
-
-#### `tmux_create_session`
-Create a new tmux session.
-
-```typescript
-const sessionId = await invoke('tmux_create_session', {
-  name: 'dev-session'
-});
-// Returns: string (session ID)
-```
-
-#### `tmux_create_pane`
-Create a new pane in session.
-
-```typescript
-const paneId = await invoke('tmux_create_pane', {
-  sessionId: 'dev-session',
-  command: 'npm run dev'
-});
-// Returns: string (pane ID)
-```
-
-#### `tmux_split_pane`
-Split an existing pane.
-
-```typescript
-const newPaneId = await invoke('tmux_split_pane', {
-  paneId: 'existing-pane-id',
-  direction: 'horizontal', // or 'vertical'
-  size: 50 // percentage
-});
-```
-
-#### `tmux_send_keys`
-Send keystrokes to a pane.
-
-```typescript
-await invoke('tmux_send_keys', {
-  paneId: 'pane-id',
-  keys: 'ls -la\n'
-});
-```
-
-#### `tmux_capture_pane`
-Capture pane output.
-
-```typescript
-const output = await invoke('tmux_capture_pane', {
-  paneId: 'pane-id',
-  start: -100, // lines from end
-  end: -1
-});
-// Returns: string (terminal output)
-```
-
-### Editor Management
-
-#### `nvim_create_instance`
-Create a new Neovim instance.
-
-```typescript
-const instanceId = await invoke('nvim_create_instance');
-// Returns: string (instance ID)
-```
-
-#### `nvim_open_file`
-Open file in Neovim instance.
-
-```typescript
-await invoke('nvim_open_file', {
-  instanceId: 'nvim-instance-id',
-  path: '/path/to/file.js'
-});
-```
-
-#### `nvim_execute_command`
-Execute Vim command.
-
-```typescript
-const result = await invoke('nvim_execute_command', {
-  instanceId: 'nvim-instance-id',
-  command: ':w'
-});
-```
-
-#### `nvim_get_buffer`
-Get current buffer content.
-
-```typescript
-const content = await invoke('nvim_get_buffer', {
-  instanceId: 'nvim-instance-id'
-});
-// Returns: { path: string, content: string, modified: boolean }
-```
-
-### Layout Management
-
-#### `create_layout`
-Create a new layout.
-
-```typescript
-const layout = await invoke('create_layout', {
-  name: 'dev-layout',
-  type: 'grid'
-});
-// Returns: GridLayout
-```
-
-#### `split_layout_pane`
-Split a layout pane.
-
-```typescript
-await invoke('split_layout_pane', {
-  layoutId: 'layout-id',
-  paneId: 'pane-id',
-  direction: 'horizontal'
-});
-```
-
-#### `db_save_layout`
-Save layout to database.
-
-```typescript
-await invoke('db_save_layout', {
-  sessionId: 'session-id',
-  name: 'My Layout',
-  config: layoutConfig
-});
-```
-
-### Module Management
-
-#### `module_scan`
-Scan for available modules.
-
-```typescript
-const modules = await invoke('module_scan');
-// Returns: ModuleInfo[]
-```
-
-#### `module_enable`
-Enable a module.
-
-```typescript
-await invoke('module_enable', {
-  moduleId: 'my-module'
-});
-```
-
-#### `module_execute`
-Execute module command.
-
-```typescript
-const result = await invoke('module_execute', {
-  moduleId: 'my-module',
-  command: 'generate-tests',
-  args: ['/path/to/file.js']
-});
-```
-
-## WebSocket API
-
-Connect to `ws://localhost:8080/ws` for real-time updates.
-
-### Message Format
-
-All messages use JSON with this structure:
-
-```typescript
-interface WebSocketMessage {
-  type: string;
-  event: string;
-  data: any;
-  timestamp: string;
-}
-```
-
-### Event Types
-
-#### Terminal Events
-
-```javascript
-// Terminal output
-{
-  type: 'terminal',
-  event: 'output',
-  data: {
-    paneId: 'pane-123',
-    content: 'npm start\n> my-app@1.0.0 start...'
+const result = await invoke('orchestrator_execute', {
+  action: {
+    type: 'CreateTerminal',
+    payload: { shell: '/bin/bash' }
   }
-}
-
-// Terminal error
-{
-  type: 'terminal',
-  event: 'error',
-  data: {
-    paneId: 'pane-123',
-    error: 'Command not found'
-  }
-}
+});
 ```
 
-#### Editor Events
+### `list_plugins`
+Get loaded plugins.
 
-```javascript
-// File opened
-{
-  type: 'editor',
-  event: 'file_opened',
-  data: {
-    instanceId: 'nvim-123',
-    path: '/src/index.js'
-  }
-}
-
-// Buffer modified
-{
-  type: 'editor',
-  event: 'buffer_modified',
-  data: {
-    instanceId: 'nvim-123',
-    path: '/src/index.js',
-    modified: true
-  }
-}
+```typescript
+const plugins = await invoke('list_plugins');
+// Returns: PluginMetadata[]
 ```
 
-#### System Events
+## WebSocket Events
 
-```javascript
-// Module loaded
-{
-  type: 'system',
-  event: 'module_loaded',
-  data: {
-    moduleId: 'my-module',
-    version: '1.0.0'
-  }
-}
+For real-time updates, connect to the WebSocket endpoint:
 
-// Resource usage
-{
-  type: 'system',
-  event: 'metrics',
-  data: {
-    cpu: 23.5,
-    memory: 1024,
-    terminals: 3,
-    editors: 2
-  }
-}
-```
-
-### Client Example
-
-```javascript
-const ws = new WebSocket('ws://localhost:8080/ws');
-
-ws.onopen = () => {
-  console.log('Connected to OrchFlow');
-  
-  // Subscribe to specific events
-  ws.send(JSON.stringify({
-    action: 'subscribe',
-    events: ['terminal.output', 'editor.file_opened']
-  }));
-};
+```typescript
+const ws = new WebSocket('ws://localhost:9999');
 
 ws.onmessage = (event) => {
-  const message = JSON.parse(event.data);
-  console.log('Event:', message.event, message.data);
-};
-
-ws.onerror = (error) => {
-  console.error('WebSocket error:', error);
+  const data = JSON.parse(event.data);
+  // Handle events: terminal updates, file changes, etc.
 };
 ```
 
-## REST API
+## Future Architecture
 
-HTTP endpoints for external tool integration.
+orchflow is designed with a unified architecture that will eventually support both desktop and web deployments. See [Unified Architecture](ORCHFLOW_UNIFIED_ARCHITECTURE.md) for the long-term vision.
 
-### Base URL
-```
-http://localhost:8080/api
-```
+Future additions will include:
+- **AI Agent API**: Natural language commands and agent orchestration
+- **Cloud Sync API**: Settings and session synchronization
+- **Collaboration API**: Real-time shared sessions
+- **Plugin Marketplace API**: Discovery and installation
 
-### Authentication
-```
-Authorization: Bearer <api-token>
-```
-
-### Endpoints
-
-#### `GET /sessions`
-List all sessions.
-
-```bash
-curl http://localhost:8080/api/sessions \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-Response:
-```json
-{
-  "sessions": [
-    {
-      "id": "abc123",
-      "name": "My Project",
-      "created_at": "2024-01-01T00:00:00Z",
-      "last_active": "2024-01-01T12:00:00Z"
-    }
-  ]
-}
-```
-
-#### `POST /sessions`
-Create new session.
-
-```bash
-curl -X POST http://localhost:8080/api/sessions \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "New Project",
-    "projectPath": "/path/to/project"
-  }'
-```
-
-#### `POST /terminals`
-Create new terminal.
-
-```bash
-curl -X POST http://localhost:8080/api/terminals \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "sessionId": "abc123",
-    "command": "npm run dev"
-  }'
-```
-
-#### `POST /terminals/:id/command`
-Send command to terminal.
-
-```bash
-curl -X POST http://localhost:8080/api/terminals/pane-123/command \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "command": "ls -la"
-  }'
-```
-
-#### `GET /terminals/:id/output`
-Get terminal output.
-
-```bash
-curl http://localhost:8080/api/terminals/pane-123/output \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-#### `POST /editors`
-Create new editor instance.
-
-```bash
-curl -X POST http://localhost:8080/api/editors \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "file": "/src/index.js"
-  }'
-```
-
-#### `GET /modules`
-List installed modules.
-
-```bash
-curl http://localhost:8080/api/modules \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-#### `POST /modules/:id/execute`
-Execute module command.
-
-```bash
-curl -X POST http://localhost:8080/api/modules/my-module/execute \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "command": "generate-tests",
-    "args": ["/src/index.js"]
-  }'
-```
-
-## Error Handling
-
-All APIs use consistent error format:
-
-```typescript
-interface ApiError {
-  error: {
-    code: string;
-    message: string;
-    details?: any;
-  };
-}
-```
-
-### Common Error Codes
-
-| Code | Description |
-|------|-------------|
-| `SESSION_NOT_FOUND` | Session ID does not exist |
-| `PANE_NOT_FOUND` | Terminal pane not found |
-| `INSTANCE_NOT_FOUND` | Neovim instance not found |
-| `MODULE_NOT_FOUND` | Module not installed |
-| `PERMISSION_DENIED` | Insufficient permissions |
-| `INVALID_REQUEST` | Request validation failed |
-| `INTERNAL_ERROR` | Server error |
-
-### Error Example
-
-```json
-{
-  "error": {
-    "code": "PANE_NOT_FOUND",
-    "message": "Terminal pane 'pane-xyz' does not exist",
-    "details": {
-      "paneId": "pane-xyz",
-      "sessionId": "session-123"
-    }
-  }
-}
-```
-
-## Rate Limiting
-
-API requests are rate limited:
-
-- **IPC API**: No limit (local only)
-- **WebSocket**: 100 messages/second
-- **REST API**: 60 requests/minute
-
-Rate limit headers:
-```
-X-RateLimit-Limit: 60
-X-RateLimit-Remaining: 45
-X-RateLimit-Reset: 1704067200
-```
-
-## Versioning
-
-API version is included in responses:
-
-```
-X-API-Version: 1.0.0
-```
-
-Breaking changes will increment major version.
-
-## SDK Libraries
-
-Official SDKs available:
-
-- **JavaScript/TypeScript**: `@orchflow/sdk`
-- **Python**: `orchflow-sdk`
-- **Go**: `github.com/orchflow/sdk-go`
-- **Rust**: `orchflow-sdk`
-
-### JavaScript SDK Example
-
-```javascript
-import { OrchFlow } from '@orchflow/sdk';
-
-const client = new OrchFlow({
-  apiKey: process.env.ORCHFLOW_API_KEY
-});
-
-// Create session
-const session = await client.sessions.create({
-  name: 'My Project'
-});
-
-// Create terminal
-const terminal = await client.terminals.create({
-  sessionId: session.id,
-  command: 'npm run dev'
-});
-
-// Listen for output
-terminal.on('output', (data) => {
-  console.log('Terminal:', data);
-});
-
-// Send command
-await terminal.send('ls -la\n');
-```
-
-## CLI Integration
-
-Use OrchFlow from command line:
-
-```bash
-# Create session
-orchflow session create --name "My Project"
-
-# List sessions
-orchflow session list
-
-# Create terminal
-orchflow terminal create --session abc123 --cmd "npm start"
-
-# Send command
-orchflow terminal send --id pane-123 "ls -la"
-
-# Execute module
-orchflow module exec my-module generate-tests /src/index.js
-```
-
-## Debugging
-
-Enable debug logging:
-
-```bash
-# Tauri app
-RUST_LOG=debug orchflow
-
-# API server
-DEBUG=orchflow:* npm start
-
-# WebSocket
-WS_DEBUG=true orchflow
-```
-
-## Support
-
-- [API Documentation](https://orchflow.dev/api)
-- [SDK Examples](https://github.com/orchflow/examples)
-- [Community Discord](https://discord.gg/orchflow)
+Currently, all APIs are desktop-focused using Tauri IPC.
