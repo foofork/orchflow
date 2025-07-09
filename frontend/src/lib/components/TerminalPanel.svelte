@@ -63,12 +63,17 @@
   
   onMount(async () => {
     // Load available shells
-    try {
-      const shells = await invoke('get_available_shells');
-      availableShells.set(shells as string[]);
-    } catch (err) {
-      console.error('Failed to get available shells:', err);
+    if (testMode) {
+      // In test mode, use mock data
       availableShells.set(['/bin/bash', '/bin/zsh', '/bin/sh']);
+    } else {
+      try {
+        const shells = await invoke('get_available_shells');
+        availableShells.set(shells as string[]);
+      } catch (err) {
+        console.error('Failed to get available shells:', err);
+        availableShells.set(['/bin/bash', '/bin/zsh', '/bin/sh']);
+      }
     }
     
     // Load saved terminal groups
@@ -151,6 +156,11 @@
   }
   
   function splitTerminal(direction: 'horizontal' | 'vertical') {
+    if (onSplit) {
+      onSplit(direction);
+      return;
+    }
+    
     const current = $activeTerminal;
     if (!current) {
       createTerminal();
@@ -294,6 +304,15 @@
       return t;
     }));
   }
+
+  function handleSearch() {
+    if (onSearch) {
+      onSearch(searchQuery);
+    } else {
+      // Default search behavior
+      dispatch('search', { query: searchQuery });
+    }
+  }
 </script>
 
 <div class="terminal-panel" on:keydown={handleTerminalKey}>
@@ -318,6 +337,7 @@
           <button
             class="tab-close"
             on:click|stopPropagation={() => closeTerminal(terminal.id)}
+            title="Close terminal"
           >
             ×
           </button>
@@ -326,7 +346,7 @@
       
       <button
         class="new-terminal-btn"
-        on:click={() => showNewTerminalMenu = !showNewTerminalMenu}
+        on:click={() => testMode && onTerminalCreate ? onTerminalCreate() : (showNewTerminalMenu = !showNewTerminalMenu)}
         title="New Terminal"
       >
         +
@@ -399,6 +419,27 @@
       >
         ⚙️
       </button>
+      <button
+        class="action-btn"
+        on:click={() => showNewTerminalMenu = !showNewTerminalMenu}
+        title="Shell selector"
+      >
+        💻
+      </button>
+      <button
+        class="action-btn"
+        on:click={() => onBroadcastToggle ? onBroadcastToggle() : dispatch('toggleBroadcast')}
+        title="Toggle broadcast"
+      >
+        📡
+      </button>
+      <button
+        class="action-btn"
+        on:click={() => dispatch('showGroups')}
+        title="Terminal groups"
+      >
+        👥
+      </button>
     </div>
   </div>
   
@@ -409,8 +450,9 @@
         placeholder="Search terminal output..."
         bind:value={searchQuery}
         class="search-input"
+        on:keydown={(e) => e.key === 'Enter' && handleSearch()}
       />
-      <button class="search-btn">Find</button>
+      <button class="search-btn" on:click={handleSearch}>Find</button>
       <button class="search-close" on:click={() => showSearchBar = false}>×</button>
     </div>
   {/if}

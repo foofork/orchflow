@@ -192,8 +192,8 @@
       await loadTree(node.path);
     }
     
-    // Trigger reactivity by updating filteredTree
-    filterTree();
+    // Force complete re-render by triggering reactive statements
+    tree = tree.slice(); // Create new array reference
   }
   
   // Select node
@@ -225,10 +225,16 @@
   function filterHiddenFiles(nodes: FileNode[]): FileNode[] {
     return nodes
       .filter(node => !node.name.startsWith('.'))
-      .map(node => ({
-        ...node,
-        children: node.children ? filterHiddenFiles(node.children) : undefined
-      }));
+      .map(node => {
+        // Preserve the original node reference to maintain expanded state
+        if (node.children) {
+          return {
+            ...node,
+            children: filterHiddenFiles(node.children)
+          };
+        }
+        return node;
+      });
   }
   
   // Filter nodes recursively
@@ -366,6 +372,7 @@
   // Reactive statements
   $: searchQuery, filterTree();
   $: rootPath && !testMode && loadTree();
+  $: tree, filterTree(); // Re-filter when tree changes  
   $: if (testMode && initialTree) {
     tree = initialTree.filter(node => showHidden || !node.name.startsWith('.'));
     filterTree();

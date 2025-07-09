@@ -117,7 +117,7 @@ describe('StatusBarEnhanced', () => {
       }
     });
     
-    expect(getByText('🔄 3 processes')).toBeInTheDocument();
+    expect(getByText('3 running')).toBeInTheDocument();
   });
 
   it('displays active plugins count', () => {
@@ -128,7 +128,7 @@ describe('StatusBarEnhanced', () => {
       }
     });
     
-    expect(getByText('🔌 5 plugins')).toBeInTheDocument();
+    expect(getByText('5 plugins')).toBeInTheDocument();
   });
 
   it('displays notification count', () => {
@@ -157,7 +157,8 @@ describe('StatusBarEnhanced', () => {
       }
     });
     
-    expect(getByText('⚙️ 2 tasks')).toBeInTheDocument();
+    expect(getByText('Building project 75%')).toBeInTheDocument();
+    expect(getByText('Running tests 50%')).toBeInTheDocument();
   });
 
   it('displays clock in test mode', () => {
@@ -267,7 +268,7 @@ describe('StatusBarEnhanced', () => {
       }
     });
     
-    expect(getByText('🔄 1 processes')).toBeInTheDocument();
+    expect(getByText('1 running')).toBeInTheDocument();
   });
 
   it('hides git status when disabled', () => {
@@ -316,7 +317,8 @@ describe('StatusBarEnhanced', () => {
     });
     
     const fileItem = getByText('📄 file.ts');
-    expect(fileItem).toHaveAttribute('title', '/test/file.ts');
+    const fileButton = fileItem.closest('button');
+    expect(fileButton).toHaveAttribute('title', '/test/file.ts');
   });
 
   it('handles custom item click callbacks', async () => {

@@ -112,9 +112,9 @@ describe('TerminalPanel', () => {
     await fireEvent.click(selectorButton);
     
     await waitFor(() => {
-      expect(getByText('bash')).toBeInTheDocument();
-      expect(getByText('zsh')).toBeInTheDocument();
-      expect(getByText('fish')).toBeInTheDocument();
+      expect(getByText(/💻 bash/i)).toBeInTheDocument();
+      expect(getByText(/💻 zsh/i)).toBeInTheDocument();
+      expect(getByText(/💻 sh/i)).toBeInTheDocument();
     });
   });
 

@@ -1,154 +1,75 @@
 # orchflow
 
-A next-generation terminal-based IDE that orchestrates multiple tools and workflows into a unified development environment. Think of it as VS Code meets tmux, but built from the ground up for developers who prefer terminal-first workflows.
+A terminal-based IDE that combines the editing capabilities of Neovim with intelligent terminal orchestration in a fast desktop application.
 
-## What is orchflow?
+## Overview
 
-orchflow is designed to solve a fundamental problem: modern development requires juggling multiple terminals, editors, build processes, and tools. Instead of alt-tabbing between windows or managing complex tmux sessions, orchflow provides intelligent orchestration of all these tools in a single, fast desktop application.
+orchflow solves a simple problem: developers need to manage multiple terminals and tools at once. Instead of juggling windows and manual coordination, orchflow handles the orchestration in one fast application.
 
-### Core Capabilities
+The project focuses on three core principles:
+- Performance: Sub-100ms startup, ~10MB base memory usage
+- Terminal-first design: Built around terminal workflows, not adapted to them
+- Intelligent orchestration: Tools that understand and coordinate with each other
 
-- **Intelligent Terminal Orchestration**: Manage multiple terminal sessions with automatic layout management, command history tracking, and the ability to broadcast commands across multiple panes. Built on a flexible MuxBackend abstraction that currently uses tmux but can support other backends.
+## Current State
 
-- **Real-time Terminal Streaming**: Full PTY (pseudo-terminal) implementation with bidirectional I/O, supporting any shell or terminal application. Features include scrollback buffers, terminal search, process health monitoring, and automatic restart on crashes.
+orchflow is in active development. Core features working today include:
 
-- **Advanced File Management**: Beyond basic file operations - includes trash support with metadata tracking, operation history with undo/redo, Git integration (in progress), virtual file system for performance, and project-wide search using ripgrep.
+- Terminal multiplexing through tmux integration
+- File management with trash support and operation history
+- State persistence through SQLite
+- Plugin architecture with JavaScript/TypeScript support
+- WebSocket-based communication between frontend and backend
 
-- **Unified State Management**: All application state is managed through a central StateManager with SQLite persistence, event-driven updates, and automatic synchronization between frontend and backend.
+Current work: building the UI to make these features usable.
 
-- **Extensible Plugin System**: Write plugins in JavaScript/TypeScript with hot-reload support, full API access to terminal/file/state management, and example plugins for Git, Docker, and test runners.
+## Technical Architecture
 
-- **Neovim Integration**: Use Neovim as the editor within terminal panes, with full RPC support planned for deeper integration.
+The application uses:
+- **Backend**: Rust with Tauri for system operations and performance
+- **Frontend**: SvelteKit for the user interface
+- **Terminal Management**: tmux for session persistence and multiplexing
+- **State Storage**: SQLite for configuration and session data
+- **Communication**: Type-safe IPC between frontend and backend
 
-### Where It's Headed
+## Development Approach
 
-**Phase 7 (Current)**: Building essential UI components
-- Command palette with fuzzy search and plugin commands
-- Advanced file explorer with Git status indicators
-- Integrated terminal panel with tabs and splits
-- Search and replace across projects
-- Git integration panel with diff viewer
+orchflow is being built with a focus on:
 
-**Future Vision**:
-- **AI-Powered Orchestration**: Connect to LLMs for intelligent command suggestions, automated workflow creation, and code understanding
-- **Collaborative Development**: Real-time session sharing, pair programming support, and team workspaces
-- **Language Intelligence**: Full LSP support with inline diagnostics, intelligent code completion, and refactoring tools
-- **Workflow Automation**: Record and replay complex workflows, conditional command execution, and scheduled tasks
-- **Cloud Integration**: Sync settings and sessions across machines, remote development support, and cloud-based plugin marketplace
+1. **Sustainable Performance**: Every feature must keep the app fast. No exceptions.
 
-### What Makes It Different
+2. **Progressive Enhancement**: Start with terminals, add features as they make sense.
 
-1. **Terminal-First Philosophy**: Unlike VS Code which bolts on terminal support, orchflow is built around terminal workflows from day one.
+3. **Open Architecture**: Plugins can extend orchflow without touching core code.
 
-2. **Performance Obsessed**: <100ms startup time, ~10MB base memory usage, and aggressive optimization throughout.
+## What's Coming
 
-3. **True Orchestration**: Not just running commands - orchflow understands relationships between processes, can coordinate multiple tools, and provides intelligent automation.
+**Now**: Polishing the UI - terminal panels, file browser, command palette.
 
-4. **Hybrid Architecture**: Combines the best of desktop apps (native performance, system integration) with web technologies (flexible UI, easy customization).
+**Next**: Git integration, plugins, workspaces.
 
-## Project Status
+**Later**: The flexible architecture could support AI features, web deployment, and more. We'll see where it goes.
 
-**Development Stage**: Pre-release (Active Development)
+## Project Philosophy
 
-- ✅ **Phases 1-6 Complete**: Core infrastructure including terminal streaming, file management, state system, plugin architecture
-- 🚧 **Phase 7 In Progress**: Essential UI components 
-- 📋 **High-Priority Tech Debt**: Git integration, WASM plugin support, module registry
+orchflow's philosophy is simple:
 
-The foundation is solid and feature-complete. We're now building the UI layer that will make these powerful capabilities accessible.
+- **Tools should be fast**: Performance is not optional
+- **Complexity should be hidden**: Powerful features with simple interfaces
+- **Everything should persist**: Close the app, lose nothing
+- **AI should assist, not replace**: Automation for repetitive tasks
+- **Open source benefits everyone**: Community-driven development
 
-## Prerequisites
+## Status for Users
 
-- Rust 1.70+
-- Node.js 20+
-- tmux 3.0+ (for terminal multiplexing)
-- Git (for version control features)
+While the core is working, orchflow is not yet ready for general use. The project is in pre-release development with active work on the user interface. Developers comfortable with early-stage software are welcome to explore and contribute.
 
-## Installation
+## The Vision
 
-```bash
-# Clone repository
-git clone https://github.com/orchflow/orchflow.git
-cd orchflow
+An AI-driven terminal orchestration platform. orchflow provides the infrastructure for AI agents to intelligently manage and coordinate multiple terminal sessions, making complex development workflows transparent and controllable.
 
-# Install frontend dependencies
-cd frontend
-npm install
-
-# Run in development mode
-npm run tauri dev
-
-# Build for production
-npm run tauri build
-```
-
-## Development
-
-### Project Structure
-
-```
-orchflow/
-├── frontend/                 # Svelte frontend
-│   ├── src/                 # Frontend source
-│   └── src-tauri/           # Rust backend
-│       └── src/             # Backend source
-├── docs/                    # Documentation
-└── .github/                 # CI/CD workflows
-```
-
-### Running Tests
-
-```bash
-# Backend tests
-cd frontend/src-tauri
-cargo test
-
-# Frontend tests
-cd frontend
-npm test
-
-# Test coverage
-cd frontend/src-tauri
-./scripts/test-coverage.sh
-```
-
-### Code Quality
-
-- Rust: `cargo clippy` (no warnings)
-- TypeScript: ESLint configured
-- Test Coverage: >85% requirement
-- CI/CD: GitHub Actions for all platforms
-
-## Architecture
-
-- **Backend**: Tauri + Rust for system operations
-- **Frontend**: SvelteKit for UI
-- **IPC**: Type-safe commands between frontend/backend
-- **Storage**: SQLite via SimpleStateStore
-- **Terminal**: PTY management with portable-pty
-
-## Roadmap
-
-See [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md) for detailed progress.
-
-- ✅ Phase 1-6: Core infrastructure (complete)
-- 🚧 Phase 7: Essential UI components (in progress)
-- 📋 Future: Plugin marketplace, collaboration features
-
-## Contributing
-
-This project is in early development. Contribution guidelines will be established once we reach beta.
-
-## License
-
-MIT OR Apache-2.0 (dual licensed)
-
-## Acknowledgments
-
-Built with:
-- [Tauri](https://tauri.app/) - Desktop application framework
-- [portable-pty](https://github.com/wez/portable-pty) - Cross-platform PTY
-- [Svelte](https://svelte.dev/) - UI framework
+The goal: enable AI systems to work alongside developers in a way that's visible, understandable, and powerful. Terminal management is the starting point - the real innovation is making AI-driven development workflows practical.
 
 ---
 
-*Note: This is pre-release software under active development. APIs and features may change.*
+*This is pre-release software. APIs and features are subject to change as the project evolves toward its first stable release.*

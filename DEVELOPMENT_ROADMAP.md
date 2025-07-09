@@ -4,6 +4,9 @@
 
 ### Executive Summary
 Orchflow has successfully completed **all infrastructure and core implementation phases** (Phases 1-5), establishing a production-ready foundation with:
+
+> **📖 For complete system architecture, see [Unified Architecture Design](docs/ORCHFLOW_UNIFIED_ARCHITECTURE.md)**
+> **📖 For component responsibilities, see [Component Architecture Guide](docs/COMPONENT_RESPONSIBILITIES.md)**
 - ✅ **MuxBackend abstraction** - Clean separation of terminal multiplexer operations
 - ✅ **Unified state management** - Single source of truth with StateManager
 - ✅ **Comprehensive error handling** - 12 error categories with rich context
@@ -19,6 +22,27 @@ Orchflow has successfully completed **all infrastructure and core implementation
 
 **Current Status**: Phase 6 Complete! All infrastructure phases done. Ready for Phase 7 - Essential UI Components
 
+## 📚 Essential Documentation for AI Agents
+
+**Core Architecture & Design:**
+- [Unified Architecture Design](docs/ORCHFLOW_UNIFIED_ARCHITECTURE.md) - Complete system architecture
+- [Component Architecture Guide](docs/COMPONENT_RESPONSIBILITIES.md) - Component boundaries and responsibilities
+- [Architecture Decision Guide](docs/MANAGER_ORCHESTRATOR_ARCHITECTURE.md) - Manager vs Orchestrator usage
+
+**APIs & Integration:**
+- [Complete API Reference](docs/API.md) - All OrchFlow integration points
+- [Manager API Documentation](docs/MANAGER_API.md) - Core Rust Manager API
+- [Terminal Streaming API](docs/TERMINAL_STREAMING_API.md) - Real-time terminal integration
+- [Plugin API Specification](docs/plugin-api-spec.md) - Extension development guide
+- [Muxd Protocol Specification](docs/muxd-protocol-spec.md) - Multiplexer protocol
+
+**Development & Enhancement:**
+- [Developer Onboarding Guide](docs/DEVELOPER_ONBOARDING.md) - Getting started
+- [Contributing Guide](docs/CONTRIBUTING.md) - Development process
+- [Performance Guide](docs/PERFORMANCE_GUIDE.md) - Optimization strategies
+- [UI Implementation Plan](docs/PHASE_7_IMPLEMENTATION_PLAN.md) - Component roadmap
+- [Terminal Enhancement Guide](docs/TERMINAL_MANAGER_ENHANCEMENTS.md) - AI-driven terminal features
+
 ## Completed Phases ✅
 
 ### Phase 1: MuxBackend Abstraction Layer ✅
@@ -29,6 +53,8 @@ Orchflow has successfully completed **all infrastructure and core implementation
 - **Performance benchmarks** - Automated testing infrastructure
 - **Complete documentation** - Architecture, usage, error handling guides
 
+> **📖 See [Muxd Protocol Specification](docs/muxd-protocol-spec.md) for multiplexer protocol details**
+
 ### Phase 2: State Management Consolidation ✅
 **Achievement Summary:**
 - **StateManager**: Created unified state management system replacing AppState duplication
@@ -37,6 +63,8 @@ Orchflow has successfully completed **all infrastructure and core implementation
 - **Comprehensive Tests**: 6 test suites covering all state operations with 100% pass rate
 - **Backward Compatibility**: Legacy commands remain functional during transition
 - **Performance**: Sub-5ms state operations with automatic background persistence
+
+> **📖 See [Manager API Documentation](docs/MANAGER_API.md) for core system APIs**
 
 ### Phase 3: Core System Architecture ✅
 **Achievement Summary:**
@@ -55,6 +83,8 @@ Orchflow has successfully completed **all infrastructure and core implementation
 - **Plugin System**: Comprehensive API with JavaScript/TypeScript support
 - **Example Plugins**: Git integration, Docker management, Kubernetes operations
 - **Plugin Manager**: Complete lifecycle hooks and hot-reload support
+
+> **📖 See [Plugin API Specification](docs/plugin-api-spec.md) for extension development guide**
 
 ### Phase 5: Implementation Completion & System Integration ✅
 **Achievement Summary:**
@@ -106,6 +136,8 @@ Orchflow has successfully completed **all infrastructure and core implementation
   - [x] ~~Output throttling/debouncing~~ ✅ 16ms flush interval
   - [x] ~~Large output handling~~ ✅ Ring buffer implementation
   - [ ] Connection pooling - Not needed for IPC
+
+> **📖 See [Terminal Streaming API](docs/TERMINAL_STREAMING_API.md) for real-time terminal integration**
 
 ### 6.0.6 Terminal Frontend Components ✅ COMPLETE (Jan 2025)
 - [x] ~~Create StreamingTerminal.svelte component~~ ✅ COMPLETE
@@ -169,6 +201,10 @@ Orchflow has successfully completed **all infrastructure and core implementation
   - [x] Plugin Development example with todo manager ✅
   - [x] Examples index with navigation ✅
 
+> **📖 See [Developer Onboarding Guide](docs/DEVELOPER_ONBOARDING.md) for getting started**
+> **📖 See [Contributing Guide](docs/CONTRIBUTING.md) for development process**
+> **📖 See [Complete API Reference](docs/API.md) for all integration points**
+
 ## Technical Debt Items 🔧
 
 ### Completed ✅
@@ -223,6 +259,8 @@ await manager.createTerminal(sessionId, options);
 3. **Documentation**: Update architecture docs to reflect current state
 
 ## Phase 7: Essential UI Components (4-6 weeks) 📋 ✅ COMPLETE
+
+> **📖 See [UI Implementation Plan](docs/PHASE_7_IMPLEMENTATION_PLAN.md) for detailed component roadmap**
 
 ### 7.1 Core Productivity Components (Immediate - 2-3 weeks) ✅ COMPLETE
 - [x] ~~**Enhanced Command Palette**~~ ✅ COMPLETE (Jan 2025)
@@ -279,6 +317,7 @@ await manager.createTerminal(sessionId, options);
 
 > **Important**: For detailed Manager + Orchestrator integration plans, see [MANAGER_ORCHESTRATOR_INTEGRATION_ROADMAP.md](./MANAGER_ORCHESTRATOR_INTEGRATION_ROADMAP.md)
 > This includes the 12-week plan for connecting the Rust Manager with the TypeScript Orchestrator service.
+> **📖 See [Architecture Decision Guide](docs/MANAGER_ORCHESTRATOR_ARCHITECTURE.md) for component selection**
 
 ### Near-term (Month 2)
 1. **Advanced Muxd Features**
@@ -319,6 +358,8 @@ await manager.createTerminal(sessionId, options);
 - **Command latency**: <10ms for all operations
 - **Memory usage**: <100MB base footprint ✅ (achieved ~10MB base)
 - **Binary size**: <50MB distributable
+
+> **📖 See [Performance Guide](docs/PERFORMANCE_GUIDE.md) for optimization strategies**
 
 ### Quality
 - **Test coverage**: >85% across all modules
@@ -377,6 +418,8 @@ await manager.createTerminal(sessionId, options);
 - Strong typing throughout
 
 ## Next Actions 🚀
+
+> **📖 For AI-driven terminal enhancements, see [Terminal Enhancement Guide](docs/TERMINAL_MANAGER_ENHANCEMENTS.md)**
 
 ### Immediate (This Week) - Testing & Enhancement
 1. **Test Coverage**: Fix remaining test failures and improve coverage to >90%
