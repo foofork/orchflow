@@ -1,23 +1,17 @@
-# Contributing to OrchFlow
+# Contributing to orchflow
 
-Thank you for your interest in contributing to OrchFlow! This guide will help you get started with contributing to the project.
+Welcome to orchflow! This guide covers everything you need to know about contributing to the project.
 
 ## Table of Contents
 
-- [Code of Conduct](#code-of-conduct)
 - [Getting Started](#getting-started)
 - [Development Setup](#development-setup)
-- [Project Structure](#project-structure)
-- [Making Changes](#making-changes)
+- [Architecture Overview](#architecture-overview)
+- [Development Workflow](#development-workflow)
 - [Testing](#testing)
-- [Submitting Changes](#submitting-changes)
 - [Coding Standards](#coding-standards)
 - [Documentation](#documentation)
-- [Community](#community)
-
-## Code of Conduct
-
-Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md) to ensure a welcoming environment for all contributors.
+- [Submitting Changes](#submitting-changes)
 
 ## Getting Started
 
@@ -25,19 +19,21 @@ Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md) to ensure a wel
 2. **Clone your fork** locally
 3. **Set up development environment** (see below)
 4. **Create a branch** for your changes
-5. **Make your changes** with tests
+5. **Make your changes** following TDD practices
 6. **Submit a pull request**
 
 ## Development Setup
 
 ### Prerequisites
 
-- **Node.js** 18+ and npm
-- **Rust** 1.70+ and Cargo
-- **Tauri CLI** (`cargo install tauri-cli`)
-- **tmux** 3.2+ (for terminal orchestration)
-- **Neovim** 0.8+ (for editor integration)
-- **Git** for version control
+- **Node.js** 20+ and npm
+- **Rust** 1.70+ (via rustup)
+- **Git**
+- **tmux** 3.0+ (for terminal multiplexing)
+- **OS-specific requirements**:
+  - macOS: Xcode Command Line Tools
+  - Linux: `libgtk-3-dev`, `libwebkit2gtk-4.0-dev`, `libssl-dev`
+  - Windows: Visual Studio Build Tools
 
 ### Initial Setup
 
@@ -49,108 +45,124 @@ cd orchflow
 # Add upstream remote
 git remote add upstream https://github.com/orchflow/orchflow.git
 
-# Install dependencies
+# Install frontend dependencies
 cd frontend
 npm install
 
-# Install Rust dependencies
-cd src-tauri
-cargo build
-
-# Install orchestrator dependencies
-cd ../../orchestrator
-npm install
-
-# Run initial tests
-npm test
-```
-
-### Development Mode
-
-```bash
-# Terminal 1: Start the orchestrator
-cd orchestrator
-npm run dev
-
-# Terminal 2: Start Tauri dev server
-cd frontend
+# Run initial build
 npm run tauri dev
 ```
 
-## Project Structure
+## Architecture Overview
+
+orchflow is a terminal-based IDE built with:
+- **Frontend**: SvelteKit + TypeScript + Tauri
+- **Backend**: Rust with Manager pattern
+- **Terminal**: PTY streaming with portable-pty
+- **State**: SQLite with unified state management
+
+### Project Structure
 
 ```
 orchflow/
-├── frontend/              # Tauri + SvelteKit frontend
-│   ├── src/              # Svelte components and routes
-│   ├── src-tauri/        # Rust backend code
-│   └── static/           # Static assets
-├── orchestrator/         # TypeScript orchestrator service
-│   ├── src/             # Source code
-│   └── tests/           # Test files
-├── modules/             # Plugin modules
-├── docs/                # Documentation
-└── scripts/             # Build and utility scripts
+├── frontend/                 # SvelteKit frontend
+│   ├── src/
+│   │   ├── lib/            # Components and stores
+│   │   ├── routes/         # SvelteKit routes
+│   │   └── app.html        # HTML template
+│   └── src-tauri/          # Rust backend
+│       ├── src/
+│       │   ├── manager/    # Core orchestration
+│       │   ├── terminal_stream/ # PTY management
+│       │   └── main.rs     # Entry point
+│       └── Cargo.toml      # Rust dependencies
+├── docs/                   # Documentation
+│   └── architecture/       # Architecture docs
+└── CLAUDE.md              # AI context and rules
 ```
 
-### Key Components
+### Core Components
 
-- **Frontend** - User interface built with SvelteKit
-- **Tauri Backend** - Native app shell and system integration
-- **Orchestrator** - Coordinates terminals, editors, and agents
-- **Modules** - Plugin system for extensibility
+1. **Manager** (`src-tauri/src/manager/`)
+   - Central orchestration component
+   - Handles sessions, panes, and plugins
+   - Provides unified API for frontend
 
-## Making Changes
+2. **Terminal Streaming** (`src-tauri/src/terminal_stream/`)
+   - PTY management with portable-pty
+   - Real-time streaming via IPC
+   - Base64 encoded output
+   - See [PTY Architecture](architecture/PTY_ARCHITECTURE.md)
 
-### Branch Naming
+3. **State Management**
+   - Backend: SimpleStateStore (SQLite)
+   - Frontend: Svelte stores
+   - WebSocket for real-time sync
 
-Use descriptive branch names:
-- `feature/add-syntax-highlighting`
-- `fix/terminal-resize-issue`
-- `docs/update-api-reference`
-- `refactor/optimize-startup-time`
+4. **Plugin System**
+   - JavaScript/TypeScript plugins
+   - Hot-reload support
+   - Sandboxed execution
 
-### Commit Messages
+## Development Workflow
 
-Follow conventional commits:
+### Before Starting
 
+1. Check [DEVELOPMENT_ROADMAP.md](../DEVELOPMENT_ROADMAP.md) for current priorities
+2. Review existing issues and PRs
+3. Ensure your fork is up to date:
+   ```bash
+   git fetch upstream
+   git checkout main
+   git merge upstream/main
+   ```
+
+### Making Changes
+
+1. **Create a feature branch**:
+   ```bash
+   git checkout -b feat/your-feature-name
+   ```
+
+2. **Follow TDD practices**:
+   - Write tests first
+   - See implementation fail
+   - Write minimal code to pass
+   - Refactor with confidence
+   - See [Test Strategy](TEST_STRATEGY.md)
+
+3. **Make atomic commits**:
+   ```bash
+   git commit -m "feat(component): add specific functionality"
+   ```
+   Use conventional commits: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
+
+### Running the Project
+
+```bash
+# Development mode with hot-reload
+cd frontend
+npm run tauri dev
+
+# Run tests
+npm test
+
+# Run specific test file
+npm test -- src/lib/components/Terminal.test.ts
+
+# Build for production
+npm run tauri build
 ```
-type(scope): subject
-
-body
-
-footer
-```
-
-Types:
-- `feat`: New feature
-- `fix`: Bug fix
-- `docs`: Documentation
-- `style`: Code style changes
-- `refactor`: Code refactoring
-- `test`: Test additions/changes
-- `chore`: Build/tooling changes
-
-Examples:
-```
-feat(terminal): add split pane functionality
-
-fix(editor): resolve cursor position bug in Neovim integration
-
-docs(api): update WebSocket event documentation
-```
-
-### Code Changes Checklist
-
-- [ ] Code follows project style guide
-- [ ] Tests added/updated for changes
-- [ ] Documentation updated if needed
-- [ ] No console.log or debug code
-- [ ] Passes all linting checks
-- [ ] Builds successfully
-- [ ] Manual testing completed
 
 ## Testing
+
+### Test Requirements
+
+- **Minimum coverage**: 85% for new code
+- **Test categories**:
+  - Unit tests (`.test.ts`)
+  - Integration tests (`.integration.test.ts`)
+  - Component tests (Svelte components)
 
 ### Running Tests
 
@@ -163,88 +175,93 @@ npm test
 cd frontend/src-tauri
 cargo test
 
-# Orchestrator tests
-cd orchestrator
-npm test
-
-# Module tests
-cd modules/my-module
-npm test
-
-# Full test suite
-./scripts/test-all.sh
+# Test with coverage
+npm test -- --coverage
 ```
 
 ### Writing Tests
 
-#### TypeScript/JavaScript Tests (Vitest)
-
 ```typescript
-import { describe, it, expect, beforeEach } from 'vitest';
-import { myFunction } from './my-module';
+// Example component test
+import { render, fireEvent } from '@testing-library/svelte';
+import Terminal from './Terminal.svelte';
 
-describe('myFunction', () => {
-  it('should return expected value', () => {
-    const result = myFunction('input');
-    expect(result).toBe('expected output');
+describe('Terminal', () => {
+  it('should handle input', async () => {
+    const { getByRole } = render(Terminal);
+    const input = getByRole('textbox');
+    
+    await fireEvent.type(input, 'ls -la');
+    await fireEvent.keyDown(input, { key: 'Enter' });
+    
+    // Assert expected behavior
   });
 });
 ```
 
-#### Rust Tests
+## Coding Standards
 
-```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
+### TypeScript/JavaScript
 
-    #[test]
-    fn test_function() {
-        let result = my_function("input");
-        assert_eq!(result, "expected output");
-    }
-}
-```
+- Use TypeScript for all new code
+- Follow ESLint configuration
+- Prefer functional components
+- Use proper types, avoid `any`
 
-### Integration Tests
+### Rust
 
-```bash
-# Run integration tests
-cd tests/integration
-npm test
-```
+- Follow Rust idioms and clippy suggestions
+- Use `Result` for error handling
+- Document public APIs
+- Keep modules focused and small
+
+### General
+
+- Keep files under 500 lines
+- One feature per commit
+- Clear, descriptive variable names
+- Comment complex logic only
+
+## Documentation
+
+### When to Document
+
+- New features or APIs
+- Architecture changes
+- Complex algorithms
+- Public interfaces
+
+### Where to Document
+
+- **API changes** → `docs/API.md`
+- **Architecture** → `docs/architecture/`
+- **Testing** → `docs/TEST_STRATEGY.md`
+- **Roadmap items** → `DEVELOPMENT_ROADMAP.md`
+
+### Documentation Style
+
+- Keep it concise and clear
+- Include code examples
+- Update when implementation changes
+- Use markdown formatting
 
 ## Submitting Changes
 
+### Before Submitting
+
+1. **Run all tests**: `npm test`
+2. **Check types**: `npm run check`
+3. **Lint code**: `npm run lint`
+4. **Update documentation** if needed
+5. **Ensure CI passes**
+
 ### Pull Request Process
 
-1. **Update your fork**
-   ```bash
-   git fetch upstream
-   git checkout main
-   git merge upstream/main
-   ```
-
-2. **Create feature branch**
-   ```bash
-   git checkout -b feature/your-feature
-   ```
-
-3. **Make changes and commit**
-   ```bash
-   git add .
-   git commit -m "feat: add amazing feature"
-   ```
-
-4. **Push to your fork**
-   ```bash
-   git push origin feature/your-feature
-   ```
-
-5. **Create Pull Request**
-   - Go to GitHub and create PR from your fork
-   - Fill out the PR template
-   - Link any related issues
+1. **Create PR** with clear description
+2. **Link related issues**
+3. **Include test results**
+4. **Add screenshots** for UI changes
+5. **Request review** from maintainers
 
 ### PR Template
 
@@ -261,176 +278,21 @@ Brief description of changes
 ## Testing
 - [ ] Tests pass locally
 - [ ] Added new tests
-- [ ] Manual testing completed
+- [ ] Coverage maintained
 
-## Checklist
-- [ ] Code follows style guidelines
-- [ ] Self-review completed
-- [ ] Documentation updated
-- [ ] No breaking changes
+## Related Issues
+Fixes #123
 ```
 
-## Coding Standards
+## Need Help?
 
-### TypeScript/JavaScript
+- Check existing [documentation](../docs/)
+- Review [CLAUDE.md](../CLAUDE.md) for project rules
+- Look at similar PRs for examples
+- Ask in discussions or issues
 
-- Use TypeScript for new code
-- Follow ESLint configuration
-- Use meaningful variable names
-- Add JSDoc comments for public APIs
+Remember: Quality over quantity. We prefer well-tested, thoughtful contributions over rushed features.
 
-```typescript
-/**
- * Creates a new terminal pane
- * @param config - Terminal configuration
- * @returns Terminal pane ID
- */
-export async function createTerminal(config: TerminalConfig): Promise<string> {
-  // Implementation
-}
-```
+---
 
-### Rust
-
-- Follow Rust conventions
-- Use `clippy` for linting
-- Document public APIs
-- Handle errors properly
-
-```rust
-/// Creates a new terminal session
-/// 
-/// # Arguments
-/// * `name` - Session name
-/// 
-/// # Returns
-/// * `Result<String>` - Session ID or error
-pub fn create_session(name: &str) -> Result<String, Error> {
-    // Implementation
-}
-```
-
-### Svelte
-
-- Use TypeScript in components
-- Follow component structure
-- Keep components focused
-- Use stores for state management
-
-```svelte
-<script lang="ts">
-  import { onMount } from 'svelte';
-  
-  export let title: string;
-  
-  onMount(() => {
-    // Initialization
-  });
-</script>
-
-<div class="component">
-  <h1>{title}</h1>
-</div>
-
-<style>
-  .component {
-    /* Styles */
-  }
-</style>
-```
-
-## Documentation
-
-### Code Documentation
-
-- Document all public APIs
-- Add inline comments for complex logic
-- Update README files
-- Include examples
-
-### API Documentation
-
-When adding/changing APIs:
-1. Update `docs/API.md`
-2. Add TypeScript types
-3. Include usage examples
-4. Document errors
-
-### Module Documentation
-
-For new modules:
-1. Create `README.md` in module directory
-2. Document configuration options
-3. Provide usage examples
-4. List available commands
-
-## Community
-
-### Getting Help
-
-- **Discord**: [discord.gg/orchflow](https://discord.gg/orchflow)
-- **GitHub Discussions**: For questions and ideas
-- **Issues**: For bugs and feature requests
-
-### Code Reviews
-
-- Be respectful and constructive
-- Provide specific feedback
-- Suggest improvements
-- Approve when satisfied
-
-### Recognition
-
-Contributors are recognized in:
-- [CONTRIBUTORS.md](CONTRIBUTORS.md)
-- Release notes
-- Project README
-
-## Development Tips
-
-### Performance
-
-- Profile before optimizing
-- Use React DevTools Profiler
-- Monitor bundle size
-- Test on slower machines
-
-### Debugging
-
-```bash
-# Enable debug logging
-RUST_LOG=debug npm run tauri dev
-
-# Use Chrome DevTools
-# Right-click in app → Inspect Element
-
-# Debug Rust code
-RUST_BACKTRACE=1 cargo run
-```
-
-### Common Issues
-
-1. **Build fails**: Check Node/Rust versions
-2. **Tests fail**: Run `npm install` in all directories
-3. **tmux errors**: Ensure tmux 3.2+ is installed
-4. **Module not loading**: Check manifest.json syntax
-
-## Release Process
-
-Maintainers follow this process:
-
-1. Update version numbers
-2. Update CHANGELOG.md
-3. Create release PR
-4. Run full test suite
-5. Build release binaries
-6. Create GitHub release
-7. Publish to package registries
-
-## License
-
-By contributing, you agree that your contributions will be licensed under the same license as the project (see LICENSE file).
-
-## Thank You!
-
-Your contributions make OrchFlow better for everyone. We appreciate your time and effort! 🎉
+Thank you for contributing to orchflow! Your efforts help make terminal-based development better for everyone.
