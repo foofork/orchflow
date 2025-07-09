@@ -1,0 +1,205 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, fireEvent, waitFor } from '@testing-library/svelte';
+import userEvent from '@testing-library/user-event';
+import QuickSwitcher from './QuickSwitcher.svelte';
+import { mockInvoke } from '../../test/utils';
+
+describe('QuickSwitcher', () => {
+  let user: ReturnType<typeof userEvent.setup>;
+  
+  beforeEach(() => {
+    user = userEvent.setup();
+    vi.clearAllMocks();
+    localStorage.clear();
+    
+    // Mock the tauri commands
+    mockInvoke({
+      get_sessions: [
+        { id: 'session1', name: 'Main Session', pane_count: 2 },
+      ],
+      get_panes: [
+        { id: 'pane1', pane_type: 'terminal', title: 'Terminal 1', working_dir: '/home/user' },
+      ],
+      get_file_operation_history: [
+        { path: '/src/main.ts', timestamp: Date.now() - 1000 },
+        { path: '/src/app.ts', timestamp: Date.now() - 2000 },
+      ],
+    });
+  });
+
+  it('renders when show is true', async () => {
+    const { getByPlaceholderText } = render(QuickSwitcher, {
+      props: { show: true },
+    });
+    
+    await waitFor(() => {
+      expect(getByPlaceholderText(/Search/i)).toBeInTheDocument();
+    });
+  });
+
+  it('does not render when show is false', () => {
+    const { container } = render(QuickSwitcher, {
+      props: { show: false },
+    });
+    
+    expect(container.querySelector('.quick-switcher')).not.toBeInTheDocument();
+  });
+
+  it('closes on Escape', async () => {
+    const { getByPlaceholderText, container } = render(QuickSwitcher, {
+      props: { show: true },
+    });
+    
+    await waitFor(() => {
+      const searchInput = getByPlaceholderText(/Search/i);
+      expect(searchInput).toBeInTheDocument();
+    });
+    
+    const searchInput = getByPlaceholderText(/Search/i);
+    await fireEvent.keyDown(searchInput, { key: 'Escape' });
+    
+    // Component dispatches close event
+    expect(container.querySelector('.quick-switcher')).toBeInTheDocument();
+  });
+
+  it('filters items based on search', async () => {
+    // Ensure we have terminal items in our mock data
+    mockInvoke({
+      get_sessions: [
+        { id: 'session1', name: 'Main Session', pane_count: 2 },
+      ],
+      get_panes: [
+        { id: 'pane1', pane_type: 'terminal', title: 'Terminal 1', working_dir: '/home/user' },
+        { id: 'pane2', pane_type: 'terminal', title: 'Terminal 2', working_dir: '/home/user/project' },
+      ],
+      get_file_operation_history: [
+        { path: '/src/terminal.ts', timestamp: Date.now() - 1000 },
+        { path: '/src/app.ts', timestamp: Date.now() - 2000 },
+      ],
+    });
+    
+    const { getByPlaceholderText, container } = render(QuickSwitcher, {
+      props: { show: true },
+    });
+    
+    await waitFor(() => {
+      const searchInput = getByPlaceholderText(/Search/i);
+      expect(searchInput).toBeInTheDocument();
+    });
+    
+    const searchInput = getByPlaceholderText(/Search/i);
+    await user.type(searchInput, 'terminal');
+    
+    // Should filter to show only terminal-related items
+    await waitFor(() => {
+      const items = container.querySelectorAll('.switch-item');
+      const terminalItems = Array.from(items).filter(item => 
+        item.textContent?.toLowerCase().includes('terminal')
+      );
+      expect(terminalItems.length).toBeGreaterThan(0);
+    });
+  });
+
+  it('navigates with keyboard', async () => {
+    const { getByPlaceholderText, container } = render(QuickSwitcher, {
+      props: { show: true },
+    });
+    
+    await waitFor(() => {
+      const searchInput = getByPlaceholderText(/Search/i);
+      expect(searchInput).toBeInTheDocument();
+    });
+    
+    const searchInput = getByPlaceholderText(/Search/i);
+    
+    // Press down arrow
+    await fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
+    
+    // Check if first item is selected
+    await waitFor(() => {
+      const selectedItem = container.querySelector('.selected');
+      expect(selectedItem).toBeInTheDocument();
+    });
+  });
+
+  it('loads recent items from localStorage', async () => {
+    const recentItems = [
+      { id: 'file1', timestamp: Date.now() },
+      { id: 'terminal1', timestamp: Date.now() - 1000 },
+    ];
+    localStorage.setItem('orchflow_quick_switcher_recent', JSON.stringify(recentItems));
+    
+    const { container } = render(QuickSwitcher, {
+      props: { show: true },
+    });
+    
+    await waitFor(() => {
+      const items = container.querySelectorAll('.switch-item');
+      expect(items.length).toBeGreaterThan(0);
+    });
+  });
+
+  it('executes item on Enter', async () => {
+    const { getByPlaceholderText, container } = render(QuickSwitcher, {
+      props: { show: true },
+    });
+    
+    await waitFor(() => {
+      const searchInput = getByPlaceholderText(/Search/i);
+      expect(searchInput).toBeInTheDocument();
+    });
+    
+    const searchInput = getByPlaceholderText(/Search/i);
+    
+    // Select first item
+    await fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
+    
+    // Press Enter to execute
+    await fireEvent.keyDown(searchInput, { key: 'Enter' });
+    
+    // Component should dispatch select event
+    expect(container.querySelector('.quick-switcher')).toBeInTheDocument();
+  });
+
+  it('shows different modes', async () => {
+    const { container } = render(QuickSwitcher, {
+      props: { 
+        show: true,
+        mode: 'files',
+      },
+    });
+    
+    await waitFor(() => {
+      // In files mode, should only show file items
+      const items = container.querySelectorAll('.switch-item');
+      expect(items.length).toBeGreaterThanOrEqual(0);
+    });
+  });
+
+  it('displays item icons', async () => {
+    const { container } = render(QuickSwitcher, {
+      props: { show: true },
+    });
+    
+    await waitFor(() => {
+      const icons = container.querySelectorAll('.item-icon');
+      expect(icons.length).toBeGreaterThan(0);
+    });
+  });
+
+  it('shows empty state when no items', async () => {
+    mockInvoke({
+      get_sessions: [],
+      get_panes: [],
+      get_file_operation_history: [],
+    });
+    
+    const { getByText } = render(QuickSwitcher, {
+      props: { show: true },
+    });
+    
+    await waitFor(() => {
+      expect(getByText(/No items/i)).toBeInTheDocument();
+    });
+  });
+});

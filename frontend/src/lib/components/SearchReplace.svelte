@@ -8,6 +8,9 @@
   
   export let show = false;
   export let initialPattern = '';
+  export let testMode = false;
+  export let autoLoad = true;
+  export let initialResults: SearchResults | null = null;
   
   // Search state
   let searchPattern = initialPattern;
@@ -37,13 +40,17 @@
   let saveSearchName = '';
   
   onMount(async () => {
-    if (browser && '__TAURI__' in window) {
+    if (testMode && initialResults) {
+      searchResults = initialResults;
+    } else if (autoLoad && browser && '__TAURI__' in window && !testMode) {
       await loadSearchHistory();
       await loadSavedSearches();
     }
   });
   
   async function loadSearchHistory() {
+    if (testMode) return;
+    
     try {
       const { invoke } = await import('@tauri-apps/api/tauri');
       searchHistory = await invoke('get_search_history', { limit: 20 });
@@ -53,6 +60,8 @@
   }
   
   async function loadSavedSearches() {
+    if (testMode) return;
+    
     try {
       const { invoke } = await import('@tauri-apps/api/tauri');
       savedSearches = await invoke('get_saved_searches');
@@ -64,6 +73,18 @@
   async function performSearch() {
     if (!searchPattern.trim()) {
       error = 'Search pattern cannot be empty';
+      return;
+    }
+    
+    if (testMode && initialResults) {
+      searchResults = initialResults;
+      // Auto-select all files by default
+      if (searchResults?.results) {
+        searchResults.results.forEach(r => {
+          selectedFiles.add(r.path);
+        });
+        selectedFiles = selectedFiles;
+      }
       return;
     }
     

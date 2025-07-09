@@ -24,14 +24,35 @@
   
   export let layout: 'single' | 'split-horizontal' | 'split-vertical' | 'grid' = 'single';
   export let defaultShell: string | undefined = undefined;
+  export let terminals: Terminal[] = [];
+  export let activeTerminalId: string | null = null;
+  export let terminalGroups: string[] = [];
+  export let quickCommands: Array<{ label: string; command: string }> = [];
+  export let supportedLayouts: string[] = ['single', 'split', 'grid'];
+  export let onTerminalCreate: (() => void) | undefined = undefined;
+  export let onTerminalClose: ((id: string) => void) | undefined = undefined;
+  export let onTabSwitch: ((id: string) => void) | undefined = undefined;
+  export let onSplit: ((direction: 'horizontal' | 'vertical') => void) | undefined = undefined;
+  export let onBroadcastToggle: (() => void) | undefined = undefined;
+  export let onQuickCommand: ((command: string) => void) | undefined = undefined;
+  export let onTerminalRename: ((id: string, name: string) => void) | undefined = undefined;
+  export let onTabReorder: ((fromIndex: number, toIndex: number) => void) | undefined = undefined;
+  export let onLayoutChange: ((layout: string) => void) | undefined = undefined;
+  export let onSearch: ((query: string) => void) | undefined = undefined;
+  export let testMode: boolean = false;
   
-  const terminals = writable<Terminal[]>([]);
-  const activeTerminalId = writable<string | null>(null);
-  const terminalGroups = writable<TerminalGroup[]>([]);
+  const terminalsStore = writable<Terminal[]>(terminals);
+  const activeTerminalIdStore = writable<string | null>(activeTerminalId);
+  const terminalGroupsStore = writable<TerminalGroup[]>(terminalGroups.map((name, idx) => ({ id: `group-${idx}`, name, terminals: [] })));
   const availableShells = writable<string[]>([]);
   
+  // Update stores when props change
+  $: terminalsStore.set(terminals);
+  $: activeTerminalIdStore.set(activeTerminalId);
+  $: terminalGroupsStore.set(terminalGroups.map((name, idx) => ({ id: `group-${idx}`, name, terminals: [] })));
+  
   const activeTerminal = derived(
-    [terminals, activeTerminalId],
+    [terminalsStore, activeTerminalIdStore],
     ([$terminals, $activeId]) => $terminals.find(t => t.id === $activeId) || null
   );
   
@@ -55,11 +76,16 @@
   });
   
   async function createTerminal(shell?: string, cwd?: string, title?: string) {
+    if (onTerminalCreate) {
+      onTerminalCreate();
+      return;
+    }
+    
     try {
       const terminalId = crypto.randomUUID();
       const terminal: Terminal = {
         id: terminalId,
-        title: title || `Terminal ${$terminals.length + 1}`,
+        title: title || `Terminal ${$terminalsStore.length + 1}`,
         cwd: cwd || await invoke('get_current_dir') as string,
         shell: shell || defaultShell,
         isActive: true,
@@ -67,11 +93,11 @@
       };
       
       // Set all other terminals as inactive
-      terminals.update(terms => terms.map(t => ({ ...t, isActive: false })));
+      terminalsStore.update(terms => terms.map(t => ({ ...t, isActive: false })));
       
       // Add new terminal
-      terminals.update(terms => [...terms, terminal]);
-      activeTerminalId.set(terminalId);
+      terminalsStore.update(terms => [...terms, terminal]);
+      activeTerminalIdStore.set(terminalId);
       
       dispatch('terminalCreated', { terminal });
     } catch (err) {
@@ -81,16 +107,21 @@
   }
   
   function closeTerminal(id: string) {
-    terminals.update(terms => {
+    if (onTerminalClose) {
+      onTerminalClose(id);
+      return;
+    }
+    
+    terminalsStore.update(terms => {
       const filtered = terms.filter(t => t.id !== id);
       
       // If closing active terminal, activate another
-      if ($activeTerminalId === id && filtered.length > 0) {
+      if ($activeTerminalIdStore === id && filtered.length > 0) {
         const newActive = filtered[filtered.length - 1];
         newActive.isActive = true;
-        activeTerminalId.set(newActive.id);
+        activeTerminalIdStore.set(newActive.id);
       } else if (filtered.length === 0) {
-        activeTerminalId.set(null);
+        activeTerminalIdStore.set(null);
       }
       
       return filtered;
@@ -100,16 +131,21 @@
   }
   
   function activateTerminal(id: string) {
-    terminals.update(terms => terms.map(t => ({
+    if (onTabSwitch) {
+      onTabSwitch(id);
+      return;
+    }
+    
+    terminalsStore.update(terms => terms.map(t => ({
       ...t,
       isActive: t.id === id
     })));
-    activeTerminalId.set(id);
+    activeTerminalIdStore.set(id);
     dispatch('terminalActivated', { id });
   }
   
   function renameTerminal(id: string, newTitle: string) {
-    terminals.update(terms => terms.map(t => 
+    terminalsStore.update(terms => terms.map(t => 
       t.id === id ? { ...t, title: newTitle } : t
     ));
   }
@@ -134,11 +170,11 @@
   
   async function broadcastCommand(command: string, groupId?: string) {
     const targetTerminals = groupId 
-      ? $terminals.filter(t => {
-          const group = $terminalGroups.find(g => g.id === groupId);
+      ? $terminalsStore.filter(t => {
+          const group = $terminalGroupsStore.find(g => g.id === groupId);
           return group?.terminals.includes(t.id);
         })
-      : $terminals;
+      : $terminalsStore;
     
     try {
       await invoke('broadcast_terminal_input', {
@@ -158,7 +194,7 @@
       terminals: terminalIds
     };
     
-    terminalGroups.update(groups => [...groups, group]);
+    terminalGroupsStore.update(groups => [...groups, group]);
     saveTerminalGroups();
   }
   
@@ -166,7 +202,7 @@
     const saved = localStorage.getItem('orchflow_terminal_groups');
     if (saved) {
       try {
-        terminalGroups.set(JSON.parse(saved));
+        terminalGroupsStore.set(JSON.parse(saved));
       } catch (err) {
         console.error('Failed to load terminal groups:', err);
       }
@@ -174,7 +210,7 @@
   }
   
   function saveTerminalGroups() {
-    localStorage.setItem('orchflow_terminal_groups', JSON.stringify($terminalGroups));
+    localStorage.setItem('orchflow_terminal_groups', JSON.stringify($terminalGroupsStore));
   }
   
   function handleTerminalKey(event: KeyboardEvent) {
@@ -190,8 +226,8 @@
           break;
         case 'w':
           event.preventDefault();
-          if ($activeTerminalId) {
-            closeTerminal($activeTerminalId);
+          if ($activeTerminalIdStore) {
+            closeTerminal($activeTerminalIdStore);
           }
           break;
         case '\\':
@@ -209,9 +245,9 @@
         case 'Tab':
           event.preventDefault();
           // Cycle through terminals
-          const terms = $terminals;
+          const terms = $terminalsStore;
           if (terms.length > 1) {
-            const currentIndex = terms.findIndex(t => t.id === $activeTerminalId);
+            const currentIndex = terms.findIndex(t => t.id === $activeTerminalIdStore);
             const nextIndex = event.shiftKey 
               ? (currentIndex - 1 + terms.length) % terms.length
               : (currentIndex + 1) % terms.length;
@@ -224,8 +260,8 @@
       if (event.key >= '1' && event.key <= '9') {
         event.preventDefault();
         const index = parseInt(event.key) - 1;
-        if ($terminals[index]) {
-          activateTerminal($terminals[index].id);
+        if ($terminalsStore[index]) {
+          activateTerminal($terminalsStore[index].id);
         }
       }
     }
@@ -249,7 +285,7 @@
     const { terminalId, data } = event.detail;
     
     // Update terminal state based on output
-    terminals.update(terms => terms.map(t => {
+    terminalsStore.update(terms => terms.map(t => {
       if (t.id === terminalId) {
         // You could parse the output here to detect running processes
         // For now, just mark as running
@@ -263,7 +299,7 @@
 <div class="terminal-panel" on:keydown={handleTerminalKey}>
   <div class="terminal-header">
     <div class="terminal-tabs">
-      {#each $terminals as terminal}
+      {#each $terminalsStore as terminal}
         <button
           class="terminal-tab"
           class:active={terminal.isActive}
@@ -376,7 +412,7 @@
   {/if}
   
   <div class="terminal-container {getLayoutClasses()}" bind:this={terminalContainer}>
-    {#if $terminals.length === 0}
+    {#if $terminalsStore.length === 0}
       <div class="empty-state">
         <div class="empty-icon">💻</div>
         <h3>No terminals open</h3>
@@ -386,7 +422,7 @@
         </button>
       </div>
     {:else}
-      {#each $terminals as terminal (terminal.id)}
+      {#each $terminalsStore as terminal (terminal.id)}
         <div
           class="terminal-wrapper"
           class:active={terminal.isActive}
@@ -394,8 +430,10 @@
         >
           <StreamingTerminal
             terminalId={terminal.id}
-            initialCwd={terminal.cwd}
+            cwd={terminal.cwd}
             shell={terminal.shell}
+            title={terminal.title}
+            {testMode}
             on:output={handleTerminalOutput}
             on:exit={() => closeTerminal(terminal.id)}
           />
@@ -404,7 +442,7 @@
     {/if}
   </div>
   
-  {#if $terminals.length > 0}
+  {#if $terminalsStore.length > 0}
     <div class="terminal-status">
       <span class="status-item">
         📁 {$activeTerminal?.cwd || 'Unknown'}
@@ -413,7 +451,7 @@
         🐚 {$activeTerminal?.shell?.split('/').pop() || 'Unknown'}
       </span>
       <span class="status-item">
-        📟 {$terminals.length} terminal{$terminals.length !== 1 ? 's' : ''}
+        📟 {$terminalsStore.length} terminal{$terminalsStore.length !== 1 ? 's' : ''}
       </span>
     </div>
   {/if}

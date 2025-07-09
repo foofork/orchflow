@@ -12,6 +12,10 @@
   export let cwd: string | undefined = undefined;
   export let env: Record<string, string> | undefined = undefined;
   
+  // Allow injection for testing
+  export let terminalFactory: (() => Promise<any>) | undefined = undefined;
+  export let testMode: boolean = false;
+  
   let container: HTMLDivElement;
   let terminal: any;
   let fitAddon: any;
@@ -32,10 +36,8 @@
     };
   }
   
-  onMount(async () => {
-    if (!browser) return;
-    
-    // Dynamic imports for client-side only
+  // Default terminal factory for production
+  async function createDefaultTerminal() {
     const { Terminal: XTerm } = await import('@xterm/xterm');
     const { FitAddon } = await import('@xterm/addon-fit');
     const { WebglAddon } = await import('@xterm/addon-webgl');
@@ -43,8 +45,7 @@
     const { SearchAddon } = await import('@xterm/addon-search');
     await import('@xterm/xterm/css/xterm.css');
     
-    // Create terminal with performance-optimized settings
-    terminal = new XTerm({
+    const term = new XTerm({
       theme: {
         background: '#1e1e2e',
         foreground: '#cdd6f4',
@@ -77,207 +78,263 @@
       allowProposedApi: true,
     });
     
-    // Attach to DOM first
-    terminal.open(container);
+    return { term, FitAddon, WebglAddon, WebLinksAddon, SearchAddon };
+  }
+  
+  onMount(async () => {
+    if (!browser || testMode) return;
     
-    // Add addons
-    fitAddon = new FitAddon();
-    terminal.loadAddon(fitAddon);
-    
-    // Load WebGL addon for better performance
     try {
-      webglAddon = new WebglAddon();
-      terminal.loadAddon(webglAddon);
+      // Use injected factory or default
+      const factory = terminalFactory || createDefaultTerminal;
+      const terminalSetup = await factory();
       
-      // Wait for WebGL to initialize
-      webglAddon.onContextLoss(() => {
-        // Fallback to canvas renderer
-        webglAddon.dispose();
-      });
-    } catch (e) {
-      console.warn('WebGL addon failed to load, using canvas renderer', e);
-    }
-    
-    // Load other addons
-    searchAddon = new SearchAddon();
-    terminal.loadAddon(searchAddon);
-    terminal.loadAddon(new WebLinksAddon());
-    
-    // Fit terminal to container
-    fitAddon.fit();
-    
-    // Create streaming terminal backend
-    try {
-      await invoke('create_streaming_terminal', {
-        terminalId,
-        shell,
-        rows: terminal.rows,
-        cols: terminal.cols,
-        cwd,
-        env
-      });
+      if (!terminalSetup) {
+        console.error('Terminal factory returned null');
+        return;
+      }
+      
+      // Handle both object return and direct terminal return
+      if (terminalSetup.term) {
+        terminal = terminalSetup.term;
+        const { FitAddon, WebglAddon, WebLinksAddon, SearchAddon } = terminalSetup;
+        
+        // Attach to DOM if container exists
+        if (container && terminal.open) {
+          terminal.open(container);
+        }
+        
+        // Add addons if available
+        if (FitAddon) {
+          fitAddon = new FitAddon();
+          terminal.loadAddon(fitAddon);
+        }
+        
+        // Load WebGL addon for better performance
+        if (WebglAddon) {
+          try {
+            webglAddon = new WebglAddon();
+            terminal.loadAddon(webglAddon);
+            
+            if (webglAddon.onContextLoss) {
+              webglAddon.onContextLoss(() => {
+                webglAddon.dispose();
+              });
+            }
+          } catch (e) {
+            console.warn('WebGL addon failed to load, using canvas renderer', e);
+          }
+        }
+        
+        // Load other addons
+        if (SearchAddon) {
+          searchAddon = new SearchAddon();
+          terminal.loadAddon(searchAddon);
+        }
+        
+        if (WebLinksAddon) {
+          terminal.loadAddon(new WebLinksAddon());
+        }
+      } else {
+        // Direct terminal instance
+        terminal = terminalSetup;
+        if (container && terminal.open) {
+          terminal.open(container);
+        }
+      }
+      
+      // Fit terminal to container
+      if (fitAddon && fitAddon.fit) {
+        setTimeout(() => fitAddon.fit(), 0);
+      }
+      
+      // Create Rust backend terminal
+      if (!testMode) {
+        await createBackendTerminal();
+      }
+      
+      // Set up event handlers
+      setupEventHandlers();
+      
+      // Set up resize observer
+      setupResizeObserver();
+      
       isInitialized = true;
     } catch (error) {
-      console.error('Failed to create streaming terminal:', error);
-      terminal.writeln(`\x1b[1;31mError: Failed to create terminal - ${error}\x1b[0m`);
-      return;
-    }
-    
-    // Set up IPC event listeners
-    const outputListener = await listen('terminal:output', (event: any) => {
-      const payload = event.payload as TerminalEvent;
-      if (payload.data.terminal_id === terminalId && payload.data.data) {
-        // Decode base64 data
-        const decoded = atob(payload.data.data);
-        terminal.write(decoded);
-      }
-    });
-    eventListeners.push(outputListener);
-    
-    const exitListener = await listen('terminal:exit', (event: any) => {
-      const payload = event.payload as TerminalEvent;
-      if (payload.data.terminal_id === terminalId) {
-        const code = payload.data.code;
-        terminal.writeln(`\n\x1b[1;33mProcess exited${code !== undefined ? ` with code ${code}` : ''}\x1b[0m`);
-        isInitialized = false;
-      }
-    });
-    eventListeners.push(exitListener);
-    
-    const errorListener = await listen('terminal:error', (event: any) => {
-      const payload = event.payload as TerminalEvent;
-      if (payload.data.terminal_id === terminalId) {
-        terminal.writeln(`\x1b[1;31mError: ${payload.data.error}\x1b[0m`);
-      }
-    });
-    eventListeners.push(errorListener);
-    
-    const stateListener = await listen('terminal:state', (event: any) => {
-      const payload = event.payload as TerminalEvent;
-      if (payload.data.terminal_id === terminalId && payload.data.state) {
-        // Handle terminal state changes
-        const state = payload.data.state;
-        if (state.rows && state.cols) {
-          terminal.resize(state.cols, state.rows);
-        }
-      }
-    });
-    eventListeners.push(stateListener);
-    
-    // Handle input
-    terminal.onData(async (data: string) => {
-      if (!isInitialized) return;
-      
-      try {
-        await invoke('send_terminal_input', {
-          terminalId,
-          inputType: 'text',
-          data
-        });
-      } catch (error) {
-        console.error('Failed to send input:', error);
-      }
-    });
-    
-    // Handle resize
-    resizeObserver = new ResizeObserver(() => {
-      if (fitAddon && isInitialized) {
-        fitAddon.fit();
-        // Notify backend about terminal size
-        const dimensions = fitAddon.proposeDimensions();
-        if (dimensions && (dimensions.rows !== terminal.rows || dimensions.cols !== terminal.cols)) {
-          invoke('resize_streaming_terminal', {
-            terminalId,
-            rows: dimensions.rows,
-            cols: dimensions.cols
-          }).catch(console.error);
-        }
-      }
-    });
-    resizeObserver.observe(container);
-    
-    // Welcome message
-    terminal.writeln(`\x1b[1;34m${title}\x1b[0m`);
-    if (shell) {
-      terminal.writeln(`Shell: ${shell}`);
-    }
-    terminal.writeln('');
-  });
-  
-  onDestroy(async () => {
-    // Clean up event listeners
-    for (const unlisten of eventListeners) {
-      unlisten();
-    }
-    
-    // Clean up terminal
-    if (resizeObserver) {
-      resizeObserver.disconnect();
-    }
-    if (webglAddon) {
-      webglAddon.dispose();
-    }
-    if (terminal) {
-      terminal.dispose();
-    }
-    
-    // Stop streaming
-    if (isInitialized) {
-      try {
-        await invoke('stop_streaming_terminal', { terminalId });
-      } catch (error) {
-        console.error('Failed to stop terminal:', error);
-      }
+      console.error('Failed to initialize terminal:', error);
     }
   });
   
-  function handleKeyDown(event: KeyboardEvent) {
-    if (!isInitialized) return;
-    
-    // Ctrl+F for search
-    if (event.ctrlKey && event.key === 'f') {
-      event.preventDefault();
-      const searchTerm = prompt('Search for:');
-      if (searchTerm) {
-        searchAddon?.findNext(searchTerm);
-      }
-    }
-    // Ctrl+Shift+F for search backward
-    else if (event.ctrlKey && event.shiftKey && event.key === 'F') {
-      event.preventDefault();
-      searchAddon?.findPrevious(searchAddon.searchOptions?.term || '');
-    }
-    // Ctrl+L to clear
-    else if (event.ctrlKey && event.key === 'l') {
-      event.preventDefault();
-      invoke('clear_terminal_scrollback', { terminalId }).catch(console.error);
+  async function createBackendTerminal() {
+    try {
+      await invoke('create_terminal', {
+        id: terminalId,
+        shell,
+        cwd,
+        env,
+        rows: terminal.rows,
+        cols: terminal.cols,
+      });
+    } catch (error) {
+      console.error('Failed to create backend terminal:', error);
     }
   }
   
-  // Public methods
-  export function focus() {
-    terminal?.focus();
+  function setupEventHandlers() {
+    if (!terminal) return;
+    
+    // Handle terminal input
+    if (terminal.onData) {
+      terminal.onData(async (data: string) => {
+        if (!testMode) {
+          try {
+            await invoke('write_terminal', { 
+              terminalId, 
+              data 
+            });
+          } catch (error) {
+            console.error('Failed to write to terminal:', error);
+          }
+        }
+      });
+    }
+    
+    // Handle resize
+    if (terminal.onResize) {
+      terminal.onResize(async ({ cols, rows }: { cols: number; rows: number }) => {
+        if (!testMode) {
+          try {
+            await invoke('resize_terminal', { 
+              terminalId, 
+              rows, 
+              cols 
+            });
+          } catch (error) {
+            console.error('Failed to resize terminal:', error);
+          }
+        }
+      });
+    }
+    
+    // Listen for backend events
+    if (!testMode) {
+      setupBackendListeners();
+    }
+  }
+  
+  async function setupBackendListeners() {
+    // Listen for terminal output
+    const outputUnlisten = await listen<TerminalEvent>('terminal-output', (event) => {
+      if (event.payload.data.terminal_id === terminalId && event.payload.data.data) {
+        terminal.write(event.payload.data.data);
+      }
+    });
+    eventListeners.push(outputUnlisten);
+    
+    // Listen for terminal exit
+    const exitUnlisten = await listen<TerminalEvent>('terminal-exit', (event) => {
+      if (event.payload.data.terminal_id === terminalId) {
+        const code = event.payload.data.code || 0;
+        terminal.write(`\r\nProcess exited with code ${code}\r\n`);
+      }
+    });
+    eventListeners.push(exitUnlisten);
+    
+    // Listen for terminal errors
+    const errorUnlisten = await listen<TerminalEvent>('terminal-error', (event) => {
+      if (event.payload.data.terminal_id === terminalId && event.payload.data.error) {
+        terminal.write(`\r\nError: ${event.payload.data.error}\r\n`);
+      }
+    });
+    eventListeners.push(errorUnlisten);
+  }
+  
+  function setupResizeObserver() {
+    if (!container || !fitAddon) return;
+    
+    resizeObserver = new ResizeObserver(() => {
+      if (fitAddon && fitAddon.fit) {
+        fitAddon.fit();
+      }
+    });
+    
+    resizeObserver.observe(container);
+  }
+  
+  // Public methods for external control
+  export function write(data: string) {
+    if (terminal && terminal.write) {
+      terminal.write(data);
+    }
   }
   
   export function clear() {
-    terminal?.clear();
+    if (terminal && terminal.clear) {
+      terminal.clear();
+    }
   }
   
-  export function getTerminal() {
-    return terminal;
+  export function focus() {
+    if (terminal && terminal.focus) {
+      terminal.focus();
+    }
   }
+  
+  export function blur() {
+    if (terminal && terminal.blur) {
+      terminal.blur();
+    }
+  }
+  
+  export function search(term: string) {
+    if (searchAddon && searchAddon.findNext) {
+      searchAddon.findNext(term);
+    }
+  }
+  
+  export function resize(cols: number, rows: number) {
+    if (terminal && terminal.resize) {
+      terminal.resize(cols, rows);
+    }
+  }
+  
+  onDestroy(() => {
+    // Clean up event listeners
+    eventListeners.forEach(unlisten => unlisten());
+    
+    // Clean up resize observer
+    if (resizeObserver) {
+      resizeObserver.disconnect();
+    }
+    
+    // Dispose addons
+    if (searchAddon && searchAddon.dispose) {
+      searchAddon.dispose();
+    }
+    if (webglAddon && webglAddon.dispose) {
+      webglAddon.dispose();
+    }
+    if (fitAddon && fitAddon.dispose) {
+      fitAddon.dispose();
+    }
+    
+    // Dispose terminal
+    if (terminal && terminal.dispose) {
+      terminal.dispose();
+    }
+    
+    // Close backend terminal
+    if (isInitialized && !testMode) {
+      invoke('close_terminal', { terminalId }).catch(console.error);
+    }
+  });
 </script>
 
-<div 
-  class="terminal-container"
-  bind:this={container}
-  on:keydown={handleKeyDown}
-  tabindex="0"
-  role="application"
-  aria-label={title}
->
-  {#if !browser}
-    <div class="terminal-placeholder">Terminal (client-side only)</div>
+<div class="terminal-container" bind:this={container}>
+  {#if testMode}
+    <div class="terminal-test-mode">
+      Terminal {terminalId} (Test Mode)
+    </div>
   {/if}
 </div>
 
@@ -287,33 +344,25 @@
     height: 100%;
     background: #1e1e2e;
     position: relative;
-    overflow: hidden;
   }
   
-  .terminal-container:focus {
-    outline: 2px solid #89b4fa;
-    outline-offset: -2px;
-  }
-  
-  .terminal-placeholder {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    color: #6c7086;
+  .terminal-test-mode {
+    padding: 20px;
+    color: #cdd6f4;
     font-family: monospace;
+    text-align: center;
   }
   
   :global(.xterm) {
-    height: 100%;
     padding: 8px;
+    height: 100%;
   }
   
   :global(.xterm-viewport) {
-    overflow-y: auto;
+    background-color: transparent !important;
   }
   
   :global(.xterm-screen) {
-    height: 100%;
+    height: 100% !important;
   }
 </style>

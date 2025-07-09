@@ -1,60 +1,163 @@
 <script lang="ts">
-  import { createEventDispatcher, onMount } from 'svelte';
+  import { createEventDispatcher, onMount, onDestroy, tick } from 'svelte';
   
   export let title = '';
   export let show = false;
   export let width = '400px';
+  export let height = 'auto';
+  export let testMode = false;
+  export let autoFocus = true;
+  export let closeOnBackdrop = true;
+  export let closeOnEscape = true;
+  export let ariaLabel = '';
+  export let ariaDescribedBy = '';
   
   const dispatch = createEventDispatcher();
   
-  let dialog: HTMLDivElement;
+  let dialogElement: HTMLDivElement;
+  let previouslyFocused: HTMLElement | null = null;
+  let focusableElements: HTMLElement[] = [];
+  let dialogId = `dialog-${Math.random().toString(36).substr(2, 9)}`;
+  
+  // Focus trap implementation
+  function getFocusableElements(container: HTMLElement): HTMLElement[] {
+    const selectors = [
+      'button:not([disabled])',
+      'input:not([disabled])',
+      'select:not([disabled])',
+      'textarea:not([disabled])',
+      'a[href]',
+      '[tabindex]:not([tabindex="-1"])'
+    ];
+    
+    return Array.from(container.querySelectorAll(selectors.join(', '))) as HTMLElement[];
+  }
+  
+  function trapFocus(event: KeyboardEvent) {
+    if (event.key !== 'Tab' || !dialogElement) return;
+    
+    focusableElements = getFocusableElements(dialogElement);
+    
+    if (focusableElements.length === 0) {
+      event.preventDefault();
+      return;
+    }
+    
+    const firstFocusable = focusableElements[0];
+    const lastFocusable = focusableElements[focusableElements.length - 1];
+    
+    if (event.shiftKey) {
+      if (document.activeElement === firstFocusable) {
+        event.preventDefault();
+        lastFocusable.focus();
+      }
+    } else {
+      if (document.activeElement === lastFocusable) {
+        event.preventDefault();
+        firstFocusable.focus();
+      }
+    }
+  }
   
   function handleKeydown(event: KeyboardEvent) {
-    if (event.key === 'Escape') {
+    if (event.key === 'Escape' && closeOnEscape) {
+      event.preventDefault();
       dispatch('close');
+    } else {
+      trapFocus(event);
     }
   }
   
   function handleBackdropClick(event: MouseEvent) {
-    if (event.target === dialog) {
+    if (closeOnBackdrop && event.target === dialogElement) {
       dispatch('close');
     }
   }
   
-  onMount(() => {
-    const firstInput = dialog?.querySelector('input');
-    if (firstInput) {
-      firstInput.focus();
+  async function setupFocus() {
+    if (!show || testMode || !autoFocus) return;
+    
+    // Store the previously focused element
+    previouslyFocused = document.activeElement as HTMLElement;
+    
+    // Wait for DOM to update
+    await tick();
+    
+    if (dialogElement) {
+      focusableElements = getFocusableElements(dialogElement);
+      
+      // Focus the first focusable element or the dialog itself
+      if (focusableElements.length > 0) {
+        focusableElements[0].focus();
+      } else {
+        dialogElement.focus();
+      }
     }
+  }
+  
+  function restoreFocus() {
+    if (!testMode && previouslyFocused) {
+      previouslyFocused.focus();
+      previouslyFocused = null;
+    }
+  }
+  
+  // Set up focus management when dialog shows/hides
+  $: if (show) {
+    setupFocus();
+  } else {
+    restoreFocus();
+  }
+  
+  onDestroy(() => {
+    restoreFocus();
   });
 </script>
 
 {#if show}
   <div 
     class="dialog-backdrop" 
-    bind:this={dialog}
+    bind:this={dialogElement}
     on:click={handleBackdropClick}
     on:keydown={handleKeydown}
+    data-testid="dialog-backdrop"
   >
-    <div class="dialog" style="width: {width}">
+    <div 
+      class="dialog" 
+      style="width: {width}; height: {height}"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={title ? `${dialogId}-title` : undefined}
+      aria-label={ariaLabel || (title ? undefined : 'Dialog')}
+      aria-describedby={ariaDescribedBy || undefined}
+      tabindex="-1"
+      data-testid="dialog"
+    >
       {#if title}
         <div class="dialog-header">
-          <h3 class="dialog-title">{title}</h3>
-          <button class="dialog-close" on:click={() => dispatch('close')}>
-            <svg width="16" height="16" viewBox="0 0 16 16">
+          <h3 id="{dialogId}-title" class="dialog-title">{title}</h3>
+          <button 
+            class="dialog-close" 
+            on:click={() => dispatch('close')}
+            aria-label="Close dialog"
+            data-testid="dialog-close"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
               <path d="M12 4L4 12M4 4l8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
             </svg>
           </button>
         </div>
       {/if}
       
-      <div class="dialog-content">
+      <div class="dialog-content" data-testid="dialog-content">
         <slot />
       </div>
       
-      <div class="dialog-actions">
-        <slot name="actions" />
-      </div>
+      {#if $$slots.actions}
+        <div class="dialog-actions" data-testid="dialog-actions">
+          <slot name="actions" />
+        </div>
+      {/if}
     </div>
   </div>
 {/if}

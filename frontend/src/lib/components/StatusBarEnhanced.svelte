@@ -36,22 +36,63 @@
   export let showSystemMetrics = true;
   export let showNotifications = true;
   export let customItems: StatusItem[] = [];
+  export let theme: 'light' | 'dark' = 'dark';
+  export let currentFile: { path: string; line: number; column: number } | null = null;
+  export let encoding: string = 'UTF-8';
+  export let language: string = '';
+  export let runningProcesses: number = 0;
+  export let activePlugins: number = 0;
+  export let backgroundTasks: Array<{ id: string; name: string; progress: number }> = [];
+  export let notifications: Array<{ id: string; type: string; message: string }> = [];
+  export let onGitClick: (() => void) | undefined = undefined;
+  export let onFileClick: (() => void) | undefined = undefined;
+  export let testMode = false;
+  export let autoLoad = true;
+  export let initialGitInfo: GitInfo | null = null;
+  export let initialSystemMetrics: SystemMetrics | null = null;
+  export let updateInterval = 5000;
   
   // State
   let gitInfo = writable<GitInfo>({});
   let systemMetrics = writable<SystemMetrics>({});
-  let notifications = writable<string[]>([]);
-  let activeFile = writable<string>('');
-  let cursorPosition = writable<{ line: number; column: number }>({ line: 1, column: 1 });
-  let encoding = writable<string>('UTF-8');
-  let fileType = writable<string>('');
+  let notificationsList = writable<string[]>([]);
+  let activeFile = writable<string>(currentFile?.path || '');
+  let cursorPosition = writable<{ line: number; column: number }>({ 
+    line: currentFile?.line || 1, 
+    column: currentFile?.column || 1 
+  });
+  let encodingValue = writable<string>(encoding);
+  let fileType = writable<string>(language);
   let errors = writable<number>(0);
   let warnings = writable<number>(0);
   let running = writable<boolean>(false);
+  
+  // Update reactive values when props change
+  $: if (currentFile) {
+    activeFile.set(currentFile.path);
+    cursorPosition.set({ line: currentFile.line, column: currentFile.column });
+  } else {
+    activeFile.set('');
+    cursorPosition.set({ line: 1, column: 1 });
+  }
+  
+  $: encodingValue.set(encoding);
+  $: fileType.set(language);
   let currentTime = writable<string>('');
   
   // Event listeners
   let unlisteners: UnlistenFn[] = [];
+  let updateIntervalId: number | null = null;
+  
+  // Test mode initialization
+  $: if (testMode) {
+    if (initialGitInfo) {
+      gitInfo.set(initialGitInfo);
+    }
+    if (initialSystemMetrics) {
+      systemMetrics.set(initialSystemMetrics);
+    }
+  }
   
   // Status items
   const leftItems = derived(
@@ -125,9 +166,39 @@
   );
   
   const rightItems = derived(
-    [systemMetrics, notifications, encoding, fileType, running, currentTime],
+    [systemMetrics, notificationsList, encodingValue, fileType, running, currentTime],
     ([$metrics, $notifs, $enc, $type, $run, $time]) => {
       const items: StatusItem[] = [];
+      
+      // Running processes
+      if (runningProcesses > 0) {
+        items.push({
+          id: 'processes',
+          text: `${runningProcesses} running`,
+          tooltip: `${runningProcesses} processes running`,
+          onClick: () => dispatch('action', { type: 'showProcesses' })
+        });
+      }
+      
+      // Active plugins
+      if (activePlugins > 0) {
+        items.push({
+          id: 'plugins',
+          text: `${activePlugins} plugins`,
+          tooltip: `${activePlugins} active plugins`,
+          onClick: () => dispatch('action', { type: 'showPlugins' })
+        });
+      }
+      
+      // Background tasks
+      backgroundTasks.forEach(task => {
+        items.push({
+          id: `task-${task.id}`,
+          text: `${task.name} ${task.progress}%`,
+          tooltip: `Background task: ${task.name}`,
+          onClick: () => dispatch('action', { type: 'showTask', taskId: task.id })
+        });
+      });
       
       // Running indicator
       if ($run) {
@@ -140,11 +211,12 @@
       }
       
       // Notifications
-      if (showNotifications && $notifs.length > 0) {
+      if (showNotifications && (notifications.length > 0 || $notifs.length > 0)) {
+        const notifCount = notifications.length || $notifs.length;
         items.push({
           id: 'notifications',
-          text: `🔔 ${$notifs.length}`,
-          tooltip: `${$notifs.length} notifications`,
+          text: `🔔 ${notifCount}`,
+          tooltip: `${notifCount} notifications`,
           onClick: () => dispatch('action', { type: 'showNotifications' })
         });
       }
@@ -204,7 +276,7 @@
   
   // Update functions
   async function updateGitStatus() {
-    if (!showGitStatus) return;
+    if (!showGitStatus || testMode) return;
     
     try {
       const [branchInfo, statuses] = await Promise.all([
@@ -241,17 +313,28 @@
   }
   
   async function updateSystemMetrics() {
-    if (!showSystemMetrics) return;
+    if (!showSystemMetrics || testMode) return;
     
     try {
       const metrics = await invoke('get_system_metrics');
-      systemMetrics.set(metrics as SystemMetrics);
+      if (metrics && typeof metrics === 'object') {
+        systemMetrics.set({
+          cpu: (metrics as any).cpu_usage,
+          memory: (metrics as any).memory_usage,
+          disk: (metrics as any).disk_usage
+        });
+      }
     } catch (err) {
       console.error('Failed to get system metrics:', err);
     }
   }
   
   function updateClock() {
+    if (testMode) {
+      currentTime.set('12:34');
+      return;
+    }
+    
     const now = new Date();
     currentTime.set(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
   }
@@ -265,48 +348,59 @@
   
   // Lifecycle
   onMount(async () => {
+    if (testMode) {
+      // In test mode, just update the clock
+      updateClock();
+      return;
+    }
+    
+    if (!autoLoad) return;
+    
     // Initial updates
     updateGitStatus();
     updateSystemMetrics();
     updateClock();
     
-    // Set up intervals
-    const gitInterval = setInterval(updateGitStatus, 5000);
-    const metricsInterval = setInterval(updateSystemMetrics, 2000);
-    const clockInterval = setInterval(updateClock, 1000);
+    // Set up periodic updates
+    updateIntervalId = setInterval(() => {
+      updateGitStatus();
+      updateSystemMetrics();
+      updateClock();
+    }, updateInterval) as unknown as number;
     
     // Listen for events
-    unlisteners.push(
-      await listen('file-changed', () => updateGitStatus()),
-      await listen('active-file-changed', (event) => {
-        activeFile.set(event.payload as string);
-      }),
-      await listen('cursor-position-changed', (event) => {
-        cursorPosition.set(event.payload as { line: number; column: number });
-      }),
-      await listen('file-type-changed', (event) => {
-        fileType.set(event.payload as string);
-      }),
-      await listen('problems-updated', (event) => {
-        const { errors: e, warnings: w } = event.payload as any;
-        errors.set(e || 0);
-        warnings.set(w || 0);
-      }),
-      await listen('notification', (event) => {
-        notifications.update(n => [...n, event.payload as string]);
-      }),
-      await listen('process-started', () => running.set(true)),
-      await listen('process-stopped', () => running.set(false))
-    );
-    
-    return () => {
-      clearInterval(gitInterval);
-      clearInterval(metricsInterval);
-      clearInterval(clockInterval);
-    };
+    try {
+      unlisteners.push(
+        await listen('file-changed', () => updateGitStatus()),
+        await listen('active-file-changed', (event) => {
+          activeFile.set(event.payload as string);
+        }),
+        await listen('cursor-position-changed', (event) => {
+          cursorPosition.set(event.payload as { line: number; column: number });
+        }),
+        await listen('file-type-changed', (event) => {
+          fileType.set(event.payload as string);
+        }),
+        await listen('problems-updated', (event) => {
+          const { errors: e, warnings: w } = event.payload as any;
+          errors.set(e || 0);
+          warnings.set(w || 0);
+        }),
+        await listen('notification', (event) => {
+          notificationsList.update(n => [...n, event.payload as string]);
+        }),
+        await listen('process-started', () => running.set(true)),
+        await listen('process-stopped', () => running.set(false))
+      );
+    } catch (err) {
+      console.error('Failed to set up event listeners:', err);
+    }
   });
   
   onDestroy(() => {
+    if (updateIntervalId) {
+      clearInterval(updateIntervalId);
+    }
     unlisteners.forEach(unlisten => unlisten());
   });
   
@@ -315,7 +409,7 @@
   $: allRightItems = $rightItems;
 </script>
 
-<div class="status-bar">
+<div class="status-bar fixed bottom-0 left-0 right-0 {theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'}">
   <div class="status-section left">
     {#each allLeftItems as item (item.id)}
       <button
