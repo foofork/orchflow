@@ -1,8 +1,8 @@
-# Phase 7: Essential UI Components Implementation Plan
+# orchflow Implementation Plan
 
 ## Overview
 
-With all infrastructure phases complete, Phase 7 focuses on building the essential UI components that will transform orchflow from a powerful backend into a complete, user-friendly IDE.
+This document outlines the implementation roadmap for orchflow's remaining features, including UI components, AI-driven terminal enhancements, and system integrations. With all infrastructure phases complete, the focus is on building user-facing features and intelligent orchestration capabilities.
 
 ## High Priority Tech Debt (Concurrent with UI Development)
 
@@ -259,6 +259,44 @@ describe('CommandPalette', () => {
 - Performance benchmarks
 - Accessibility compliance
 - Cross-platform testing
+
+## AI-Driven Features
+
+### Vision
+orchflow's AI integration transforms development through natural language interaction and intelligent multi-agent orchestration. Based on the unified architecture, AI assistants work in visual tmux panes, enabling transparent collaboration between humans and AI.
+
+### Core AI Capabilities
+
+#### 1. AI Agent Terminal System
+- **Visual Agent Separation**: Each AI agent operates in its own tmux pane
+- **Swarm Monitoring**: Grid view of all active agents and their progress
+- **Agent Roles**: Architect, Frontend Dev, Test Engineer, Build Engineer, etc.
+- **ruv-FANN Integration**: Ephemeral neural networks for efficient agent spawning
+
+#### 2. Natural Language Interface
+- **AI Chat Component**: Primary interface for user interaction
+- **Intent Detection**: Automatically route commands to appropriate agents
+- **Context Awareness**: AI understands project state and history
+- **Progressive Disclosure**: Complex orchestration happens transparently
+
+#### 3. Terminal Intelligence
+- **Purpose-Driven Terminals**: Build, Test, REPL, Debug, AI Agent types
+- **Smart Command Routing**: Route commands based on intent and context
+- **Error Pattern Learning**: Detect and suggest fixes for common errors
+- **Process Lifecycle Tracking**: Monitor and manage long-running processes
+
+#### 4. Collaborative Features
+- **Shared Memory Bus**: Agents coordinate through shared context
+- **Help Request System**: Agents can request assistance from specialists
+- **Progress Visualization**: Real-time status updates in swarm monitor
+- **Intervention Points**: Users can pause, redirect, or assist agents
+
+### Implementation Approach
+1. Start with terminal metadata and type system
+2. Add AI agent roles and swarm visualization
+3. Integrate with orchestrator for command routing
+4. Build natural language interface
+5. Connect to ruv-FANN for intelligent agent management
 
 ## Success Metrics
 

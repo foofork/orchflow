@@ -23,7 +23,7 @@
 
 **Documentation Discipline:**
 - **Roadmap Items** → HERE, not scattered in code comments
-- **Architecture Decisions** → docs/ORCHFLOW_UNIFIED_ARCHITECTURE.md
+- **Architecture Decisions** → docs/architecture/UNIFIED_ARCHITECTURE.md
 - **API Changes** → Relevant API docs
 - **NO SPRAWL**: Don't document roadmap items in random files
 
@@ -43,7 +43,7 @@
 ### Executive Summary
 Orchflow has successfully completed **all infrastructure and core implementation phases** (Phases 1-5), establishing a production-ready foundation with:
 
-> **📖 For complete system architecture, see [Unified Architecture Design](docs/ORCHFLOW_UNIFIED_ARCHITECTURE.md)**
+> **📖 For complete system architecture, see [Unified Architecture Design](docs/architecture/UNIFIED_ARCHITECTURE.md)**
 > **📖 For component responsibilities, see [Component Architecture Guide](docs/COMPONENT_RESPONSIBILITIES.md)**
 - ✅ **MuxBackend abstraction** - Clean separation of terminal multiplexer operations
 - ✅ **Unified state management** - Single source of truth with StateManager
@@ -92,7 +92,7 @@ Orchflow has successfully completed **all infrastructure and core implementation
 ### Phase 1: MuxBackend Abstraction Layer ✅
 - **Core Achievement**: Production-ready terminal multiplexer abstraction with TmuxBackend and MockBackend implementations
 - **Key Features**: Factory pattern for backend selection, sub-millisecond test performance, comprehensive benchmarks
-> **📖 See [Muxd Protocol Specification](docs/muxd-protocol-spec.md) for multiplexer protocol details**
+> **📖 See [Muxd Protocol Architecture](docs/architecture/MUXD_PROTOCOL_ARCHITECTURE.md) for multiplexer protocol details**
 
 ### Phase 2: State Management Consolidation ✅
 - **Core Achievement**: Unified StateManager replacing AppState duplication with event-driven persistence
@@ -106,7 +106,7 @@ Orchflow has successfully completed **all infrastructure and core implementation
 ### Phase 4: Muxd Backend & Plugin Ecosystem ✅
 - **Core Achievement**: High-performance WebSocket daemon with comprehensive plugin system
 - **Key Features**: JSON-RPC 2.0 protocol, hot-reload support, example plugins (Git, Docker, K8s)
-> **📖 See [Plugin API Specification](docs/plugin-api-spec.md) for extension development guide**
+> **📖 See [Plugin API Architecture](docs/architecture/PLUGIN_API_ARCHITECTURE.md) for extension development guide**
 
 ### Phase 5: Implementation Completion & System Integration ✅
 - **Core Achievement**: Complete system integration with terminal search, test parsers, and event dispatch
@@ -208,9 +208,8 @@ await manager.createTerminal(sessionId, options);
 
 ## Future Enhancements 📅
 
-> **Important**: For detailed Manager + Orchestrator integration plans, see [MANAGER_ORCHESTRATOR_INTEGRATION_ROADMAP.md](./MANAGER_ORCHESTRATOR_INTEGRATION_ROADMAP.md)
-> This includes the 12-week plan for connecting the Rust Manager with the TypeScript Orchestrator service.
-> **📖 See [Architecture Decision Guide](docs/MANAGER_ORCHESTRATOR_ARCHITECTURE.md) for component selection**
+> **Important**: For architecture decisions on Manager vs Orchestrator usage, see [Manager/Orchestrator Architecture](docs/architecture/MANAGER_ORCHESTRATOR_ARCHITECTURE.md)
+> This includes guidance on when to use Manager vs Orchestrator components.
 
 ### Near-term (Month 2)
 1. **Advanced Muxd Features**
@@ -418,13 +417,39 @@ Based on the comprehensive component analysis, professional testing implementati
 - Scrollback search implementation
 - Session ID retrieval for terminals
 
-#### 5. File Manager Backend (5 TODOs)
+#### 5. AI Terminal Enhancements (NEW - from Terminal Manager Enhancements)
+**Priority 1: Core Terminal Intelligence (Week 1-2)**
+- Terminal type system with AI agent metadata
+- Configurable shell execution with .orchflow.json support
+- AI-aware command routing for swarm coordination
+
+**Priority 2: Enhanced Process Management (Week 2-3)**
+- Process lifecycle tracking and monitoring
+- Automatic error detection and recovery
+- Resource usage monitoring
+
+**Priority 3: Intelligent Orchestration (Week 3-4)**
+- Multi-language REPL management
+- Workspace environment variables
+- Terminal state persistence and recovery
+
+**Priority 4: Command Intelligence (Week 4-5)**
+- Command history with AI integration
+- Natural language command translation
+- Error recovery suggestions
+
+**Priority 5: Advanced Features (Week 5-6)**
+- Terminal output search and filtering
+- Multi-terminal synchronization
+- Performance optimization
+
+#### 6. File Manager Backend (5 TODOs)
 - Git ignore checking
 - Git status checking
 - File permissions retrieval
 - Trash functionality (move to trash instead of permanent delete)
 
-#### 6. Plugin System (7 TODOs)
+#### 7. Plugin System (7 TODOs)
 - WASM plugin loading
 - Native plugin loading
 - Activation event checking
@@ -433,12 +458,12 @@ Based on the comprehensive component analysis, professional testing implementati
 
 ### Low Priority TODOs (5 items)
 
-#### 7. UI Polish (3 TODOs)
+#### 8. UI Polish (3 TODOs)
 - Error toast notifications in CommandBar
 - Error notifications in PluginCommandPalette
 - Pane info action in orchestrator store
 
-#### 8. Testing & Migration (2 TODOs)
+#### 9. Testing & Migration (2 TODOs)
 - Complete migration to SimpleStateStore API
 - Fix tests after error system updates
 
