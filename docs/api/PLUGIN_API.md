@@ -1,10 +1,10 @@
-# Orchflow Plugin API Specification
+# orchflow Plugin API
 
 ## Overview
 
-The Orchflow Plugin System enables developers to extend the functionality of Orchflow through a well-defined API. Plugins can add new commands, UI components, integrations, and behaviors to the core system.
+The orchflow Plugin API enables developers to extend functionality through a well-defined interface. Plugins can add new commands, UI components, integrations, and behaviors to the core system.
 
-## Plugin Architecture
+## Plugin Structure
 
 ### Plugin Types
 

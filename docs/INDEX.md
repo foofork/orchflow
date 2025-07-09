@@ -1,11 +1,12 @@
 # orchflow Documentation Index
 
-## Core Documentation
+## API References
+- **[api/README.md](api/README.md)** - Complete orchflow API reference
+- **[api/MANAGER_API.md](api/MANAGER_API.md)** - Rust Manager API for orchestration
+- **[api/TERMINAL_STREAMING_API.md](api/TERMINAL_STREAMING_API.md)** - PTY streaming APIs
+- **[api/PLUGIN_API.md](api/PLUGIN_API.md)** - Plugin development API
 
-### API References
-- **[API.md](API.md)** - Complete orchflow API reference (terminal, file, search, git commands)
-- **[MANAGER_API.md](MANAGER_API.md)** - Rust Manager API for session/pane/plugin orchestration
-- **[TERMINAL_STREAMING_API.md](TERMINAL_STREAMING_API.md)** - PTY streaming implementation details
+## Core Documentation
 
 ### Development Guides
 - **[CONTRIBUTING.md](CONTRIBUTING.md)** - Setup, workflow, standards, and testing for contributors
@@ -33,8 +34,7 @@
 - **[architecture/SEARCH_INTEGRATION_ARCHITECTURE.md](architecture/SEARCH_INTEGRATION_ARCHITECTURE.md)** - Ripgrep integration
 
 ### Extensibility
-- **[architecture/PLUGIN_SYSTEM_ARCHITECTURE.md](architecture/PLUGIN_SYSTEM_ARCHITECTURE.md)** - Plugin framework overview
-- **[architecture/PLUGIN_API_ARCHITECTURE.md](architecture/PLUGIN_API_ARCHITECTURE.md)** - Plugin API specification
+- **[architecture/PLUGIN_SYSTEM_ARCHITECTURE.md](architecture/PLUGIN_SYSTEM_ARCHITECTURE.md)** - Plugin framework design
 
 ---
 *For AI agents: Start with [../DEVELOPMENT.md](../DEVELOPMENT.md) at root*

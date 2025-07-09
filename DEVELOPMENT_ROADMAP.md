@@ -70,14 +70,14 @@ Orchflow has successfully completed **all infrastructure and core implementation
 - [Manager/Orchestrator Architecture](docs/architecture/MANAGER_ORCHESTRATOR_ARCHITECTURE.md) - Component usage decisions
 - [IPC Command Architecture](docs/architecture/IPC_COMMAND_ARCHITECTURE.md) - Frontend-backend communication
 - [Plugin System Architecture](docs/architecture/PLUGIN_SYSTEM_ARCHITECTURE.md) - Extensibility framework
-- [Plugin API Architecture](docs/architecture/PLUGIN_API_ARCHITECTURE.md) - Plugin API specification
+- [Plugin API](docs/api/PLUGIN_API.md) - Plugin API specification
 - [Search Integration Architecture](docs/architecture/SEARCH_INTEGRATION_ARCHITECTURE.md) - Ripgrep integration
 - [Muxd Protocol Architecture](docs/architecture/MUXD_PROTOCOL_ARCHITECTURE.md) - Multiplexer protocol
 
 **APIs & Component Docs:**
-- [Complete API Reference](docs/API.md) - All OrchFlow integration points
-- [Manager API Documentation](docs/MANAGER_API.md) - Core Rust Manager API
-- [Terminal Streaming API](docs/TERMINAL_STREAMING_API.md) - Real-time terminal integration
+- [Complete API Reference](docs/api/README.md) - All OrchFlow integration points
+- [Manager API Documentation](docs/api/MANAGER_API.md) - Core Rust Manager API
+- [Terminal Streaming API](docs/api/TERMINAL_STREAMING_API.md) - Real-time terminal integration
 - [Component Architecture Guide](docs/COMPONENT_RESPONSIBILITIES.md) - Component boundaries and responsibilities
 
 **Development & Enhancement:**
