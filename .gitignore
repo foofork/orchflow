@@ -24,11 +24,11 @@ build/
 coverage/
 .nyc_output/
 
-# Claude-related files
-.claude/
-claude-flow
-claude-flow.bat
-claude-flow.ps1
-memory/
-hive*
-memory.db
+# Claude-related files (commented out to track in git)
+# .claude/
+# claude-flow
+# claude-flow.bat
+# claude-flow.ps1
+# memory/
+# hive*
+# memory.db
