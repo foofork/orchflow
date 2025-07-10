@@ -62,7 +62,7 @@ orchflow's philosophy is simple:
 - **Tools should be fast**: Performance is not optional
 - **Complexity should be hidden**: Powerful features with simple interfaces
 - **Everything should persist**: Close the app, lose nothing
-- **AI should assist, not replace**: Automation for repetitive tasks
+- **AI should assist, not completely replace**: Automation maximal, human in the loop
 - **Open source benefits everyone**: Community-driven development
 
 ## Status for Users
