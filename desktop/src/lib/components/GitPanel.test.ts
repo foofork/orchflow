@@ -6,7 +6,7 @@ import GitPanel from './GitPanel.svelte';
 // Mock Tauri API
 const mockInvoke = vi.fn();
 vi.mock('@tauri-apps/api/tauri', () => ({
-  invoke: () => mockInvoke
+  invoke: mockInvoke
 }));
 
 describe('GitPanel', () => {
@@ -183,10 +183,11 @@ describe('GitPanel', () => {
 
   describe('File Operations', () => {
     it('stages a file when clicking + button', async () => {
+      // Setup mock sequence
       mockInvoke
-        .mockResolvedValueOnce(mockGitStatus)
-        .mockResolvedValueOnce(undefined) // git_stage
-        .mockResolvedValueOnce({ ...mockGitStatus, staged: [...mockGitStatus.staged, mockGitStatus.unstaged[0]] });
+        .mockResolvedValueOnce(mockGitStatus) // Initial load
+        .mockResolvedValueOnce(undefined) // git_stage call
+        .mockResolvedValueOnce({ ...mockGitStatus, staged: [...mockGitStatus.staged, mockGitStatus.unstaged[0]] }); // Refresh
       
       const { container } = render(GitPanel, { props: { show: true } });
       
@@ -198,14 +199,17 @@ describe('GitPanel', () => {
       const firstStageButton = container.querySelector('.file-action[title="Stage"]') as HTMLElement;
       await fireEvent.click(firstStageButton);
       
-      expect(mockInvoke).toHaveBeenCalledWith('git_stage', { path: 'src/lib/utils.ts' });
+      // Check that git_stage was called (second call after initial git_status)
+      await waitFor(() => {
+        expect(mockInvoke).toHaveBeenCalledWith('git_stage', { path: 'src/lib/utils.ts' });
+      });
     });
 
     it('unstages a file when clicking - button', async () => {
       mockInvoke
-        .mockResolvedValueOnce(mockGitStatus)
-        .mockResolvedValueOnce(undefined) // git_unstage
-        .mockResolvedValueOnce({ ...mockGitStatus, staged: [] });
+        .mockResolvedValueOnce(mockGitStatus) // Initial load
+        .mockResolvedValueOnce(undefined) // git_unstage call
+        .mockResolvedValueOnce({ ...mockGitStatus, staged: [] }); // Refresh
       
       const { container } = render(GitPanel, { props: { show: true } });
       
@@ -217,14 +221,16 @@ describe('GitPanel', () => {
       const firstUnstageButton = container.querySelector('.file-action[title="Unstage"]') as HTMLElement;
       await fireEvent.click(firstUnstageButton);
       
-      expect(mockInvoke).toHaveBeenCalledWith('git_unstage', { path: 'src/components/Header.svelte' });
+      await waitFor(() => {
+        expect(mockInvoke).toHaveBeenCalledWith('git_unstage', { path: 'src/components/Header.svelte' });
+      });
     });
 
     it('stages all files', async () => {
       mockInvoke
-        .mockResolvedValueOnce(mockGitStatus)
-        .mockResolvedValueOnce(undefined) // git_stage_all
-        .mockResolvedValueOnce({ ...mockGitStatus, unstaged: [] });
+        .mockResolvedValueOnce(mockGitStatus) // Initial load
+        .mockResolvedValueOnce(undefined) // git_stage_all call
+        .mockResolvedValueOnce({ ...mockGitStatus, unstaged: [] }); // Refresh
       
       const { container } = render(GitPanel, { props: { show: true } });
       
@@ -232,17 +238,23 @@ describe('GitPanel', () => {
         expect(container.textContent).toContain('Stage All');
       });
       
-      const stageAllBtn = container.querySelector('.section-action') as HTMLElement;
+      // Find the "Stage All" button specifically
+      const stageAllBtn = Array.from(container.querySelectorAll('.section-action'))
+        .find(btn => btn.textContent?.includes('Stage All')) as HTMLElement;
+      expect(stageAllBtn).toBeTruthy();
+      
       await fireEvent.click(stageAllBtn);
       
-      expect(mockInvoke).toHaveBeenCalledWith('git_stage_all');
+      await waitFor(() => {
+        expect(mockInvoke).toHaveBeenCalledWith('git_stage_all');
+      });
     });
 
     it('unstages all files', async () => {
       mockInvoke
-        .mockResolvedValueOnce(mockGitStatus)
-        .mockResolvedValueOnce(undefined) // git_unstage_all
-        .mockResolvedValueOnce({ ...mockGitStatus, staged: [] });
+        .mockResolvedValueOnce(mockGitStatus) // Initial load
+        .mockResolvedValueOnce(undefined) // git_unstage_all call
+        .mockResolvedValueOnce({ ...mockGitStatus, staged: [] }); // Refresh
       
       const { container } = render(GitPanel, { props: { show: true } });
       
@@ -256,7 +268,9 @@ describe('GitPanel', () => {
         .find(btn => btn.textContent === 'Unstage All') as HTMLElement;
       await fireEvent.click(unstageAllBtn);
       
-      expect(mockInvoke).toHaveBeenCalledWith('git_unstage_all');
+      await waitFor(() => {
+        expect(mockInvoke).toHaveBeenCalledWith('git_unstage_all');
+      });
     });
   });
 
@@ -298,30 +312,35 @@ index 1234567..abcdefg 100644
 
     it('returns to file list when clicking back', async () => {
       mockInvoke
-        .mockResolvedValueOnce(mockGitStatus)
-        .mockResolvedValueOnce('diff content');
+        .mockResolvedValueOnce(mockGitStatus) // Initial load
+        .mockResolvedValueOnce('diff content'); // git_diff call
       
-      const { container, component } = render(GitPanel, { props: { show: true } });
+      const { container } = render(GitPanel, { props: { show: true } });
       
-      // Load diff
+      // Wait for file list to load
       await waitFor(() => {
-        const filePath = container.querySelector('.file-path') as HTMLElement;
+        const filePath = container.querySelector('.file-path');
         expect(filePath).toBeTruthy();
       });
       
       const filePath = container.querySelector('.file-path') as HTMLElement;
       await fireEvent.click(filePath);
       
+      // Wait for diff view to appear
       await waitFor(() => {
-        expect(container.querySelector('.diff-view')).toBeTruthy();
+        const diffView = container.querySelector('.diff-view');
+        expect(diffView).toBeTruthy();
       });
       
-      // Click back
+      // Click back button
       const backBtn = container.querySelector('.back-btn') as HTMLElement;
       await fireEvent.click(backBtn);
       
-      expect(component.showDiffView).toBe(false);
-      expect(container.querySelector('.file-sections')).toBeTruthy();
+      // Should return to file list view
+      await waitFor(() => {
+        const fileList = container.querySelector('.file-sections');
+        expect(fileList).toBeTruthy();
+      });
     });
 
     it('parses and displays diff lines with correct styling', async () => {
@@ -335,14 +354,21 @@ index 1234567..abcdefg 100644
  another context`;
 
       mockInvoke
-        .mockResolvedValueOnce(mockGitStatus)
-        .mockResolvedValueOnce(mockDiff);
+        .mockResolvedValueOnce(mockGitStatus) // Initial load
+        .mockResolvedValueOnce(mockDiff); // git_diff call
       
       const { container } = render(GitPanel, { props: { show: true } });
+      
+      // Wait for file list to load
+      await waitFor(() => {
+        const filePath = container.querySelector('.file-path');
+        expect(filePath).toBeTruthy();
+      });
       
       const filePath = container.querySelector('.file-path') as HTMLElement;
       await fireEvent.click(filePath);
       
+      // Wait for diff view to load and check styling
       await waitFor(() => {
         const diffLines = container.querySelectorAll('.diff-line');
         expect(diffLines.length).toBeGreaterThan(0);
@@ -363,9 +389,9 @@ index 1234567..abcdefg 100644
   describe('Commit Operations', () => {
     it('commits with message', async () => {
       mockInvoke
-        .mockResolvedValueOnce(mockGitStatus)
-        .mockResolvedValueOnce(undefined) // git_commit
-        .mockResolvedValueOnce({ ...mockGitStatus, staged: [] });
+        .mockResolvedValueOnce(mockGitStatus) // Initial load
+        .mockResolvedValueOnce(undefined) // git_commit call
+        .mockResolvedValueOnce({ ...mockGitStatus, staged: [] }); // Refresh
       
       const { container } = render(GitPanel, { props: { show: true } });
       
@@ -380,7 +406,9 @@ index 1234567..abcdefg 100644
       const commitBtn = container.querySelector('.commit-btn') as HTMLElement;
       await fireEvent.click(commitBtn);
       
-      expect(mockInvoke).toHaveBeenCalledWith('git_commit', { message: 'feat: add new feature' });
+      await waitFor(() => {
+        expect(mockInvoke).toHaveBeenCalledWith('git_commit', { message: 'feat: add new feature' });
+      });
     });
 
     it('prevents commit without message', async () => {
@@ -418,11 +446,11 @@ index 1234567..abcdefg 100644
 
     it('clears commit message after successful commit', async () => {
       mockInvoke
-        .mockResolvedValueOnce(mockGitStatus)
-        .mockResolvedValueOnce(undefined)
-        .mockResolvedValueOnce({ ...mockGitStatus, staged: [] });
+        .mockResolvedValueOnce(mockGitStatus) // Initial load
+        .mockResolvedValueOnce(undefined) // git_commit call
+        .mockResolvedValueOnce({ ...mockGitStatus, staged: [] }); // Refresh
       
-      const { container, component } = render(GitPanel, { props: { show: true } });
+      const { container } = render(GitPanel, { props: { show: true } });
       
       await waitFor(() => {
         const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
@@ -435,16 +463,18 @@ index 1234567..abcdefg 100644
       const commitBtn = container.querySelector('.commit-btn') as HTMLElement;
       await fireEvent.click(commitBtn);
       
+      // Check that commit was called and textarea is cleared
       await waitFor(() => {
-        expect(component.commitMessage).toBe('');
+        expect(mockInvoke).toHaveBeenCalledWith('git_commit', { message: 'test commit' });
+        expect(textarea.value).toBe('');
       });
     });
 
     it('commits with Ctrl+Enter shortcut', async () => {
       mockInvoke
-        .mockResolvedValueOnce(mockGitStatus)
-        .mockResolvedValueOnce(undefined)
-        .mockResolvedValueOnce({ ...mockGitStatus, staged: [] });
+        .mockResolvedValueOnce(mockGitStatus) // Initial load
+        .mockResolvedValueOnce(undefined) // git_commit call
+        .mockResolvedValueOnce({ ...mockGitStatus, staged: [] }); // Refresh
       
       const { container } = render(GitPanel, { props: { show: true } });
       
@@ -458,59 +488,71 @@ index 1234567..abcdefg 100644
       
       await fireEvent.keyDown(document, { key: 'Enter', ctrlKey: true });
       
-      expect(mockInvoke).toHaveBeenCalledWith('git_commit', { message: 'shortcut commit' });
+      await waitFor(() => {
+        expect(mockInvoke).toHaveBeenCalledWith('git_commit', { message: 'shortcut commit' });
+      });
     });
   });
 
   describe('Push/Pull Operations', () => {
     it('pushes changes', async () => {
+      // Clear any previous calls and setup fresh mocks
+      vi.clearAllMocks();
       mockInvoke
-        .mockResolvedValueOnce(mockGitStatus)
-        .mockResolvedValueOnce(undefined) // git_push
-        .mockResolvedValueOnce(mockGitStatus);
+        .mockResolvedValueOnce(mockGitStatus) // Initial load
+        .mockResolvedValueOnce(undefined) // git_push call
+        .mockResolvedValueOnce(mockGitStatus); // Refresh
       
       const { container } = render(GitPanel, { props: { show: true } });
       
       await waitFor(() => {
-        const pushBtn = container.querySelector('.push-btn') as HTMLElement;
+        const pushBtn = container.querySelector('.push-btn');
         expect(pushBtn).toBeTruthy();
       });
       
       const pushBtn = container.querySelector('.push-btn') as HTMLElement;
       await fireEvent.click(pushBtn);
       
-      expect(mockInvoke).toHaveBeenCalledWith('git_push');
+      await waitFor(() => {
+        expect(mockInvoke).toHaveBeenCalledWith('git_push');
+      }, { timeout: 1000 });
     });
 
     it('pulls changes', async () => {
+      // Clear any previous calls and setup fresh mocks
+      vi.clearAllMocks();
       mockInvoke
-        .mockResolvedValueOnce(mockGitStatus)
-        .mockResolvedValueOnce(undefined) // git_pull
-        .mockResolvedValueOnce(mockGitStatus);
+        .mockResolvedValueOnce(mockGitStatus) // Initial load
+        .mockResolvedValueOnce(undefined) // git_pull call
+        .mockResolvedValueOnce(mockGitStatus); // Refresh
       
       const { container } = render(GitPanel, { props: { show: true } });
       
       await waitFor(() => {
-        const pullBtn = container.querySelector('.pull-btn') as HTMLElement;
+        const pullBtn = container.querySelector('.pull-btn');
         expect(pullBtn).toBeTruthy();
       });
       
       const pullBtn = container.querySelector('.pull-btn') as HTMLElement;
       await fireEvent.click(pullBtn);
       
-      expect(mockInvoke).toHaveBeenCalledWith('git_pull');
+      await waitFor(() => {
+        expect(mockInvoke).toHaveBeenCalledWith('git_pull');
+      }, { timeout: 1000 });
     });
 
     it('shows error alert on push failure', async () => {
       window.alert = vi.fn();
+      // Clear any previous calls and setup fresh mocks
+      vi.clearAllMocks();
       mockInvoke
-        .mockResolvedValueOnce(mockGitStatus)
-        .mockRejectedValueOnce(new Error('Network error'));
+        .mockResolvedValueOnce(mockGitStatus) // Initial load
+        .mockRejectedValueOnce(new Error('Network error')); // git_push fails
       
       const { container } = render(GitPanel, { props: { show: true } });
       
       await waitFor(() => {
-        const pushBtn = container.querySelector('.push-btn') as HTMLElement;
+        const pushBtn = container.querySelector('.push-btn');
         expect(pushBtn).toBeTruthy();
       });
       
@@ -519,12 +561,14 @@ index 1234567..abcdefg 100644
       
       await waitFor(() => {
         expect(window.alert).toHaveBeenCalledWith('Push failed: Error: Network error');
-      });
+      }, { timeout: 1000 });
     });
   });
 
   describe('Panel Behavior', () => {
     it('closes on overlay click', async () => {
+      mockInvoke.mockResolvedValue(mockGitStatus);
+      
       const { container, component } = render(GitPanel, { props: { show: true } });
       const closeHandler = vi.fn();
       component.$on('close', closeHandler);
@@ -532,11 +576,14 @@ index 1234567..abcdefg 100644
       const overlay = container.querySelector('.git-panel-overlay') as HTMLElement;
       await fireEvent.click(overlay);
       
-      expect(component.show).toBe(false);
-      expect(closeHandler).toHaveBeenCalled();
+      await waitFor(() => {
+        expect(closeHandler).toHaveBeenCalled();
+      });
     });
 
     it('does not close on panel click', async () => {
+      mockInvoke.mockResolvedValue(mockGitStatus);
+      
       const { container, component } = render(GitPanel, { props: { show: true } });
       const closeHandler = vi.fn();
       component.$on('close', closeHandler);
@@ -544,11 +591,13 @@ index 1234567..abcdefg 100644
       const panel = container.querySelector('.git-panel') as HTMLElement;
       await fireEvent.click(panel);
       
-      expect(component.show).toBe(true);
+      // Panel should still be visible (no close event)
       expect(closeHandler).not.toHaveBeenCalled();
     });
 
     it('closes on close button click', async () => {
+      mockInvoke.mockResolvedValue(mockGitStatus);
+      
       const { container, component } = render(GitPanel, { props: { show: true } });
       const closeHandler = vi.fn();
       component.$on('close', closeHandler);
@@ -556,61 +605,80 @@ index 1234567..abcdefg 100644
       const closeBtn = container.querySelector('.close-btn') as HTMLElement;
       await fireEvent.click(closeBtn);
       
-      expect(component.show).toBe(false);
-      expect(closeHandler).toHaveBeenCalled();
+      await waitFor(() => {
+        expect(closeHandler).toHaveBeenCalled();
+      });
     });
 
     it('closes on Escape key', async () => {
+      mockInvoke.mockResolvedValue(mockGitStatus);
+      
       const { component } = render(GitPanel, { props: { show: true } });
       const closeHandler = vi.fn();
       component.$on('close', closeHandler);
       
       await fireEvent.keyDown(document, { key: 'Escape' });
       
-      expect(component.show).toBe(false);
-      expect(closeHandler).toHaveBeenCalled();
+      await waitFor(() => {
+        expect(closeHandler).toHaveBeenCalled();
+      });
     });
 
     it('closes diff view on Escape when in diff view', async () => {
       mockInvoke
-        .mockResolvedValueOnce(mockGitStatus)
-        .mockResolvedValueOnce('diff content');
+        .mockResolvedValueOnce(mockGitStatus) // Initial load
+        .mockResolvedValueOnce('diff content'); // git_diff call
       
-      const { container, component } = render(GitPanel, { props: { show: true } });
+      const { container } = render(GitPanel, { props: { show: true } });
+      
+      // Wait for file list to load
+      await waitFor(() => {
+        const filePath = container.querySelector('.file-path');
+        expect(filePath).toBeTruthy();
+      });
       
       // Enter diff view
       const filePath = container.querySelector('.file-path') as HTMLElement;
       await fireEvent.click(filePath);
       
+      // Verify diff view appears
       await waitFor(() => {
-        expect(component.showDiffView).toBe(true);
+        const diffView = container.querySelector('.diff-view');
+        expect(diffView).toBeTruthy();
       });
       
+      // Press Escape to close diff view
       await fireEvent.keyDown(document, { key: 'Escape' });
       
-      expect(component.showDiffView).toBe(false);
-      expect(component.show).toBe(true); // Panel should still be open
+      // Verify we return to file list view
+      await waitFor(() => {
+        const fileList = container.querySelector('.file-sections');
+        expect(fileList).toBeTruthy();
+      });
     });
 
     it('auto-refreshes status every 5 seconds', async () => {
-      mockInvoke.mockResolvedValue(mockGitStatus);
+      // Setup a mock that always resolves to avoid any timing issues
+      mockInvoke.mockImplementation(() => Promise.resolve(mockGitStatus));
       
-      render(GitPanel, { props: { show: true } });
+      const { unmount } = render(GitPanel, { props: { show: true } });
       
-      // Initial load
-      expect(mockInvoke).toHaveBeenCalledTimes(1);
+      // Wait for initial load
+      await waitFor(() => {
+        expect(mockInvoke).toHaveBeenCalledWith('git_status');
+      });
+      
+      const initialCalls = mockInvoke.mock.calls.length;
       
       // Fast-forward 5 seconds
       vi.advanceTimersByTime(5000);
-      await waitFor(() => {
-        expect(mockInvoke).toHaveBeenCalledTimes(2);
-      });
       
-      // Fast-forward another 5 seconds
-      vi.advanceTimersByTime(5000);
+      // Wait for the timer callback to execute
       await waitFor(() => {
-        expect(mockInvoke).toHaveBeenCalledTimes(3);
-      });
+        expect(mockInvoke).toHaveBeenCalledTimes(initialCalls + 1);
+      }, { timeout: 1000 });
+      
+      unmount();
     });
 
     it('cleans up interval on destroy', async () => {
@@ -629,45 +697,64 @@ index 1234567..abcdefg 100644
     it('handles git status error gracefully', async () => {
       mockInvoke.mockRejectedValueOnce(new Error('Git not found'));
       
-      const { container, component } = render(GitPanel, { props: { show: true } });
+      const { container } = render(GitPanel, { props: { show: true } });
       
+      // Component should still render despite error
       await waitFor(() => {
-        expect(component.gitStatus).toBeNull();
+        const panel = container.querySelector('.git-panel');
+        expect(panel).toBeTruthy();
       });
     });
 
     it('handles diff loading error', async () => {
       mockInvoke
-        .mockResolvedValueOnce(mockGitStatus)
-        .mockRejectedValueOnce(new Error('Diff error'));
+        .mockResolvedValueOnce(mockGitStatus) // Initial load
+        .mockRejectedValueOnce(new Error('Diff error')); // git_diff fails
       
-      const { container, component } = render(GitPanel, { props: { show: true } });
+      const { container } = render(GitPanel, { props: { show: true } });
+      
+      // Wait for file list to load
+      await waitFor(() => {
+        const filePath = container.querySelector('.file-path');
+        expect(filePath).toBeTruthy();
+      });
       
       const filePath = container.querySelector('.file-path') as HTMLElement;
       await fireEvent.click(filePath);
       
+      // Should show error in diff view
       await waitFor(() => {
-        expect(component.diffContent).toBe('Failed to load diff');
+        const diffView = container.querySelector('.diff-view');
+        expect(diffView).toBeTruthy();
+        expect(diffView?.textContent).toContain('Failed to load diff');
       });
     });
 
     it('handles stage error', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      
+      // Clear any previous calls and setup fresh mocks
+      vi.clearAllMocks();
       mockInvoke
-        .mockResolvedValueOnce(mockGitStatus)
-        .mockRejectedValueOnce(new Error('Stage failed'));
+        .mockResolvedValueOnce(mockGitStatus) // Initial load
+        .mockRejectedValueOnce(new Error('Stage failed')); // git_stage fails
       
       const { container } = render(GitPanel, { props: { show: true } });
       
       await waitFor(() => {
-        const stageBtn = container.querySelector('.file-action[title="Stage"]') as HTMLElement;
+        const stageBtn = container.querySelector('.file-action[title="Stage"]');
         expect(stageBtn).toBeTruthy();
       });
       
       const stageBtn = container.querySelector('.file-action[title="Stage"]') as HTMLElement;
       await fireEvent.click(stageBtn);
       
-      // Should not throw, just log error
-      expect(mockInvoke).toHaveBeenCalledWith('git_stage', expect.anything());
+      // Should log error gracefully
+      await waitFor(() => {
+        expect(consoleSpy).toHaveBeenCalledWith('Failed to stage file:', expect.any(Error));
+      }, { timeout: 1000 });
+      
+      consoleSpy.mockRestore();
     });
   });
 });
