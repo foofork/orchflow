@@ -1,3 +1,5 @@
+<svelte:options accessors={true} />
+
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
   
@@ -21,6 +23,7 @@
   }
   
   function getTabIcon(type: string): string {
+    if (!type) return '📋'; // Handle empty type
     switch (type) {
       case 'terminal': return '📟';
       case 'file': return '📄';
@@ -64,23 +67,38 @@
   }
 </script>
 
-<div class="tab-bar">
+<div class="tab-bar" role="tablist">
   {#each tabs as tab (tab.id)}
     <div
       class="tab"
       class:active={tab.id === activeTabId}
+      role="tab"
+      aria-selected={tab.id === activeTabId}
+      tabindex="0"
       on:click={() => selectTab(tab.id)}
+      on:keydown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          selectTab(tab.id);
+        }
+      }}
       draggable="true"
       on:dragstart={(e) => handleDragStart(e, tab.id)}
       on:dragover={handleDragOver}
       on:drop={(e) => handleDrop(e, tab.id)}
     >
       <span class="tab-icon">{getTabIcon(tab.type)}</span>
-      <span class="tab-title">{tab.title}</span>
+      <span class="tab-title">{tab.title || 'Untitled'}</span>
       <button
         class="tab-close"
         on:click={(e) => closeTab(tab.id, e)}
+        on:keydown={(e) => {
+          if (e.key === 'Enter') {
+            closeTab(tab.id, e);
+          }
+        }}
         title="Close tab"
+        aria-label={`Close ${tab.title || 'tab'}`}
       >
         ×
       </button>

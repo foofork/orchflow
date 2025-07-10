@@ -1,0 +1,16 @@
+{
+  "default": [
+    {
+      "key": "orchflow-orchestration-analysis",
+      "value": "Comparing sidecar (ruv-FANN) vs project-specific (claude-code style) orchestration for orchflow terminal IDE",
+      "namespace": "default",
+      "timestamp": 1752156527003
+    },
+    {
+      "key": "orchestration-decision",
+      "value": "Recommendation: Sidecar pattern with ruv-FANN - 8.5/10 score vs 6.0/10 for project-specific. Key benefits: 2.8-4.4x performance, neural AI, unified orchestration",
+      "namespace": "default",
+      "timestamp": 1752156603862
+    }
+  ]
+}
