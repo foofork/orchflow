@@ -58,15 +58,15 @@ Orchflow has successfully completed **all infrastructure and core implementation
 - ✅ **Frontend migration** - Manager API replacing Orchestrator
 - ✅ **Performance optimized** - <100ms startup, ~10MB memory
 
-**Current Status**: Phase 7 Complete! Core UI implemented. Working on remaining features and polish.
-
-## 🎉 UPDATE: All Tests Passing! (January 2025)
-
-**Major Discovery**: Hive Mind analysis revealed the test suite is fully functional:
-- ✅ **139/139 tests PASSING** (not 51 failing as previously reported)
-- ✅ **No blockers** for feature development
-- ⚠️ **Test coverage at 24.07%** - needs improvement to >90%
-- 🚀 **Development unblocked** - can proceed with features using TDD
+**Test Coverage Progress** (Updated January 10, 2025):
+- ✅ Terminal component: 27 tests written (all passing)
+- ✅ FileExplorer component: 26 tests written (24 passing, 2 skipped)
+- ✅ CodeMirrorEditor component: 29 tests written (28 passing, 1 skipped)
+- ✅ Service layer tests: Complete (metrics, terminal-ipc, theme)
+- ✅ Dashboard/DashboardEnhanced: Tests complete
+- 🚧 NeovimEditor: Tests pending (complex tmux/neovim integration)
+- 🚧 GitPanel: Tests pending
+- 🚧 ~33 components still need test coverage
 
 This changes our immediate priorities from fixing tests to improving coverage!
 
@@ -181,12 +181,30 @@ This changes our immediate priorities from fixing tests to improving coverage!
   - [x] Fixed manager store test auto-initialization issues ✅
   - [x] Fixed orchestrator store test missing methods ✅
   - [x] Fixed tauri-orchestrator test expectations ✅
-- [ ] Write tests for Terminal, TerminalPane, TerminalManager (TDD)
-- [ ] Write tests for FileExplorer, FileManager components (TDD)
-- [ ] Write tests for Editor, EditorPane components (TDD)
+- [x] Write tests for Terminal component (27 tests, all passing) ✅
+- [ ] Write tests for TerminalPane, TerminalManager (TDD)
+- [x] Write tests for FileExplorer component (24 passing, 2 skipped) ✅
+- [ ] Write tests for FileManager component (TDD)
+- [x] Write tests for CodeMirrorEditor component (28 passing, 1 skipped) ✅
+- [ ] Write tests for NeovimEditor component (TDD)
 - [x] Write tests for service layer (metrics, terminal-ipc, theme) ✅
-- [ ] Write tests for Dashboard and GitPanel components
+- [x] Write tests for Dashboard and DashboardEnhanced components ✅
+- [ ] Write tests for GitPanel component
+- [ ] Write tests for remaining UI components (FileTree, SymbolOutline, etc)
 - [ ] Achieve >90% test coverage across all modules (currently 26.91%)
+
+**Address Skipped Tests & Technical Debt** (Week 1-2) 🚨 NEW PRIORITY
+- [ ] Fix skipped tests across components:
+  - [ ] FileExplorer: 2 skipped (collapse animation, loading indicator)
+  - [ ] CodeMirrorEditor: 1 skipped (transient loading state)
+- [ ] Review and fix all .skip() tests across the codebase
+- [ ] Address TODO comments in test files before marking coverage complete
+- [ ] Implement missing features discovered during testing:
+  - [ ] FileExplorer collapse animation handling
+  - [ ] Loading state visibility improvements
+  - [ ] CodeMirror import path fix (EditorView should come from @codemirror/view)
+- [ ] Document known limitations and workarounds
+- [ ] Ensure all test utilities and helpers are properly typed
 
 
 
@@ -314,6 +332,7 @@ This changes our immediate priorities from fixing tests to improving coverage!
 - [ ] Load testing
 
 ### Active Feature Work (BLOCKED until Phase 1 complete)
+**Note**: Phase 1 is NOT complete until all skipped tests are addressed or properly documented as known limitations.
 - **Git Integration Panel**: Branch management, diff viewer, commit interface
   - [ ] Write component tests for GitPanel
   - [ ] Write integration tests for git operations
@@ -445,7 +464,13 @@ This changes our immediate priorities from fixing tests to improving coverage!
 2. **Implementation**: Web terminals, containers, multi-tenancy
 
 ## What's Next
-Focus: Test coverage to >90% → Complete TODOs → Terminal intelligence
+Focus: Test coverage to >90% → Fix skipped tests & technical debt → Complete TODOs → Terminal intelligence
+
+**Immediate Priority**: Before marking test coverage phase complete, must address:
+1. All skipped tests (.skip()) must be fixed or documented as known limitations
+2. All TODO comments in test files must be resolved
+3. Technical debt from testing phase must be addressed
+4. Coverage must reach >90% with no artificial inflation from skipped tests
 
 ## Component Analysis & Priorities 📊
 
