@@ -78,7 +78,7 @@ sudo apt install -y tmux neovim imagemagick
 ```bash
 # Clone the repository
 git clone https://github.com/orchflow/orchflow.git
-cd orchflow/frontend
+cd orchflow/desktop
 
 # Install dependencies
 npm install

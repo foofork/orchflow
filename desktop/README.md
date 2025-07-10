@@ -45,7 +45,7 @@ Download the latest installer for your platform:
 
 # Clone the repository
 git clone https://github.com/orchflow/orchflow.git
-cd orchflow/frontend
+cd orchflow/desktop
 
 # Install dependencies
 npm install

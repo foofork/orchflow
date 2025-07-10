@@ -9,9 +9,9 @@ ORCHESTRATOR_PID=$!
 # Wait for orchestrator to start
 sleep 2
 
-# Start the frontend
-echo "Starting frontend..."
-cd ../frontend
+# Start the desktop
+echo "Starting desktop..."
+cd ../desktop
 npm run dev &
 FRONTEND_PID=$!
 

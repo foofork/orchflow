@@ -30,7 +30,7 @@ This project and everyone participating in it is governed by our Code of Conduct
    ```bash
    # Fork via GitHub UI, then:
    git clone https://github.com/YOUR_USERNAME/orchflow.git
-   cd orchflow/frontend
+   cd orchflow/desktop
    git remote add upstream https://github.com/orchflow/orchflow.git
    ```
 

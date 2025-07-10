@@ -31,8 +31,8 @@ echo ""
 echo "🚀 Starting Orchflow Desktop..."
 echo ""
 
-# Navigate to frontend directory
-cd frontend
+# Navigate to desktop directory
+cd desktop
 
 # Install dependencies if needed
 if [ ! -d "node_modules" ]; then

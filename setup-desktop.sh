@@ -1,5 +1,5 @@
 #!/bin/bash
-# Setup script for OrchFlow frontend
+# Setup script for OrchFlow desktop
 
 cd "$(dirname "$0")"
 
@@ -23,9 +23,9 @@ fi
 echo "✅ Prerequisites checked"
 echo ""
 
-# Install frontend dependencies
-echo "📦 Installing frontend dependencies..."
-cd frontend
+# Install desktop dependencies
+echo "📦 Installing desktop dependencies..."
+cd desktop
 npm install
 
 echo ""
