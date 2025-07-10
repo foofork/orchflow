@@ -297,7 +297,8 @@ This changes our immediate priorities from fixing tests to improving coverage!
 - [ ] Create visual security indicators
 - [ ] Design plugin sandboxing for terminal access
 - [ ] Add rate limiting and resource protection
-> **📖 See [Terminal Security Implementation Guide](docs/security/TERMINAL_SECURITY_IMPLEMENTATION.md) for detailed design**
+> **📖 See [Terminal Security Design](docs/security/TERMINAL_SECURITY_DESIGN.md) for comprehensive architecture**
+> **📖 See [Terminal Security Implementation Guide](docs/security/TERMINAL_SECURITY_IMPLEMENTATION.md) for detailed implementation**
 
 **Production Hardening** (Week 6)
 - [ ] Performance profiling and optimization
