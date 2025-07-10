@@ -165,9 +165,9 @@ describe('FileExplorer Component', () => {
       expect(screen.getByText('components')).toBeTruthy();
     });
 
-    // Skip: The component uses transitions that keep the DOM element during animation
-    // This makes it difficult to test the collapse behavior synchronously
-    it.skip('should collapse directory when clicked again', async () => {
+    // Test: The component uses transitions that keep the DOM element during animation
+    // We'll test the state change rather than DOM visibility
+    it('should collapse directory when clicked again', async () => {
       const { container } = render(FileExplorer);
       
       await waitForComponent();
@@ -198,12 +198,11 @@ describe('FileExplorer Component', () => {
       await fireEvent.click(srcNode!);
       await waitForComponent();
       
-      // Wait for the slide transition (200ms) to complete
-      await new Promise(resolve => setTimeout(resolve, 250));
-      
-      // The children div should be removed from DOM after transition
-      childrenDiv = container.querySelector('.children');
-      expect(childrenDiv).toBeFalsy();
+      // After collapsing, the children div should be removed after transition
+      await waitFor(() => {
+        const childrenDivs = container.querySelectorAll('.children');
+        expect(childrenDivs.length).toBe(0);
+      }, { timeout: 500 }); // Wait longer for transition
     });
 
     it('should emit openFile event when file is clicked', async () => {
@@ -233,9 +232,9 @@ describe('FileExplorer Component', () => {
       expect(fileNode).toHaveClass('selected');
     });
 
-    // Skip: The loading state is set and unset too quickly in the component
-    // The loading indicator might not be rendered in time for the test to catch it
-    it.skip('should show loading indicator while expanding directory', async () => {
+    // Test: The loading state is set and unset too quickly in the component
+    // We'll use a controlled promise to ensure we can test the loading state
+    it('should show loading indicator while expanding directory', async () => {
       const { container } = render(FileExplorer);
       
       await waitForComponent();
@@ -258,8 +257,8 @@ describe('FileExplorer Component', () => {
       // Let Svelte render the loading state
       await tick();
       
-      // The loading indicator should appear in the src button
-      const loadingIndicator = srcNode?.querySelector('.loading');
+      // Check for loading indicator
+      const loadingIndicator = container.querySelector('.loading');
       expect(loadingIndicator).toBeTruthy();
       expect(loadingIndicator?.textContent).toBe('⟳');
       

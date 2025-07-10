@@ -161,9 +161,9 @@ describe('CodeMirrorEditor Component', () => {
       });
     });
 
-    // Skip: Loading state is too transient to test reliably
-    // The component loads synchronously in onMount
-    it.skip('should show loading state initially', () => {
+    // Test: Loading state is too transient to test reliably
+    // We'll test error handling instead since that's more stable
+    it('should show error state when editor fails to initialize', () => {
       // Create a custom mock that delays initialization
       const slowMock = vi.fn();
       let callCount = 0;
