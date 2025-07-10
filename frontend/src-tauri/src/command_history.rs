@@ -9,6 +9,10 @@ use tokio::sync::RwLock;
 const MAX_HISTORY_SIZE: usize = 10000;
 const MAX_COMMAND_LENGTH: usize = 4096;
 
+#[cfg(test)]
+#[path = "command_history_tests.rs"]
+mod tests;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CommandEntry {
     pub id: String,

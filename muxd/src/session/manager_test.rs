@@ -1,7 +1,11 @@
 #[cfg(test)]
 mod tests {
-    use super::*;
+    
+    use crate::session::SessionManager;
+    use crate::error::MuxdError;
     use crate::protocol::PaneType;
+    use bytes::Bytes;
+    use tokio::sync::mpsc;
 
     fn create_test_manager() -> SessionManager {
         SessionManager::new(10, 20)
@@ -26,7 +30,7 @@ mod tests {
         
         let sessions = manager.list_sessions();
         assert_eq!(sessions.len(), 1);
-        assert_eq!(sessions[0].0, session_id.0);
+        assert_eq!(sessions[0].0, session_id);
     }
 
     #[test]
@@ -55,12 +59,12 @@ mod tests {
         let manager = create_test_manager();
         
         let session_id = manager.create_session("test-session".to_string()).unwrap();
+        let (tx, _rx) = mpsc::unbounded_channel::<Bytes>();
         
         let result = manager.create_pane(
             &session_id,
             PaneType::Terminal,
-            None,
-            None,
+            tx,
         );
         
         assert!(result.is_ok(), "Failed to create pane");
@@ -77,16 +81,20 @@ mod tests {
         let session_id = manager.create_session("test-session".to_string()).unwrap();
         
         // Create max panes
-        let _pane1 = manager.create_pane(&session_id, PaneType::Terminal, None, None).unwrap();
-        let _pane2 = manager.create_pane(&session_id, PaneType::Terminal, None, None).unwrap();
+        let (tx1, _rx1) = mpsc::unbounded_channel::<Bytes>();
+        let (tx2, _rx2) = mpsc::unbounded_channel::<Bytes>();
+        let (tx3, _rx3) = mpsc::unbounded_channel::<Bytes>();
+        
+        let _pane1 = manager.create_pane(&session_id, PaneType::Terminal, tx1).unwrap();
+        let _pane2 = manager.create_pane(&session_id, PaneType::Terminal, tx2).unwrap();
         
         // Try to create one more
-        let result = manager.create_pane(&session_id, PaneType::Terminal, None, None);
+        let result = manager.create_pane(&session_id, PaneType::Terminal, tx3);
         assert!(result.is_err());
         
         match result.unwrap_err() {
             MuxdError::ResourceLimit { resource, limit } => {
-                assert_eq!(resource, "panes");
+                assert_eq!(resource, "panes per session");
                 assert_eq!(limit, 2);
             }
             _ => panic!("Expected ResourceLimit error"),
@@ -100,8 +108,11 @@ mod tests {
         let session_id = manager.create_session("test-session".to_string()).unwrap();
         
         // Create multiple panes
-        let pane1 = manager.create_pane(&session_id, PaneType::Terminal, None, None).unwrap();
-        let pane2 = manager.create_pane(&session_id, PaneType::Custom("editor".to_string()), None, None).unwrap();
+        let (tx1, _rx1) = mpsc::unbounded_channel::<Bytes>();
+        let (tx2, _rx2) = mpsc::unbounded_channel::<Bytes>();
+        
+        let pane1 = manager.create_pane(&session_id, PaneType::Terminal, tx1).unwrap();
+        let pane2 = manager.create_pane(&session_id, PaneType::Custom("editor".to_string()), tx2).unwrap();
         
         let panes = manager.list_panes(&session_id).unwrap();
         assert_eq!(panes.len(), 2);
@@ -118,37 +129,43 @@ mod tests {
         let session_id = manager.create_session("test-session".to_string()).unwrap();
         
         // Create panes
-        let pane1 = manager.create_pane(&session_id, PaneType::Terminal, None, None).unwrap();
-        let pane2 = manager.create_pane(&session_id, PaneType::Terminal, None, None).unwrap();
+        let (tx1, _rx1) = mpsc::unbounded_channel::<Bytes>();
+        let (tx2, _rx2) = mpsc::unbounded_channel::<Bytes>();
+        
+        let pane1 = manager.create_pane(&session_id, PaneType::Terminal, tx1).unwrap();
+        let pane2 = manager.create_pane(&session_id, PaneType::Terminal, tx2).unwrap();
         
         // Set active pane
         manager.set_active_pane(&session_id, &pane2.id).unwrap();
         
-        // Get active pane
-        let active = manager.get_active_pane(&session_id).unwrap();
-        assert_eq!(active.id, pane2.id);
+        // Verify active pane through session
+        let session = manager.get_session(&session_id).unwrap();
+        let session_guard = session.read();
+        assert_eq!(session_guard.active_pane, Some(pane2.id.clone()));
+        drop(session_guard);
         
         // Switch active pane
         manager.set_active_pane(&session_id, &pane1.id).unwrap();
-        let active = manager.get_active_pane(&session_id).unwrap();
-        assert_eq!(active.id, pane1.id);
+        let session_guard = session.read();
+        assert_eq!(session_guard.active_pane, Some(pane1.id.clone()));
     }
 
     #[test]
-    fn test_close_pane() {
+    fn test_kill_pane() {
         let manager = create_test_manager();
         
         let session_id = manager.create_session("test-session".to_string()).unwrap();
-        let pane = manager.create_pane(&session_id, PaneType::Terminal, None, None).unwrap();
+        let (tx, _rx) = mpsc::unbounded_channel::<Bytes>();
+        let pane = manager.create_pane(&session_id, PaneType::Terminal, tx).unwrap();
         
-        // Close pane
-        manager.close_pane(&session_id, &pane.id).unwrap();
+        // Kill pane
+        manager.kill_pane(&session_id, &pane.id).unwrap();
         
         // Verify pane is gone
         let panes = manager.list_panes(&session_id).unwrap();
         assert_eq!(panes.len(), 0);
         
-        // Try to get closed pane
+        // Try to get killed pane
         let result = manager.get_pane(&session_id, &pane.id);
         assert!(result.is_err());
     }
@@ -160,11 +177,14 @@ mod tests {
         let session_id = manager.create_session("test-session".to_string()).unwrap();
         
         // Create some panes
-        manager.create_pane(&session_id, PaneType::Terminal, None, None).unwrap();
-        manager.create_pane(&session_id, PaneType::Custom("editor".to_string()), None, None).unwrap();
+        let (tx1, _rx1) = mpsc::unbounded_channel::<Bytes>();
+        let (tx2, _rx2) = mpsc::unbounded_channel::<Bytes>();
         
-        // Close session
-        manager.close_session(&session_id).unwrap();
+        manager.create_pane(&session_id, PaneType::Terminal, tx1).unwrap();
+        manager.create_pane(&session_id, PaneType::Custom("editor".to_string()), tx2).unwrap();
+        
+        // Delete session
+        manager.delete_session(&session_id).unwrap();
         
         // Verify session is gone
         let sessions = manager.list_sessions();

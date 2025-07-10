@@ -1,9 +1,11 @@
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use std::io::Write;
+    
+    use crate::terminal::Pty;
+    use std::collections::HashMap;
+    use std::io::Read;
     use std::time::Duration;
-    use tokio::time::sleep;
+    
 
     #[test]
     fn test_pty_creation() {
@@ -63,7 +65,7 @@ mod tests {
 
     #[test]
     fn test_pty_resize() {
-        let mut pty = Pty::new().unwrap();
+        let pty = Pty::new().unwrap();
         
         let result = pty.resize(100, 40);
         assert!(result.is_ok(), "Failed to resize PTY");

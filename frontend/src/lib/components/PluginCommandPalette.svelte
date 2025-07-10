@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { orchestratorClient } from '$lib/api/orchestrator-client';
+  import { manager } from '$lib/stores/manager';
   
   interface PluginCommand {
     pluginId: string;
@@ -88,13 +88,12 @@
     loading = true;
     
     try {
-      const result = await orchestratorClient.executePluginCommand(
-        command.pluginId,
-        command.command,
-        {}
-      );
+      // TODO: Manager API doesn't have executePluginCommand yet
+      // This functionality needs to be implemented in the manager
+      console.warn('Plugin command execution not yet implemented in manager:', command.command);
       
-      console.log('Command executed:', command.command, result);
+      // For now, just log and close
+      console.log('Would execute command:', command.command);
       show = false;
     } catch (error) {
       console.error('Failed to execute command:', error);

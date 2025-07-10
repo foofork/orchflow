@@ -59,7 +59,7 @@ pub struct FileEntry {
     pub permissions: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum FileEntryType {
     File,
@@ -67,7 +67,7 @@ pub enum FileEntryType {
     Symlink,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum FileOperationResult {
     Success,
     Conflict,

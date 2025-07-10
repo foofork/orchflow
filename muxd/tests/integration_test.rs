@@ -69,7 +69,7 @@ async fn test_multiple_panes_in_session() -> Result<()> {
     
     // Create multiple panes
     let (tx1, _rx1) = mpsc::unbounded_channel();
-    let pane1 = session_manager.create_pane(
+    let _pane1 = session_manager.create_pane(
         &session_id,
         PaneType::Terminal,
         tx1,
@@ -83,7 +83,7 @@ async fn test_multiple_panes_in_session() -> Result<()> {
     )?;
     
     let (tx3, _rx3) = mpsc::unbounded_channel();
-    let pane3 = session_manager.create_pane(
+    let _pane3 = session_manager.create_pane(
         &session_id,
         PaneType::Custom("editor".to_string()),
         tx3,
@@ -140,7 +140,7 @@ async fn test_concurrent_pane_operations() -> Result<()> {
     // Create multiple panes concurrently
     let mut handles = vec![];
     
-    for i in 0..10 {
+    for _i in 0..10 {
         let sm = session_manager.clone();
         let sid = session_id.clone();
         

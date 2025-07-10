@@ -5,6 +5,7 @@
 
 pub mod pty_manager;
 pub mod ipc_handler;
+pub mod ipc_trait;
 pub mod protocol;
 pub mod state;
 pub mod buffer;
@@ -13,6 +14,7 @@ mod simple_tests;
 
 pub use pty_manager::{PtyManager, PtyHandle};
 pub use ipc_handler::{IpcHandler, TerminalEvent};
+pub use ipc_trait::{IpcChannel, TauriIpcChannel};
 pub use protocol::{
     TerminalInput, ControlMessage,
     CreateTerminalOptions, TerminalMetadata,
@@ -25,22 +27,28 @@ use tokio::sync::RwLock;
 /// Main terminal streaming coordinator
 pub struct TerminalStreamManager {
     pty_manager: Arc<PtyManager>,
-    ipc_handler: Arc<IpcHandler>,
+    ipc_channel: Arc<dyn IpcChannel>,
     terminals: Arc<RwLock<std::collections::HashMap<String, TerminalState>>>,
     pty_handles: Arc<RwLock<std::collections::HashMap<String, PtyHandle>>>,
 }
 
 impl TerminalStreamManager {
-    pub fn new(app_handle: tauri::AppHandle) -> Self {
+    /// Create a new TerminalStreamManager with a specific IPC channel
+    pub fn with_ipc_channel(ipc_channel: Arc<dyn IpcChannel>) -> Self {
         let pty_manager = Arc::new(PtyManager::new());
-        let ipc_handler = Arc::new(IpcHandler::new(app_handle));
         
         Self {
             pty_manager,
-            ipc_handler,
+            ipc_channel,
             terminals: Arc::new(RwLock::new(std::collections::HashMap::new())),
             pty_handles: Arc::new(RwLock::new(std::collections::HashMap::new())),
         }
+    }
+    
+    /// Create a new TerminalStreamManager with Tauri IPC (for production)
+    pub fn new(app_handle: tauri::AppHandle) -> Self {
+        let ipc_channel = Arc::new(TauriIpcChannel::new(app_handle));
+        Self::with_ipc_channel(ipc_channel)
     }
     
     /// Create a new terminal with streaming
@@ -67,7 +75,7 @@ impl TerminalStreamManager {
         self.pty_handles.write().await.insert(terminal_id.clone(), pty_handle.clone());
         
         // Start streaming
-        self.ipc_handler.start_streaming(terminal_id, pty_handle.clone()).await?;
+        self.ipc_channel.start_streaming(terminal_id, pty_handle.clone()).await?;
         
         Ok(pty_handle)
     }
@@ -78,7 +86,7 @@ impl TerminalStreamManager {
         terminal_id: &str,
         input: TerminalInput,
     ) -> Result<(), crate::error::OrchflowError> {
-        self.ipc_handler.send_input(terminal_id, input).await
+        self.ipc_channel.send_input(terminal_id, input).await
     }
     
     /// Resize terminal
@@ -103,7 +111,7 @@ impl TerminalStreamManager {
         }
         
         // Notify clients
-        self.ipc_handler.send_control(
+        self.ipc_channel.send_control(
             terminal_id,
             ControlMessage::Resize { rows, cols },
         ).await?;
@@ -124,7 +132,7 @@ impl TerminalStreamManager {
         &self,
         terminal_id: &str,
     ) -> Result<(), crate::error::OrchflowError> {
-        self.ipc_handler.stop_streaming(terminal_id).await?;
+        self.ipc_channel.stop_streaming(terminal_id).await?;
         
         // Shutdown PTY
         if let Some(pty_handle) = self.pty_handles.write().await.remove(terminal_id) {
@@ -239,3 +247,7 @@ pub enum HealthStatus {
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod testable_tests;
+#[cfg(test)]
+mod test_only;

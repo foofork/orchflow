@@ -559,6 +559,67 @@ let z = 789;"#
 #[cfg(all(test, not(target_os = "windows")))]
 mod integration_tests {
     use super::*;
+    use tempfile::TempDir;
+    use crate::project_search::{ProjectSearch, SearchOptions};
+    use crate::error::Result;
+    use tokio::fs;
+    
+    async fn create_test_files(dir: &TempDir) -> Result<()> {
+        // Create test file structure
+        let src_dir = dir.path().join("src");
+        fs::create_dir(&src_dir).await?;
+        
+        // Test file 1: main.rs
+        fs::write(
+            src_dir.join("main.rs"),
+            r#"fn main() {
+    println!("Hello, world!");
+    let foo = "test string";
+    println!("foo: {}", foo);
+}
+
+#[test]
+fn test_foo() {
+    assert_eq!(foo(), "test");
+}
+"#
+        ).await?;
+        
+        // Test file 2: lib.rs
+        fs::write(
+            src_dir.join("lib.rs"),
+            r#"pub mod utils;
+
+pub fn foo() -> &'static str {
+    "test"
+}
+
+pub fn bar(x: i32) -> i32 {
+    x * 2
+}
+"#
+        ).await?;
+        
+        // Test file 3: test.txt
+        fs::write(
+            dir.path().join("test.txt"),
+            "This is a test file\nwith multiple lines\nfor testing search\n"
+        ).await?;
+        
+        // Test file 4: README.md
+        fs::write(
+            dir.path().join("README.md"),
+            "# Test Project\n\nThis is a test readme with foo mentioned.\n"
+        ).await?;
+        
+        // Create a binary file to test exclusion
+        fs::write(
+            dir.path().join("binary.bin"),
+            vec![0xFF, 0xFE, 0x00, 0x01]
+        ).await?;
+        
+        Ok(())
+    }
     
     #[tokio::test]
     async fn test_symlink_handling() -> Result<()> {

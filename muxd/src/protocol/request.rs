@@ -1,7 +1,5 @@
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 use std::collections::HashMap;
-use chrono::{DateTime, Utc};
 use crate::protocol::types::PaneSize;
 
 /// Session creation request
@@ -128,4 +126,53 @@ pub struct SubscribeRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UnsubscribeRequest {
     pub events: Vec<String>,
+}
+
+/// Update pane title request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdatePaneTitleRequest {
+    pub pane_id: String,
+    pub title: Option<String>,
+}
+
+/// Update pane working directory request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdatePaneWorkingDirRequest {
+    pub pane_id: String,
+    pub working_dir: Option<String>,
+}
+
+/// Search pane output request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SearchPaneRequest {
+    pub pane_id: String,
+    pub query: String,
+    #[serde(default)]
+    pub case_sensitive: bool,
+    #[serde(default)]
+    pub regex: bool,
+    #[serde(default = "default_max_results")]
+    pub max_results: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub start_line: Option<usize>,
+}
+
+fn default_max_results() -> usize {
+    100
+}
+
+/// Save state request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SaveStateRequest {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub session_ids: Option<Vec<String>>,
+}
+
+/// Restore state request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RestoreStateRequest {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub session_ids: Option<Vec<String>>,
+    #[serde(default)]
+    pub restart_commands: bool,
 }

@@ -155,11 +155,12 @@ pub async fn load_saved_search(
 pub async fn get_saved_searches(
     manager: State<'_, Manager>,
 ) -> Result<Vec<SavedSearch>> {
-    if let Some(_project_search) = &manager.project_search {
-        // The AdvancedSearch doesn't expose a get_all_saved_searches method
-        // We'll need to add this or work around it for now
-        // For now, return empty list - this could be enhanced later
-        Ok(vec![])
+    if let Some(project_search) = &manager.project_search {
+        let saved_searches = project_search.get_saved_searches().await;
+        let result = saved_searches.into_iter()
+            .map(|(name, options)| SavedSearch { name, options })
+            .collect();
+        Ok(result)
     } else {
         Err(crate::error::OrchflowError::ConfigurationError {
             component: "project_search".to_string(),
@@ -202,11 +203,189 @@ pub struct HighlightedMatch {
 /// Get highlighted search results
 #[tauri::command]
 pub async fn search_with_highlights(
-    _orchestrator: State<'_, Manager>,
-    _options: SearchOptions,
+    manager: State<'_, Manager>,
+    options: SearchOptions,
 ) -> Result<Vec<HighlightedSearchResult>> {
-    // TODO: Implement syntax highlighting for search results
-    Ok(vec![])
+    if let Some(project_search) = &manager.project_search {
+        let results = project_search.search(options.clone()).await
+            .map_err(|e| crate::error::OrchflowError::SearchError {
+                operation: "search_with_highlights".to_string(),
+                reason: e.to_string(),
+            })?;
+        
+        let highlighted_results = results.into_iter()
+            .map(|file_result| {
+                let language = detect_language_from_path(&file_result.path);
+                let highlighted_matches = file_result.matches.into_iter()
+                    .map(|search_match| {
+                        let line_html = highlight_line(&search_match.line_text, &options.pattern, &language);
+                        let context_before_html = search_match.context_before.iter()
+                            .map(|line| highlight_line(line, "", &language))
+                            .collect();
+                        let context_after_html = search_match.context_after.iter()
+                            .map(|line| highlight_line(line, "", &language))
+                            .collect();
+                        
+                        HighlightedMatch {
+                            line_number: search_match.line_number,
+                            line_html,
+                            context_before_html,
+                            context_after_html,
+                        }
+                    })
+                    .collect();
+                
+                HighlightedSearchResult {
+                    path: file_result.path.to_string_lossy().to_string(),
+                    language,
+                    matches: highlighted_matches,
+                }
+            })
+            .collect();
+        
+        Ok(highlighted_results)
+    } else {
+        Err(crate::error::OrchflowError::ConfigurationError {
+            component: "project_search".to_string(),
+            reason: "Project search not initialized".to_string(),
+        })
+    }
+}
+
+/// Detect language from file extension
+fn detect_language_from_path(path: &std::path::Path) -> String {
+    match path.extension().and_then(|ext| ext.to_str()) {
+        Some("rs") => "rust".to_string(),
+        Some("js") | Some("mjs") => "javascript".to_string(),
+        Some("ts") => "typescript".to_string(),
+        Some("py") => "python".to_string(),
+        Some("java") => "java".to_string(),
+        Some("cpp") | Some("cc") | Some("cxx") => "cpp".to_string(),
+        Some("c") => "c".to_string(),
+        Some("go") => "go".to_string(),
+        Some("rb") => "ruby".to_string(),
+        Some("php") => "php".to_string(),
+        Some("sh") | Some("bash") => "bash".to_string(),
+        Some("html") => "html".to_string(),
+        Some("css") => "css".to_string(),
+        Some("json") => "json".to_string(),
+        Some("xml") => "xml".to_string(),
+        Some("yaml") | Some("yml") => "yaml".to_string(),
+        Some("toml") => "toml".to_string(),
+        Some("md") => "markdown".to_string(),
+        _ => "text".to_string(),
+    }
+}
+
+/// Apply basic syntax highlighting to a line
+fn highlight_line(line: &str, search_pattern: &str, language: &str) -> String {
+    let mut highlighted = html_escape(line);
+    
+    // Highlight the search pattern if provided
+    if !search_pattern.is_empty() {
+        let pattern_escaped = html_escape(search_pattern);
+        highlighted = highlighted.replace(
+            &pattern_escaped,
+            &format!("<mark class=\"search-highlight\">{}</mark>", pattern_escaped)
+        );
+    }
+    
+    // Apply basic language-specific highlighting
+    highlighted = match language {
+        "rust" => highlight_rust(&highlighted),
+        "javascript" | "typescript" => highlight_javascript(&highlighted),
+        "python" => highlight_python(&highlighted),
+        "json" => highlight_json(&highlighted),
+        _ => highlighted,
+    };
+    
+    highlighted
+}
+
+/// HTML escape special characters
+fn html_escape(text: &str) -> String {
+    text.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&#x27;")
+}
+
+/// Basic Rust syntax highlighting
+fn highlight_rust(line: &str) -> String {
+    let keywords = [
+        "fn", "let", "mut", "const", "static", "impl", "trait", "struct", "enum",
+        "mod", "use", "pub", "crate", "super", "self", "Self", "where", "for",
+        "while", "loop", "if", "else", "match", "return", "break", "continue",
+        "async", "await", "move", "ref", "in", "as", "dyn", "unsafe"
+    ];
+    
+    let mut result = line.to_string();
+    for keyword in &keywords {
+        let pattern = format!(r"\b{}\b", keyword);
+        result = result.replace(keyword, &format!("<span class=\"keyword\">{}</span>", keyword));
+    }
+    
+    result
+}
+
+/// Basic JavaScript/TypeScript syntax highlighting
+fn highlight_javascript(line: &str) -> String {
+    let keywords = [
+        "function", "const", "let", "var", "class", "extends", "implements",
+        "interface", "type", "enum", "namespace", "module", "import", "export",
+        "default", "from", "as", "if", "else", "for", "while", "do", "switch",
+        "case", "break", "continue", "return", "try", "catch", "finally",
+        "throw", "new", "this", "super", "async", "await", "yield"
+    ];
+    
+    let mut result = line.to_string();
+    for keyword in &keywords {
+        result = result.replace(keyword, &format!("<span class=\"keyword\">{}</span>", keyword));
+    }
+    
+    result
+}
+
+/// Basic Python syntax highlighting
+fn highlight_python(line: &str) -> String {
+    let keywords = [
+        "def", "class", "import", "from", "as", "if", "elif", "else", "for",
+        "while", "try", "except", "finally", "with", "yield", "return", "break",
+        "continue", "pass", "raise", "assert", "global", "nonlocal", "lambda",
+        "async", "await", "and", "or", "not", "in", "is", "True", "False", "None"
+    ];
+    
+    let mut result = line.to_string();
+    for keyword in &keywords {
+        result = result.replace(keyword, &format!("<span class=\"keyword\">{}</span>", keyword));
+    }
+    
+    result
+}
+
+/// Basic JSON syntax highlighting
+fn highlight_json(line: &str) -> String {
+    let mut result = line.to_string();
+    
+    // Highlight strings
+    result = regex::Regex::new(r#""([^"\\]|\\.)*""#)
+        .unwrap()
+        .replace_all(&result, "<span class=\"string\">$0</span>")
+        .to_string();
+    
+    // Highlight numbers
+    result = regex::Regex::new(r"-?\d+(\.\d+)?([eE][+-]?\d+)?")
+        .unwrap()
+        .replace_all(&result, "<span class=\"number\">$0</span>")
+        .to_string();
+    
+    // Highlight booleans and null
+    for literal in &["true", "false", "null"] {
+        result = result.replace(literal, &format!("<span class=\"literal\">{}</span>", literal));
+    }
+    
+    result
 }
 
 #[derive(Debug, Serialize, Deserialize)]

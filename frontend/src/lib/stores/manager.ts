@@ -338,8 +338,10 @@ function createManagerStore() {
     destroy
   };
 
-  // Auto-initialize
-  init();
+  // Auto-initialize only in non-test environment
+  if (typeof process === 'undefined' || process.env.NODE_ENV !== 'test') {
+    init();
+  }
 
   return store;
 }

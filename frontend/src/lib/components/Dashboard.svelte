@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { orchestrator } from '$lib/stores/orchestrator';
-  import type { Session, Pane } from '$lib/api/orchestrator-client';
+  import { manager, sessions as sessionsStore, panes as panesStore } from '$lib/stores/manager';
+  import type { Session, Pane } from '$lib/api/manager-client';
   
   interface PaneMetrics {
     paneId: string;
@@ -22,13 +22,9 @@
   let refreshInterval: number;
   let showTableView = false;
   
-  // Subscribe to orchestrator state
-  $: {
-    orchestrator.subscribe(state => {
-      sessions = state.sessions;
-      panes = state.panes;
-    });
-  }
+  // Subscribe to manager stores
+  $: sessions = $sessionsStore;
+  $: panes = $panesStore;
   
   onMount(() => {
     // Start metrics collection
@@ -53,7 +49,7 @@
       };
       
       // Simulate CPU and memory values based on pane type
-      const isActive = pane.pane_type === 'terminal';
+      const isActive = pane.pane_type === 'Terminal';
       const cpu = isActive ? Math.random() * 50 + 10 : Math.random() * 5;
       const memory = isActive ? Math.random() * 200 + 50 : Math.random() * 50;
       
@@ -116,12 +112,12 @@
   }
   
   async function createNewTerminal(sessionId: string) {
-    await orchestrator.createTerminal(sessionId);
+    await manager.createTerminal(sessionId, 'Terminal');
   }
   
   async function createNewSession() {
     const name = prompt('Session name:') || `Session ${sessions.length + 1}`;
-    await orchestrator.createSession(name);
+    await manager.createSession(name);
   }
 </script>
 
@@ -178,7 +174,7 @@
                 <td>{paneMetrics.get(pane.id)?.cpu || 0}%</td>
                 <td>{formatBytes(paneMetrics.get(pane.id)?.memory || 0)}</td>
                 <td>
-                  <button class="action-btn" on:click={() => orchestrator.setActivePane(pane.id)}>
+                  <button class="action-btn" on:click={() => manager.focusPane(pane.id)}>
                     View
                   </button>
                 </td>
@@ -198,13 +194,13 @@
             {#each getSessionPanes(session.id) as pane}
               <div 
                 class="pane-card"
-                on:click={() => orchestrator.setActivePane(pane.id)}
+                on:click={() => manager.focusPane(pane.id)}
               >
                 <div class="pane-header">
                   <span class="pane-icon">
-                    {#if pane.pane_type === 'terminal'}📟
-                    {:else if pane.pane_type === 'editor'}📝
-                    {:else if pane.pane_type === 'file_tree'}📁
+                    {#if pane.pane_type === 'Terminal'}📟
+                    {:else if pane.pane_type === 'Editor'}📝
+                    {:else if pane.pane_type === 'FileTree'}📁
                     {:else}📋{/if}
                   </span>
                   <span class="pane-name">{pane.title}</span>

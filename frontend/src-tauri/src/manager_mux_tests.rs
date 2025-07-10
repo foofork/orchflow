@@ -17,7 +17,7 @@ mod tests {
         let mux_backend = create_mux_backend();
         
         // Create state store
-        let store = Arc::new(SimpleStateStore::new(":memory:").unwrap());
+        let store = Arc::new(SimpleStateStore::new().unwrap());
         
         // Create manager with mux backend
         // This test will fail until we update Manager to accept MuxBackend

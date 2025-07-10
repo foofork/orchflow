@@ -39,9 +39,9 @@
         name: 'Debug TypeScript',
         type: 'node',
         request: 'launch',
-        program: '${workspaceFolder}/orchestrator/src/index.ts',
+        program: '${workspaceFolder}/frontend/src/index.ts',
         args: ['--inspect'],
-        cwd: '${workspaceFolder}/orchestrator'
+        cwd: '${workspaceFolder}/frontend'
       },
       {
         name: 'Debug Frontend',

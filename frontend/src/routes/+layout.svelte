@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { orchestrator } from '$lib/stores/orchestrator';
+  import { manager } from '$lib/stores/manager';
   import UpdateNotification from '$lib/components/UpdateNotification.svelte';
   import { initTheme, setupThemeShortcut } from '$lib/services/theme';
   import '../app.css';
@@ -10,15 +10,14 @@
     initTheme();
     setupThemeShortcut();
     
-    // The new orchestrator is always connected (Tauri)
-    // No need to connect/disconnect
-    
-    // Initialize the orchestrator store
-    orchestrator.init();
+    // Initialize the manager store
+    // Note: manager auto-initializes in non-test environments,
+    // but we'll call init() explicitly to ensure it's ready
+    manager.init();
     
     return () => {
-      // Clean up orchestrator resources
-      orchestrator.destroy();
+      // Clean up manager resources
+      manager.destroy();
     };
   });
 </script>

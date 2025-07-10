@@ -1,0 +1,721 @@
+
+> @orchflow/gui@0.1.0 test
+> npm run test:unit --run --reporter=json
+
+
+> @orchflow/gui@0.1.0 test:unit
+> vitest run
+
+
+
+ RUN  v3.2.4 /Users/dylantullberg/Developer/orchflow/frontend
+
+stderr | src/lib/stores/__tests__/orchestrator.test.ts
+Failed to refresh sessions: TypeError: sessions is not iterable
+    at refreshSessions [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/orchestrator.ts:129:29[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:95:5)[39m
+    at init [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/orchestrator.ts:111:7[90m)[39m
+
+stderr | src/lib/stores/__tests__/manager.test.ts
+Failed to refresh sessions: TypeError: Cannot read properties of undefined (reading '0')
+    at [90m/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/manager.ts:149:51
+    at update [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4msvelte[24m/src/runtime/store/index.js:69:7[90m)[39m
+    at refreshSessions [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/manager.ts:146:7[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:95:5)[39m
+    at async Promise.all (index 0)
+    at init [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/manager.ts:126:7[90m)[39m
+
+stderr | src/lib/stores/__tests__/tauri-orchestrator.test.ts > Tauri Orchestrator > createTauriTerminal > should handle creation errors
+Failed to create terminal: Error: Failed to create pane
+    at [90m/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/__tests__/tauri-orchestrator.test.ts:84:21
+    at [90mfile:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:155:11
+    at [90mfile:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:752:26
+    at [90mfile:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1897:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1863:10[90m)[39m
+    at runTest [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1574:12[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:95:5)[39m
+    at runSuite [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1729:8[90m)[39m
+    at runSuite [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1729:8[90m)[39m
+
+stderr | src/lib/stores/__tests__/orchestrator.test.ts > Orchestrator Store > initialization > should load initial sessions
+Failed to refresh sessions: TypeError: Cannot read properties of undefined (reading 'panes')
+    at refreshSessions [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/orchestrator.ts:137:42[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:95:5)[39m
+    at Object.init [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/orchestrator.ts:111:7[90m)[39m
+    at [90m/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/__tests__/orchestrator.test.ts:90:7
+    at [90mfile:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:752:20
+
+stderr | src/lib/stores/__tests__/orchestrator.test.ts > Orchestrator Store > initialization > should handle initialization errors
+Failed to refresh sessions: Error: Failed to list sessions
+    at [90m/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/__tests__/orchestrator.test.ts:99:68
+    at [90mfile:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:155:11
+    at [90mfile:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:752:26
+    at [90mfile:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1897:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1863:10[90m)[39m
+    at runTest [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1574:12[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:95:5)[39m
+    at runSuite [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1729:8[90m)[39m
+    at runSuite [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1729:8[90m)[39m
+
+stderr | src/lib/stores/__tests__/manager.test.ts > Manager Store > initialization > should handle initialization errors
+Failed to initialize manager store: Error: Connection failed
+    at [90m/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/__tests__/manager.test.ts:106:67
+    at [90mfile:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:155:11
+    at [90mfile:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:752:26
+    at [90mfile:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1897:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1863:10[90m)[39m
+    at runTest [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1574:12[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:95:5)[39m
+    at runSuite [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1729:8[90m)[39m
+    at runSuite [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1729:8[90m)[39m
+
+ ❯ src/lib/stores/__tests__/settings.test.ts (16 tests | 6 failed) 11ms
+   × Settings Store > initialization > should load default settings when localStorage is empty 5ms
+     → expected "spy" to be called with arguments: [ 'orchflow-settings' ][90m
+
+Number of calls: [1m0[22m
+[39m
+   × Settings Store > initialization > should load settings from localStorage if available 1ms
+     → Cannot find module '../settings'
+Require stack:
+- /Users/dylantullberg/Developer/orchflow/frontend/src/lib/stores/__tests__/settings.test.ts
+   × Settings Store > initialization > should handle corrupted localStorage data gracefully 0ms
+     → Cannot find module '../settings'
+Require stack:
+- /Users/dylantullberg/Developer/orchflow/frontend/src/lib/stores/__tests__/settings.test.ts
+   ✓ Settings Store > set > should update settings and save to localStorage 0ms
+   ✓ Settings Store > set > should work when window is undefined (SSR) 0ms
+   ✓ Settings Store > update > should update specific settings and save to localStorage 0ms
+   ✓ Settings Store > update > should handle complex nested updates 0ms
+   ✓ Settings Store > update > should work when window is undefined (SSR) 0ms
+   ✓ Settings Store > reset > should reset to default settings and clear localStorage 0ms
+   ✓ Settings Store > reset > should work when window is undefined (SSR) 0ms
+   ✓ Settings Store > theme changes > should toggle theme between light and dark 0ms
+   ✓ Settings Store > terminal settings > should update terminal settings independently 0ms
+   ✓ Settings Store > editor settings > should update editor settings independently 0ms
+   × Settings Store > persistence > should persist changes across store recreations 0ms
+     → Cannot find module '../settings'
+Require stack:
+- /Users/dylantullberg/Developer/orchflow/frontend/src/lib/stores/__tests__/settings.test.ts
+   × Settings Store > edge cases > should handle partial settings objects in localStorage 0ms
+     → Cannot find module '../settings'
+Require stack:
+- /Users/dylantullberg/Developer/orchflow/frontend/src/lib/stores/__tests__/settings.test.ts
+   × Settings Store > edge cases > should handle deeply nested partial objects 0ms
+     → Cannot find module '../settings'
+Require stack:
+- /Users/dylantullberg/Developer/orchflow/frontend/src/lib/stores/__tests__/settings.test.ts
+stderr | src/lib/stores/__tests__/orchestrator.test.ts > Orchestrator Store > event handling > should handle session_closed event
+Failed to refresh sessions: TypeError: Cannot read properties of undefined (reading 'panes')
+    at Object.refreshSessions [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/orchestrator.ts:137:42[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:95:5)[39m
+
+stderr | src/lib/stores/__tests__/orchestrator.test.ts > Orchestrator Store > actions > createSession > should create a new session
+Failed to refresh sessions: TypeError: Cannot read properties of undefined (reading 'panes')
+    at refreshSessions [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/orchestrator.ts:137:42[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:95:5)[39m
+    at Object.createSession [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/orchestrator.ts:164:7[90m)[39m
+    at [90m/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/__tests__/orchestrator.test.ts:246:24
+    at [90mfile:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:752:20
+
+stderr | src/lib/stores/__tests__/manager.test.ts > Manager Store > initialization > should load initial sessions and plugins
+Failed to refresh panes: TypeError: Cannot read properties of undefined (reading 'forEach')
+    at [90m/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/manager.ts:175:15
+    at update [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4msvelte[24m/src/runtime/store/index.js:69:7[90m)[39m
+    at refreshPanes [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/manager.ts:172:7[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:95:5)[39m
+    at refreshSessions [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/manager.ts:156:9[90m)[39m
+    at async Promise.all (index 0)
+    at Object.init [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/manager.ts:126:7[90m)[39m
+    at [90m/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/__tests__/manager.test.ts:126:7
+    at [90mfile:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:752:20
+
+stderr | src/lib/stores/__tests__/orchestrator.test.ts > Orchestrator Store > actions > createSession > should handle create session errors
+Failed to create session: Error: Failed to create session
+    at [90m/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/__tests__/orchestrator.test.ts:253:23
+    at [90mfile:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:155:11
+    at [90mfile:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:752:26
+    at [90mfile:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1897:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1863:10[90m)[39m
+    at runTest [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1574:12[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:95:5)[39m
+    at runSuite [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1729:8[90m)[39m
+    at runSuite [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1729:8[90m)[39m
+
+stderr | src/lib/stores/__tests__/orchestrator.test.ts > Orchestrator Store > actions > createTerminal > should create a terminal in active session
+Failed to refresh sessions: TypeError: Cannot read properties of undefined (reading 'panes')
+    at Object.refreshSessions [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/orchestrator.ts:137:42[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:95:5)[39m
+
+stderr | src/lib/stores/__tests__/manager.test.ts > Manager Store > event handling > should refresh sessions on SessionCreated event
+Failed to refresh panes: TypeError: Cannot read properties of undefined (reading 'forEach')
+    at [90m/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/manager.ts:175:15
+    at update [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4msvelte[24m/src/runtime/store/index.js:69:7[90m)[39m
+    at refreshPanes [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/manager.ts:172:7[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:95:5)[39m
+    at refreshSessions [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/manager.ts:156:9[90m)[39m
+    at async Promise.all (index 0)
+    at Object.init [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/manager.ts:126:7[90m)[39m
+    at [90m/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/__tests__/manager.test.ts:137:7
+
+stderr | src/lib/stores/__tests__/manager.test.ts > Manager Store > event handling > should refresh sessions on SessionCreated event
+Failed to refresh panes: TypeError: Cannot read properties of undefined (reading 'forEach')
+    at [90m/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/manager.ts:175:15
+    at update [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4msvelte[24m/src/runtime/store/index.js:69:7[90m)[39m
+    at refreshPanes [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/manager.ts:172:7[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:95:5)[39m
+    at refreshSessions [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/manager.ts:156:9[90m)[39m
+
+ ❯ src/lib/services/__tests__/theme.test.ts (25 tests | 22 failed) 15ms
+   × Theme Service > setTheme > should apply dark theme 5ms
+     → Cannot read properties of undefined (reading 'setTheme')
+   × Theme Service > setTheme > should apply light theme 0ms
+     → Cannot read properties of undefined (reading 'setTheme')
+   × Theme Service > setTheme > should apply system theme based on preference 0ms
+     → Cannot read properties of undefined (reading 'setTheme')
+   × Theme Service > setTheme > should apply light theme when system prefers light 0ms
+     → Cannot read properties of undefined (reading 'setTheme')
+   × Theme Service > setTheme > should update CSS variables for theme colors 0ms
+     → Cannot read properties of undefined (reading 'setTheme')
+   × Theme Service > getTheme > should return current theme from localStorage 0ms
+     → Cannot read properties of undefined (reading 'getTheme')
+   × Theme Service > getTheme > should return system as default when no theme is stored 0ms
+     → Cannot read properties of undefined (reading 'getTheme')
+   × Theme Service > getCurrentTheme > should return actual theme when dark is set 0ms
+     → Cannot read properties of undefined (reading 'getCurrentTheme')
+   × Theme Service > getCurrentTheme > should return actual theme when light is set 0ms
+     → Cannot read properties of undefined (reading 'getCurrentTheme')
+   × Theme Service > getCurrentTheme > should return resolved theme when system is set 0ms
+     → Cannot read properties of undefined (reading 'getCurrentTheme')
+   × Theme Service > toggleTheme > should toggle from light to dark 0ms
+     → Cannot read properties of undefined (reading 'toggleTheme')
+   × Theme Service > toggleTheme > should toggle from dark to light 0ms
+     → Cannot read properties of undefined (reading 'toggleTheme')
+   × Theme Service > toggleTheme > should toggle from system to opposite of current 0ms
+     → Cannot read properties of undefined (reading 'toggleTheme')
+   × Theme Service > applyCustomTheme > should apply custom theme with all colors 0ms
+     → Cannot read properties of undefined (reading 'applyCustomTheme')
+   × Theme Service > applyCustomTheme > should apply custom theme class 0ms
+     → Cannot read properties of undefined (reading 'applyCustomTheme')
+   × Theme Service > getCustomTheme > should return saved custom theme 2ms
+     → Cannot read properties of undefined (reading 'getCustomTheme')
+   × Theme Service > getCustomTheme > should return null when no custom theme is saved 0ms
+     → Cannot read properties of undefined (reading 'getCustomTheme')
+   × Theme Service > getCustomTheme > should handle invalid JSON in localStorage 0ms
+     → Cannot read properties of undefined (reading 'getCustomTheme')
+   × Theme Service > clearCustomTheme > should remove custom theme and CSS variables 0ms
+     → Cannot read properties of undefined (reading 'clearCustomTheme')
+   × Theme Service > clearCustomTheme > should apply default theme after clearing 0ms
+     → Cannot read properties of undefined (reading 'clearCustomTheme')
+   × Theme Service > getAvailableThemes > should return default themes 0ms
+     → Cannot read properties of undefined (reading 'getAvailableThemes')
+   × Theme Service > getAvailableThemes > should include custom theme if available 0ms
+     → Cannot read properties of undefined (reading 'getAvailableThemes')
+   ✓ Theme Service > initialization > should apply saved theme on init 0ms
+   ✓ Theme Service > initialization > should apply system theme on init when no saved theme 0ms
+   ✓ Theme Service > initialization > should apply custom theme on init if saved 0ms
+11:13:28 PM [vite-plugin-svelte] /Users/dylantullberg/Developer/orchflow/frontend/src/lib/components/GitPanel.svelte:295:22 A11y: visible, non-interactive elements with an on:click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as <button type="button"> or <a> might be more appropriate. See https://svelte.dev/docs/accessibility-warnings#a11y-click-events-have-key-events for more details.
+11:13:28 PM [vite-plugin-svelte] /Users/dylantullberg/Developer/orchflow/frontend/src/lib/components/GitPanel.svelte:295:22 A11y: <span> with click handler must have an ARIA role
+11:13:28 PM [vite-plugin-svelte] /Users/dylantullberg/Developer/orchflow/frontend/src/lib/components/GitPanel.svelte:341:22 A11y: visible, non-interactive elements with an on:click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as <button type="button"> or <a> might be more appropriate. See https://svelte.dev/docs/accessibility-warnings#a11y-click-events-have-key-events for more details.
+11:13:28 PM [vite-plugin-svelte] /Users/dylantullberg/Developer/orchflow/frontend/src/lib/components/GitPanel.svelte:341:22 A11y: <span> with click handler must have an ARIA role
+11:13:28 PM [vite-plugin-svelte] /Users/dylantullberg/Developer/orchflow/frontend/src/lib/components/GitPanel.svelte:382:22 A11y: visible, non-interactive elements with an on:click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as <button type="button"> or <a> might be more appropriate. See https://svelte.dev/docs/accessibility-warnings#a11y-click-events-have-key-events for more details.
+11:13:28 PM [vite-plugin-svelte] /Users/dylantullberg/Developer/orchflow/frontend/src/lib/components/GitPanel.svelte:382:22 A11y: <span> with click handler must have an ARIA role
+11:13:28 PM [vite-plugin-svelte] /Users/dylantullberg/Developer/orchflow/frontend/src/lib/components/GitPanel.svelte:235:4 A11y: visible, non-interactive elements with an on:click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as <button type="button"> or <a> might be more appropriate. See https://svelte.dev/docs/accessibility-warnings#a11y-click-events-have-key-events for more details.
+11:13:28 PM [vite-plugin-svelte] /Users/dylantullberg/Developer/orchflow/frontend/src/lib/components/GitPanel.svelte:235:4 A11y: <div> with click handler must have an ARIA role
+11:13:28 PM [vite-plugin-svelte] /Users/dylantullberg/Developer/orchflow/frontend/src/lib/components/GitPanel.svelte:234:2 A11y: visible, non-interactive elements with an on:click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as <button type="button"> or <a> might be more appropriate. See https://svelte.dev/docs/accessibility-warnings#a11y-click-events-have-key-events for more details.
+11:13:28 PM [vite-plugin-svelte] /Users/dylantullberg/Developer/orchflow/frontend/src/lib/components/GitPanel.svelte:234:2 A11y: <div> with click handler must have an ARIA role
+11:13:28 PM [vite-plugin-svelte] /Users/dylantullberg/Developer/orchflow/frontend/src/lib/components/GitPanel.svelte:4:11 GitPanel has unused export property 'sessionId'. If it is for external reference only, please consider using `export const sessionId`
+stderr | src/lib/stores/__tests__/orchestrator.test.ts > Orchestrator Store > actions > createTerminal > should create a terminal in active session
+Failed to create terminal: Error: No active session
+    at Object.createTerminal [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/orchestrator.ts:176:15[90m)[39m
+    at [90m/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/__tests__/orchestrator.test.ts:279:43
+[90m    at processTicksAndRejections (node:internal/process/task_queues:95:5)[39m
+    at [90mfile:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:752:20
+
+stderr | src/lib/stores/__tests__/orchestrator.test.ts > Orchestrator Store > actions > createTerminal > should throw error if no active session
+Failed to create terminal: Error: No active session
+    at Object.createTerminal [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/orchestrator.ts:176:15[90m)[39m
+    at [90m/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/__tests__/orchestrator.test.ts:293:35
+    at [90mfile:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:155:11
+    at [90mfile:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:752:26
+    at [90mfile:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1897:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1863:10[90m)[39m
+    at runTest [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1574:12[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:95:5)[39m
+    at runSuite [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1729:8[90m)[39m
+
+stderr | src/lib/stores/__tests__/manager.test.ts > Manager Store > event handling > should remove session on SessionDeleted event
+Failed to refresh panes: TypeError: Cannot read properties of undefined (reading 'forEach')
+    at [90m/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/manager.ts:175:15
+    at update [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4msvelte[24m/src/runtime/store/index.js:69:7[90m)[39m
+    at refreshPanes [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/manager.ts:172:7[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:95:5)[39m
+    at refreshSessions [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/manager.ts:156:9[90m)[39m
+    at async Promise.all (index 0)
+    at Object.init [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/manager.ts:126:7[90m)[39m
+    at [90m/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/__tests__/manager.test.ts:137:7
+
+stderr | src/lib/stores/__tests__/manager.test.ts > Manager Store > event handling > should remove session on SessionDeleted event
+Failed to refresh panes: TypeError: Cannot read properties of undefined (reading 'forEach')
+    at [90m/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/manager.ts:175:15
+    at update [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4msvelte[24m/src/runtime/store/index.js:69:7[90m)[39m
+    at refreshPanes [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/manager.ts:172:7[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:95:5)[39m
+    at Object.refreshSessions [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/manager.ts:156:9[90m)[39m
+
+stderr | src/lib/stores/__tests__/orchestrator.test.ts > Orchestrator Store > actions > createTerminal > should handle create terminal errors
+Failed to refresh sessions: TypeError: Cannot read properties of undefined (reading 'panes')
+    at Object.refreshSessions [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/orchestrator.ts:137:42[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:95:5)[39m
+
+stderr | src/lib/stores/__tests__/orchestrator.test.ts > Orchestrator Store > actions > createTerminal > should handle create terminal errors
+Failed to create terminal: Error: No active session
+    at Object.createTerminal [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/orchestrator.ts:176:15[90m)[39m
+    at [90m/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/__tests__/orchestrator.test.ts:307:35
+[90m    at processTicksAndRejections (node:internal/process/task_queues:95:5)[39m
+    at [90mfile:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:752:20
+
+stderr | src/lib/stores/__tests__/manager.test.ts > Manager Store > event handling > should refresh panes on PaneCreated event
+Failed to refresh panes: TypeError: Cannot read properties of undefined (reading 'forEach')
+    at [90m/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/manager.ts:175:15
+    at update [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4msvelte[24m/src/runtime/store/index.js:69:7[90m)[39m
+    at refreshPanes [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/manager.ts:172:7[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:95:5)[39m
+    at refreshSessions [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/manager.ts:156:9[90m)[39m
+    at async Promise.all (index 0)
+    at Object.init [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/manager.ts:126:7[90m)[39m
+    at [90m/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/__tests__/manager.test.ts:137:7
+
+stderr | src/lib/stores/__tests__/manager.test.ts > Manager Store > event handling > should refresh panes on PaneCreated event
+Failed to refresh panes: TypeError: Cannot read properties of undefined (reading 'forEach')
+    at [90m/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/manager.ts:175:15
+    at update [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4msvelte[24m/src/runtime/store/index.js:69:7[90m)[39m
+    at refreshPanes [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/manager.ts:172:7[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:95:5)[39m
+
+stderr | src/lib/stores/__tests__/orchestrator.test.ts > Orchestrator Store > actions > sendInput > should handle send input errors
+Failed to send input: Error: Failed to send input
+    at [90m/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/__tests__/orchestrator.test.ts:321:23
+    at [90mfile:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:155:11
+    at [90mfile:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:752:26
+    at [90mfile:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1897:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1863:10[90m)[39m
+    at runTest [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1574:12[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:95:5)[39m
+    at runSuite [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1729:8[90m)[39m
+    at runSuite [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1729:8[90m)[39m
+
+stderr | src/lib/stores/__tests__/orchestrator.test.ts > Orchestrator Store > actions > closePane > should handle close pane errors
+Failed to close pane: Error: Failed to close pane
+    at [90m/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/__tests__/orchestrator.test.ts:338:23
+    at [90mfile:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:155:11
+    at [90mfile:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:752:26
+    at [90mfile:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1897:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1863:10[90m)[39m
+    at runTest [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1574:12[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:95:5)[39m
+    at runSuite [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1729:8[90m)[39m
+    at runSuite [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1729:8[90m)[39m
+
+stderr | src/lib/stores/__tests__/manager.test.ts > Manager Store > event handling > should handle PaneClosed event
+Failed to refresh panes: TypeError: Cannot read properties of undefined (reading 'forEach')
+    at [90m/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/manager.ts:175:15
+    at update [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4msvelte[24m/src/runtime/store/index.js:69:7[90m)[39m
+    at refreshPanes [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/manager.ts:172:7[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:95:5)[39m
+    at refreshSessions [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/manager.ts:156:9[90m)[39m
+    at async Promise.all (index 0)
+    at Object.init [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/manager.ts:126:7[90m)[39m
+    at [90m/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/__tests__/manager.test.ts:137:7
+
+stderr | src/lib/stores/__tests__/orchestrator.test.ts > Orchestrator Store > refresh methods > should handle refresh sessions errors
+Failed to refresh sessions: Error: Network error
+    at [90m/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/__tests__/orchestrator.test.ts:392:21
+    at [90mfile:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:155:11
+    at [90mfile:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:752:26
+    at [90mfile:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1897:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1863:10[90m)[39m
+    at runTest [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1574:12[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:95:5)[39m
+    at runSuite [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1729:8[90m)[39m
+    at runSuite [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1729:8[90m)[39m
+
+stderr | src/lib/stores/__tests__/manager.test.ts > Manager Store > derived stores > should derive error correctly
+Failed to refresh sessions: Error: Test error
+    at [90m/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/__tests__/manager.test.ts:572:62
+    at [90mfile:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:155:11
+    at [90mfile:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:752:26
+    at [90mfile:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1897:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1863:10[90m)[39m
+    at runTest [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1574:12[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:95:5)[39m
+    at runSuite [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1729:8[90m)[39m
+    at runSuite [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1729:8[90m)[39m
+
+ ❯ src/lib/stores/__tests__/manager.test.ts (38 tests | 7 failed) 34ms
+   ✓ Manager Store > initialization > should connect websocket and subscribe to events on init 4ms
+   ✓ Manager Store > initialization > should set isConnected to true after successful init 0ms
+   ✓ Manager Store > initialization > should handle initialization errors 2ms
+   ✓ Manager Store > initialization > should load initial sessions and plugins 2ms
+   × Manager Store > event handling > should refresh sessions on SessionCreated event 2ms
+     → expected "refreshSessions" to be called at least once
+   ✓ Manager Store > event handling > should remove session on SessionDeleted event 1ms
+   × Manager Store > event handling > should refresh panes on PaneCreated event 1ms
+     → expected "refreshPanes" to be called with arguments: [ 'session1' ][90m
+
+Number of calls: [1m0[22m
+[39m
+   ✓ Manager Store > event handling > should handle PaneClosed event 1ms
+   ✓ Manager Store > event handling > should handle PaneOutput event 0ms
+   ✓ Manager Store > event handling > should limit terminal output to 1000 lines 1ms
+   ✓ Manager Store > event handling > should handle PaneFocused event 0ms
+   × Manager Store > event handling > should refresh plugins on PluginLoaded event 0ms
+     → expected "refreshPlugins" to be called at least once
+   ✓ Manager Store > actions > createSession > should create a new session 0ms
+   ✓ Manager Store > actions > deleteSession > should delete a session 0ms
+   × Manager Store > actions > createTerminal > should create a terminal in active session 12ms
+     → expected "spy" to be called with arguments: [ 'session1', …(1) ][90m
+
+Received: 
+
+[1m  1st spy call:
+
+[22m[33m@@ -1,7 +1,7 @@[90m
+[2m  [[22m
+[32m-   "session1",[90m
+[31m+   "session2",[90m
+[2m    {[22m
+[2m      "command": "/bin/bash",[22m
+[2m      "name": "Test Terminal",[22m
+[2m      "paneType": "Terminal",[22m
+[2m    },[22m
+[39m[90m
+
+Number of calls: [1m1[22m
+[39m
+   × Manager Store > actions > createTerminal > should throw error if no active session 1ms
+     → promise resolved "{ id: 'pane1', …(4) }" instead of rejecting
+   ✓ Manager Store > actions > closePane > should close a pane 0ms
+   ✓ Manager Store > actions > sendInput > should send input to a pane 0ms
+   ✓ Manager Store > actions > sendKeys > should send keys to a pane 0ms
+   ✓ Manager Store > actions > focusPane > should focus a pane and update active pane 0ms
+   × Manager Store > actions > setActiveSession > should set active session and refresh panes 0ms
+     → expected "refreshPanes" to be called with arguments: [ 'session1' ][90m
+
+Number of calls: [1m0[22m
+[39m
+   ✓ Manager Store > actions > plugin management > should load a plugin 0ms
+   ✓ Manager Store > actions > plugin management > should unload a plugin 0ms
+   ✓ Manager Store > actions > file operations > should read a file 0ms
+   ✓ Manager Store > actions > file operations > should save a file 0ms
+   ✓ Manager Store > actions > file operations > should list directory contents 0ms
+   ✓ Manager Store > actions > file operations > should watch a file 0ms
+   ✓ Manager Store > actions > file operations > should unwatch a file 0ms
+   ✓ Manager Store > actions > search operations > should search project 0ms
+   ✓ Manager Store > actions > search operations > should get command history 0ms
+   ✓ Manager Store > actions > persistState > should persist state 0ms
+   ✓ Manager Store > derived stores > should derive sessions correctly 0ms
+   ✓ Manager Store > derived stores > should derive active session correctly 0ms
+   ✓ Manager Store > derived stores > should derive active pane correctly 0ms
+   ✓ Manager Store > derived stores > should derive loaded plugins correctly 0ms
+   ✓ Manager Store > derived stores > should derive connection status correctly 0ms
+   ✓ Manager Store > derived stores > should derive error correctly 0ms
+   × Manager Store > cleanup > should clean up event listeners and dispose client on destroy 0ms
+     → unsubscribe is not a function
+ ❯ src/lib/stores/__tests__/orchestrator.test.ts (29 tests | 8 failed) 30ms
+   ✓ Orchestrator Store > initialization > should subscribe to all relevant events on init 2ms
+   ✓ Orchestrator Store > initialization > should set isConnected to true (always connected with Tauri) 0ms
+   × Orchestrator Store > initialization > should load initial sessions 4ms
+     → expected [] to deeply equal [ { id: 'session1', …(3) } ]
+   ✓ Orchestrator Store > initialization > should handle initialization errors 1ms
+   × Orchestrator Store > event handling > should refresh sessions on pane_created event 1ms
+     → expected "refreshSessions" to be called at least once
+   ✓ Orchestrator Store > event handling > should handle pane_closed event 0ms
+   ✓ Orchestrator Store > event handling > should handle pane_output event 0ms
+   ✓ Orchestrator Store > event handling > should limit terminal output to 1000 lines 1ms
+   × Orchestrator Store > event handling > should refresh sessions on session_created event 0ms
+     → expected "refreshSessions" to be called at least once
+   × Orchestrator Store > event handling > should handle session_closed event 1ms
+     → expected [] to have a length of 1 but got +0
+   ✓ Orchestrator Store > event handling > should handle error event 0ms
+   ✓ Orchestrator Store > actions > createSession > should create a new session 1ms
+   ✓ Orchestrator Store > actions > createSession > should handle create session errors 1ms
+   × Orchestrator Store > actions > createTerminal > should create a terminal in active session 1ms
+     → No active session
+   ✓ Orchestrator Store > actions > createTerminal > should throw error if no active session 2ms
+   × Orchestrator Store > actions > createTerminal > should handle create terminal errors 1ms
+     → expected a thrown error to be Error: Failed to create terminal
+   ✓ Orchestrator Store > actions > sendInput > should send input to a pane 0ms
+   ✓ Orchestrator Store > actions > sendInput > should handle send input errors 0ms
+   ✓ Orchestrator Store > actions > closePane > should close a pane 0ms
+   ✓ Orchestrator Store > actions > closePane > should handle close pane errors 0ms
+   ✓ Orchestrator Store > actions > setActivePane > should set active pane 0ms
+   ✓ Orchestrator Store > actions > setActiveSession > should set active session 0ms
+   ✓ Orchestrator Store > refresh methods > should refresh sessions with pane information 0ms
+   ✓ Orchestrator Store > refresh methods > should handle refresh sessions errors 0ms
+   ✓ Orchestrator Store > tab management stores > should manage tabs independently 0ms
+   ✓ Orchestrator Store > derived stores > should derive active session correctly 0ms
+   ✓ Orchestrator Store > derived stores > should derive active pane correctly 0ms
+   × Orchestrator Store > derived stores > should derive terminal outputs correctly 8ms
+     → expected [ Array(1000) ] to deeply equal [ 'Test output' ]
+   × Orchestrator Store > cleanup > should clean up event listeners and dispose client on destroy 0ms
+     → unsubscribe is not a function
+stderr | src/lib/components/FileExplorerEnhanced.test.ts > FileExplorerEnhanced > Initialization > renders without Tauri (browser mode)
+[HMR][Svelte] Unrecoverable HMR error in <FileExplorerEnhanced>: next update will trigger a full reload
+
+ ❯ src/lib/components/FileExplorerEnhanced.test.ts (23 tests | 23 failed) 42ms
+   × FileExplorerEnhanced > Initialization > renders without Tauri (browser mode) 19ms
+     → dialog0.$on is not a function
+   × FileExplorerEnhanced > Initialization > loads directory on mount with Tauri 2ms
+     → dialog0.$on is not a function
+   × FileExplorerEnhanced > Initialization > handles directory loading error 1ms
+     → dialog0.$on is not a function
+   × FileExplorerEnhanced > File Operations > creates new file 1ms
+     → dialog0.$on is not a function
+   × FileExplorerEnhanced > File Operations > creates new folder 1ms
+     → dialog0.$on is not a function
+   × FileExplorerEnhanced > File Operations > validates empty file name 4ms
+     → dialog0.$on is not a function
+   × FileExplorerEnhanced > File Operations > handles file creation error 2ms
+     → dialog0.$on is not a function
+   × FileExplorerEnhanced > Directory Navigation > refreshes directory listing 1ms
+     → dialog0.$on is not a function
+   × FileExplorerEnhanced > Directory Navigation > handles expand event from FileTree 1ms
+     → dialog0.$on is not a function
+   × FileExplorerEnhanced > Directory Navigation > filters hidden files except .gitignore 1ms
+     → dialog0.$on is not a function
+   × FileExplorerEnhanced > Directory Navigation > sorts entries with directories first 1ms
+     → dialog0.$on is not a function
+   × FileExplorerEnhanced > Context Menu Operations > shows context menu on right click 1ms
+     → dialog0.$on is not a function
+   × FileExplorerEnhanced > Context Menu Operations > renames item 1ms
+     → dialog0.$on is not a function
+   × FileExplorerEnhanced > Context Menu Operations > deletes item 1ms
+     → dialog0.$on is not a function
+   × FileExplorerEnhanced > Context Menu Operations > copies path to clipboard 0ms
+     → dialog0.$on is not a function
+   × FileExplorerEnhanced > Event Dispatching > dispatches openFile event 1ms
+     → dialog0.$on is not a function
+   × FileExplorerEnhanced > Event Dispatching > dispatches collapseAll event 1ms
+     → dialog0.$on is not a function
+   × FileExplorerEnhanced > Loading States > shows loading state while loading directory 1ms
+     → dialog0.$on is not a function
+   × FileExplorerEnhanced > Loading States > shows empty state when no files 0ms
+     → dialog0.$on is not a function
+   × FileExplorerEnhanced > Agent Status Integration > initializes with mock agent data 0ms
+     → dialog0.$on is not a function
+   × FileExplorerEnhanced > Dialog Interactions > closes dialog on cancel 0ms
+     → dialog0.$on is not a function
+   × FileExplorerEnhanced > Dialog Interactions > validates rename with empty name 0ms
+     → dialog0.$on is not a function
+   × FileExplorerEnhanced > Dialog Interactions > skips rename if name unchanged 0ms
+     → dialog0.$on is not a function
+stderr | src/lib/services/__tests__/metrics.test.ts
+Failed to fetch metrics: TypeError: Failed to parse URL from /api/metrics
+[90m    at node:internal/deps/undici/undici:13510:13[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:95:5)[39m
+    at fetchMetrics [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/services/metrics.ts:109:21[90m)[39m {
+  [cause]: TypeError: Invalid URL: /api/metrics
+      at new URLImpl [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4mwhatwg-url[24m/lib/URL-impl.js:20:13[90m)[39m
+      at Object.exports.setup [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4mwhatwg-url[24m/lib/URL.js:54:12[90m)[39m
+      at new URL [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4mwhatwg-url[24m/lib/URL.js:115:22[90m)[39m
+  [90m    at new Request (node:internal/deps/undici/undici:9586:25)[39m
+  [90m    at fetch (node:internal/deps/undici/undici:10315:25)[39m
+  [90m    at fetch (node:internal/deps/undici/undici:13508:10)[39m
+  [90m    at fetch (node:internal/bootstrap/web/exposed-window-or-worker:72:12)[39m
+      at fetchMetrics [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/services/metrics.ts:109:27[90m)[39m
+      at startMetricsPolling [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/services/metrics.ts:71:2[90m)[39m
+      at [90m/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/services/metrics.ts:272:2
+}
+
+stdout | src/lib/services/__tests__/metrics.test.ts
+WebSocket connection closed
+
+stderr | src/lib/services/__tests__/metrics.test.ts
+WebSocket error: Event { isTrusted: [36m[Getter][39m }
+
+11:13:29 PM [vite-plugin-svelte] /Users/dylantullberg/Developer/orchflow/frontend/src/lib/components/Dashboard.svelte:154:14 A11y: visible, non-interactive elements with an on:click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as <button type="button"> or <a> might be more appropriate. See https://svelte.dev/docs/accessibility-warnings#a11y-click-events-have-key-events for more details.
+11:13:29 PM [vite-plugin-svelte] /Users/dylantullberg/Developer/orchflow/frontend/src/lib/components/Dashboard.svelte:154:14 A11y: <div> with click handler must have an ARIA role
+11:13:29 PM [vite-plugin-svelte] /Users/dylantullberg/Developer/orchflow/frontend/src/lib/components/Dashboard.svelte:212:12 A11y: visible, non-interactive elements with an on:click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as <button type="button"> or <a> might be more appropriate. See https://svelte.dev/docs/accessibility-warnings#a11y-click-events-have-key-events for more details.
+11:13:29 PM [vite-plugin-svelte] /Users/dylantullberg/Developer/orchflow/frontend/src/lib/components/Dashboard.svelte:212:12 A11y: <div> with click handler must have an ARIA role
+ ❯ src/lib/stores/__tests__/tauri-orchestrator.test.ts (13 tests | 10 failed) 737ms
+   ✓ Tauri Orchestrator > createTauriTerminal > should create a new terminal tab 2ms
+   ✓ Tauri Orchestrator > createTauriTerminal > should use default title if not provided 0ms
+   ✓ Tauri Orchestrator > createTauriTerminal > should handle creation errors 6ms
+   × Tauri Orchestrator > sendTauriInput > should send input to the correct pane 1ms
+     → sendTauriInput is not a function
+   × Tauri Orchestrator > sendTauriInput > should handle send errors 1ms
+     → sendTauriInput is not a function
+   × Tauri Orchestrator > closeTauriTab > should close the pane and remove the tab 0ms
+     → closeTauriTab is not a function
+   × Tauri Orchestrator > closeTauriTab > should update activeTabId if closing the active tab 0ms
+     → closeTauriTab is not a function
+   × Tauri Orchestrator > closeTauriTab > should handle close errors 0ms
+     → closeTauriTab is not a function
+   × Tauri Orchestrator > getTauriOutput > should retrieve output from the pane 0ms
+     → getTauriOutput is not a function
+   × Tauri Orchestrator > getTauriOutput > should handle output retrieval errors 0ms
+     → getTauriOutput is not a function
+   × Tauri Orchestrator > initialization > should create session if it does not exist 450ms
+     → expected "spy" to be called at least once
+   × Tauri Orchestrator > initialization > should not create session if it already exists 141ms
+     → expected "spy" to be called at least once
+   × Tauri Orchestrator > initialization > should handle initialization errors gracefully 134ms
+     → expected "error" to be called with arguments: [ 'Failed to initialize tmux:', …(1) ][90m
+
+Number of calls: [1m0[22m
+[39m
+ ❯ src/lib/services/__tests__/metrics.test.ts (35 tests | 35 failed) 8ms
+   × Metrics Service > record > should record a counter metric 2ms
+     → Cannot read properties of undefined (reading 'clear')
+   × Metrics Service > record > should increment counter metrics 0ms
+     → Cannot read properties of undefined (reading 'clear')
+   × Metrics Service > record > should record a gauge metric 0ms
+     → Cannot read properties of undefined (reading 'clear')
+   × Metrics Service > record > should update gauge metrics with latest value 0ms
+     → Cannot read properties of undefined (reading 'clear')
+   × Metrics Service > record > should record a histogram metric 0ms
+     → Cannot read properties of undefined (reading 'clear')
+   × Metrics Service > record > should collect multiple samples for histogram 0ms
+     → Cannot read properties of undefined (reading 'clear')
+   × Metrics Service > record > should handle metrics with metadata 0ms
+     → Cannot read properties of undefined (reading 'clear')
+   × Metrics Service > record > should update timestamp on each record 0ms
+     → Cannot read properties of undefined (reading 'clear')
+   × Metrics Service > increment > should increment counter by 1 if no value provided 0ms
+     → Cannot read properties of undefined (reading 'clear')
+   × Metrics Service > increment > should increment counter by specified value 0ms
+     → Cannot read properties of undefined (reading 'clear')
+   × Metrics Service > increment > should increment existing counter 0ms
+     → Cannot read properties of undefined (reading 'clear')
+   × Metrics Service > gauge > should set gauge value 0ms
+     → Cannot read properties of undefined (reading 'clear')
+   × Metrics Service > gauge > should update gauge value 0ms
+     → Cannot read properties of undefined (reading 'clear')
+   × Metrics Service > histogram > should add value to histogram 0ms
+     → Cannot read properties of undefined (reading 'clear')
+   × Metrics Service > histogram > should add multiple values to histogram 0ms
+     → Cannot read properties of undefined (reading 'clear')
+   × Metrics Service > timing > should record timing duration 0ms
+     → Cannot read properties of undefined (reading 'clear')
+   × Metrics Service > timing > should handle multiple timings 0ms
+     → Cannot read properties of undefined (reading 'clear')
+   × Metrics Service > timing > should add metadata to timing 0ms
+     → Cannot read properties of undefined (reading 'clear')
+   × Metrics Service > getMetric > should return undefined for non-existent metric 0ms
+     → Cannot read properties of undefined (reading 'clear')
+   × Metrics Service > getMetric > should return metric data 0ms
+     → Cannot read properties of undefined (reading 'clear')
+   × Metrics Service > getAllMetrics > should return empty map when no metrics recorded 0ms
+     → Cannot read properties of undefined (reading 'clear')
+   × Metrics Service > getAllMetrics > should return all recorded metrics 0ms
+     → Cannot read properties of undefined (reading 'clear')
+   × Metrics Service > getAllMetrics > should return a copy of metrics map 0ms
+     → Cannot read properties of undefined (reading 'clear')
+   × Metrics Service > clear > should remove all metrics 0ms
+     → Cannot read properties of undefined (reading 'clear')
+   × Metrics Service > clear > should allow recording new metrics after clear 0ms
+     → Cannot read properties of undefined (reading 'clear')
+   × Metrics Service > getSummary > should return empty summary for no metrics 0ms
+     → Cannot read properties of undefined (reading 'clear')
+   × Metrics Service > getSummary > should summarize counters 0ms
+     → Cannot read properties of undefined (reading 'clear')
+   × Metrics Service > getSummary > should summarize gauges 0ms
+     → Cannot read properties of undefined (reading 'clear')
+   × Metrics Service > getSummary > should summarize histograms with statistics 0ms
+     → Cannot read properties of undefined (reading 'clear')
+   × Metrics Service > getSummary > should handle single value histograms 0ms
+     → Cannot read properties of undefined (reading 'clear')
+   × Metrics Service > getSummary > should calculate percentiles correctly 0ms
+     → Cannot read properties of undefined (reading 'clear')
+   × Metrics Service > export > should export metrics in standard format 0ms
+     → Cannot read properties of undefined (reading 'clear')
+   × Metrics Service > export > should include metadata in export 0ms
+     → Cannot read properties of undefined (reading 'clear')
+   × Metrics Service > common use cases > should track API performance metrics 0ms
+     → Cannot read properties of undefined (reading 'clear')
+   × Metrics Service > common use cases > should track system resource metrics 0ms
+     → Cannot read properties of undefined (reading 'clear')
+stderr | src/lib/components/Dashboard.test.ts
+Failed to refresh sessions: TypeError: sessions is not iterable
+    at refreshSessions [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/orchestrator.ts:129:29[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:95:5)[39m
+    at init [90m(/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/stores/orchestrator.ts:111:7[90m)[39m
+
+11:13:29 PM [vite-plugin-svelte] /Users/dylantullberg/Developer/orchflow/frontend/src/lib/components/CodeMirrorEditor.svelte:15:11 CodeMirrorEditor has unused export property 'lineNumbers'. If it is for external reference only, please consider using `export const lineNumbers`
+11:13:29 PM [vite-plugin-svelte] /Users/dylantullberg/Developer/orchflow/frontend/src/lib/components/CodeMirrorEditor.svelte:16:11 CodeMirrorEditor has unused export property 'wordWrap'. If it is for external reference only, please consider using `export const wordWrap`
+11:13:29 PM [vite-plugin-svelte] /Users/dylantullberg/Developer/orchflow/frontend/src/lib/components/CommandPalette.svelte:472:4 A11y: visible, non-interactive elements with an on:click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as <button type="button"> or <a> might be more appropriate. See https://svelte.dev/docs/accessibility-warnings#a11y-click-events-have-key-events for more details.
+11:13:29 PM [vite-plugin-svelte] /Users/dylantullberg/Developer/orchflow/frontend/src/lib/components/CommandPalette.svelte:472:4 A11y: <div> with click handler must have an ARIA role
+11:13:29 PM [vite-plugin-svelte] /Users/dylantullberg/Developer/orchflow/frontend/src/lib/components/CommandPalette.svelte:471:2 A11y: visible, non-interactive elements with an on:click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as <button type="button"> or <a> might be more appropriate. See https://svelte.dev/docs/accessibility-warnings#a11y-click-events-have-key-events for more details.
+11:13:29 PM [vite-plugin-svelte] /Users/dylantullberg/Developer/orchflow/frontend/src/lib/components/CommandPalette.svelte:471:2 A11y: <div> with click handler must have an ARIA role
+11:13:29 PM [vite-plugin-svelte] /Users/dylantullberg/Developer/orchflow/frontend/src/lib/components/SearchReplace.svelte:313:10 A11y: A form label must be associated with a control.
+11:13:29 PM [vite-plugin-svelte] /Users/dylantullberg/Developer/orchflow/frontend/src/lib/components/SearchReplace.svelte:323:10 A11y: A form label must be associated with a control.
+11:13:29 PM [vite-plugin-svelte] /Users/dylantullberg/Developer/orchflow/frontend/src/lib/components/SearchReplace.svelte:334:10 A11y: A form label must be associated with a control.
+11:13:30 PM [vite-plugin-svelte] /Users/dylantullberg/Developer/orchflow/frontend/src/lib/components/QuickSwitcher.svelte:315:4 A11y: visible, non-interactive elements with an on:click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as <button type="button"> or <a> might be more appropriate. See https://svelte.dev/docs/accessibility-warnings#a11y-click-events-have-key-events for more details.
+11:13:30 PM [vite-plugin-svelte] /Users/dylantullberg/Developer/orchflow/frontend/src/lib/components/QuickSwitcher.svelte:315:4 A11y: <div> with click handler must have an ARIA role
+11:13:30 PM [vite-plugin-svelte] /Users/dylantullberg/Developer/orchflow/frontend/src/lib/components/QuickSwitcher.svelte:314:2 A11y: visible, non-interactive elements with an on:click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as <button type="button"> or <a> might be more appropriate. See https://svelte.dev/docs/accessibility-warnings#a11y-click-events-have-key-events for more details.
+11:13:30 PM [vite-plugin-svelte] /Users/dylantullberg/Developer/orchflow/frontend/src/lib/components/QuickSwitcher.svelte:314:2 A11y: <div> with click handler must have an ARIA role
+11:13:30 PM [vite-plugin-svelte] /Users/dylantullberg/Developer/orchflow/frontend/src/lib/components/TerminalPanel.svelte:592:4 A11y: visible, non-interactive elements with an on:click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as <button type="button"> or <a> might be more appropriate. See https://svelte.dev/docs/accessibility-warnings#a11y-click-events-have-key-events for more details.
+11:13:30 PM [vite-plugin-svelte] /Users/dylantullberg/Developer/orchflow/frontend/src/lib/components/TerminalPanel.svelte:592:4 A11y: <div> with click handler must have an ARIA role
+11:13:30 PM [vite-plugin-svelte] /Users/dylantullberg/Developer/orchflow/frontend/src/lib/components/TerminalPanel.svelte:294:0 A11y: <div> with keydown handler must have an ARIA role
+ ✓ src/lib/components/CommandPalette.test.ts (11 tests) 466ms
+11:13:30 PM [vite-plugin-svelte] /Users/dylantullberg/Developer/orchflow/frontend/src/lib/components/Dialog.svelte:95:2 A11y: <div> with click, keydown handlers must have an ARIA role
+11:13:30 PM [vite-plugin-svelte] /Users/dylantullberg/Developer/orchflow/frontend/src/lib/components/StreamingTerminal.svelte:6:11 StreamingTerminal has unused export property 'title'. If it is for external reference only, please consider using `export const title`
+ ✓ src/lib/components/QuickSwitcher.test.ts (10 tests) 176ms
+ ✓ src/lib/components/FileExplorerAdvanced.test.ts (15 tests) 229ms
+ ✓ src/lib/components/TerminalPanel.unit.test.ts (9 tests) 185ms
+ ✓ src/lib/components/TerminalPanel.test.ts (19 tests) 344ms
+ ✓ src/lib/components/SearchReplace.test.ts (11 tests) 597ms
+ ✓ src/lib/components/FileTree.test.ts (58 tests) 128ms
+11:13:31 PM [vite-plugin-svelte] /Users/dylantullberg/Developer/orchflow/frontend/src/lib/components/StatusBarEnhanced.svelte:18:11 StatusBarEnhanced has unused export property 'onGitClick'. If it is for external reference only, please consider using `export const onGitClick`
+11:13:31 PM [vite-plugin-svelte] /Users/dylantullberg/Developer/orchflow/frontend/src/lib/components/StatusBarEnhanced.svelte:19:11 StatusBarEnhanced has unused export property 'onFileClick'. If it is for external reference only, please consider using `export const onFileClick`
+ ✓ src/lib/components/ContextMenu.test.ts (17 tests) 60ms
+ ✓ src/lib/components/Dialog.test.ts (17 tests) 83ms
+ ✓ src/lib/components/__tests__/StatusBar.simple.test.ts (3 tests) 55ms
+ ✓ src/lib/components/StatusBarEnhanced.test.ts (25 tests) 109ms
+stdout | src/lib/components/__tests__/Debug.test.ts > Debug > shows what renders
+HTML: <div class="status-bar fixed bottom-0 left-0 right-0 bg-gray-800 s-6wojPvOs0MMr"><div class="status-section left s-6wojPvOs0MMr"><button class="status-item s-6wojPvOs0MMr clickable" title="/test.ts"> <span class="item-text s-6wojPvOs0MMr">📄 test.ts</span> </button><button class="status-item s-6wojPvOs0MMr clickable" title="Go to line"> <span class="item-text s-6wojPvOs0MMr">Ln 1, Col 1</span> </button></div> <div class="status-section right s-6wojPvOs0MMr"><button class="status-item s-6wojPvOs0MMr clickable" title="Select encoding"> <span class="item-text s-6wojPvOs0MMr">UTF-8</span> </button><button class="status-item s-6wojPvOs0MMr" title="7/9/2025"> <span class="item-text s-6wojPvOs0MMr">11:13 PM</span> </button></div></div><!--<StatusBarEnhanced>-->
+Text content:  📄 test.ts  Ln 1, Col 1   UTF-8  11:13 PM 
+
+ ✓ src/lib/components/__tests__/Debug.test.ts (1 test) 29ms
+stderr | src/lib/api/__tests__/manager-client.test.ts > ManagerClient > execute > should handle execution errors
+Manager execution error: Error: Execution failed
+    at [90m/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/api/__tests__/manager-client.test.ts:45:21
+    at [90mfile:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:155:11
+    at [90mfile:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:752:26
+    at [90mfile:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1897:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1863:10[90m)[39m
+    at runTest [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1574:12[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:95:5)[39m
+    at runSuite [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1729:8[90m)[39m
+    at runSuite [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1729:8[90m)[39m
+
+ ✓ src/lib/api/__tests__/manager-client.test.ts (45 tests) 19ms
+stderr | src/lib/api/__tests__/orchestrator-client.test.ts > TauriOrchestratorClient > execute > should handle execution errors
+Orchestrator execution error: Error: Execution failed
+    at [90m/Users/dylantullberg/Developer/orchflow/frontend/[39msrc/lib/api/__tests__/orchestrator-client.test.ts:45:21
+    at [90mfile:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:155:11
+    at [90mfile:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:752:26
+    at [90mfile:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1897:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1863:10[90m)[39m
+    at runTest [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1574:12[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:95:5)[39m
+    at runSuite [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1729:8[90m)[39m
+    at runSuite [90m(file:///Users/dylantullberg/Developer/orchflow/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1729:8[90m)[39m
+
+ ✓ src/lib/api/__tests__/orchestrator-client.test.ts (24 tests) 14ms
+ ✓ src/lib/components/__tests__/Minimal.test.ts (1 test) 7ms
+11:13:31 PM [vite-plugin-svelte] /Users/dylantullberg/Developer/orchflow/frontend/src/lib/components/Terminal.svelte:114:0 A11y: noninteractive element cannot have nonnegative tabIndex value
+11:13:31 PM [vite-plugin-svelte] /Users/dylantullberg/Developer/orchflow/frontend/src/lib/components/Terminal.svelte:114:0 A11y: <div> with keydown handler must have an ARIA role
+ ✓ src/lib/components/Terminal.test.ts (10 tests) 18ms

@@ -232,14 +232,13 @@ mod tests {
         
         // Test setting enabled on non-existent module
         drop(loader); // Release lock
-        let mut loader = Arc::new(Mutex::new(
+        let loader_arc = Arc::new(Mutex::new(
             ModuleLoader::new(
                 _temp_dir.path().to_path_buf(),
                 Arc::new(SimpleStateStore::new().unwrap()),
             ),
-        ))
-        .lock()
-        .await;
+        ));
+        let mut loader = loader_arc.lock().await;
         
         let result = loader.set_module_enabled("non-existent", false).await;
         assert!(result.is_err());

@@ -24,7 +24,7 @@
   let dialogError = '';
   let currentNode: TreeNode | null = null;
   
-  // Agent status tracking - in real implementation, this would come from orchestrator
+  // Agent status tracking 
   let agents = new Map<string, { status: string; pid?: number }>();
   
   // Mock agent data for demonstration
@@ -281,7 +281,7 @@
       const dir = await dirname(currentNode.path);
       const newPath = await join(dir, dialogInputValue);
       
-      await invoke('rename_path', { oldPath: currentNode.path, newPath });
+      await invoke('rename_path', { oldPath: currentNode.path, newName: dialogInputValue });
       
       showRenameDialog = false;
       await handleRefresh();

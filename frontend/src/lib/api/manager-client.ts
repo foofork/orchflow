@@ -160,7 +160,7 @@ export class ManagerClient {
   // Execute an action
   async execute<T = any>(action: Action): Promise<T> {
     try {
-      return await invoke('orchestrator_execute', { action });
+      return await invoke('manager_execute', { action });
     } catch (error) {
       console.error('Manager execution error:', error);
       throw error;
@@ -169,7 +169,7 @@ export class ManagerClient {
 
   // Subscribe to events (uses WebSocket on port 50505)
   async subscribe(eventTypes: string[]): Promise<void> {
-    return await invoke('orchestrator_subscribe', { eventTypes });
+    return await invoke('manager_subscribe', { eventTypes });
   }
 
   // Direct command invocations

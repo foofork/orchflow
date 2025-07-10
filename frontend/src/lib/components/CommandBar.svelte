@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { orchestrator, activeSession } from '$lib/stores/orchestrator';
+  import { manager, activeSession, plugins } from '$lib/stores/manager';
   
   let input = '';
   let suggestions: string[] = [];
@@ -34,31 +34,29 @@
       if (command === 'create terminal' || command === 'new terminal') {
         const session = $activeSession;
         if (session) {
-          await orchestrator.createTerminal(session.id, {
-            title: 'Terminal'
-          });
+          await manager.createTerminal(session.id, 'Terminal');
         } else {
           console.error('No active session');
         }
       }
       else if (command === 'create session' || command === 'new session') {
         const name = prompt('Session name:') || 'New Session';
-        await orchestrator.createSession(name);
+        await manager.createSession(name);
       }
       else if (command === 'list sessions') {
-        await orchestrator.refreshSessions();
+        await manager.refreshSessions();
       }
       else if (command === 'list plugins') {
-        const plugins = await orchestrator.execute({ type: 'list_plugins' });
-        console.log('Available plugins:', plugins);
+        await manager.refreshPlugins();
+        console.log('Available plugins:', $plugins);
       }
       else if (command.startsWith('search ')) {
         const query = command.substring(7);
-        const results = await orchestrator.searchProject(query);
+        const results = await manager.searchProject(query);
         console.log('Search results:', results);
       }
       else if (command === 'get file tree' || command === 'file tree') {
-        const tree = await orchestrator.getFileTree();
+        const tree = await manager.listDirectory('/');
         console.log('File tree:', tree);
       }
       else {
@@ -68,16 +66,19 @@
         // Check if it's a plugin command (format: plugin.command)
         if (pluginCmd.includes('.')) {
           const [pluginId, cmdName] = pluginCmd.split('.');
-          await orchestrator.executePluginCommand(pluginId, cmdName, args.join(' '));
+          // Note: Manager doesn't have executePluginCommand yet
+          // This would need to be implemented in the manager API
+          console.log('Plugin commands not yet implemented in manager');
         }
         else {
           // Default: create a terminal and run the command
           const session = $activeSession;
           if (session) {
-            const pane = await orchestrator.createTerminal(session.id, {
-              title: command,
-              command: command
-            });
+            const paneId = await manager.createTerminal(session.id, command);
+            // Send the command to the terminal
+            if (paneId) {
+              await manager.sendInput(paneId, command + '\n');
+            }
             console.log('Created terminal with command:', command);
           }
         }

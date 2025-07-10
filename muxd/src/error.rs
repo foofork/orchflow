@@ -37,6 +37,9 @@ pub enum MuxdError {
     #[error("Server error: {message}")]
     ServerError { message: String },
     
+    #[error("Connection error: {reason}")]
+    ConnectionError { reason: String },
+    
     #[error("IO error: {0}")]
     IoError(String),
     
@@ -91,6 +94,7 @@ impl MuxdError {
             MuxdError::AuthError { .. } => -32005,
             MuxdError::ChannelClosed => -32006,
             MuxdError::ServerError { .. } => -32007,
+            MuxdError::ConnectionError { .. } => -32010,
             MuxdError::IoError(_) => -32008,
             MuxdError::SerdeError(_) => -32700, // Parse error
             MuxdError::PermissionDenied { .. } => -32009,

@@ -12,6 +12,10 @@ pub mod panes;
 pub mod layouts;
 pub mod settings;
 
+#[cfg(test)]
+#[path = "mod_tests.rs"]
+mod tests;
+
 // Re-export commonly used types
 pub use types::{SessionState, PaneState, PaneType, StateEvent};
 pub use events::EventManager;

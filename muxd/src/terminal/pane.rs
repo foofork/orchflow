@@ -7,7 +7,7 @@ use chrono::{DateTime, Utc};
 use parking_lot::RwLock;
 use std::sync::Arc;
 use tokio::sync::mpsc;
-use tracing::{debug, error, info};
+use tracing::{error, info};
 
 /// A terminal pane that manages a PTY process
 #[derive(Debug)]
@@ -139,6 +139,81 @@ impl Pane {
     /// Check if pane is alive
     pub fn is_alive(&self) -> bool {
         self.exit_code.read().is_none()
+    }
+    
+    /// Get the terminal title
+    pub fn title(&self) -> Option<String> {
+        self.title.read().clone()
+    }
+    
+    /// Set the terminal title
+    pub fn set_title(&self, title: Option<String>) {
+        *self.title.write() = title;
+    }
+    
+    /// Get the working directory
+    pub fn working_dir(&self) -> Option<String> {
+        self.working_dir.read().clone()
+    }
+    
+    /// Set the working directory
+    pub fn set_working_dir(&self, dir: Option<String>) {
+        *self.working_dir.write() = dir;
+    }
+    
+    /// Search the output buffer
+    pub fn search_output(
+        &self,
+        query: &str,
+        case_sensitive: bool,
+        use_regex: bool,
+        max_results: usize,
+        start_line: Option<usize>,
+    ) -> Result<(Vec<(usize, String, usize, usize)>, usize, bool)> {
+        let buffer = self.output_buffer.read();
+        let content = String::from_utf8_lossy(&buffer);
+        let mut matches = Vec::new();
+        let mut total_matches = 0;
+        
+        // Split into lines
+        let lines: Vec<&str> = content.lines().collect();
+        let start = start_line.unwrap_or(0);
+        
+        // Prepare search pattern
+        let pattern = if use_regex {
+            match regex::Regex::new(query) {
+                Ok(re) => re,
+                Err(e) => return Err(MuxdError::InvalidRequest {
+                    reason: format!("Invalid regex pattern: {}", e),
+                }),
+            }
+        } else if case_sensitive {
+            regex::Regex::new(&regex::escape(query)).unwrap()
+        } else {
+            regex::RegexBuilder::new(&regex::escape(query))
+                .case_insensitive(true)
+                .build()
+                .unwrap()
+        };
+        
+        // Search through lines
+        for (i, line) in lines.iter().enumerate().skip(start) {
+            for mat in pattern.find_iter(line) {
+                total_matches += 1;
+                
+                if matches.len() < max_results {
+                    matches.push((
+                        i + 1, // 1-based line numbers
+                        line.to_string(),
+                        mat.start(),
+                        mat.end(),
+                    ));
+                }
+            }
+        }
+        
+        let truncated = total_matches > max_results;
+        Ok((matches, total_matches, truncated))
     }
     
     /// Kill the pane

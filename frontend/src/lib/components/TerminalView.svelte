@@ -3,10 +3,10 @@
   import { Terminal } from 'xterm';
   import { FitAddon } from 'xterm-addon-fit';
   import { WebLinksAddon } from 'xterm-addon-web-links';
-  import { orchestrator } from '$lib/stores/orchestrator';
-  import type { Agent } from '$lib/stores/orchestrator';
+  import { manager } from '$lib/stores/manager';
+  import type { Pane } from '$lib/api/manager-client';
   
-  export let agent: Agent;
+  export let pane: Pane;
   export let active: boolean = false;
   
   let container: HTMLElement;
@@ -63,7 +63,7 @@
     
     // Handle input
     terminal.onData((data) => {
-      orchestrator.sendCommand(agent.id, data);
+      manager.sendInput(pane.id, data);
     });
     
     // Cleanup
@@ -100,15 +100,9 @@
   
   async function fetchOutput() {
     try {
-      const output = await orchestrator.getOutput(agent.id, 100);
-      
-      // Only write new content
-      if (output !== lastOutput) {
-        // Clear and rewrite (simple approach)
-        terminal.clear();
-        terminal.write(output.replace(/\n/g, '\r\n'));
-        lastOutput = output;
-      }
+      // TODO: Manager doesn't have getOutput method
+      // Need to implement terminal output streaming in manager
+      console.log('Terminal output fetching not yet implemented in manager');
     } catch (error) {
       console.error('Failed to fetch output:', error);
     }

@@ -179,7 +179,14 @@ impl ProjectSearch {
                 
                 // Search the file
                 let path = entry.path();
-                let mut sink = MatchCollector::new(path.to_path_buf());
+                let mut sink = MatchCollector::with_context(path.to_path_buf(), options.context_lines);
+                
+                // Pre-load file content for context if needed
+                if options.context_lines > 0 {
+                    if let Ok(content) = std::fs::read_to_string(path) {
+                        sink.set_file_content(&content);
+                    }
+                }
                 
                 if let Err(_) = searcher.search_path(&matcher, path, &mut sink) {
                     return WalkState::Continue;
@@ -262,6 +269,14 @@ impl ProjectSearch {
             .rev()
             .take(limit)
             .cloned()
+            .collect()
+    }
+    
+    /// Get all saved searches
+    pub async fn get_saved_searches(&self) -> Vec<(String, SearchOptions)> {
+        let saved = self.saved_searches.read().await;
+        saved.iter()
+            .map(|(name, options)| (name.clone(), options.clone()))
             .collect()
     }
     
@@ -402,6 +417,8 @@ impl ProjectSearch {
 struct MatchCollector {
     path: PathBuf,
     matches: Vec<SearchMatch>,
+    context_lines: usize,
+    file_lines: Vec<String>,
 }
 
 impl MatchCollector {
@@ -409,6 +426,46 @@ impl MatchCollector {
         Self {
             path,
             matches: Vec::new(),
+            context_lines: 2,
+            file_lines: Vec::new(),
+        }
+    }
+    
+    fn with_context(path: PathBuf, context_lines: usize) -> Self {
+        Self {
+            path,
+            matches: Vec::new(),
+            context_lines,
+            file_lines: Vec::new(),
+        }
+    }
+    
+    fn set_file_content(&mut self, content: &str) {
+        self.file_lines = content.lines().map(|s| s.to_string()).collect();
+    }
+    
+    fn get_context_lines(&self, line_number: u64, before: bool) -> Vec<String> {
+        let line_idx = line_number.saturating_sub(1) as usize;
+        if self.file_lines.is_empty() {
+            return vec![];
+        }
+        
+        if before {
+            let start = line_idx.saturating_sub(self.context_lines);
+            let end = line_idx;
+            self.file_lines.get(start..end)
+                .unwrap_or_default()
+                .iter()
+                .map(|s| s.trim_end().to_string())
+                .collect()
+        } else {
+            let start = (line_idx + 1).min(self.file_lines.len());
+            let end = (line_idx + 1 + self.context_lines).min(self.file_lines.len());
+            self.file_lines.get(start..end)
+                .unwrap_or_default()
+                .iter()
+                .map(|s| s.trim_end().to_string())
+                .collect()
         }
     }
 }
@@ -418,17 +475,21 @@ impl Sink for MatchCollector {
     
     fn matched(&mut self, _searcher: &Searcher, mat: &SinkMatch<'_>) -> std::result::Result<bool, Self::Error> {
         let line_text = String::from_utf8_lossy(mat.bytes()).to_string();
+        let line_number = mat.line_number().unwrap_or(0);
         
         let match_start = mat.absolute_byte_offset() as usize;
         let match_end = match_start + mat.bytes().len();
         
+        let context_before = self.get_context_lines(line_number, true);
+        let context_after = self.get_context_lines(line_number, false);
+        
         let search_match = SearchMatch {
-            line_number: mat.line_number().unwrap_or(0),
+            line_number,
             line_text: line_text.trim_end().to_string(),
             match_start,
             match_end,
-            context_before: vec![], // TODO: Implement context collection
-            context_after: vec![],  // TODO: Implement context collection
+            context_before,
+            context_after,
         };
         
         self.matches.push(search_match);
@@ -469,6 +530,127 @@ mod tests {
         
         assert_eq!(results.len(), 2);
         assert_eq!(results[0].total_matches + results[1].total_matches, 3);
+        
+        Ok(())
+    }
+    
+    #[tokio::test]
+    async fn test_search_with_context() -> Result<()> {
+        let temp_dir = TempDir::new().unwrap();
+        let search = ProjectSearch::new(temp_dir.path().to_path_buf());
+        
+        // Create test file with multiple lines
+        let file1 = temp_dir.path().join("context_test.txt");
+        fs::write(&file1, "Line 1\nLine 2\nTarget line\nLine 4\nLine 5").await.unwrap();
+        
+        // Search with context
+        let options = SearchOptions {
+            pattern: "Target".to_string(),
+            context_lines: 1,
+            ..Default::default()
+        };
+        
+        let results = search.search(options).await?;
+        
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].matches.len(), 1);
+        
+        let match_result = &results[0].matches[0];
+        assert_eq!(match_result.context_before.len(), 1);
+        assert_eq!(match_result.context_after.len(), 1);
+        assert_eq!(match_result.context_before[0], "Line 2");
+        assert_eq!(match_result.context_after[0], "Line 4");
+        
+        Ok(())
+    }
+    
+    #[tokio::test]
+    async fn test_replace_in_files() -> Result<()> {
+        let temp_dir = TempDir::new().unwrap();
+        let search = ProjectSearch::new(temp_dir.path().to_path_buf());
+        
+        // Create test file
+        let file1 = temp_dir.path().join("replace_test.txt");
+        fs::write(&file1, "Hello world\nHello everyone").await.unwrap();
+        
+        // Perform replacement
+        let options = SearchOptions {
+            pattern: "Hello".to_string(),
+            case_sensitive: true,
+            ..Default::default()
+        };
+        
+        let results = search.replace_in_files(options, "Hi", false).await?;
+        
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].replacements, 2);
+        assert!(results[0].success);
+        
+        // Verify file content
+        let content = fs::read_to_string(&file1).await.unwrap();
+        assert_eq!(content, "Hi world\nHi everyone");
+        
+        Ok(())
+    }
+    
+    #[tokio::test]
+    async fn test_save_and_load_search() -> Result<()> {
+        let temp_dir = TempDir::new().unwrap();
+        let search = ProjectSearch::new(temp_dir.path().to_path_buf());
+        
+        let options = SearchOptions {
+            pattern: "test pattern".to_string(),
+            case_sensitive: true,
+            regex: true,
+            ..Default::default()
+        };
+        
+        // Save search
+        search.save_search("my_search".to_string(), options.clone()).await;
+        
+        // Load search
+        let loaded = search.load_search("my_search").await;
+        assert!(loaded.is_some());
+        
+        let loaded_options = loaded.unwrap();
+        assert_eq!(loaded_options.pattern, "test pattern");
+        assert_eq!(loaded_options.case_sensitive, true);
+        assert_eq!(loaded_options.regex, true);
+        
+        // Test get_saved_searches
+        let saved_searches = search.get_saved_searches().await;
+        assert_eq!(saved_searches.len(), 1);
+        assert_eq!(saved_searches[0].0, "my_search");
+        
+        Ok(())
+    }
+    
+    #[tokio::test]
+    async fn test_search_history() -> Result<()> {
+        let temp_dir = TempDir::new().unwrap();
+        let search = ProjectSearch::new(temp_dir.path().to_path_buf());
+        
+        // Create dummy file to search
+        let file1 = temp_dir.path().join("dummy.txt");
+        fs::write(&file1, "content").await.unwrap();
+        
+        // Perform searches to build history
+        search.search_simple("first", false).await?;
+        search.search_simple("second", false).await?;
+        search.search_simple("third", false).await?;
+        
+        // Check history
+        let history = search.get_history(10).await;
+        assert_eq!(history.len(), 3);
+        assert_eq!(history[0], "third");  // Most recent first
+        assert_eq!(history[1], "second");
+        assert_eq!(history[2], "first");
+        
+        // Test with limit
+        let limited_history = search.get_history(2).await;
+        assert_eq!(limited_history.len(), 2);
+        assert_eq!(limited_history[0], "third");
+        assert_eq!(limited_history[1], "second");
         
         Ok(())
     }

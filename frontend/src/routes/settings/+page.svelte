@@ -27,13 +27,13 @@
       const [
         editorConfig,
         terminalConfig,
-        orchestratorConfig,
+        managerConfig,
         moduleConfig,
         appearanceConfig
       ] = await Promise.all([
         getSetting('editor'),
         getSetting('terminal'),
-        getSetting('orchestrator'),
+        getSetting('manager'),
         getSetting('modules'),
         getSetting('appearance')
       ]);
@@ -86,23 +86,23 @@
           }
         },
         {
-          id: 'orchestrator',
-          title: 'Orchestrator Settings',
-          description: 'Configure AI orchestration and automation',
-          value: orchestratorConfig || {
-            autoStart: true,
-            port: 8080,
-            maxConcurrentTasks: 5,
-            taskTimeout: 300000,
-            enableTelemetry: false,
+          id: 'manager',
+          title: 'Manager Settings',
+          description: 'Configure terminal manager and backend settings',
+          value: managerConfig || {
+            backend: 'muxd',
+            stateDirectory: '~/.orchflow/state',
+            sessionTimeout: 3600000,
+            maxSessions: 10,
+            maxPanesPerSession: 20,
             debugMode: false
           },
           schema: {
-            autoStart: { type: 'boolean' },
-            port: { type: 'number', min: 1024, max: 65535 },
-            maxConcurrentTasks: { type: 'number', min: 1, max: 20 },
-            taskTimeout: { type: 'number', min: 10000 },
-            enableTelemetry: { type: 'boolean' },
+            backend: { type: 'string', enum: ['tmux', 'muxd'] },
+            stateDirectory: { type: 'string' },
+            sessionTimeout: { type: 'number', min: 60000 },
+            maxSessions: { type: 'number', min: 1, max: 50 },
+            maxPanesPerSession: { type: 'number', min: 1, max: 100 },
             debugMode: { type: 'boolean' }
           }
         },
@@ -240,7 +240,7 @@
                 <path d="M9 9l3 3-3 3"/>
                 <path d="M13 15h3"/>
               </svg>
-            {:else if setting.id === 'orchestrator'}
+            {:else if setting.id === 'manager'}
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="3"/>
                 <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"/>

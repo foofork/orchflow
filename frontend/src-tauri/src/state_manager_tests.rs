@@ -7,16 +7,16 @@ mod state_manager_tests {
     use tempfile::NamedTempFile;
     use tokio;
 
-    async fn create_test_state_manager() -> StateManager {
+    fn create_test_state_manager() -> StateManager {
         let temp_file = NamedTempFile::new().unwrap();
-        let db_path = temp_file.path().to_str().unwrap();
-        let store = Arc::new(SimpleStateStore::new(db_path).unwrap());
+        let db_path = temp_file.path();
+        let store = Arc::new(SimpleStateStore::new_with_file(db_path).unwrap());
         StateManager::new(store)
     }
 
     #[tokio::test]
     async fn test_session_lifecycle() {
-        let state_manager = create_test_state_manager().await;
+        let state_manager = create_test_state_manager();
         
         // Create session
         let session = state_manager.create_session("test-session".to_string()).await.unwrap();
@@ -42,7 +42,7 @@ mod state_manager_tests {
 
     #[tokio::test]
     async fn test_pane_lifecycle() {
-        let state_manager = create_test_state_manager().await;
+        let state_manager = create_test_state_manager();
         
         // Create session first
         let session = state_manager.create_session("test-session".to_string()).await.unwrap();
@@ -94,7 +94,7 @@ mod state_manager_tests {
 
     #[tokio::test]
     async fn test_layout_management() {
-        let state_manager = create_test_state_manager().await;
+        let state_manager = create_test_state_manager();
         
         // Create session
         let session = state_manager.create_session("test-session".to_string()).await.unwrap();
@@ -125,7 +125,7 @@ mod state_manager_tests {
 
     #[tokio::test]
     async fn test_multiple_sessions_and_panes() {
-        let state_manager = create_test_state_manager().await;
+        let state_manager = create_test_state_manager();
         
         // Create multiple sessions
         let session1 = state_manager.create_session("session-1".to_string()).await.unwrap();
@@ -219,7 +219,7 @@ mod state_manager_tests {
 
     #[tokio::test]
     async fn test_event_emission() {
-        let state_manager = create_test_state_manager().await;
+        let state_manager = create_test_state_manager();
         let mut event_rx = state_manager.subscribe();
         
         // Create session and check event

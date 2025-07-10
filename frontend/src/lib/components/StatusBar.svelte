@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { orchestrator, activeSession, activePane } from '$lib/stores/orchestrator';
+  import { manager, activeSession, activePane, panes } from '$lib/stores/manager';
   import PluginStatusBar from './PluginStatusBar.svelte';
   
   export let sessionId: string;
@@ -30,16 +30,11 @@
   
   // Subscribe to pane changes
   $: if ($activePane) {
-    activePaneTitle = $activePane.title;
+    activePaneTitle = $activePane.title || '';
   }
   
   // Count terminals
-  $: {
-    const state = orchestrator;
-    state.subscribe(s => {
-      terminalCount = Array.from(s.panes.values()).filter(p => p.pane_type === 'terminal').length;
-    });
-  }
+  $: terminalCount = Array.from($panes.values()).filter(p => p.pane_type === 'Terminal').length;
   
   function updateClock() {
     const now = new Date();

@@ -3,6 +3,9 @@ mod protocol;
 mod terminal;
 mod session;
 mod server;
+mod client;
+mod daemon;
+mod state;
 
 use clap::{Parser, Subcommand};
 use error::Result;
@@ -88,21 +91,99 @@ async fn main() -> Result<()> {
         Some(Commands::Start { foreground }) => {
             info!("Starting muxd on port {}", config.port);
             
-            if !foreground {
-                // TODO: Implement daemonization
-                info!("Daemonization not yet implemented, running in foreground");
+            // Create daemon manager
+            let daemon = daemon::Daemon::new(&config.data_dir)?;
+            
+            // Check if already running
+            if daemon.is_running() {
+                eprintln!("muxd is already running (PID: {})", daemon.get_pid().unwrap_or(0));
+                std::process::exit(1);
             }
             
-            server::start_server(config).await?;
+            if !foreground {
+                // Daemonize the process
+                daemon.daemonize()?;
+                info!("Running as daemon");
+            } else {
+                // Write PID file even in foreground mode
+                daemon.write_pid()?;
+                info!("Running in foreground");
+            }
+            
+            // Start the server
+            let result = server::start_server(config).await;
+            
+            // Clean up PID file on exit
+            let _ = daemon.remove_pid_file();
+            
+            result?;
         }
         Some(Commands::Stop) => {
             info!("Stopping muxd");
-            // TODO: Implement stop command
-            println!("Stop command not yet implemented");
+            
+            // Create daemon manager
+            let daemon = daemon::Daemon::new(&config.data_dir)?;
+            
+            // First try to stop via daemon manager (for Unix systems)
+            #[cfg(unix)]
+            {
+                if daemon.is_running() {
+                    match daemon.stop() {
+                        Ok(()) => {
+                            println!("muxd stopped successfully");
+                            return Ok(());
+                        }
+                        Err(e) => {
+                            info!("Failed to stop via signal, trying WebSocket: {}", e);
+                        }
+                    }
+                }
+            }
+            
+            // Fall back to WebSocket shutdown
+            match client::stop_daemon(cli.port).await {
+                Ok(()) => {
+                    println!("muxd stopped successfully");
+                }
+                Err(e) => {
+                    eprintln!("Failed to stop muxd: {}", e);
+                    std::process::exit(1);
+                }
+            }
         }
         Some(Commands::Status) => {
-            // TODO: Implement status command
-            println!("Status command not yet implemented");
+            // Create daemon manager
+            let daemon = daemon::Daemon::new(&config.data_dir)?;
+            
+            match client::check_daemon_status(cli.port).await {
+                Ok(status) => {
+                    if status.get("running").and_then(|v| v.as_bool()).unwrap_or(false) {
+                        println!("muxd is running");
+                        
+                        // Show PID if available
+                        if let Some(pid) = daemon.get_pid() {
+                            println!("  PID: {}", pid);
+                        }
+                        
+                        if let Some(version) = status.get("version").and_then(|v| v.as_str()) {
+                            println!("  Version: {}", version);
+                        }
+                        if let Some(sessions) = status.get("sessions").and_then(|v| v.as_u64()) {
+                            println!("  Sessions: {}", sessions);
+                        }
+                        if let Some(panes) = status.get("total_panes").and_then(|v| v.as_u64()) {
+                            println!("  Total panes: {}", panes);
+                        }
+                    } else {
+                        println!("muxd is not running on port {}", cli.port);
+                        std::process::exit(1);
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Failed to check status: {}", e);
+                    std::process::exit(1);
+                }
+            }
         }
         None => {
             // Default to start in foreground

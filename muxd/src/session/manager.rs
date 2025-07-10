@@ -1,6 +1,7 @@
 use crate::error::{MuxdError, Result};
 use crate::protocol::{SessionId, PaneId, PaneType};
 use crate::terminal::Pane;
+use crate::state::{StatePersistence, PersistedState, PersistedSession, PersistedPane};
 use chrono::{DateTime, Utc};
 use parking_lot::RwLock;
 use std::collections::HashMap;
@@ -24,6 +25,7 @@ pub struct SessionManager {
     sessions: Arc<RwLock<HashMap<SessionId, Arc<RwLock<Session>>>>>,
     max_sessions: usize,
     max_panes_per_session: usize,
+    state_persistence: Option<Arc<StatePersistence>>,
 }
 
 impl SessionManager {
@@ -33,6 +35,21 @@ impl SessionManager {
             sessions: Arc::new(RwLock::new(HashMap::new())),
             max_sessions,
             max_panes_per_session,
+            state_persistence: None,
+        }
+    }
+    
+    /// Create a new session manager with state persistence
+    pub fn with_persistence(
+        max_sessions: usize,
+        max_panes_per_session: usize,
+        state_persistence: Arc<StatePersistence>,
+    ) -> Self {
+        Self {
+            sessions: Arc::new(RwLock::new(HashMap::new())),
+            max_sessions,
+            max_panes_per_session,
+            state_persistence: Some(state_persistence),
         }
     }
     
@@ -76,7 +93,7 @@ impl SessionManager {
     }
     
     /// List all sessions
-    pub fn list_sessions(&self) -> Vec<(SessionId, String, usize, DateTime<Utc>)> {
+    pub fn list_sessions(&self) -> Vec<(SessionId, String, usize, DateTime<Utc>, DateTime<Utc>)> {
         self.sessions
             .read()
             .iter()
@@ -87,6 +104,7 @@ impl SessionManager {
                     session.name.clone(),
                     session.panes.len(),
                     session.created_at,
+                    session.updated_at,
                 )
             })
             .collect()
@@ -249,6 +267,16 @@ impl SessionManager {
         }
     }
     
+    /// Get max sessions limit
+    pub fn max_sessions(&self) -> usize {
+        self.max_sessions
+    }
+    
+    /// Get max panes per session limit
+    pub fn max_panes_per_session(&self) -> usize {
+        self.max_panes_per_session
+    }
+    
     /// Clean up dead panes
     pub fn cleanup_dead_panes(&self) {
         let sessions = self.sessions.read();
@@ -275,6 +303,128 @@ impl SessionManager {
                 session.updated_at = Utc::now();
             }
         }
+    }
+    
+    /// Save the current state to disk
+    pub async fn save_state(&self, session_ids: Option<Vec<String>>) -> Result<Vec<String>> {
+        let persistence = self.state_persistence.as_ref()
+            .ok_or_else(|| MuxdError::InvalidState {
+                reason: "State persistence not configured".to_string(),
+            })?;
+        
+        // Collect data while holding the lock
+        let (persisted_sessions, saved_ids) = {
+            let sessions = self.sessions.read();
+            let mut persisted_sessions = Vec::new();
+            let mut saved_ids = Vec::new();
+            
+            for (session_id, session_arc) in sessions.iter() {
+                // Filter by session IDs if provided
+                if let Some(ref ids) = session_ids {
+                    if !ids.contains(&session_id.0) {
+                        continue;
+                    }
+                }
+                
+                let session = session_arc.read();
+                let mut persisted_panes = Vec::new();
+                
+                for (pane_id, pane) in &session.panes {
+                    let size = pane.size();
+                    persisted_panes.push(PersistedPane {
+                        id: pane_id.clone(),
+                        pane_type: pane.pane_type.clone(),
+                        size,
+                        title: pane.title(),
+                        working_dir: pane.working_dir(),
+                        command: None, // TODO: Store original command if needed
+                        env: HashMap::new(), // TODO: Store environment if needed
+                        output_buffer: pane.read_output(1000).into_bytes(), // Save last 1000 lines
+                        created_at: pane.created_at,
+                    });
+                }
+                
+                persisted_sessions.push(PersistedSession {
+                    id: session_id.clone(),
+                    name: session.name.clone(),
+                    created_at: session.created_at,
+                    updated_at: session.updated_at,
+                    panes: persisted_panes,
+                    active_pane_id: session.active_pane.clone(),
+                });
+                
+                saved_ids.push(session_id.0.clone());
+            }
+            
+            (persisted_sessions, saved_ids)
+        }; // Lock is released here
+        
+        let state = PersistedState {
+            version: env!("CARGO_PKG_VERSION").to_string(),
+            saved_at: Utc::now(),
+            sessions: persisted_sessions,
+        };
+        
+        persistence.save_state(&state).await?;
+        
+        Ok(saved_ids)
+    }
+    
+    /// Restore state from disk
+    pub async fn restore_state(
+        &self,
+        session_ids: Option<Vec<String>>,
+        restart_commands: bool,
+    ) -> Result<(Vec<(SessionId, String)>, Vec<(String, String)>)> {
+        let persistence = self.state_persistence.as_ref()
+            .ok_or_else(|| MuxdError::InvalidState {
+                reason: "State persistence not configured".to_string(),
+            })?;
+        
+        let state = persistence.load_state().await?
+            .ok_or_else(|| MuxdError::InvalidState {
+                reason: "No persisted state found".to_string(),
+            })?;
+        
+        let mut restored = Vec::new();
+        let mut failed = Vec::new();
+        
+        for persisted_session in state.sessions {
+            // Filter by session IDs if provided
+            if let Some(ref ids) = session_ids {
+                if !ids.contains(&persisted_session.id.0) {
+                    continue;
+                }
+            }
+            
+            // Try to create session
+            match self.create_session(persisted_session.name.clone()) {
+                Ok(new_session_id) => {
+                    // Get the new session
+                    let sessions = self.sessions.read();
+                    if let Some(session_arc) = sessions.get(&new_session_id) {
+                        let mut session = session_arc.write();
+                        
+                        // Restore metadata
+                        session.created_at = persisted_session.created_at;
+                        session.updated_at = persisted_session.updated_at;
+                        
+                        // TODO: Restore panes if restart_commands is true
+                        // This would require creating new panes and restarting their commands
+                        
+                        drop(session);
+                        drop(sessions);
+                        
+                        restored.push((new_session_id, persisted_session.name));
+                    }
+                }
+                Err(e) => {
+                    failed.push((persisted_session.id.0, e.to_string()));
+                }
+            }
+        }
+        
+        Ok((restored, failed))
     }
 }
 #[cfg(test)]

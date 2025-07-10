@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { orchestrator } from '$lib/stores/orchestrator';
-  import type { Session, Pane } from '$lib/api/orchestrator-client';
+  import { manager, sessions as sessionsStore, panes as panesStore, isConnected as connectedStore } from '$lib/stores/manager';
+  import type { Session, Pane } from '$lib/api/manager-client';
   
   export let onSelectPane: (pane: Pane) => void = () => {};
   
@@ -17,22 +17,15 @@
     memory: number[];
   }
   
-  let sessions: Session[] = [];
-  let panes: Map<string, Pane> = new Map();
   let paneMetrics = new Map<string, PaneMetrics>();
   let metricsHistory = new Map<string, MetricsHistory>();
   let refreshInterval: number;
   let showTableView = false;
-  let isConnected = true;
   
-  // Subscribe to orchestrator state
-  $: {
-    orchestrator.subscribe(state => {
-      sessions = state.sessions;
-      panes = state.panes;
-      isConnected = state.isConnected;
-    });
-  }
+  // Subscribe to manager stores
+  $: sessions = $sessionsStore;
+  $: panes = $panesStore;
+  $: isConnected = $connectedStore;
   
   onMount(() => {
     // Start metrics collection
@@ -57,7 +50,7 @@
       };
       
       // Simulate CPU and memory values based on pane type
-      const isActive = pane.pane_type === 'terminal';
+      const isActive = pane.pane_type === 'Terminal';
       const cpu = isActive ? Math.random() * 50 + 10 : Math.random() * 5;
       const memory = isActive ? Math.random() * 200 + 50 : Math.random() * 50;
       
@@ -101,9 +94,9 @@
   
   function getPaneIcon(pane: Pane) {
     switch (pane.pane_type) {
-      case 'terminal': return '📟';
-      case 'editor': return '📝';
-      case 'file_tree': return '📁';
+      case 'Terminal': return '📟';
+      case 'Editor': return '📝';
+      case 'FileTree': return '📁';
       default: return '📋';
     }
   }
@@ -125,7 +118,7 @@
   
   async function killPane(pane: Pane) {
     try {
-      await orchestrator.closePane(pane.id);
+      await manager.closePane(pane.id);
     } catch (error) {
       console.error('Failed to kill pane:', error);
     }
@@ -133,18 +126,16 @@
   
   async function restartPane(pane: Pane) {
     try {
-      await orchestrator.closePane(pane.id);
+      await manager.closePane(pane.id);
       // Re-create terminal in same session
-      await orchestrator.createTerminal(pane.session_id, {
-        title: pane.title
-      });
+      await manager.createTerminal(pane.session_id, pane.title);
     } catch (error) {
       console.error('Failed to restart pane:', error);
     }
   }
   
   function attachPane(pane: Pane) {
-    orchestrator.setActivePane(pane.id);
+    manager.focusPane(pane.id);
     onSelectPane(pane);
   }
   

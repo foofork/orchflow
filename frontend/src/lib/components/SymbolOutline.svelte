@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { orchestrator } from '$lib/stores/orchestrator';
+	import { manager, activePane } from '$lib/stores/manager';
 	import { fly, fade } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 
@@ -153,11 +153,12 @@
 	}
 
 	async function loadSymbols() {
-		const state = orchestrator.getState();
-		const activeTab = state.tabs.find(t => t.isActive);
+		// TODO: Manager doesn't have tab management yet
+		// Need to implement file tracking in manager
+		const pane = $activePane;
 		
-		if (!activeTab) {
-			error = 'No active file';
+		if (!pane) {
+			error = 'No active pane';
 			return;
 		}
 
@@ -170,9 +171,9 @@
 			// In production, this would call a Rust backend with tree-sitter
 			await new Promise(resolve => setTimeout(resolve, 20));
 			
-			// Generate symbols based on file type
-			const ext = activeTab.title.split('.').pop() || '';
-			fileSymbols = generateSymbols(activeTab.path, ext);
+			// For now, use pane title as filename
+			const ext = pane.title.split('.').pop() || '';
+			fileSymbols = generateSymbols(pane.title, ext);
 			
 			parseTime = performance.now() - startTime;
 		} catch (e) {
@@ -339,11 +340,9 @@
 	}
 
 	function goToSymbol(symbol: Symbol) {
-		// Send command to Neovim to jump to symbol location
-		orchestrator.sendToNeovim('goto_line', {
-			line: symbol.line,
-			column: symbol.column
-		});
+		// TODO: Manager doesn't have Neovim integration yet
+		// Need to implement editor commands in manager
+		console.log('Would go to symbol:', symbol.name, 'at', symbol.line, symbol.column);
 		onClose();
 	}
 

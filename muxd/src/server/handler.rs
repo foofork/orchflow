@@ -8,7 +8,7 @@ use axum::extract::ws::Message;
 use serde_json::{json, Value};
 use std::sync::Arc;
 use tokio::sync::mpsc;
-use tracing::{debug, error, info};
+use tracing::{debug, error};
 
 /// Request handler for JSON-RPC messages
 pub struct RequestHandler {
@@ -59,6 +59,13 @@ impl RequestHandler {
             "pane.kill" => self.handle_kill_pane(params).await,
             "pane.info" => self.handle_get_pane_info(params).await,
             "pane.list" => self.handle_list_panes(params).await,
+            "pane.update_title" => self.handle_update_pane_title(params).await,
+            "pane.update_working_dir" => self.handle_update_pane_working_dir(params).await,
+            "pane.search" => self.handle_search_pane(params).await,
+            "state.save" => self.handle_save_state(params).await,
+            "state.restore" => self.handle_restore_state(params).await,
+            "server_status" => self.handle_server_status(params).await,
+            "server_shutdown" => self.handle_server_shutdown(params).await,
             _ => {
                 return self.send_error(id, -32601, "Method not found").await;
             }
@@ -141,12 +148,12 @@ impl RequestHandler {
             .session_manager
             .list_sessions()
             .into_iter()
-            .map(|(id, name, pane_count, created_at)| SessionInfo {
+            .map(|(id, name, pane_count, created_at, updated_at)| SessionInfo {
                 session_id: id.to_string(),
                 name,
                 pane_count,
                 created_at,
-                updated_at: created_at, // TODO: Track updated_at properly
+                updated_at,
             })
             .collect();
         
@@ -325,8 +332,8 @@ impl RequestHandler {
                 rows: size.rows,
                 cols: size.cols,
                 pid: pane.pid(),
-                title: None, // TODO: Implement title tracking
-                working_dir: None, // TODO: Implement working_dir tracking
+                title: pane.title(),
+                working_dir: pane.working_dir()
             },
         }))
     }
@@ -358,12 +365,165 @@ impl RequestHandler {
                     rows: size.rows,
                     cols: size.cols,
                     pid: pane.pid(),
-                    title: None,
-                    working_dir: None,
+                    title: pane.title(),
+                    working_dir: pane.working_dir(),
                 }
             })
             .collect();
         
         Ok(json!(ListPanesResponse { panes }))
+    }
+    
+    async fn handle_update_pane_title(&self, params: Value) -> Result<Value> {
+        let req: UpdatePaneTitleRequest = serde_json::from_value(params)?;
+        let pane_id = PaneId(req.pane_id);
+        
+        // Find pane across all sessions
+        let (_session_id, pane) = self
+            .session_manager
+            .find_pane(&pane_id)
+            .ok_or_else(|| MuxdError::PaneNotFound {
+                pane_id: pane_id.to_string(),
+            })?;
+        
+        pane.set_title(req.title);
+        
+        Ok(json!(SuccessResponse::default()))
+    }
+    
+    async fn handle_update_pane_working_dir(&self, params: Value) -> Result<Value> {
+        let req: UpdatePaneWorkingDirRequest = serde_json::from_value(params)?;
+        let pane_id = PaneId(req.pane_id);
+        
+        // Find pane across all sessions
+        let (_session_id, pane) = self
+            .session_manager
+            .find_pane(&pane_id)
+            .ok_or_else(|| MuxdError::PaneNotFound {
+                pane_id: pane_id.to_string(),
+            })?;
+        
+        pane.set_working_dir(req.working_dir);
+        
+        Ok(json!(SuccessResponse::default()))
+    }
+    
+    async fn handle_search_pane(&self, params: Value) -> Result<Value> {
+        let req: SearchPaneRequest = serde_json::from_value(params)?;
+        let pane_id = PaneId(req.pane_id);
+        
+        // Find pane across all sessions
+        let (_session_id, pane) = self
+            .session_manager
+            .find_pane(&pane_id)
+            .ok_or_else(|| MuxdError::PaneNotFound {
+                pane_id: pane_id.to_string(),
+            })?;
+        
+        // Perform search
+        let (matches, total_matches, truncated) = pane.search_output(
+            &req.query,
+            req.case_sensitive,
+            req.regex,
+            req.max_results,
+            req.start_line,
+        )?;
+        
+        // Convert matches to response format
+        let search_matches = matches
+            .into_iter()
+            .map(|(line_number, line_content, match_start, match_end)| SearchMatch {
+                line_number,
+                line_content,
+                match_start,
+                match_end,
+            })
+            .collect();
+        
+        Ok(json!(SearchPaneResponse {
+            matches: search_matches,
+            total_matches,
+            truncated,
+        }))
+    }
+    
+    async fn handle_server_status(&self, _params: Value) -> Result<Value> {
+        let sessions = self.session_manager.list_sessions();
+        let mut total_panes = 0;
+        
+        for (_session_id, _, pane_count, _, _) in &sessions {
+            total_panes += pane_count;
+        }
+        
+        Ok(json!({
+            "running": true,
+            "version": env!("CARGO_PKG_VERSION"),
+            "sessions": sessions.len(),
+            "total_panes": total_panes,
+            "uptime_seconds": 0, // TODO: Track server start time
+            "config": {
+                "max_sessions": self.session_manager.max_sessions(),
+                "max_panes_per_session": self.session_manager.max_panes_per_session(),
+            }
+        }))
+    }
+    
+    async fn handle_server_shutdown(&self, _params: Value) -> Result<Value> {
+        // Send shutdown signal through the output channel
+        // The server will handle this as a special message
+        let shutdown_msg = json!({
+            "jsonrpc": "2.0",
+            "method": "_internal_shutdown",
+            "params": {}
+        });
+        
+        let _ = self.output_tx.send(Message::Text(shutdown_msg.to_string()));
+        
+        Ok(json!({
+            "status": "shutting_down"
+        }))
+    }
+    
+    async fn handle_save_state(&self, params: Value) -> Result<Value> {
+        let req: SaveStateRequest = serde_json::from_value(params)?;
+        
+        let saved_ids = self.session_manager.save_state(req.session_ids).await?;
+        
+        Ok(json!(SaveStateResponse {
+            saved_sessions: saved_ids,
+            state_file: "muxd_state.json".to_string(),
+        }))
+    }
+    
+    async fn handle_restore_state(&self, params: Value) -> Result<Value> {
+        let req: RestoreStateRequest = serde_json::from_value(params)?;
+        
+        let (restored, failed) = self.session_manager
+            .restore_state(req.session_ids, req.restart_commands)
+            .await?;
+        
+        let restored_sessions = restored
+            .into_iter()
+            .map(|(id, name)| SessionInfo {
+                session_id: id.to_string(),
+                name,
+                pane_count: 0,
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
+            })
+            .collect();
+        
+        let failed_sessions = failed
+            .into_iter()
+            .map(|(id, reason)| FailedRestore {
+                session_id: id,
+                reason,
+            })
+            .collect();
+        
+        Ok(json!(RestoreStateResponse {
+            restored_sessions,
+            failed_sessions,
+        }))
     }
 }

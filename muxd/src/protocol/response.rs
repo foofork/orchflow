@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
-use std::collections::HashMap;
 
 /// Session creation response
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -96,10 +95,48 @@ pub struct ListPanesResponse {
     pub panes: Vec<PaneInfo>,
 }
 
+/// Search result
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SearchMatch {
+    pub line_number: usize,
+    pub line_content: String,
+    pub match_start: usize,
+    pub match_end: usize,
+}
+
+/// Search pane response
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SearchPaneResponse {
+    pub matches: Vec<SearchMatch>,
+    pub total_matches: usize,
+    pub truncated: bool,
+}
+
 /// Version info response
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VersionResponse {
     pub version: String,
     pub protocol_version: String,
     pub features: Vec<String>,
+}
+
+/// Save state response
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SaveStateResponse {
+    pub saved_sessions: Vec<String>,
+    pub state_file: String,
+}
+
+/// Restore state response
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RestoreStateResponse {
+    pub restored_sessions: Vec<SessionInfo>,
+    pub failed_sessions: Vec<FailedRestore>,
+}
+
+/// Failed restore info
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FailedRestore {
+    pub session_id: String,
+    pub reason: String,
 }

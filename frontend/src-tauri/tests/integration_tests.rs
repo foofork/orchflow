@@ -70,7 +70,7 @@ async fn test_manager_pane_operations() {
     assert!(retrieved.is_some());
     
     // Test listing panes by session
-    let panes = state_store.list_panes(&session.id).await.unwrap();
+    let panes = state_store.get_panes_by_session(&session.id).await.unwrap();
     assert!(!panes.is_empty());
     assert!(panes.iter().any(|p| p.id == pane.id));
     
@@ -199,7 +199,7 @@ async fn test_concurrent_operations() {
     }
     
     // Verify all panes created
-    let panes = state_store.list_panes_by_session(&session.id).await.unwrap();
+    let panes = state_store.get_panes_by_session(&session.id).await.unwrap();
     assert_eq!(panes.len(), 10);
 }
 
@@ -239,8 +239,9 @@ async fn test_plugin_lifecycle() {
         
         if let Some(plugin) = plugin {
             assert_eq!(plugin.id(), *plugin_id);
-            assert!(!plugin.name().is_empty());
-            assert!(!plugin.version().is_empty());
+            let metadata = plugin.metadata();
+            assert!(!metadata.name.is_empty());
+            assert!(!metadata.version.is_empty());
         }
     }
 }

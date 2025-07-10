@@ -141,7 +141,7 @@ mod tests {
     fn test_plugin_errors() {
         let plugin_error = OrchflowError::plugin_error("git-plugin", "checkout", "branch not found");
         
-        if let OrchflowError::PluginError { plugin_id, operation, reason } = plugin_error {
+        if let OrchflowError::PluginError { ref plugin_id, ref operation, ref reason } = plugin_error {
             assert_eq!(plugin_id, "git-plugin");
             assert_eq!(operation, "checkout");
             assert_eq!(reason, "branch not found");
