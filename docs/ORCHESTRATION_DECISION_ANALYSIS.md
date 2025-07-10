@@ -211,15 +211,51 @@ Week 9-10: Documentation and examples
 
 ## Final Recommendation
 
-**Implement the sidecar pattern with ruv-FANN** for these compelling reasons:
+**Implement full integration with ruv-FANN using feature flags** to offer both options:
 
-1. **Competitive Advantage**: No other terminal IDE offers neural-powered orchestration
-2. **Future-Proof**: Architecture scales with user needs
-3. **User Value**: 2.8-4.4x performance improvement is significant
-4. **Ecosystem**: Leverages existing ruv-FANN investment
-5. **Flexibility**: Can add project-specific hooks later if needed
+### Dual Product Strategy
 
-The additional complexity is justified by the massive capability increase. Users expect AI-powered development tools in 2025, and the sidecar pattern delivers enterprise-grade orchestration while keeping the core IDE focused and fast.
+1. **OrchTerm** - Lightweight terminal manager only
+   ```toml
+   # Default build without orchestration
+   cargo build  # Creates orchterm binary
+   ```
+
+2. **OrchFlow** - Full AI-powered IDE
+   ```toml
+   # Build with orchestration features
+   cargo build --features orchestration  # Creates orchflow binary
+   ```
+
+### Implementation via Feature Flags
+
+```toml
+# Cargo.toml
+[features]
+default = ["terminal-only"]
+terminal-only = []
+orchestration = ["ruv-fann", "neural", "swarm"]
+
+[dependencies]
+ruv-fann = { version = "2.0", optional = true }
+neural-engine = { version = "1.0", optional = true }
+swarm-coordinator = { version = "1.0", optional = true }
+```
+
+### Benefits of This Approach
+
+1. **User Choice**: Not forcing AI on users who just want a fast terminal
+2. **Zero Overhead**: Terminal-only users get no AI code in their binary
+3. **Single Codebase**: Easier maintenance than two separate projects
+4. **Progressive Enhancement**: Users can upgrade from OrchTerm to OrchFlow
+5. **Market Segmentation**: Appeals to both minimalists and power users
+
+This follows successful patterns like:
+- VS Code vs VSCodium
+- Rust's ripgrep with/without PCRE2
+- Firefox with/without telemetry
+
+The feature flag approach gives us the 10/10 integration while respecting user preferences.
 
 ## Next Steps
 
