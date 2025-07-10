@@ -30,6 +30,7 @@ orchflow is an AI-driven development environment that enables users to interact 
 3. **Ephemeral Neural Networks**: ruv-FANN integration provides efficient, on-demand agent spawning
 4. **Platform Flexibility**: Desktop for local development, web for collaboration and remote access
 5. **Extensible Command Sets**: Support for claude-flow and custom AI tool integrations
+6. **Feature-Flagged Architecture**: ruv-FANN feature flag enables seamless transition from IPC to direct integration, eliminating orchestration overhead when enabled
 
 ## Architecture Overview
 
@@ -134,11 +135,12 @@ orchflow is an AI-driven development environment that enables users to interact 
 │  └──────────────────────────────────────────────────────────┘  │
 │                                                                 │
 │  ┌──────────────────────────────────────────────────────────┐  │
-│  │           AI Orchestrator (Sidecar Process)               │  │
+│  │           AI Orchestrator Integration                     │  │
 │  │  • TypeScript orchestration engine                        │  │
-│  │  • ruv-FANN integration                                   │  │
+│  │  • ruv-FANN feature flag controls integration mode:       │  │
+│  │    - OFF: Sidecar process via JSON-RPC (legacy)          │  │
+│  │    - ON: Direct integration (no IPC overhead)             │  │
 │  │  • Command adapters                                       │  │
-│  │  • Connected via JSON-RPC over stdio/socket               │  │
 │  │  • Event bus for agent coordination                       │  │
 │  └──────────────────────────────────────────────────────────┘  │
 │                                                                 │
@@ -458,13 +460,43 @@ interface AIService {
 
 ## Technical Implementation
 
-### 1. ruv-FANN Integration
+### 1. ruv-FANN Integration with Feature Flag
+
+The ruv-FANN integration uses a feature flag to control the architecture mode, allowing seamless transition from IPC-based orchestration to direct integration:
 
 ```typescript
-// Ephemeral agent spawning with ruv-FANN
-class RuvFANNOrchestrator {
+// Feature flag controls integration mode
+interface OrchestratorConfig {
+  ruvFANNMode: 'direct' | 'ipc';  // Feature flag
+  // Other config...
+}
+
+// Factory creates appropriate orchestrator based on feature flag
+class OrchestratorFactory {
+  static create(config: OrchestratorConfig): Orchestrator {
+    if (config.ruvFANNMode === 'direct') {
+      // Direct integration - no IPC overhead
+      return new DirectRuvFANNOrchestrator();
+    } else {
+      // Legacy mode - sidecar process with IPC
+      return new IPCOrchestrator();
+    }
+  }
+}
+
+// Direct integration implementation (feature flag ON)
+class DirectRuvFANNOrchestrator implements Orchestrator {
   private runtime: RuvFANN;
   private memoryBus: SharedMemoryBus;
+  
+  constructor() {
+    // Direct instantiation within Rust process
+    this.runtime = new RuvFANN({
+      mode: 'embedded',
+      sharedMemory: true,
+      directBindings: true
+    });
+  }
   
   async createSwarm(task: string, config: SwarmConfig) {
     // Create neural network topology
@@ -478,7 +510,7 @@ class RuvFANNOrchestrator {
     // Spawn agents based on task analysis
     const agents = await network.analyzeAndSpawn(task);
     
-    // Map agents to terminal panes
+    // Direct terminal pane mapping (no IPC)
     for (const agent of agents) {
       const paneId = await this.terminalService.createPane({
         session: this.sessionId,
@@ -488,7 +520,7 @@ class RuvFANNOrchestrator {
       
       agent.attachToPane(paneId);
       
-      // Set up inter-agent communication
+      // Direct memory bus communication
       agent.on('message', (msg) => this.memoryBus.broadcast(msg));
       agent.on('requestHelp', (req) => this.routeHelpRequest(req));
     }
@@ -496,7 +528,46 @@ class RuvFANNOrchestrator {
     return new SwarmSession(agents, network);
   }
 }
+
+// Legacy IPC implementation (feature flag OFF)
+class IPCOrchestrator implements Orchestrator {
+  private rpcClient: JSONRPCClient;
+  
+  constructor() {
+    // Spawn sidecar process
+    this.rpcClient = new JSONRPCClient({
+      command: 'node',
+      args: ['orchestrator-sidecar.js'],
+      protocol: 'stdio'
+    });
+  }
+  
+  async createSwarm(task: string, config: SwarmConfig) {
+    // Send RPC call to sidecar
+    return this.rpcClient.call('createSwarm', { task, config });
+  }
+}
 ```
+
+### Benefits of Direct Integration (Feature Flag ON)
+
+1. **Performance**
+   - Eliminates IPC serialization overhead
+   - Direct memory access between Rust and orchestrator
+   - Faster agent spawning and coordination
+   - Reduced latency in terminal operations
+
+2. **Simplicity**
+   - Single process model
+   - Easier debugging and profiling
+   - Simplified deployment
+   - Better resource management
+
+3. **Reliability**
+   - No sidecar process to manage
+   - Eliminates IPC failure modes
+   - Unified error handling
+   - Consistent state management
 
 ### 2. Command Set Adapters
 
@@ -679,7 +750,7 @@ class ContainerTerminalService {
 
 ## Migration & Deployment Strategy
 
-### Phase 1: Foundation (Months 1-2)
+### Phase 1: Foundation with Feature Flag (Months 1-2)
 
 1. **Service Abstraction Layer**
    - Define all service interfaces
@@ -687,11 +758,12 @@ class ContainerTerminalService {
    - Create mock web services
    - Add platform detection
 
-2. **Core Integration**
-   - Connect Manager ↔ Orchestrator
-   - Implement JSON-RPC protocol
-   - Test basic command routing
-   - Verify session management
+2. **Core Integration with ruv-FANN Feature Flag**
+   - Implement feature flag infrastructure
+   - Maintain IPC mode as default (stable)
+   - Build direct integration mode in parallel
+   - Create comprehensive test suite for both modes
+   - A/B testing framework for performance comparison
 
 ### Phase 2: AI Enhancement (Months 3-4)
 
@@ -845,26 +917,43 @@ class ContainerTerminalService {
 
 ### Immediate Actions (Week 1-2)
 
-1. **Create Service Interfaces**
+1. **Create Service Interfaces with Feature Flag Support**
    ```typescript
    // /shared/interfaces/services.ts
    export interface TerminalService { ... }
    export interface FileService { ... }
    export interface AIService { ... }
+   
+   // /shared/config/features.ts
+   export interface FeatureFlags {
+     ruvFANNDirect: boolean;  // Controls orchestrator integration mode
+     // Other feature flags...
+   }
    ```
 
-2. **Add Platform Detection**
+2. **Add Platform Detection and Feature Configuration**
    ```typescript
    // /frontend/src/lib/platform.ts
    export function detectPlatform(): 'desktop' | 'web' { ... }
+   
+   // /backend/src/config/features.ts
+   export function getFeatureFlags(): FeatureFlags {
+     return {
+       ruvFANNDirect: process.env.RUV_FANN_DIRECT === 'true' || false,
+       // Start with IPC mode, enable direct mode via env var
+     };
+   }
    ```
 
-3. **Build AI Chat Component**
+3. **Build AI Chat Component with Mode Indicator**
    ```svelte
    <!-- /frontend/src/lib/components/AIChat.svelte -->
    <script>
      import { aiService } from '$lib/services';
-     // Implementation
+     import { featureFlags } from '$lib/config';
+     
+     // Show integration mode in dev builds
+     $: orchestratorMode = featureFlags.ruvFANNDirect ? 'Direct' : 'IPC';
    </script>
    ```
 

@@ -212,6 +212,14 @@ This changes our immediate priorities from fixing tests to improving coverage!
 
 ### 🎯 STRATEGIC PRIORITY: Complete the Rust Manager First
 
+#### 🚨 KEY ARCHITECTURAL DECISION: ruv-FANN Integration Mode
+**STATUS**: Decision needed before Terminal Metadata System implementation
+- **Feature Flag Approach**: Use ruv-FANN as toggle between IPC vs direct integration
+- **Performance Impact**: Direct mode eliminates sidecar process overhead
+- **Affects**: Terminal metadata design, agent coordination, process architecture
+- **Documentation**: Updated in [Unified Architecture](docs/architecture/UNIFIED_ARCHITECTURE.md)
+- **Timeline**: Decision required by Week 4 (Terminal Metadata System phase)
+
 #### Phase 1.0: Test Coverage & Feature Completion (IN PROGRESS) ⚡ CRITICAL
 
 **🏆 Progress Summary**: Major test infrastructure complete with 282+ documented tests across frontend and backend. Key components (Terminal, GitPanel, NeovimEditor, FileManager) have comprehensive test suites. The Phase 8 sprint added 627 total tests with 84% pass rate. Focus now shifts to increasing overall coverage to >90% and fixing remaining test failures.
@@ -257,16 +265,39 @@ This changes our immediate priorities from fixing tests to improving coverage!
 
 #### Phase 2: Terminal Intelligence & Production (Weeks 4-6)
 
-**Terminal Metadata System** (Week 4-5) - AI Foundation (DO NOT DO - )
-- [ ] Research terminal classification patterns
+**Terminal Metadata System & Orchestrator Architecture** (Week 4-5) - AI Foundation
+- [ ] **🚨 CRITICAL DECISION NEEDED**: ruv-FANN Integration Architecture
+  - **Decision**: Use ruv-FANN as feature flag to replace IPC with direct integration
+  - **Impact**: Eliminates orchestrator sidecar process overhead when enabled
+  - **Options**: 
+    - OFF: Legacy IPC mode (JSON-RPC over stdio/socket) - stable fallback
+    - ON: Direct integration mode (embedded in Rust process) - performance optimized
+  - **Rationale**: Single process model improves performance, simplifies deployment, eliminates IPC failure modes
+  - **Implementation**: Factory pattern with OrchestratorConfig.ruvFANNMode feature flag
+  - **See**: [Unified Architecture docs/architecture/UNIFIED_ARCHITECTURE.md] for complete design
+- [ ] Research terminal classification patterns (dependent on orchestrator decision)
 - [ ] Terminal type classification (Build, Test, REPL, Debug, Agent)
-- [ ] AI agent metadata support
+- [ ] AI agent metadata support (affects terminal → orchestrator communication)
 - [ ] Purpose-driven terminal management
 - [ ] Context tracking per terminal
 - [ ] Process lifecycle monitoring
 - [ ] Error pattern detection
 - [ ] Command intent detection preparation
 - [ ] Write comprehensive tests
+
+**Terminal Security Framework** (Week 5) - 🔐 DECISION NEEDED
+- [ ] **DECISION REQUIRED**: Choose security implementation approach
+  - Option A: Tiered security model (5 levels from unrestricted to isolated)
+  - Option B: Individual feature toggles (granular control)
+  - Option C: Hybrid approach with tiers + overrides
+- [ ] Implement command execution protection
+- [ ] Add process isolation options (namespace/container/VM)
+- [ ] Integrate workspace trust model
+- [ ] Build audit logging framework
+- [ ] Create visual security indicators
+- [ ] Design plugin sandboxing for terminal access
+- [ ] Add rate limiting and resource protection
+> **📖 See [Terminal Security Implementation Guide](docs/security/TERMINAL_SECURITY_IMPLEMENTATION.md) for detailed design**
 
 **Production Hardening** (Week 6)
 - [ ] Performance profiling and optimization
