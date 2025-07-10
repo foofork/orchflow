@@ -4,10 +4,12 @@
 use tauri::State;
 use crate::manager::Manager;
 use crate::error::{Result, OrchflowError};
+use crate::file_manager::git::{GitStatus as FileGitStatus, BranchInfo};
 use serde::{Serialize, Deserialize};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use git2::{Repository, StatusOptions, Signature};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GitStatusResult {
@@ -582,4 +584,249 @@ fn get_file_statuses(repo: &Repository) -> Result<(Vec<GitFileStatus>, Vec<GitFi
     }
     
     Ok((staged, unstaged, untracked))
+}
+
+// ===== Additional Git Commands =====
+
+/// Get git status for a specific file
+#[tauri::command]
+pub async fn get_file_git_status(
+    path: String,
+    manager: State<'_, Manager>,
+) -> Result<Option<FileGitStatus>> {
+    let project_root = manager.project_root.clone()
+        .ok_or_else(|| OrchflowError::ConfigurationError {
+            component: "git".to_string(),
+            reason: "No project root set".to_string(),
+        })?;
+    
+    let repo = Repository::open(&project_root)
+        .map_err(|e| OrchflowError::GitError {
+            operation: "open repository".to_string(),
+            details: e.to_string(),
+        })?;
+    
+    let target_path = Path::new(&path);
+    let relative_path = if target_path.is_absolute() {
+        target_path.strip_prefix(&project_root)
+            .map_err(|_| OrchflowError::FileOperationError {
+                operation: "strip prefix".to_string(),
+                path: target_path.to_path_buf(),
+                reason: "Path is not within project root".to_string(),
+            })?
+    } else {
+        target_path
+    };
+    
+    let status = repo.status_file(relative_path)
+        .map_err(|e| OrchflowError::GitError {
+            operation: "get file status".to_string(),
+            details: e.to_string(),
+        })?;
+    
+    let git_status = if status.contains(git2::Status::WT_NEW) {
+        Some(FileGitStatus::Untracked)
+    } else if status.contains(git2::Status::WT_MODIFIED) || status.contains(git2::Status::INDEX_MODIFIED) {
+        Some(FileGitStatus::Modified)
+    } else if status.contains(git2::Status::INDEX_NEW) {
+        Some(FileGitStatus::Added)
+    } else if status.contains(git2::Status::WT_DELETED) || status.contains(git2::Status::INDEX_DELETED) {
+        Some(FileGitStatus::Deleted)
+    } else if status.contains(git2::Status::WT_RENAMED) || status.contains(git2::Status::INDEX_RENAMED) {
+        Some(FileGitStatus::Renamed)
+    } else if status.contains(git2::Status::CONFLICTED) {
+        Some(FileGitStatus::Conflicted)
+    } else if status.contains(git2::Status::IGNORED) {
+        Some(FileGitStatus::Ignored)
+    } else {
+        None
+    };
+    
+    Ok(git_status)
+}
+
+/// Get git status for all files in the repository
+#[tauri::command]
+pub async fn get_all_git_statuses(
+    manager: State<'_, Manager>,
+) -> Result<HashMap<String, FileGitStatus>> {
+    let project_root = manager.project_root.clone()
+        .ok_or_else(|| OrchflowError::ConfigurationError {
+            component: "git".to_string(),
+            reason: "No project root set".to_string(),
+        })?;
+    
+    let repo = Repository::open(&project_root)
+        .map_err(|e| OrchflowError::GitError {
+            operation: "open repository".to_string(),
+            details: e.to_string(),
+        })?;
+    
+    let mut result = HashMap::new();
+    let mut opts = StatusOptions::new();
+    opts.include_untracked(true).include_ignored(true);
+    
+    let statuses = repo.statuses(Some(&mut opts))
+        .map_err(|e| OrchflowError::GitError {
+            operation: "get statuses".to_string(),
+            details: e.to_string(),
+        })?;
+    
+    for entry in statuses.iter() {
+        if let Some(path) = entry.path() {
+            let status = entry.status();
+            let git_status = if status.contains(git2::Status::WT_NEW) {
+                FileGitStatus::Untracked
+            } else if status.contains(git2::Status::WT_MODIFIED) || status.contains(git2::Status::INDEX_MODIFIED) {
+                FileGitStatus::Modified
+            } else if status.contains(git2::Status::INDEX_NEW) {
+                FileGitStatus::Added
+            } else if status.contains(git2::Status::WT_DELETED) || status.contains(git2::Status::INDEX_DELETED) {
+                FileGitStatus::Deleted
+            } else if status.contains(git2::Status::WT_RENAMED) || status.contains(git2::Status::INDEX_RENAMED) {
+                FileGitStatus::Renamed
+            } else if status.contains(git2::Status::CONFLICTED) {
+                FileGitStatus::Conflicted
+            } else if status.contains(git2::Status::IGNORED) {
+                FileGitStatus::Ignored
+            } else {
+                continue;
+            };
+            
+            result.insert(path.to_string(), git_status);
+        }
+    }
+    
+    Ok(result)
+}
+
+/// Get current git branch information
+#[tauri::command]
+pub async fn get_git_branch_info(
+    manager: State<'_, Manager>,
+) -> Result<BranchInfo> {
+    let project_root = manager.project_root.clone()
+        .ok_or_else(|| OrchflowError::ConfigurationError {
+            component: "git".to_string(),
+            reason: "No project root set".to_string(),
+        })?;
+    
+    let repo = Repository::open(&project_root)
+        .map_err(|e| OrchflowError::GitError {
+            operation: "open repository".to_string(),
+            details: e.to_string(),
+        })?;
+    
+    let head = repo.head()
+        .map_err(|e| OrchflowError::GitError {
+            operation: "get head".to_string(),
+            details: e.to_string(),
+        })?;
+    
+    let is_detached = repo.head_detached().unwrap_or(false);
+    
+    let name = if is_detached {
+        head.target()
+            .map(|oid| oid.to_string())
+            .unwrap_or_else(|| "unknown".to_string())
+    } else {
+        head.shorthand()
+            .unwrap_or("unknown")
+            .to_string()
+    };
+    
+    let (upstream, ahead, behind) = get_upstream_info(&repo, &head)?;
+    
+    Ok(BranchInfo {
+        name,
+        is_detached,
+        upstream,
+        ahead,
+        behind,
+    })
+}
+
+/// Check if there are uncommitted changes
+#[tauri::command]
+pub async fn has_uncommitted_changes(
+    manager: State<'_, Manager>,
+) -> Result<bool> {
+    let project_root = manager.project_root.clone()
+        .ok_or_else(|| OrchflowError::ConfigurationError {
+            component: "git".to_string(),
+            reason: "No project root set".to_string(),
+        })?;
+    
+    let repo = Repository::open(&project_root)
+        .map_err(|e| OrchflowError::GitError {
+            operation: "open repository".to_string(),
+            details: e.to_string(),
+        })?;
+    
+    let mut opts = StatusOptions::new();
+    opts.include_untracked(true).include_ignored(false);
+    
+    let statuses = repo.statuses(Some(&mut opts))
+        .map_err(|e| OrchflowError::GitError {
+            operation: "get statuses".to_string(),
+            details: e.to_string(),
+        })?;
+    
+    Ok(!statuses.is_empty())
+}
+
+/// Check if git integration is available
+#[tauri::command]
+pub async fn has_git_integration(
+    manager: State<'_, Manager>,
+) -> Result<bool> {
+    let project_root = manager.project_root.clone()
+        .ok_or_else(|| OrchflowError::ConfigurationError {
+            component: "git".to_string(),
+            reason: "No project root set".to_string(),
+        })?;
+    
+    // Check if .git directory exists
+    Ok(project_root.join(".git").exists())
+}
+
+/// Check if a file is ignored by git
+#[tauri::command]
+pub async fn is_git_ignored(
+    path: String,
+    manager: State<'_, Manager>,
+) -> Result<bool> {
+    let project_root = manager.project_root.clone()
+        .ok_or_else(|| OrchflowError::ConfigurationError {
+            component: "git".to_string(),
+            reason: "No project root set".to_string(),
+        })?;
+    
+    // Convert the path to be relative to project root if it's absolute
+    let target_path = Path::new(&path);
+    let relative_path = if target_path.is_absolute() {
+        target_path.strip_prefix(&project_root)
+            .map_err(|_| OrchflowError::FileOperationError {
+                operation: "strip prefix".to_string(),
+                path: target_path.to_path_buf(),
+                reason: "Path is not within project root".to_string(),
+            })?
+    } else {
+        target_path
+    };
+    
+    // Try to open the repository
+    let repo = match Repository::open(&project_root) {
+        Ok(repo) => repo,
+        Err(_) => {
+            // No git repository, so nothing is ignored
+            return Ok(false);
+        }
+    };
+    
+    // Check if the path is ignored
+    let is_ignored = repo.is_path_ignored(&relative_path)
+        .unwrap_or(false);
+    
+    Ok(is_ignored)
 }

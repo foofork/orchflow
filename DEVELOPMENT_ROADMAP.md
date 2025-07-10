@@ -274,6 +274,33 @@ This changes our immediate priorities from fixing tests to improving coverage!
 - [ ] Determine core performance testing requirements and tasks
 - [ ] Search and Replace Performance tests for large codebases
 
+#### Phase 1.75: Upgrade Dependencies & Modernize Stack (Week 3) 🆕
+**Tauri & Project Dependencies Upgrade** - Modernization before abstraction
+- [ ] **Upgrade Tauri to v2.0+**: Update from current version to latest stable
+  - [ ] Review breaking changes and migration guide
+  - [ ] Update tauri.conf.json for v2 format
+  - [ ] Migrate API usage (invoke, events, etc.)
+  - [ ] Update all tauri-plugin-* dependencies
+  - [ ] Fix any compilation errors from API changes
+- [ ] **Update Rust dependencies**: Comprehensive dependency audit
+  - [ ] Run `cargo update` and address any breaking changes
+  - [ ] Update critical dependencies: tokio, serde, git2, etc.
+  - [ ] Resolve deprecated API usage
+  - [ ] Update dev dependencies for testing
+- [ ] **Frontend dependency updates**:
+  - [ ] Update Svelte/SvelteKit to latest
+  - [ ] Update Vite and build toolchain
+  - [ ] Update testing framework (Vitest)
+  - [ ] Update UI dependencies (CodeMirror, etc.)
+- [ ] **Test suite compatibility**: Ensure all tests pass after upgrades
+  - [ ] Fix any test failures from dependency changes
+  - [ ] Update test mocks for new APIs
+  - [ ] Verify performance benchmarks still pass
+- [ ] **Documentation updates**:
+  - [ ] Update build instructions for new requirements
+  - [ ] Document any new system dependencies
+  - [ ] Update CI/CD configurations
+
 #### Phase 2: Terminal Intelligence & Production (Weeks 4-6)
 
 **Terminal Metadata System & Orchestrator Architecture** (Week 4-5) - AI Foundation

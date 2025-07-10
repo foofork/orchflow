@@ -65,6 +65,12 @@ use sharing_service::SharingService;
 use simple_state_store::SimpleStateStore;
 use std::sync::{Arc, Mutex};
 use tauri::Manager;
+use tauri_plugin_fs;
+use tauri_plugin_shell;
+use tauri_plugin_process;
+use tauri_plugin_os;
+use tauri_plugin_updater;
+use tauri_plugin_window_state;
 
 // Legacy AppState - being phased out in favor of StateManager
 // TODO: Remove this once all commands are migrated to unified_state_commands
@@ -324,6 +330,12 @@ async fn main() {
             // Utility commands
             get_current_dir,
         ])
+        .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_os::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_window_state::Builder::default().build())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

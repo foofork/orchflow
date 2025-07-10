@@ -2,53 +2,16 @@
   "build": {
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build",
-    "devPath": "http://localhost:5173",
-    "distDir": "../build",
-    "withGlobalTauri": false
+    "devUrl": "http://localhost:5173",
+    "frontendDist": "../build"
   },
-  "package": {
-    "productName": "OrchFlow",
-    "version": "0.1.0"
-  },
-  "tauri": {
-    "allowlist": {
-      "all": false,
-      "shell": {
-        "all": false,
-        "execute": true,
-        "sidecar": true,
-        "open": true
-      },
-      "process": {
-        "all": true,
-        "exit": true,
-        "relaunch": true
-      },
-      "fs": {
-        "all": false,
-        "readFile": true,
-        "writeFile": true,
-        "readDir": true,
-        "createDir": true,
-        "removeDir": true,
-        "removeFile": true,
-        "exists": true,
-        "scope": ["$HOME/.orchflow/**", "$APPDATA/**"]
-      },
-      "path": {
-        "all": true
-      },
-      "os": {
-        "all": true
-      },
-      "window": {
-        "all": true
-      }
-    },
+  "productName": "OrchFlow",
+  "version": "0.1.0",
+  "identifier": "com.orchflow.app",
+  "app": {
     "bundle": {
       "active": true,
       "targets": ["dmg", "msi", "nsis"],
-      "identifier": "com.orchflow.app",
       "icon": [
         "icons/32x32.png",
         "icons/128x128.png",
@@ -63,6 +26,10 @@
         "binaries/tmux",
         "binaries/nvim"
       ],
+      "resources": {
+        "binaries/tmux": "bin/tmux",
+        "binaries/nvim": "bin/nvim"
+      },
       "copyright": "Copyright (c) 2024 OrchFlow Team",
       "category": "Developer Tool",
       "shortDescription": "VS Code-style terminal-orchestrated developer GUI",
@@ -111,14 +78,32 @@
         "fileDropEnabled": false
       }
     ],
-    "updater": {
-      "active": true,
-      "endpoints": [
-        "https://api.github.com/repos/orchflow/orchflow/releases/latest",
-        "https://releases.orchflow.dev/{{target}}/{{arch}}/{{current_version}}"
-      ],
-      "dialog": true,
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTNFhYQ1hBU1hYWEMgdGF1cmkgcmVsZWFzZSBzaWduaW5nIGtleQo="
+    "plugins": {
+      "fs": {
+        "scope": ["$HOME/.orchflow/**", "$APPDATA/**"]
+      },
+      "shell": {
+        "open": true,
+        "scope": [
+          {
+            "name": "binaries/tmux",
+            "cmd": "tmux",
+            "args": true
+          },
+          {
+            "name": "binaries/nvim",
+            "cmd": "nvim",
+            "args": true
+          }
+        ]
+      },
+      "updater": {
+        "endpoints": [
+          "https://api.github.com/repos/orchflow/orchflow/releases/latest",
+          "https://releases.orchflow.dev/{{target}}/{{arch}}/{{current_version}}"
+        ],
+        "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTNFhYQ1hBU1hYWEMgdGF1cmkgcmVsZWFzZSBzaWduaW5nIGtleQo="
+      }
     }
   }
 }

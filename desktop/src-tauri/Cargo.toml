@@ -28,23 +28,20 @@ name = "memory_test"
 path = "src/bin/memory_test.rs"
 
 [build-dependencies]
-tauri-build = { version = "1.5", features = [] }
+tauri-build = { version = "2.0", features = [] }
 
 [dependencies]
-tauri = { version = "1.5", features = [ "fs-exists", "fs-remove-file", "fs-read-file", "fs-read-dir", "fs-remove-dir", "fs-create-dir", "fs-write-file",
-    "shell-open", 
-    "shell-execute", 
-    "shell-sidecar",
-    "process-all",
-    "path-all",
-    "os-all",
-    "window-all",
-    "updater"
-] }
+tauri = { version = "2.0", features = ["macos-private-api", "tray-icon", "image-png"] }
+tauri-plugin-fs = "2.0"
+tauri-plugin-shell = "2.0"
+tauri-plugin-process = "2.0"
+tauri-plugin-os = "2.0"
+tauri-plugin-updater = "2.0"
+tauri-plugin-window-state = "2.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 chrono = { version = "0.4", features = ["serde"] }
-tokio = { version = "1.35", features = ["full"] }
+tokio = { version = "1.46", features = ["full"] }
 uuid = { version = "1.6", features = ["v4", "serde"] }
 rusqlite = { version = "0.30", features = ["bundled", "serde_json", "chrono", "uuid"] }
 home = "0.5"
