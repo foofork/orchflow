@@ -223,7 +223,11 @@ This changes our immediate priorities from fixing tests to improving coverage!
 **STATUS**: Decision needed before Terminal Metadata System implementation
 - **Feature Flag Approach**: Use ruv-FANN as toggle between IPC vs direct integration
 - **Performance Impact**: Direct mode eliminates sidecar process overhead
-- **Affects**: Terminal metadata design, agent coordination, process architecture
+- **Multi-Project Support**: Architecture must support multiple projects/workspaces simultaneously
+  - IPC approach: Natural process isolation per project
+  - Direct integration: Requires namespace/context isolation design
+  - Decision affects scalability and resource management
+- **Affects**: Terminal metadata design, agent coordination, process architecture, multi-project support
 - **Documentation**: Updated in [Unified Architecture](docs/architecture/UNIFIED_ARCHITECTURE.md)
 - **Timeline**: Decision required by Week 4 (Terminal Metadata System phase)
 
@@ -276,9 +280,14 @@ This changes our immediate priorities from fixing tests to improving coverage!
 - [ ] **🚨 CRITICAL DECISION NEEDED**: ruv-FANN Integration Architecture
   - **Decision**: Use ruv-FANN as feature flag to replace IPC with direct integration
   - **Impact**: Eliminates orchestrator sidecar process overhead when enabled
+  - **Multi-Project Considerations**:
+    - MUST support multiple projects/workspaces simultaneously
+    - IPC mode: Natural isolation via separate processes per project
+    - Direct mode: Requires explicit namespace/context isolation
+    - Affects resource pooling and orchestrator lifecycle management
   - **Options**: 
-    - OFF: Legacy IPC mode (JSON-RPC over stdio/socket) - stable fallback
-    - ON: Direct integration mode (embedded in Rust process) - performance optimized
+    - OFF: Legacy IPC mode (JSON-RPC over stdio/socket) - stable fallback, easier multi-project
+    - ON: Direct integration mode (embedded in Rust process) - performance optimized, complex multi-project
   - **Rationale**: Single process model improves performance, simplifies deployment, eliminates IPC failure modes
   - **Implementation**: Factory pattern with OrchestratorConfig.ruvFANNMode feature flag
   - **See**: [Unified Architecture docs/architecture/UNIFIED_ARCHITECTURE.md] for complete design
