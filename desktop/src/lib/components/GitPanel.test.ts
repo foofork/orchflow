@@ -6,10 +6,23 @@ import GitPanel from './GitPanel.svelte';
 // Mock Tauri API
 const mockInvoke = vi.fn();
 vi.mock('@tauri-apps/api/tauri', () => ({
-  invoke: mockInvoke
+  invoke: mockInvoke,
+  default: { invoke: mockInvoke }
 }));
 
 describe('GitPanel', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Mock Tauri window object
+    (window as any).__TAURI__ = {};
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    // Clean up Tauri mock
+    delete (window as any).__TAURI__;
+  });
+
   const mockGitStatus = {
     branch: 'main',
     upstream: 'origin/main',
@@ -515,7 +528,7 @@ index 1234567..abcdefg 100644
       
       await waitFor(() => {
         expect(mockInvoke).toHaveBeenCalledWith('git_push');
-      }, { timeout: 1000 });
+      });
     });
 
     it('pulls changes', async () => {
@@ -538,7 +551,7 @@ index 1234567..abcdefg 100644
       
       await waitFor(() => {
         expect(mockInvoke).toHaveBeenCalledWith('git_pull');
-      }, { timeout: 1000 });
+      });
     });
 
     it('shows error alert on push failure', async () => {
@@ -561,7 +574,7 @@ index 1234567..abcdefg 100644
       
       await waitFor(() => {
         expect(window.alert).toHaveBeenCalledWith('Push failed: Error: Network error');
-      }, { timeout: 1000 });
+      });
       
       consoleSpy.mockRestore();
     });
@@ -659,7 +672,9 @@ index 1234567..abcdefg 100644
       });
     });
 
-    it('auto-refreshes status every 5 seconds', { timeout: 10000 }, async () => {
+    it('auto-refreshes status every 5 seconds', async () => {
+      vi.useFakeTimers();
+      
       // Setup a mock that always resolves to avoid any timing issues
       mockInvoke.mockImplementation(() => Promise.resolve(mockGitStatus));
       
@@ -675,12 +690,14 @@ index 1234567..abcdefg 100644
       // Fast-forward 5 seconds
       vi.advanceTimersByTime(5000);
       
-      // Wait for the timer callback to execute
-      await waitFor(() => {
-        expect(mockInvoke).toHaveBeenCalledTimes(initialCalls + 1);
-      }, { timeout: 1000 });
+      // Process any pending promises
+      await Promise.resolve();
+      
+      // Should have called git_status again
+      expect(mockInvoke).toHaveBeenCalledTimes(initialCalls + 1);
       
       unmount();
+      vi.useRealTimers();
     });
 
     it('cleans up interval on destroy', async () => {
@@ -756,10 +773,10 @@ index 1234567..abcdefg 100644
       const stageBtn = container.querySelector('.file-action[title="Stage"]') as HTMLElement;
       await fireEvent.click(stageBtn);
       
-      // Should log error gracefully
       await waitFor(() => {
+        // Should log error gracefully
         expect(consoleSpy).toHaveBeenCalledWith('Failed to stage file:', expect.any(Error));
-      }, { timeout: 1000 });
+      });
       
       consoleSpy.mockRestore();
     });

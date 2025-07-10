@@ -2,16 +2,41 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import userEvent from '@testing-library/user-event';
-import PaneGrid from './PaneGrid.svelte';
 import { mockInvoke } from '../../test/utils';
 
-// Mock TauriTerminal component
-vi.mock('./TauriTerminal.svelte', () => ({
-  default: vi.fn(() => ({
-    $destroy: vi.fn(),
-    $on: vi.fn()
-  }))
-}));
+// Mock TauriTerminal component - must be hoisted before PaneGrid import
+vi.mock('./TauriTerminal.svelte', () => {
+  return {
+    default: class MockTauriTerminal {
+      constructor(options: any) {
+        this.$$ = {
+          fragment: null,
+          ctx: [],
+          props: options.props || {},
+          update: vi.fn(),
+          not_equal: vi.fn(),
+          bound: {},
+          on_mount: [],
+          on_destroy: [],
+          on_disconnect: [],
+          before_update: [],
+          after_update: [],
+          context: new Map(),
+          callbacks: {},
+          dirty: [],
+          skip_bound: false,
+          root: options.target || null
+        };
+        this.$destroy = vi.fn();
+        this.$on = vi.fn();
+        this.$set = vi.fn();
+      }
+      $destroy() {}
+      $on() {}
+      $set() {}
+    }
+  };
+});
 
 // Mock layout client
 vi.mock('$lib/tauri/layout', () => ({
@@ -22,6 +47,9 @@ vi.mock('$lib/tauri/layout', () => ({
     closePane: vi.fn()
   }
 }));
+
+// Import components AFTER mocks
+import PaneGrid from './PaneGrid.svelte';
 
 describe('PaneGrid Component', () => {
   let user: any;

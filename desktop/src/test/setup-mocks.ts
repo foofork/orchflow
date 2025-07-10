@@ -11,3 +11,4 @@ vi.mock('$lib/components/PluginStatusBar.svelte', () => {
     }))
   };
 });
+
