@@ -100,6 +100,13 @@ This changes our immediate priorities from fixing tests to improving coverage!
 - ✅ **Test Suite**: 29 unit tests passing, 4 integration tests passing
 - ✅ **API Endpoints**: 17 JSON-RPC methods fully implemented
 
+**Claude Code Multi-Terminal Testing** (NEW - Post Terminal Manager)
+- [ ] Use Claude Code to test multi-terminal scenarios
+- [ ] Open multiple terminals simultaneously for testing orchestration
+- [ ] Test terminal coordination and state management
+- [ ] Validate session persistence across multiple terminals
+- [ ] Document terminal management patterns and best practices
+
 **Test Infrastructure Improvements:**
 - ✅ Fixed 21 compilation errors in Tauri backend tests (reduced from 132 to 111)
 - ✅ Fixed CreatePane struct field mismatches
