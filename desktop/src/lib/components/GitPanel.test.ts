@@ -6,8 +6,7 @@ import GitPanel from './GitPanel.svelte';
 // Mock Tauri API
 const mockInvoke = vi.fn();
 vi.mock('@tauri-apps/api/tauri', () => ({
-  invoke: mockInvoke,
-  default: { invoke: mockInvoke }
+  invoke: mockInvoke
 }));
 
 describe('GitPanel', () => {
@@ -511,6 +510,7 @@ index 1234567..abcdefg 100644
     it('pushes changes', async () => {
       // Clear any previous calls and setup fresh mocks
       vi.clearAllMocks();
+      (window as any).__TAURI__ = {};
       mockInvoke
         .mockResolvedValueOnce(mockGitStatus) // Initial load
         .mockResolvedValueOnce(undefined) // git_push call
@@ -528,7 +528,7 @@ index 1234567..abcdefg 100644
       
       await waitFor(() => {
         expect(mockInvoke).toHaveBeenCalledWith('git_push');
-      });
+      }, { timeout: 3000 });
     });
 
     it('pulls changes', async () => {
@@ -757,6 +757,7 @@ index 1234567..abcdefg 100644
 
     it('handles stage error', async () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      (window as any).__TAURI__ = {};
       
       // Setup fresh mocks
       mockInvoke

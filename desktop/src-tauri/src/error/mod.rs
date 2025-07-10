@@ -161,6 +161,10 @@ pub enum OrchflowError {
     #[error("Constraint violation: {constraint} - {reason}")]
     ConstraintViolation { constraint: String, reason: String },
 
+    // ===== Git Errors =====
+    #[error("Git operation failed: {operation} - {details}")]
+    GitError { operation: String, details: String },
+
     // ===== System/Resource Errors =====
     #[error("System resource error: {resource} - {reason}")]
     ResourceError { resource: String, reason: String },

@@ -312,6 +312,15 @@ async fn main() {
             git_commands::has_uncommitted_changes,
             git_commands::has_git_integration,
             git_commands::is_git_ignored,
+            git_commands::git_status,
+            git_commands::git_diff,
+            git_commands::git_stage,
+            git_commands::git_unstage,
+            git_commands::git_stage_all,
+            git_commands::git_unstage_all,
+            git_commands::git_commit,
+            git_commands::git_push,
+            git_commands::git_pull,
             // Utility commands
             get_current_dir,
         ])

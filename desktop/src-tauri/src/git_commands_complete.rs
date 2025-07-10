@@ -1,13 +1,14 @@
-// Full Git command implementation for Tauri
-// This implements the missing git commands that the frontend expects
+// Complete Git command implementation for Tauri
+// This includes both the existing read-only commands and the new write commands
 
 use tauri::State;
 use crate::manager::Manager;
 use crate::error::{Result, OrchflowError};
 use serde::{Serialize, Deserialize};
+use serde_json::Value;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use git2::{Repository, StatusOptions, Signature};
+use git2::{Repository, StatusOptions, Index, Signature, Oid, ObjectType};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GitStatusResult {
@@ -26,6 +27,107 @@ pub struct GitFileStatus {
     pub path: String,
     pub status: String,
 }
+
+// ===== Existing read-only commands =====
+
+/// Get git status for a specific file
+#[tauri::command]
+pub async fn get_file_git_status(
+    path: String,
+    manager: State<'_, Manager>,
+) -> Result<Option<Value>> {
+    if let Some(file_manager) = &manager.file_manager {
+        let file_path = PathBuf::from(path);
+        let status = file_manager.get_git_status(&file_path)?;
+        Ok(status.map(|s| serde_json::to_value(s).unwrap()))
+    } else {
+        Err(crate::error::OrchflowError::ConfigurationError {
+            component: "file_manager".to_string(),
+            reason: "File manager not initialized".to_string(),
+        })
+    }
+}
+
+/// Get git status for all files in the repository
+#[tauri::command]
+pub async fn get_all_git_statuses(
+    manager: State<'_, Manager>,
+) -> Result<Value> {
+    if let Some(file_manager) = &manager.file_manager {
+        let statuses = file_manager.get_all_git_statuses()?;
+        Ok(serde_json::to_value(statuses).unwrap())
+    } else {
+        Err(crate::error::OrchflowError::ConfigurationError {
+            component: "file_manager".to_string(),
+            reason: "File manager not initialized".to_string(),
+        })
+    }
+}
+
+/// Get current git branch information
+#[tauri::command]
+pub async fn get_git_branch_info(
+    manager: State<'_, Manager>,
+) -> Result<Option<Value>> {
+    if let Some(file_manager) = &manager.file_manager {
+        let branch_info = file_manager.get_git_branch_info()?;
+        Ok(branch_info.map(|b| serde_json::to_value(b).unwrap()))
+    } else {
+        Err(crate::error::OrchflowError::ConfigurationError {
+            component: "file_manager".to_string(),
+            reason: "File manager not initialized".to_string(),
+        })
+    }
+}
+
+/// Check if repository has uncommitted changes
+#[tauri::command]
+pub async fn has_uncommitted_changes(
+    manager: State<'_, Manager>,
+) -> Result<bool> {
+    if let Some(file_manager) = &manager.file_manager {
+        file_manager.has_uncommitted_changes()
+    } else {
+        Err(crate::error::OrchflowError::ConfigurationError {
+            component: "file_manager".to_string(),
+            reason: "File manager not initialized".to_string(),
+        })
+    }
+}
+
+/// Check if git is available for the current repository
+#[tauri::command]
+pub fn has_git_integration(
+    manager: State<'_, Manager>,
+) -> Result<bool> {
+    if let Some(file_manager) = &manager.file_manager {
+        Ok(file_manager.has_git())
+    } else {
+        Err(crate::error::OrchflowError::ConfigurationError {
+            component: "file_manager".to_string(),
+            reason: "File manager not initialized".to_string(),
+        })
+    }
+}
+
+/// Check if a path is ignored by git
+#[tauri::command]
+pub fn is_git_ignored(
+    path: String,
+    manager: State<'_, Manager>,
+) -> Result<bool> {
+    if let Some(file_manager) = &manager.file_manager {
+        let file_path = PathBuf::from(path);
+        Ok(file_manager.is_git_ignored(&file_path))
+    } else {
+        Err(crate::error::OrchflowError::ConfigurationError {
+            component: "file_manager".to_string(),
+            reason: "File manager not initialized".to_string(),
+        })
+    }
+}
+
+// ===== New commands for GitPanel =====
 
 /// Get the complete git status for the repository
 #[tauri::command]
@@ -103,42 +205,13 @@ pub async fn git_diff(
     
     let diff = if staged {
         // Get diff between HEAD and index (staged changes)
-        let head = repo.head()
-            .map_err(|e| OrchflowError::GitError {
-                operation: "get head".to_string(),
-                details: e.to_string(),
-            })?
-            .peel_to_tree()
-            .map_err(|e| OrchflowError::GitError {
-                operation: "peel to tree".to_string(),
-                details: e.to_string(),
-            })?;
-        let index = repo.index()
-            .map_err(|e| OrchflowError::GitError {
-                operation: "get index".to_string(),
-                details: e.to_string(),
-            })?;
-        let index_tree = repo.find_tree(index.write_tree()
-            .map_err(|e| OrchflowError::GitError {
-                operation: "write tree".to_string(),
-                details: e.to_string(),
-            })?)
-            .map_err(|e| OrchflowError::GitError {
-                operation: "find tree".to_string(),
-                details: e.to_string(),
-            })?;
-        repo.diff_tree_to_tree(Some(&head), Some(&index_tree), None)
-            .map_err(|e| OrchflowError::GitError {
-                operation: "diff tree to tree".to_string(),
-                details: e.to_string(),
-            })?
+        let head = repo.head()?.peel_to_tree()?;
+        let index = repo.index()?;
+        let index_tree = repo.find_tree(index.write_tree()?)?;
+        repo.diff_tree_to_tree(Some(&head), Some(&index_tree), None)?
     } else {
         // Get diff between index and working directory (unstaged changes)
-        repo.diff_index_to_workdir(None, None)
-            .map_err(|e| OrchflowError::GitError {
-                operation: "diff index to workdir".to_string(),
-                details: e.to_string(),
-            })?
+        repo.diff_index_to_workdir(None, None)?
     };
     
     let mut diff_text = String::new();
@@ -152,10 +225,6 @@ pub async fn git_diff(
         };
         diff_text.push_str(&format!("{}{}", prefix, content));
         true
-    })
-    .map_err(|e| OrchflowError::GitError {
-        operation: "print diff".to_string(),
-        details: e.to_string(),
     })?;
     
     Ok(diff_text)
@@ -179,11 +248,7 @@ pub async fn git_stage(
             details: e.to_string(),
         })?;
     
-    let mut index = repo.index()
-        .map_err(|e| OrchflowError::GitError {
-            operation: "get index".to_string(),
-            details: e.to_string(),
-        })?;
+    let mut index = repo.index()?;
     let file_path = Path::new(&path);
     
     // Make path relative to repo root
@@ -197,16 +262,8 @@ pub async fn git_stage(
         file_path
     };
     
-    index.add_path(relative_path)
-        .map_err(|e| OrchflowError::GitError {
-            operation: "add path to index".to_string(),
-            details: e.to_string(),
-        })?;
-    index.write()
-        .map_err(|e| OrchflowError::GitError {
-            operation: "write index".to_string(),
-            details: e.to_string(),
-        })?;
+    index.add_path(relative_path)?;
+    index.write()?;
     
     Ok(())
 }
@@ -230,16 +287,8 @@ pub async fn git_unstage(
         })?;
     
     // Reset the file in the index to match HEAD
-    let head = repo.head()
-        .map_err(|e| OrchflowError::GitError {
-            operation: "get head".to_string(),
-            details: e.to_string(),
-        })?
-        .peel_to_commit()
-        .map_err(|e| OrchflowError::GitError {
-            operation: "peel to commit".to_string(),
-            details: e.to_string(),
-        })?;
+    let head = repo.head()?.peel_to_commit()?;
+    let mut index = repo.index()?;
     let file_path = Path::new(&path);
     
     // Make path relative to repo root
@@ -254,11 +303,7 @@ pub async fn git_unstage(
     };
     
     // Reset the file to HEAD state
-    repo.reset_default(Some(&head.into_object()), &[relative_path])
-        .map_err(|e| OrchflowError::GitError {
-            operation: "reset file".to_string(),
-            details: e.to_string(),
-        })?;
+    repo.reset_default(Some(&head.into_object()), &[relative_path])?;
     
     Ok(())
 }
@@ -280,28 +325,12 @@ pub async fn git_stage_all(
             details: e.to_string(),
         })?;
     
-    let mut index = repo.index()
-        .map_err(|e| OrchflowError::GitError {
-            operation: "get index".to_string(),
-            details: e.to_string(),
-        })?;
+    let mut index = repo.index()?;
     
     // Add all files (equivalent to git add -A)
-    index.add_all(["*"].iter(), git2::IndexAddOption::DEFAULT, None)
-        .map_err(|e| OrchflowError::GitError {
-            operation: "add all files".to_string(),
-            details: e.to_string(),
-        })?;
-    index.update_all(["*"].iter(), None)
-        .map_err(|e| OrchflowError::GitError {
-            operation: "update all files".to_string(),
-            details: e.to_string(),
-        })?;
-    index.write()
-        .map_err(|e| OrchflowError::GitError {
-            operation: "write index".to_string(),
-            details: e.to_string(),
-        })?;
+    index.add_all(["*"].iter(), git2::IndexAddOption::DEFAULT, None)?;
+    index.update_all(["*"].iter(), None)?;
+    index.write()?;
     
     Ok(())
 }
@@ -324,21 +353,8 @@ pub async fn git_unstage_all(
         })?;
     
     // Reset the entire index to match HEAD
-    let head = repo.head()
-        .map_err(|e| OrchflowError::GitError {
-            operation: "get head".to_string(),
-            details: e.to_string(),
-        })?
-        .peel_to_commit()
-        .map_err(|e| OrchflowError::GitError {
-            operation: "peel to commit".to_string(),
-            details: e.to_string(),
-        })?;
-    repo.reset(&head.into_object(), git2::ResetType::Mixed, None)
-        .map_err(|e| OrchflowError::GitError {
-            operation: "reset index".to_string(),
-            details: e.to_string(),
-        })?;
+    let head = repo.head()?.peel_to_commit()?;
+    repo.reset(&head.into_object(), git2::ResetType::Mixed, None)?;
     
     Ok(())
 }
@@ -373,33 +389,12 @@ pub async fn git_commit(
         })?;
     
     // Write the index as a tree
-    let mut index = repo.index()
-        .map_err(|e| OrchflowError::GitError {
-            operation: "get index".to_string(),
-            details: e.to_string(),
-        })?;
-    let tree_id = index.write_tree()
-        .map_err(|e| OrchflowError::GitError {
-            operation: "write tree".to_string(),
-            details: e.to_string(),
-        })?;
-    let tree = repo.find_tree(tree_id)
-        .map_err(|e| OrchflowError::GitError {
-            operation: "find tree".to_string(),
-            details: e.to_string(),
-        })?;
+    let mut index = repo.index()?;
+    let tree_id = index.write_tree()?;
+    let tree = repo.find_tree(tree_id)?;
     
     // Get parent commit
-    let parent_commit = repo.head()
-        .map_err(|e| OrchflowError::GitError {
-            operation: "get head".to_string(),
-            details: e.to_string(),
-        })?
-        .peel_to_commit()
-        .map_err(|e| OrchflowError::GitError {
-            operation: "peel to commit".to_string(),
-            details: e.to_string(),
-        })?;
+    let parent_commit = repo.head()?.peel_to_commit()?;
     
     // Create the commit
     repo.commit(
@@ -409,11 +404,7 @@ pub async fn git_commit(
         &message,
         &tree,
         &[&parent_commit],
-    )
-    .map_err(|e| OrchflowError::GitError {
-        operation: "create commit".to_string(),
-        details: e.to_string(),
-    })?;
+    )?;
     
     Ok(())
 }
@@ -520,11 +511,7 @@ fn get_file_statuses(repo: &Repository) -> Result<(Vec<GitFileStatus>, Vec<GitFi
     opts.include_untracked(true)
         .include_ignored(false);
     
-    let statuses = repo.statuses(Some(&mut opts))
-        .map_err(|e| OrchflowError::GitError {
-            operation: "get statuses".to_string(),
-            details: e.to_string(),
-        })?;
+    let statuses = repo.statuses(Some(&mut opts))?;
     
     for entry in statuses.iter() {
         if let Some(path) = entry.path() {
