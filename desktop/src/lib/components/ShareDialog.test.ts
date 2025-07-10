@@ -79,7 +79,7 @@ describe('ShareDialog', () => {
         props: { show: true, mode: 'create' }
       });
       
-      const selectButton = getByText('Select Files');
+      const selectButton = getByText('Add Files');
       await fireEvent.click(selectButton);
       
       await waitFor(() => {
@@ -102,7 +102,7 @@ describe('ShareDialog', () => {
         props: { show: true, mode: 'create' }
       });
       
-      const selectButton = getByText('Select Files');
+      const selectButton = getByText('Add Files');
       await fireEvent.click(selectButton);
       
       await waitFor(() => {
@@ -118,7 +118,7 @@ describe('ShareDialog', () => {
         props: { show: true, mode: 'create' }
       });
       
-      const selectButton = getByText('Select Files');
+      const selectButton = getByText('Add Files');
       await fireEvent.click(selectButton);
       
       await waitFor(() => {
@@ -152,7 +152,7 @@ describe('ShareDialog', () => {
       await fireEvent.input(descriptionTextarea, { target: { value: 'Test description' } });
       
       // Select files
-      const selectButton = getByText('Select Files');
+      const selectButton = getByText('Add Files');
       await fireEvent.click(selectButton);
       
       await waitFor(() => {
@@ -200,7 +200,7 @@ describe('ShareDialog', () => {
       await fireEvent.input(nameInput, { target: { value: 'My Package' } });
       
       // Select files
-      const selectButton = getByText('Select Files');
+      const selectButton = getByText('Add Files');
       await fireEvent.click(selectButton);
       
       // Create package
@@ -355,7 +355,7 @@ describe('ShareDialog', () => {
       const closeHandler = vi.fn();
       component.$on('close', closeHandler);
       
-      const overlay = container.querySelector('.share-dialog-overlay');
+      const overlay = container.querySelector('.share-overlay');
       await fireEvent.click(overlay!);
       
       expect(closeHandler).toHaveBeenCalled();
@@ -389,10 +389,21 @@ describe('ShareDialog', () => {
         props: { show: true, mode: 'create' }
       });
       
+      // Wait for component to be ready
+      await waitFor(() => {
+        const nameInput = container.querySelector('input[placeholder*="Package name"]');
+        expect(nameInput).toBeTruthy();
+      });
+      
       // Setup minimal valid data
       const nameInput = container.querySelector('input[placeholder*="Package name"]') as HTMLInputElement;
       await fireEvent.input(nameInput, { target: { value: 'Test' } });
-      await fireEvent.click(getByText('Select Files'));
+      
+      // The button text is "Add Files" not "Add Files"
+      const selectButton = container.querySelector('button.btn.secondary.small');
+      if (selectButton) {
+        await fireEvent.click(selectButton);
+      }
       
       // Click create
       const createButton = getByText('Create Package') as HTMLButtonElement;
