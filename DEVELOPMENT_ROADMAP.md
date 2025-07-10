@@ -318,7 +318,7 @@ This changes our immediate priorities from fixing tests to improving coverage!
 - [ ] Define agent lifecycle management
 
 **Orchestrator Implementation** (Week 8-9) - AI Coordination Layer
-- [ ] Create TypeScript orchestrator project
+- [ ] Create TypeScript?? orchestrator project
 - [ ] Implement JSON-RPC 2.0 protocol
 - [ ] WebSocket connection to Manager
 - [ ] AI agent framework (spawn, monitor, terminate)
@@ -454,10 +454,6 @@ This changes our immediate priorities from fixing tests to improving coverage!
 
 > **📖 For AI-driven terminal enhancements, see [Terminal Enhancement Guide](docs/TERMINAL_MANAGER_ENHANCEMENTS.md)**
 
-### Week 1: Test Coverage Sprint ⚡ CRITICAL
-1. **Coverage analysis**: Map 35 untested components ✅ Tests are passing!
-2. **TDD implementation**: Write tests FIRST for core components
-3. **Target >90%**: Systematic coverage improvement
 
 ### Week 2-3: Feature Completion (Now Unblocked!)
 1. **Terminal features**: PTY tracking, scrollback search, state persistence

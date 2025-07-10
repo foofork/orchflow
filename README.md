@@ -13,15 +13,17 @@ The project focuses on three core principles:
 
 ## Current State
 
-orchflow is in active development. Core features working today include:
+orchflow is in active development with core infrastructure complete:
 
 - Terminal multiplexing through tmux integration
 - File management with trash support and operation history
 - State persistence through SQLite
 - Plugin architecture with JavaScript/TypeScript support
 - WebSocket-based communication between frontend and backend
+- Real-time terminal streaming via Tauri IPC
+- Major UI components built but still being tested
 
-Current work: building the UI to make these features usable.
+Current work: Writing comprehensive test coverage (627 tests at 84% pass rate) and fixing remaining UI issues. The project needs solid test coverage before adding advanced features like terminal intelligence.
 
 ## Technical Architecture
 
@@ -30,7 +32,10 @@ The application uses:
 - **Frontend**: SvelteKit for the user interface
 - **Terminal Management**: tmux for session persistence and multiplexing
 - **State Storage**: SQLite for configuration and session data
-- **Communication**: Type-safe IPC between frontend and backend
+
+### Architectural Evolution
+
+The project is evaluating ruv-FANN integration as an optional performance enhancement. This would allow direct neural network integration instead of IPC communication, potentially eliminating orchestrator overhead. The decision will be made based on terminal metadata system requirements and performance benchmarks.
 
 ## Development Approach
 
@@ -44,11 +49,11 @@ orchflow is being built with a focus on:
 
 ## What's Coming
 
-**Now**: Polishing the UI - terminal panels, file browser, command palette.
+**Now**: Test coverage sprint - writing tests for all major components. Fixing UI issues discovered during testing. Making architectural decisions about AI integration approach.
 
-**Next**: Git integration, plugins, workspaces.
+**Next**: Terminal intelligence features including metadata tracking, command classification, and process monitoring. Considering ruv-FANN integration as a feature flag to replace IPC with direct neural integration for better performance.
 
-**Later**: The flexible architecture is intended to support AI orchestration systems, web deployment, and more.
+**Later**: Full AI orchestration layer for intelligent terminal coordination. The architecture supports either traditional IPC or direct ruv-FANN integration, pending performance testing and architectural review.
 
 ## Project Philosophy
 
@@ -62,7 +67,9 @@ orchflow's philosophy is simple:
 
 ## Status for Users
 
-While the core is working, orchflow is not yet ready for general use. The project is in pre-release development with active work on the user interface. Developers comfortable with early-stage software are welcome to explore and contribute or connect.
+orchflow is not ready for daily use. While core terminal and file management features work, the UI needs comprehensive testing and stabilization. We're currently at 84% test pass rate and working toward >90% coverage before considering it stable.
+
+Developers interested in terminal multiplexing and early-stage software can explore, but expect breaking changes and incomplete features.
 
 ## The Vision
 
