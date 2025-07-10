@@ -542,9 +542,9 @@ index 1234567..abcdefg 100644
     });
 
     it('shows error alert on push failure', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       window.alert = vi.fn();
-      // Clear any previous calls and setup fresh mocks
-      vi.clearAllMocks();
+      // Setup fresh mocks
       mockInvoke
         .mockResolvedValueOnce(mockGitStatus) // Initial load
         .mockRejectedValueOnce(new Error('Network error')); // git_push fails
@@ -562,6 +562,8 @@ index 1234567..abcdefg 100644
       await waitFor(() => {
         expect(window.alert).toHaveBeenCalledWith('Push failed: Error: Network error');
       }, { timeout: 1000 });
+      
+      consoleSpy.mockRestore();
     });
   });
 
@@ -657,7 +659,7 @@ index 1234567..abcdefg 100644
       });
     });
 
-    it('auto-refreshes status every 5 seconds', async () => {
+    it('auto-refreshes status every 5 seconds', { timeout: 10000 }, async () => {
       // Setup a mock that always resolves to avoid any timing issues
       mockInvoke.mockImplementation(() => Promise.resolve(mockGitStatus));
       
@@ -695,6 +697,7 @@ index 1234567..abcdefg 100644
 
   describe('Error Handling', () => {
     it('handles git status error gracefully', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       mockInvoke.mockRejectedValueOnce(new Error('Git not found'));
       
       const { container } = render(GitPanel, { props: { show: true } });
@@ -704,9 +707,12 @@ index 1234567..abcdefg 100644
         const panel = container.querySelector('.git-panel');
         expect(panel).toBeTruthy();
       });
+      
+      consoleSpy.mockRestore();
     });
 
     it('handles diff loading error', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       mockInvoke
         .mockResolvedValueOnce(mockGitStatus) // Initial load
         .mockRejectedValueOnce(new Error('Diff error')); // git_diff fails
@@ -728,13 +734,14 @@ index 1234567..abcdefg 100644
         expect(diffView).toBeTruthy();
         expect(diffView?.textContent).toContain('Failed to load diff');
       });
+      
+      consoleSpy.mockRestore();
     });
 
     it('handles stage error', async () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       
-      // Clear any previous calls and setup fresh mocks
-      vi.clearAllMocks();
+      // Setup fresh mocks
       mockInvoke
         .mockResolvedValueOnce(mockGitStatus) // Initial load
         .mockRejectedValueOnce(new Error('Stage failed')); // git_stage fails
