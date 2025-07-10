@@ -11,6 +11,10 @@ use std::process::Command;
 use git2::{Repository, StatusOptions, Signature};
 use std::collections::HashMap;
 
+#[cfg(test)]
+#[path = "git_commands_test.rs"]
+mod tests;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GitStatusResult {
     pub branch: String,

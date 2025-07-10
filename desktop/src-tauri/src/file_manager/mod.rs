@@ -9,6 +9,9 @@ pub mod utils;
 pub mod trash;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+#[path = "../file_manager_git_test.rs"]
+mod integration_tests;
 
 // Re-export commonly used types
 pub use types::{
