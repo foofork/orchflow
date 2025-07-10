@@ -4,8 +4,6 @@
   import { FitAddon } from '@xterm/addon-fit';
   import { tmux } from '$lib/tauri/tmux';
   import { NeovimClient } from '$lib/tauri/neovim';
-  import AIAssistant from './AIAssistant.svelte';
-  import { slide } from 'svelte/transition';
   import '@xterm/xterm/css/xterm.css';
   
   export let filePath: string | null = null;
@@ -21,9 +19,6 @@
   let lastContent: string = '';
   let paneId: string | null = null;
   let nvimClient: NeovimClient | null = null;
-  let showAIAssistant = false;
-  let aiPanelWidth = 400;
-  let selection: { start: number; end: number; text: string } | null = null;
   
   onMount(async () => {
     // Create terminal
@@ -95,9 +90,6 @@
           }
         }
       });
-      
-      // Handle keyboard shortcuts
-      container.addEventListener('keydown', handleKeydown);
       
       // Start polling for output
       let isPolling = false;
@@ -179,7 +171,6 @@
         console.error('Failed to kill pane:', error);
       }
     }
-    container.removeEventListener('keydown', handleKeydown);
   });
   
   // Exposed methods
@@ -194,61 +185,13 @@
       return await nvimClient.getBufferContent();
     }
   }
-  
-  async function handleKeydown(event: KeyboardEvent) {
-    // Ctrl+Enter or Cmd+Enter to toggle AI Assistant
-    if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
-      event.preventDefault();
-      await toggleAIAssistant();
-    }
-  }
-  
-  async function toggleAIAssistant() {
-    showAIAssistant = !showAIAssistant;
-    
-    if (showAIAssistant && nvimClient) {
-      // Get current selection if any
-      try {
-        const mode = await nvimClient.getMode();
-        if (mode === 'v' || mode === 'V') {
-          // Visual mode - get selection
-          const start = await nvimClient.eval("line(\"'<\")");
-          const end = await nvimClient.eval("line(\"'>\")");
-          const lines = await nvimClient.eval("getline(line(\"'<\"), line(\"'>\"))");
-          selection = {
-            start: Number(start),
-            end: Number(end),
-            text: Array.isArray(lines) ? lines.join('\n') : String(lines)
-          };
-        } else {
-          selection = null;
-        }
-      } catch (error) {
-        console.error('Failed to get selection:', error);
-        selection = null;
-      }
-    }
-  }
-  
-  function closeAIAssistant() {
-    showAIAssistant = false;
-    selection = null;
-  }
 </script>
 
-<div class="editor-container" class:with-ai={showAIAssistant}>
+<div class="editor-container">
   <div class="editor-wrapper">
     <div class="editor-header">
       <span class="editor-title">{title}</span>
       <div class="editor-actions">
-        <button 
-          class="editor-action" 
-          class:active={showAIAssistant}
-          title="AI Assistant (Ctrl+Enter)" 
-          on:click={toggleAIAssistant}
-        >
-          🤖
-        </button>
         <button class="editor-action" title="Save" on:click={save}>
           💾
         </button>
@@ -256,29 +199,6 @@
     </div>
     <div class="editor-terminal" bind:this={container}></div>
   </div>
-  
-  {#if showAIAssistant}
-    <div 
-      class="ai-panel" 
-      style="width: {aiPanelWidth}px"
-      transition:slide={{ axis: 'x', duration: 200 }}
-    >
-      <AIAssistant 
-        {filePath}
-        {instanceId}
-        {selection}
-        on:close={closeAIAssistant}
-        on:applied={() => {
-          // Refresh the terminal view after applying changes
-          if (paneId) {
-            tmux.capturePane(paneId, 1000).then(content => {
-              lastContent = '';
-            });
-          }
-        }}
-      />
-    </div>
-  {/if}
 </div>
 
 <style>
@@ -286,10 +206,6 @@
     display: flex;
     height: 100%;
     background: var(--bg-primary);
-  }
-  
-  .editor-container.with-ai {
-    gap: 0;
   }
   
   .editor-wrapper {
@@ -333,18 +249,6 @@
   .editor-action:hover {
     background: var(--bg-hover);
     color: var(--fg-primary);
-  }
-  
-  .editor-action.active {
-    background: var(--accent);
-    color: white;
-  }
-  
-  .ai-panel {
-    flex-shrink: 0;
-    height: 100%;
-    overflow: hidden;
-    border-left: 1px solid var(--border);
   }
   
   .editor-terminal {

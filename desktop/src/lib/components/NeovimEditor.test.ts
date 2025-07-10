@@ -54,14 +54,6 @@ vi.mock('$lib/tauri/neovim', () => ({
   }
 }));
 
-// Mock AIAssistant component
-vi.mock('./AIAssistant.svelte', () => ({
-  default: vi.fn(() => ({
-    $destroy: vi.fn(),
-    $on: vi.fn()
-  }))
-}));
-
 // Mock ResizeObserver
 global.ResizeObserver = vi.fn(() => ({
   observe: vi.fn(),
@@ -99,7 +91,7 @@ describe('NeovimEditor Component', () => {
       save: vi.fn().mockResolvedValue(undefined),
       getBufferContent: vi.fn().mockResolvedValue('file content'),
       getMode: vi.fn().mockResolvedValue('n'),
-      eval: vi.fn().mockResolvedValue('result'),
+      eval: vi.fn().mockResolvedValue(null),
       close: vi.fn().mockResolvedValue(undefined)
     };
     
@@ -107,7 +99,6 @@ describe('NeovimEditor Component', () => {
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
     vi.useRealTimers();
   });
 
@@ -119,77 +110,82 @@ describe('NeovimEditor Component', () => {
       expect(editorContainer).toBeTruthy();
     });
 
-    it('should render editor header with title', () => {
-      const { container } = render(NeovimEditor, {
-        props: { title: 'Custom Editor' }
-      });
+    it('should display default title', () => {
+      const { container } = render(NeovimEditor);
+      
+      const title = container.querySelector('.editor-title');
+      expect(title?.textContent).toBe('Neovim');
+    });
+
+    it('should display custom title', () => {
+      const { container } = render(NeovimEditor, { props: { title: 'Custom Editor' } });
       
       const title = container.querySelector('.editor-title');
       expect(title?.textContent).toBe('Custom Editor');
     });
 
-    it('should initialize with default props', () => {
-      const { container } = render(NeovimEditor);
-      
-      const title = container.querySelector('.editor-title');
-      expect(title?.textContent).toBe('Neovim');
-      
-      const terminal = container.querySelector('.editor-terminal');
-      expect(terminal).toBeTruthy();
-    });
-
-    it('should initialize terminal on mount', async () => {
+    it('should create terminal instance on mount', async () => {
       render(NeovimEditor);
       
       await tick();
       
-      expect(mockTerminal.loadAddon).toHaveBeenCalledWith(mockFitAddon);
       expect(mockTerminal.open).toHaveBeenCalled();
+      expect(mockTerminal.loadAddon).toHaveBeenCalledWith(mockFitAddon);
       expect(mockFitAddon.fit).toHaveBeenCalled();
     });
 
-    it('should create Neovim instance and tmux pane', async () => {
-      render(NeovimEditor, {
-        props: { 
-          filePath: '/test/file.txt',
-          sessionName: 'test-session'
-        }
-      });
+    it('should create Neovim client on mount', async () => {
+      render(NeovimEditor);
       
       await tick();
-      vi.advanceTimersByTime(1100); // Wait for initialization
+      
+      expect(MockNeovimClient.create).toHaveBeenCalled();
+    });
+
+    it('should create tmux pane with Neovim', async () => {
+      render(NeovimEditor);
+      
+      await tick();
       
       await waitFor(() => {
-        expect(MockNeovimClient.create).toHaveBeenCalled();
         expect(mockTmux.createPane).toHaveBeenCalledWith(
-          'test-session', 
+          'orchflow-main',
           expect.stringContaining('nvim --listen')
         );
       });
     });
 
-    it('should open file if filePath provided', async () => {
-      render(NeovimEditor, {
-        props: { filePath: '/test/file.txt' }
-      });
+    it('should open file if provided', async () => {
+      render(NeovimEditor, { props: { filePath: 'test.js' } });
       
       await tick();
-      vi.advanceTimersByTime(1100);
+      vi.advanceTimersByTime(1100); // Wait for Neovim to start
       
       await waitFor(() => {
-        expect(mockNeovimClient.openFile).toHaveBeenCalledWith('/test/file.txt');
+        expect(mockNeovimClient.openFile).toHaveBeenCalledWith('test.js');
+      });
+    });
+
+    it('should handle custom session name', async () => {
+      render(NeovimEditor, { props: { sessionName: 'custom-session' } });
+      
+      await tick();
+      
+      await waitFor(() => {
+        expect(mockTmux.createPane).toHaveBeenCalledWith(
+          'custom-session',
+          expect.any(String)
+        );
       });
     });
   });
 
   describe('Terminal Integration', () => {
-    it('should handle terminal input', async () => {
+    it('should send terminal data to tmux pane', async () => {
       render(NeovimEditor);
       
       await tick();
-      vi.advanceTimersByTime(1100);
       
-      // Simulate terminal input callback
       const onDataCallback = mockTerminal.onData.mock.calls[0][0];
       await onDataCallback('test input');
       
@@ -198,17 +194,16 @@ describe('NeovimEditor Component', () => {
       });
     });
 
-    it('should handle terminal input errors gracefully', async () => {
+    it('should handle send keys errors', async () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      mockTmux.sendKeys.mockRejectedValue(new Error('Send keys failed'));
+      mockTmux.sendKeys.mockRejectedValue(new Error('Send failed'));
       
       render(NeovimEditor);
       
       await tick();
-      vi.advanceTimersByTime(1100);
       
       const onDataCallback = mockTerminal.onData.mock.calls[0][0];
-      await onDataCallback('test input');
+      await onDataCallback('test');
       
       await waitFor(() => {
         expect(consoleSpy).toHaveBeenCalledWith('Failed to send keys:', expect.any(Error));
@@ -221,24 +216,31 @@ describe('NeovimEditor Component', () => {
       render(NeovimEditor);
       
       await tick();
-      vi.advanceTimersByTime(1100);
-      
-      // Advance timer to trigger polling
-      vi.advanceTimersByTime(200);
+      vi.advanceTimersByTime(200); // Advance past polling interval
       
       await waitFor(() => {
         expect(mockTmux.capturePane).toHaveBeenCalledWith('test-pane-1', 1000);
       });
     });
 
-    it('should update terminal display when content changes', async () => {
-      mockTmux.capturePane.mockResolvedValue('new content\nline 2');
+    it('should update terminal when content changes', async () => {
+      mockTmux.capturePane.mockResolvedValueOnce('first content');
       
       render(NeovimEditor);
       
       await tick();
-      vi.advanceTimersByTime(1100);
-      vi.advanceTimersByTime(200);
+      vi.advanceTimersByTime(100);
+      
+      await waitFor(() => {
+        expect(mockTerminal.clear).toHaveBeenCalled();
+        expect(mockTerminal.write).toHaveBeenCalledWith('first content');
+      });
+      
+      mockTerminal.clear.mockClear();
+      mockTerminal.write.mockClear();
+      
+      mockTmux.capturePane.mockResolvedValueOnce('new content\nline 2');
+      vi.advanceTimersByTime(100);
       
       await waitFor(() => {
         expect(mockTerminal.clear).toHaveBeenCalled();
@@ -248,19 +250,20 @@ describe('NeovimEditor Component', () => {
     });
 
     it('should handle terminal resize', async () => {
-      render(NeovimEditor);
+      const { container } = render(NeovimEditor);
       
       await tick();
-      vi.advanceTimersByTime(1100);
       
-      // Get ResizeObserver callback
-      const ResizeObserverCallback = (global.ResizeObserver as any).mock.calls[0][0];
-      ResizeObserverCallback();
-      
-      vi.advanceTimersByTime(150); // Wait for resize debounce
+      const resizeCallback = (global.ResizeObserver as any).mock.calls[0][0];
+      resizeCallback();
       
       await waitFor(() => {
         expect(mockFitAddon.fit).toHaveBeenCalled();
+      });
+      
+      vi.advanceTimersByTime(200);
+      
+      await waitFor(() => {
         expect(mockTmux.resizePane).toHaveBeenCalledWith('test-pane-1', 80, 24);
       });
     });
@@ -273,14 +276,6 @@ describe('NeovimEditor Component', () => {
       const saveButton = container.querySelector('[title="Save"]');
       expect(saveButton).toBeTruthy();
       expect(saveButton?.textContent).toBe('💾');
-    });
-
-    it('should render AI assistant button', () => {
-      const { container } = render(NeovimEditor);
-      
-      const aiButton = container.querySelector('[title="AI Assistant (Ctrl+Enter)"]');
-      expect(aiButton).toBeTruthy();
-      expect(aiButton?.textContent).toBe('🤖');
     });
 
     it('should call save when save button clicked', async () => {
@@ -305,7 +300,9 @@ describe('NeovimEditor Component', () => {
       
       await component.save();
       
-      expect(mockNeovimClient.save).toHaveBeenCalled();
+      await waitFor(() => {
+        expect(mockNeovimClient.save).toHaveBeenCalled();
+      });
     });
 
     it('should expose getBuffer method', async () => {
@@ -321,117 +318,6 @@ describe('NeovimEditor Component', () => {
     });
   });
 
-  describe('AI Assistant Integration', () => {
-    it('should toggle AI assistant when button clicked', async () => {
-      const { container } = render(NeovimEditor);
-      
-      const aiButton = container.querySelector('[title="AI Assistant (Ctrl+Enter)"]') as HTMLElement;
-      await fireEvent.click(aiButton);
-      
-      await waitFor(() => {
-        const aiPanel = container.querySelector('.ai-panel');
-        expect(aiPanel).toBeTruthy();
-      });
-    });
-
-    it('should toggle AI assistant with Ctrl+Enter', async () => {
-      const { container } = render(NeovimEditor);
-      
-      await tick();
-      
-      await fireEvent.keyDown(container.querySelector('.editor-terminal')!, {
-        key: 'Enter',
-        ctrlKey: true
-      });
-      
-      await waitFor(() => {
-        const aiPanel = container.querySelector('.ai-panel');
-        expect(aiPanel).toBeTruthy();
-      });
-    });
-
-    it('should toggle AI assistant with Cmd+Enter on Mac', async () => {
-      const { container } = render(NeovimEditor);
-      
-      await tick();
-      
-      await fireEvent.keyDown(container.querySelector('.editor-terminal')!, {
-        key: 'Enter',
-        metaKey: true
-      });
-      
-      await waitFor(() => {
-        const aiPanel = container.querySelector('.ai-panel');
-        expect(aiPanel).toBeTruthy();
-      });
-    });
-
-    it('should get selection when opening AI assistant in visual mode', async () => {
-      mockNeovimClient.getMode.mockResolvedValue('v');
-      mockNeovimClient.eval
-        .mockResolvedValueOnce(5) // start line
-        .mockResolvedValueOnce(10) // end line
-        .mockResolvedValueOnce(['line 1', 'line 2', 'line 3']); // selected text
-      
-      const { container } = render(NeovimEditor);
-      
-      await tick();
-      vi.advanceTimersByTime(1100);
-      
-      const aiButton = container.querySelector('[title="AI Assistant (Ctrl+Enter)"]') as HTMLElement;
-      await fireEvent.click(aiButton);
-      
-      await waitFor(() => {
-        expect(mockNeovimClient.getMode).toHaveBeenCalled();
-        expect(mockNeovimClient.eval).toHaveBeenCalledWith("line(\"'<\")");
-        expect(mockNeovimClient.eval).toHaveBeenCalledWith("line(\"'>\")");
-        expect(mockNeovimClient.eval).toHaveBeenCalledWith("getline(line(\"'<\"), line(\"'>\"))");
-      });
-    });
-
-    it('should handle selection errors gracefully', async () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      mockNeovimClient.getMode.mockRejectedValue(new Error('Get mode failed'));
-      
-      const { container } = render(NeovimEditor);
-      
-      await tick();
-      vi.advanceTimersByTime(1100);
-      
-      const aiButton = container.querySelector('[title="AI Assistant (Ctrl+Enter)"]') as HTMLElement;
-      await fireEvent.click(aiButton);
-      
-      await waitFor(() => {
-        expect(consoleSpy).toHaveBeenCalledWith('Failed to get selection:', expect.any(Error));
-      });
-      
-      consoleSpy.mockRestore();
-    });
-
-    it('should show active state when AI assistant is open', async () => {
-      const { container } = render(NeovimEditor);
-      
-      const aiButton = container.querySelector('[title="AI Assistant (Ctrl+Enter)"]') as HTMLElement;
-      await fireEvent.click(aiButton);
-      
-      await waitFor(() => {
-        expect(aiButton).toHaveClass('active');
-      });
-    });
-
-    it('should apply with-ai class to container when AI is open', async () => {
-      const { container } = render(NeovimEditor);
-      
-      const aiButton = container.querySelector('[title="AI Assistant (Ctrl+Enter)"]') as HTMLElement;
-      await fireEvent.click(aiButton);
-      
-      await waitFor(() => {
-        const editorContainer = container.querySelector('.editor-container');
-        expect(editorContainer).toHaveClass('with-ai');
-      });
-    });
-  });
-
   describe('Error Handling', () => {
     it('should handle Neovim initialization error', async () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -440,11 +326,11 @@ describe('NeovimEditor Component', () => {
       render(NeovimEditor);
       
       await tick();
-      vi.advanceTimersByTime(1100);
       
       await waitFor(() => {
         expect(consoleSpy).toHaveBeenCalledWith('Failed to initialize Neovim:', expect.any(Error));
         expect(mockTerminal.writeln).toHaveBeenCalledWith('\x1b[31mError: Failed to initialize Neovim\x1b[0m');
+        expect(mockTerminal.writeln).toHaveBeenCalledWith('Error: Neovim start failed');
       });
       
       consoleSpy.mockRestore();
@@ -452,12 +338,11 @@ describe('NeovimEditor Component', () => {
 
     it('should handle tmux pane creation error', async () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      mockTmux.createPane.mockRejectedValue(new Error('Pane creation failed'));
+      mockTmux.createPane.mockRejectedValue(new Error('Tmux error'));
       
       render(NeovimEditor);
       
       await tick();
-      vi.advanceTimersByTime(1100);
       
       await waitFor(() => {
         expect(consoleSpy).toHaveBeenCalledWith('Failed to initialize Neovim:', expect.any(Error));
@@ -473,7 +358,6 @@ describe('NeovimEditor Component', () => {
       render(NeovimEditor);
       
       await tick();
-      vi.advanceTimersByTime(1100);
       vi.advanceTimersByTime(200);
       
       await waitFor(() => {
@@ -487,15 +371,14 @@ describe('NeovimEditor Component', () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       mockTmux.resizePane.mockRejectedValue(new Error('Resize failed'));
       
-      render(NeovimEditor);
+      const { container } = render(NeovimEditor);
       
       await tick();
-      vi.advanceTimersByTime(1100);
       
-      const ResizeObserverCallback = (global.ResizeObserver as any).mock.calls[0][0];
-      ResizeObserverCallback();
+      const resizeCallback = (global.ResizeObserver as any).mock.calls[0][0];
+      resizeCallback();
       
-      vi.advanceTimersByTime(150);
+      vi.advanceTimersByTime(200);
       
       await waitFor(() => {
         expect(consoleSpy).toHaveBeenCalledWith('Failed to resize pane:', expect.any(Error));
@@ -512,7 +395,7 @@ describe('NeovimEditor Component', () => {
       await tick();
       vi.advanceTimersByTime(1100);
       
-      unmount();
+      await unmount();
       
       expect(mockTerminal.dispose).toHaveBeenCalled();
       expect(mockNeovimClient.close).toHaveBeenCalled();
@@ -521,14 +404,14 @@ describe('NeovimEditor Component', () => {
 
     it('should handle cleanup errors gracefully', async () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      mockTmux.killPane.mockRejectedValue(new Error('Kill pane failed'));
+      mockTmux.killPane.mockRejectedValue(new Error('Kill failed'));
       
       const { unmount } = render(NeovimEditor);
       
       await tick();
       vi.advanceTimersByTime(1100);
       
-      unmount();
+      await unmount();
       
       await waitFor(() => {
         expect(consoleSpy).toHaveBeenCalledWith('Failed to kill pane:', expect.any(Error));
@@ -543,9 +426,8 @@ describe('NeovimEditor Component', () => {
       const { unmount } = render(NeovimEditor);
       
       await tick();
-      vi.advanceTimersByTime(1100);
       
-      unmount();
+      await unmount();
       
       expect(clearIntervalSpy).toHaveBeenCalled();
     });
@@ -554,58 +436,47 @@ describe('NeovimEditor Component', () => {
       const { unmount } = render(NeovimEditor);
       
       await tick();
-      vi.advanceTimersByTime(1100);
       
-      const observerInstance = (global.ResizeObserver as any).mock.results[0].value;
+      const resizeObserver = (global.ResizeObserver as any).mock.results[0].value;
       
-      unmount();
+      await unmount();
       
-      expect(observerInstance.disconnect).toHaveBeenCalled();
+      expect(resizeObserver.disconnect).toHaveBeenCalled();
     });
   });
 
   describe('Instance Management', () => {
     it('should generate instanceId if not provided', async () => {
+      const dateNowSpy = vi.spyOn(Date, 'now').mockReturnValue(12345);
+      
       render(NeovimEditor);
       
       await tick();
-      vi.advanceTimersByTime(1100);
       
       await waitFor(() => {
-        expect(MockNeovimClient.create).toHaveBeenCalledWith(expect.stringMatching(/^nvim-\d+$/));
+        expect(MockNeovimClient.create).toHaveBeenCalledWith('nvim-12345');
       });
+      
+      dateNowSpy.mockRestore();
     });
 
     it('should use provided instanceId', async () => {
-      render(NeovimEditor, {
-        props: { instanceId: 'custom-instance' }
-      });
+      render(NeovimEditor, { props: { instanceId: 'custom-id' } });
       
       await tick();
-      vi.advanceTimersByTime(1100);
       
       await waitFor(() => {
-        expect(MockNeovimClient.create).toHaveBeenCalledWith('custom-instance');
-        expect(mockTmux.createPane).toHaveBeenCalledWith(
-          'orchflow-main',
-          expect.stringContaining('/tmp/nvim-custom-instance.sock')
-        );
+        expect(MockNeovimClient.create).toHaveBeenCalledWith('custom-id');
       });
     });
 
     it('should handle custom session name', async () => {
-      render(NeovimEditor, {
-        props: { sessionName: 'my-session' }
-      });
+      render(NeovimEditor, { props: { sessionName: 'my-session' } });
       
       await tick();
-      vi.advanceTimersByTime(1100);
       
       await waitFor(() => {
-        expect(mockTmux.createPane).toHaveBeenCalledWith(
-          'my-session',
-          expect.any(String)
-        );
+        expect(mockTmux.createPane).toHaveBeenCalledWith('my-session', expect.any(String));
       });
     });
   });
@@ -615,78 +486,7 @@ describe('NeovimEditor Component', () => {
       const { container } = render(NeovimEditor);
       
       const saveButton = container.querySelector('[title="Save"]');
-      const aiButton = container.querySelector('[title="AI Assistant (Ctrl+Enter)"]');
-      
       expect(saveButton).toBeTruthy();
-      expect(aiButton).toBeTruthy();
-    });
-
-    it('should have keyboard shortcuts for AI assistant', async () => {
-      const { container } = render(NeovimEditor);
-      
-      await tick();
-      
-      await fireEvent.keyDown(container.querySelector('.editor-terminal')!, {
-        key: 'Enter',
-        ctrlKey: true
-      });
-      
-      await waitFor(() => {
-        const aiPanel = container.querySelector('.ai-panel');
-        expect(aiPanel).toBeTruthy();
-      });
-    });
-
-    it('should prevent default behavior for keyboard shortcuts', async () => {
-      const { container } = render(NeovimEditor);
-      
-      await tick();
-      
-      const event = new KeyboardEvent('keydown', {
-        key: 'Enter',
-        ctrlKey: true,
-        cancelable: true
-      });
-      
-      const preventDefaultSpy = vi.spyOn(event, 'preventDefault');
-      
-      await fireEvent(container.querySelector('.editor-terminal')!, event);
-      
-      expect(preventDefaultSpy).toHaveBeenCalled();
-    });
-  });
-
-  describe('Integration', () => {
-    it('should pass correct props to AI assistant', async () => {
-      const { container } = render(NeovimEditor, {
-        props: {
-          filePath: '/test/file.txt',
-          instanceId: 'test-instance'
-        }
-      });
-      
-      const aiButton = container.querySelector('[title="AI Assistant (Ctrl+Enter)"]') as HTMLElement;
-      await fireEvent.click(aiButton);
-      
-      await waitFor(() => {
-        const aiPanel = container.querySelector('.ai-panel');
-        expect(aiPanel).toBeTruthy();
-        // AIAssistant would receive filePath and instanceId props
-      });
-    });
-
-    it('should refresh terminal after AI changes applied', async () => {
-      const { container } = render(NeovimEditor);
-      
-      await tick();
-      vi.advanceTimersByTime(1100);
-      
-      const aiButton = container.querySelector('[title="AI Assistant (Ctrl+Enter)"]') as HTMLElement;
-      await fireEvent.click(aiButton);
-      
-      // The applied event handler should clear lastContent to force refresh
-      // This is tested by the component behavior
-      expect(true).toBe(true); // Component renders correctly
     });
   });
 });

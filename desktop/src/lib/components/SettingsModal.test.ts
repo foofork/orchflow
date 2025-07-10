@@ -137,7 +137,6 @@ describe('SettingsModal', () => {
       expect(screen.getByRole('button', { name: /🎨 Appearance/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /📝 Editor/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /💻 Terminal/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /🤖 AI Assistant/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /🔧 Git/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /⚡ Performance/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /⌨️ Shortcuts/i })).toBeInTheDocument();

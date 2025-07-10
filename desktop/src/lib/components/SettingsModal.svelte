@@ -35,15 +35,6 @@
 			closeOnExit: boolean;
 			bellStyle: 'none' | 'visual' | 'sound';
 		};
-		ai: {
-			provider: 'openai' | 'anthropic' | 'local';
-			apiKey: string;
-			model: string;
-			temperature: number;
-			maxTokens: number;
-			enableInlineCompletion: boolean;
-			enableCodeSuggestions: boolean;
-		};
 		git: {
 			autoFetch: boolean;
 			fetchInterval: number;
@@ -72,7 +63,6 @@
 		{ id: 'appearance', label: 'Appearance', icon: '🎨' },
 		{ id: 'editor', label: 'Editor', icon: '📝' },
 		{ id: 'terminal', label: 'Terminal', icon: '💻' },
-		{ id: 'ai', label: 'AI Assistant', icon: '🤖' },
 		{ id: 'git', label: 'Git', icon: '🔧' },
 		{ id: 'performance', label: 'Performance', icon: '⚡' },
 		{ id: 'shortcuts', label: 'Shortcuts', icon: '⌨️' }
@@ -103,11 +93,6 @@
 		'Cascadia Code'
 	];
 
-	const aiProviders = [
-		{ id: 'openai', label: 'OpenAI', models: ['gpt-4', 'gpt-3.5-turbo'] },
-		{ id: 'anthropic', label: 'Anthropic', models: ['claude-3-opus', 'claude-3-sonnet'] },
-		{ id: 'local', label: 'Local LLM', models: ['llama-2', 'codellama'] }
-	];
 
 	$: if (isOpen && $settings) {
 		loadSettings();
@@ -147,15 +132,6 @@
 				scrollback: $settings.scrollback || 1000,
 				closeOnExit: $settings.closeOnExit ?? true,
 				bellStyle: $settings.bellStyle || 'none'
-			},
-			ai: {
-				provider: $settings.aiProvider || 'openai',
-				apiKey: $settings.aiApiKey || '',
-				model: $settings.aiModel || 'gpt-4',
-				temperature: $settings.aiTemperature ?? 0.7,
-				maxTokens: $settings.aiMaxTokens || 2048,
-				enableInlineCompletion: $settings.enableInlineCompletion ?? true,
-				enableCodeSuggestions: $settings.enableCodeSuggestions ?? true
 			},
 			git: {
 				autoFetch: $settings.gitAutoFetch ?? true,
@@ -635,96 +611,6 @@
 											on:change={(e) => updateSetting('terminal', 'closeOnExit', e.target.checked)}
 										/>
 										Close terminal when shell exits
-									</label>
-								</div>
-							</div>
-						{:else if activeTab === 'ai'}
-							<div class="settings-section">
-								<h2>AI Assistant</h2>
-								
-								<div class="setting-group">
-									<label for="ai-provider">Provider</label>
-									<select
-										id="ai-provider"
-										bind:value={localSettings.ai.provider}
-										on:change={(e) => updateSetting('ai', 'provider', e.target.value)}
-									>
-										{#each aiProviders as provider}
-											<option value={provider.id}>{provider.label}</option>
-										{/each}
-									</select>
-								</div>
-
-								<div class="setting-group">
-									<label for="ai-model">Model</label>
-									<select
-										id="ai-model"
-										bind:value={localSettings.ai.model}
-										on:change={(e) => updateSetting('ai', 'model', e.target.value)}
-									>
-										{#each aiProviders.find(p => p.id === localSettings.ai.provider)?.models || [] as model}
-											<option value={model}>{model}</option>
-										{/each}
-									</select>
-								</div>
-
-								<div class="setting-group">
-									<label for="ai-api-key">API Key</label>
-									<input
-										id="ai-api-key"
-										type="password"
-										bind:value={localSettings.ai.apiKey}
-										on:input={(e) => updateSetting('ai', 'apiKey', e.target.value)}
-										placeholder="Enter your API key"
-									/>
-								</div>
-
-								<div class="setting-group">
-									<label for="ai-temperature">Temperature</label>
-									<input
-										id="ai-temperature"
-										type="range"
-										min="0"
-										max="2"
-										step="0.1"
-										bind:value={localSettings.ai.temperature}
-										on:input={(e) => updateSetting('ai', 'temperature', +e.target.value)}
-									/>
-									<span class="range-value">{localSettings.ai.temperature}</span>
-								</div>
-
-								<div class="setting-group">
-									<label for="ai-max-tokens">Max Tokens</label>
-									<input
-										id="ai-max-tokens"
-										type="number"
-										min="256"
-										max="8192"
-										step="256"
-										bind:value={localSettings.ai.maxTokens}
-										on:input={(e) => updateSetting('ai', 'maxTokens', +e.target.value)}
-									/>
-								</div>
-
-								<div class="setting-group">
-									<label class="checkbox-label">
-										<input
-											type="checkbox"
-											bind:checked={localSettings.ai.enableInlineCompletion}
-											on:change={(e) => updateSetting('ai', 'enableInlineCompletion', e.target.checked)}
-										/>
-										Enable Inline Code Completion
-									</label>
-								</div>
-
-								<div class="setting-group">
-									<label class="checkbox-label">
-										<input
-											type="checkbox"
-											bind:checked={localSettings.ai.enableCodeSuggestions}
-											on:change={(e) => updateSetting('ai', 'enableCodeSuggestions', e.target.checked)}
-										/>
-										Enable Code Suggestions
 									</label>
 								</div>
 							</div>
