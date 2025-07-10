@@ -22,7 +22,7 @@
   onMount(async () => {
     if (browser && '__TAURI__' in window) {
       try {
-        const { invoke } = await import('@tauri-apps/api/tauri');
+        const { invoke } = await import('@tauri-apps/api/core');
         // Get current working directory
         rootPath = await invoke('get_current_dir');
         await loadDirectory(rootPath);
@@ -44,7 +44,7 @@
     if (!browser || !('__TAURI__' in window)) return;
     
     try {
-      const { readDir } = await import('@tauri-apps/api/fs');
+      const { readDir } = await import('@tauri-apps/plugin-fs');
       const entries = await readDir(path);
       const nodes: TreeNode[] = [];
       
@@ -87,7 +87,7 @@
     if (node.expanded && node.children?.length === 0) {
       node.loading = true;
       try {
-        const { readDir } = await import('@tauri-apps/api/fs');
+        const { readDir } = await import('@tauri-apps/plugin-fs');
         const entries = await readDir(node.path);
         const children: TreeNode[] = [];
         

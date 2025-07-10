@@ -27,7 +27,7 @@ vi.mock('@tauri-apps/api', () => ({
   },
 }));
 
-vi.mock('@tauri-apps/api/tauri', () => ({
+vi.mock('@tauri-apps/api/core', () => ({
   invoke: vi.fn(() => Promise.resolve()),
 }));
 

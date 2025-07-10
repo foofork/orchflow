@@ -101,7 +101,7 @@ async function fetchMetrics() {
 	try {
 		// Check if running in Tauri
 		if ('__TAURI__' in window) {
-			const { invoke } = await import('@tauri-apps/api/tauri');
+			const { invoke } = await import('@tauri-apps/api/core');
 			const metrics = await invoke<SystemMetrics>('get_system_metrics');
 			updateMetrics(metrics);
 		} else {

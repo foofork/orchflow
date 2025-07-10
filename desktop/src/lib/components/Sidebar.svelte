@@ -1,6 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher, onMount } from 'svelte';
-  import { invoke } from '@tauri-apps/api/tauri';
+  import { invoke } from '@tauri-apps/api/core';
   import FileExplorer from './FileExplorer.svelte';
   import FileExplorerEnhanced from './FileExplorerEnhanced.svelte';
   import SearchPanel from './SearchPanel.svelte';

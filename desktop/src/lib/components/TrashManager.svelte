@@ -47,7 +47,7 @@
     error = '';
     
     try {
-      const { invoke } = await import('@tauri-apps/api/tauri');
+      const { invoke } = await import('@tauri-apps/api/core');
       
       // Load items and stats in parallel
       const [items, stats] = await Promise.all([
@@ -77,7 +77,7 @@
     error = '';
     
     try {
-      const { invoke } = await import('@tauri-apps/api/tauri');
+      const { invoke } = await import('@tauri-apps/api/core');
       trashedItems = await invoke('search_trash', { query: searchQuery });
       filterAndSortItems();
     } catch (err) {
@@ -145,7 +145,7 @@
     error = '';
     
     try {
-      const { invoke } = await import('@tauri-apps/api/tauri');
+      const { invoke } = await import('@tauri-apps/api/core');
       
       // For now, we'll need to implement restore functionality
       // This would require tracking original paths and recreating files
@@ -160,7 +160,7 @@
     error = '';
     
     try {
-      const { invoke } = await import('@tauri-apps/api/tauri');
+      const { invoke } = await import('@tauri-apps/api/core');
       await invoke('empty_trash');
       
       showEmptyConfirm = false;
@@ -179,7 +179,7 @@
     error = '';
     
     try {
-      const { invoke } = await import('@tauri-apps/api/tauri');
+      const { invoke } = await import('@tauri-apps/api/core');
       const removed = await invoke('cleanup_old_trash', { days });
       
       await loadTrash();

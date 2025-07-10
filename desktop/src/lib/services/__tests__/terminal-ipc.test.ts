@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock Tauri APIs BEFORE importing anything that uses them
-vi.mock('@tauri-apps/api/tauri', () => ({
+vi.mock('@tauri-apps/api/core', () => ({
   invoke: vi.fn(),
 }));
 
@@ -14,7 +14,7 @@ vi.mock('@tauri-apps/api/event', () => ({
 type UnlistenFn = () => void;
 
 // Import after mocking
-const { invoke } = await import('@tauri-apps/api/tauri');
+const { invoke } = await import('@tauri-apps/api/core');
 const { emit, listen } = await import('@tauri-apps/api/event');
 const { terminalIPC } = await import('../terminal-ipc');
 

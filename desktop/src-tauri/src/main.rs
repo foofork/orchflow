@@ -71,6 +71,7 @@ use tauri_plugin_process;
 use tauri_plugin_os;
 use tauri_plugin_updater;
 use tauri_plugin_window_state;
+use tauri_plugin_dialog;
 
 // Legacy AppState - being phased out in favor of StateManager
 // TODO: Remove this once all commands are migrated to unified_state_commands
@@ -336,6 +337,7 @@ async fn main() {
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_window_state::Builder::default().build())
+        .plugin(tauri_plugin_dialog::init())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

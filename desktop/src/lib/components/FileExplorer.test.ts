@@ -24,11 +24,11 @@ const mockReadDir = vi.fn();
   }
 };
 
-vi.mock('@tauri-apps/api/tauri', () => ({
+vi.mock('@tauri-apps/api/core', () => ({
   invoke: mockInvoke
 }));
 
-vi.mock('@tauri-apps/api/fs', () => ({
+vi.mock('@tauri-apps/plugin-fs', () => ({
   readDir: mockReadDir
 }));
 

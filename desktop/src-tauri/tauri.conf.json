@@ -1,67 +1,14 @@
 {
+  "identifier": "com.orchflow.app",
+  "productName": "OrchFlow",
+  "version": "0.1.0",
   "build": {
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build",
     "devUrl": "http://localhost:5173",
     "frontendDist": "../build"
   },
-  "productName": "OrchFlow",
-  "version": "0.1.0",
-  "identifier": "com.orchflow.app",
   "app": {
-    "bundle": {
-      "active": true,
-      "targets": ["dmg", "msi", "nsis"],
-      "icon": [
-        "icons/32x32.png",
-        "icons/128x128.png",
-        "icons/128x128@2x.png",
-        "icons/icon.icns",
-        "icons/icon.ico"
-      ],
-      "resources": [
-        "assets/**/*"
-      ],
-      "externalBin": [
-        "binaries/tmux",
-        "binaries/nvim"
-      ],
-      "resources": {
-        "binaries/tmux": "bin/tmux",
-        "binaries/nvim": "bin/nvim"
-      },
-      "copyright": "Copyright (c) 2024 OrchFlow Team",
-      "category": "Developer Tool",
-      "shortDescription": "VS Code-style terminal-orchestrated developer GUI",
-      "longDescription": "OrchFlow combines Neovim's editing power with intelligent terminal orchestration in a modern, fast desktop application.",
-      "macOS": {
-        "frameworks": [],
-        "minimumSystemVersion": "10.15",
-        "exceptionDomain": "localhost",
-        "signingIdentity": null,
-        "entitlements": null,
-        "license": "LICENSE"
-      },
-      "windows": {
-        "certificateThumbprint": null,
-        "digestAlgorithm": "sha256",
-        "timestampUrl": "http://timestamp.sectigo.com",
-        "wix": {
-          "language": "en-US",
-          "template": "main.wxs"
-        },
-        "nsis": {
-          "displayLanguageSelector": true,
-          "installerIcon": "icons/icon.ico",
-          "installMode": "perMachine",
-          "languages": ["English"],
-          "template": "installer.nsi"
-        }
-      }
-    },
-    "security": {
-      "csp": null
-    },
     "windows": [
       {
         "fullscreen": false,
@@ -74,36 +21,87 @@
         "center": true,
         "decorations": true,
         "transparent": false,
-        "skipTaskbar": false,
-        "fileDropEnabled": false
+        "skipTaskbar": false
       }
     ],
-    "plugins": {
-      "fs": {
-        "scope": ["$HOME/.orchflow/**", "$APPDATA/**"]
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["dmg", "msi", "nsis"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "resources": [
+      "assets/**/*"
+    ],
+    "externalBin": [
+      "binaries/tmux",
+      "binaries/nvim"
+    ],
+    "copyright": "Copyright (c) 2024 OrchFlow Team",
+    "category": "Developer Tool",
+    "shortDescription": "VS Code-style terminal-orchestrated developer GUI",
+    "longDescription": "OrchFlow combines Neovim's editing power with intelligent terminal orchestration in a modern, fast desktop application.",
+    "macOS": {
+      "frameworks": [],
+      "minimumSystemVersion": "10.15",
+      "exceptionDomain": "localhost",
+      "signingIdentity": null,
+      "entitlements": null
+    },
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": "http://timestamp.sectigo.com",
+      "wix": {
+        "language": "en-US",
+        "template": "main.wxs"
       },
-      "shell": {
-        "open": true,
-        "scope": [
-          {
-            "name": "binaries/tmux",
-            "cmd": "tmux",
-            "args": true
-          },
-          {
-            "name": "binaries/nvim",
-            "cmd": "nvim",
-            "args": true
-          }
-        ]
-      },
-      "updater": {
-        "endpoints": [
-          "https://api.github.com/repos/orchflow/orchflow/releases/latest",
-          "https://releases.orchflow.dev/{{target}}/{{arch}}/{{current_version}}"
-        ],
-        "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTNFhYQ1hBU1hYWEMgdGF1cmkgcmVsZWFzZSBzaWduaW5nIGtleQo="
+      "nsis": {
+        "displayLanguageSelector": true,
+        "installerIcon": "icons/icon.ico",
+        "installMode": "perMachine",
+        "languages": ["English"],
+        "template": "installer.nsi"
       }
+    }
+  },
+  "plugins": {
+    "fs": {
+      "scope": ["$HOME/.orchflow/**", "$APPDATA/**"]
+    },
+    "shell": {
+      "open": true,
+      "scope": [
+        {
+          "name": "binaries/tmux",
+          "cmd": "tmux",
+          "args": true
+        },
+        {
+          "name": "binaries/nvim",
+          "cmd": "nvim",
+          "args": true
+        }
+      ]
+    },
+    "dialog": {
+      "open": true,
+      "save": true
+    },
+    "updater": {
+      "endpoints": [
+        "https://api.github.com/repos/orchflow/orchflow/releases/latest",
+        "https://releases.orchflow.dev/{{target}}/{{arch}}/{{current_version}}"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTNFhYQ1hBU1hYWEMgdGF1cmkgcmVsZWFzZSBzaWduaW5nIGtleQo="
     }
   }
 }

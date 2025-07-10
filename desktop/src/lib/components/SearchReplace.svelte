@@ -54,7 +54,7 @@
     if (testMode) return;
     
     try {
-      const { invoke } = await import('@tauri-apps/api/tauri');
+      const { invoke } = await import('@tauri-apps/api/core');
       searchHistory = await invoke('get_search_history', { limit: 20 });
     } catch (err) {
       console.error('Failed to load search history:', err);
@@ -65,7 +65,7 @@
     if (testMode) return;
     
     try {
-      const { invoke } = await import('@tauri-apps/api/tauri');
+      const { invoke } = await import('@tauri-apps/api/core');
       savedSearches = await invoke('get_saved_searches');
     } catch (err) {
       console.error('Failed to load saved searches:', err);
@@ -96,7 +96,7 @@
     selectedFiles.clear();
     
     try {
-      const { invoke } = await import('@tauri-apps/api/tauri');
+      const { invoke } = await import('@tauri-apps/api/core');
       
       const options: SearchOptions = {
         pattern: searchPattern,
@@ -141,7 +141,7 @@
     error = '';
     
     try {
-      const { invoke } = await import('@tauri-apps/api/tauri');
+      const { invoke } = await import('@tauri-apps/api/core');
       
       const options: SearchOptions = {
         pattern: searchPattern,
@@ -182,7 +182,7 @@
     error = '';
     
     try {
-      const { invoke } = await import('@tauri-apps/api/tauri');
+      const { invoke } = await import('@tauri-apps/api/core');
       
       const options: SearchOptions = {
         pattern: searchPattern,
@@ -228,7 +228,7 @@
     }
     
     try {
-      const { invoke } = await import('@tauri-apps/api/tauri');
+      const { invoke } = await import('@tauri-apps/api/core');
       
       const options: SearchOptions = {
         pattern: searchPattern,
