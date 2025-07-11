@@ -29,15 +29,21 @@ Fixed the test suite for the orchflow desktop application by addressing multiple
 
 ## Test Results
 
-### Before Fixes
+### Initial State
 - Failed test files: Many (exact count not captured)
 - Failed tests: Many (exact count not captured)
 - Multiple import errors and undefined references
 
-### After Fixes
+### First Round of Fixes
 - Failed test files: 31
 - Failed tests: 165
-- Significant improvement in test stability
+- Fixed major import and mocking issues
+
+### Final State (After All Fixes)
+- Failed test files: 25 (down from 31)
+- Failed tests: 326 (but total tests increased from 618 to 899)
+- Passing tests: 563 (up from 431)
+- Many previously non-running tests now execute properly
 
 ## Remaining Issues
 
@@ -51,12 +57,30 @@ Fixed the test suite for the orchflow desktop application by addressing multiple
 - Various component-specific test failures
 - Mostly related to async behavior and complex mocking requirements
 
+## Key Fixes Applied in Second Round
+
+### 6. Module Resolution for Tauri APIs
+- **Problem**: Vitest couldn't resolve Tauri API imports in components
+- **Solution**: Created stub modules and configured path aliases in vitest.config.ts
+- **Result**: Tests that were failing to run due to import errors now execute
+
+### 7. TauriTerminal Test Rewrite
+- **Problem**: Complex async behavior with dynamic imports causing timeouts
+- **Solution**: Rewrote tests with proper fake timers and async handling
+- **Benefit**: More reliable test execution
+
+### 8. Editor Test Simplification
+- **Problem**: Mock initialization order issues
+- **Solution**: Simplified tests to use centralized CodeMirror mocks from setup
+- **Result**: Tests now run without initialization errors
+
 ## Recommendations
 
 1. **TauriTerminal**: Consider refactoring to make it more testable, possibly extracting the terminal logic into a separate service
 2. **Dynamic Imports**: Create a centralized dynamic import handler that can be easily mocked
 3. **Async Testing**: Standardize async test patterns across the codebase
 4. **Mock Reuse**: Create shared mock utilities for common components
+5. **Remaining Tests**: The 25 failing test files need individual attention for specific issues
 
 ## Files Modified
 
@@ -72,10 +96,13 @@ Fixed the test suite for the orchflow desktop application by addressing multiple
 - `/desktop/src/lib/components/TauriTerminal.test.ts` - Attempted timeout fixes
 
 ### Test Setup Files
-- `/desktop/src/test/setup.ts` - Added new setup imports
+- `/desktop/src/test/setup.ts` - Added new setup imports and Tauri plugin mocks
 - `/desktop/src/test/setup-codemirror.ts` - Created comprehensive CodeMirror mocks
 - `/desktop/src/test/setup-xterm.ts` - Created XTerm mocks
 - `/desktop/src/test/mocks/StreamingTerminal.svelte` - Mock component
+- `/desktop/src/test/stubs/tauri-api.ts` - Tauri API stub module
+- `/desktop/src/test/stubs/tauri-plugins.ts` - Tauri plugins stub module
+- `/desktop/vitest.config.ts` - Added path aliases for module resolution
 
 ## Dependencies Added
 - `@codemirror/lang-yaml@^6.1.2`
