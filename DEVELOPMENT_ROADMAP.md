@@ -1,6 +1,6 @@
 # Orchflow Development Roadmap
 
-## =À Test Infrastructure Status
+## =ÔøΩ Test Infrastructure Status
 
 ### Current Test Failures (2025-07-11)
 
@@ -36,7 +36,7 @@
 
 3. **Component Prop Type Issues**
    - Multiple components with incorrect prop types
-   - Optional types not properly handled (string | undefined í string)
+   - Optional types not properly handled (string | undefined ÔøΩ string)
    - Missing ARIA roles for keyboard handlers
 
 4. **Playwright Type Issues**
@@ -70,7 +70,7 @@
    - Add mutation testing once core tests pass
    - Implement visual regression testing with Percy
 
-## =  Test Coverage Status
+## =ÔøΩ Test Coverage Status
 
 - **Unit Tests**: Multiple failures need resolution
 - **Integration Tests**: Not run due to unit test failures
@@ -78,7 +78,7 @@
 - **Performance Tests**: 3 failures, others passing
 - **Visual Tests**: Not yet running due to infrastructure issues
 
-## <Ø Priority Order
+## <ÔøΩ Priority Order
 
 1. **Fix TypeScript errors** - Blocking all development
 2. **Resolve test timeouts** - Blocking CI/CD pipeline
@@ -86,7 +86,7 @@
 4. **Clean up test infrastructure** - Port conflicts and cleanup
 5. **Optimize performance tests** - Adjust targets or improve implementation
 
-## =» Success Metrics
+## =ÔøΩ Success Metrics
 
 - [ ] All TypeScript errors resolved (0/608)
 - [ ] All unit tests passing
@@ -94,3 +94,30 @@
 - [ ] E2E tests running without port conflicts
 - [ ] Visual regression tests configured and passing
 - [ ] >90% test coverage maintained
+
+## üóÑÔ∏è Database Architecture Cleanup
+
+### Current State
+- **orchflow.db**: Main app database using `rusqlite` via `SimpleStateStore`
+- **memory.db**: Claude Flow's persistent memory (uses `sqlx`)
+- **hive.db**: Hive Mind tool's database
+- Incomplete transition from `rusqlite` to `sqlx` left both as dependencies
+
+### Required Actions
+
+1. **Consolidate Database Access**
+   - All database operations should go through `SimpleStateStore` for consistency
+   - Document the repository pattern architecture
+
+2. **Clean Up Dependencies**
+   - Keep both `rusqlite` (for app) and `sqlx` (for Claude Flow)
+   - Remove any remaining references to deprecated SQLx-based code
+
+3. **Documentation**
+   - Document that `.swarm/` and `.hive-mind/` are external tool databases
+   - Add clear separation between application data and development tool data
+
+### Database Best Practices
+- Run all development tools from project root to avoid duplicate databases
+- Configure tools to use specific directories via config files
+- Keep application database separate from tool databases
