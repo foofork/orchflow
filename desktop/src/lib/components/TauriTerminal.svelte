@@ -136,6 +136,9 @@
   class="terminal-container"
   bind:this={container}
   on:keydown={handleKeyDown}
+  role="application"
+  aria-label="Terminal"
+  tabindex="0"
 >
   {#if !browser}
     <div class="terminal-placeholder">Terminal (client-side only)</div>

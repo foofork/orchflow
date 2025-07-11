@@ -1,6 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
-  import { fade, scale } from 'svelte/transition';
+  import { fade, scale, slide } from 'svelte/transition';
   import Icon from './Icon.svelte';
   import Modal from './Modal.svelte';
   
@@ -76,7 +76,7 @@
   }
 </script>
 
-<Modal bind:open title="Security Confirmation Required" size="medium">
+<Modal bind:show={open} title="Security Confirmation Required" width="600px">
   <div class="confirmation-dialog">
     <!-- Risk Level Banner -->
     <div class="risk-banner {config.bgColor} {config.borderColor}">

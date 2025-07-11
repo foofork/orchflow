@@ -4,12 +4,84 @@ import CommandConfirmationDialog from './CommandConfirmationDialog.svelte';
 
 // Mock Icon component
 vi.mock('./Icon.svelte', () => ({
-  default: vi.fn()
+  default: class MockIcon {
+    $$: any;
+    constructor(options: any) {
+      const { target, props = {} } = options;
+      
+      // Create element
+      const span = document.createElement('span');
+      span.className = 'mock-icon';
+      span.textContent = props.name || 'icon';
+      if (target) target.appendChild(span);
+      
+      // Set up Svelte component interface
+      this.$$ = {
+        fragment: document.createDocumentFragment(),
+        ctx: [],
+        props: props,
+        update: vi.fn(),
+        not_equal: vi.fn(),
+        bound: {},
+        on_mount: [],
+        on_destroy: [],
+        on_disconnect: [],
+        before_update: [],
+        after_update: [],
+        context: new Map(),
+        callbacks: {},
+        dirty: [],
+        skip_bound: false,
+        root: span
+      };
+    }
+    $destroy() {}
+    $on() { return () => {}; }
+    $set() {}
+  }
 }));
 
-// Mock Modal component
+// Mock Modal component  
 vi.mock('./Modal.svelte', () => ({
-  default: vi.fn()
+  default: class MockModal {
+    $$: any;
+    constructor(options: any) {
+      const { target, props = {} } = options;
+      
+      // Create element
+      const div = document.createElement('div');
+      div.className = 'mock-modal';
+      if (props.show || props.open) {
+        const content = document.createElement('div');
+        content.className = 'modal-content';
+        div.appendChild(content);
+      }
+      if (target) target.appendChild(div);
+      
+      // Set up Svelte component interface
+      this.$$ = {
+        fragment: document.createDocumentFragment(),
+        ctx: [],
+        props: props,
+        update: vi.fn(),
+        not_equal: vi.fn(),
+        bound: {},
+        on_mount: [],
+        on_destroy: [],
+        on_disconnect: [],
+        before_update: [],
+        after_update: [],
+        context: new Map(),
+        callbacks: {},
+        dirty: [],
+        skip_bound: false,
+        root: div
+      };
+    }
+    $destroy() {}
+    $on() { return () => {}; }
+    $set() {}
+  }
 }));
 
 describe('CommandConfirmationDialog', () => {

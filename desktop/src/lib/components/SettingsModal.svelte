@@ -312,6 +312,7 @@
 		class="settings-overlay"
 		transition:fade={{ duration: 200 }}
 		on:click={onClose}
+		on:keydown={handleKeydown}
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="settings-title"
@@ -373,8 +374,8 @@
 								<h2>Appearance</h2>
 								
 								<div class="setting-group">
-									<label>Theme</label>
-									<div class="theme-selector">
+									<label for="theme-select">Theme</label>
+									<div class="theme-selector" id="theme-select">
 										{#each themes as theme}
 											<button
 												class="theme-option"
@@ -389,8 +390,8 @@
 								</div>
 
 								<div class="setting-group">
-									<label>Accent Color</label>
-									<div class="color-selector">
+									<label for="accent-color-select">Accent Color</label>
+									<div class="color-selector" id="accent-color-select">
 										{#each accentColors as color}
 											<button
 												class="color-option"

@@ -125,6 +125,12 @@
     show = false;
     dispatch('close');
   }
+
+  function handleKeydown(event: KeyboardEvent) {
+    if (event.key === 'Escape') {
+      close();
+    }
+  }
   
   function reset() {
     if (confirm('Reset to default configuration?')) {
@@ -141,10 +147,19 @@
 </script>
 
 {#if show}
-  <div class="config-panel-overlay" on:click={close} transition:fade={{ duration: 200 }}>
+  <div 
+    class="config-panel-overlay" 
+    on:click={close} 
+    on:keydown={handleKeydown}
+    role="dialog"
+    aria-modal="true"
+    aria-label="Configuration Panel"
+    transition:fade={{ duration: 200 }}
+  >
     <div 
       class="config-panel" 
       on:click|stopPropagation
+      role="document"
       transition:slide={{ duration: 300 }}
     >
       <div class="panel-header">
