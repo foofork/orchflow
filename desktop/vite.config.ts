@@ -27,8 +27,8 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          // Core vendor libs in separate chunk
-          'vendor-core': ['svelte', '@sveltejs/kit'],
+          // Core vendor libs in separate chunk (removed @sveltejs/kit as it's external)
+          'vendor-core': ['svelte'],
           
           // Terminal-related libs
           'vendor-terminal': ['@xterm/xterm', '@xterm/addon-fit'],

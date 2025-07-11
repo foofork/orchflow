@@ -1,0 +1,48 @@
+version: 2
+snapshot:
+  widths:
+    - 375    # Mobile
+    - 768    # Tablet
+    - 1280   # Desktop
+    - 1920   # Full HD
+  minHeight: 1024
+  enableJavaScript: true
+  percyCSS: |
+    /* Hide dynamic elements that might cause false positives */
+    .timestamp,
+    .loading-spinner,
+    [data-testid="current-time"] {
+      visibility: hidden !important;
+    }
+    
+    /* Disable animations for consistent snapshots */
+    *, *::before, *::after {
+      animation-duration: 0s !important;
+      animation-delay: 0s !important;
+      transition-duration: 0s !important;
+      transition-delay: 0s !important;
+    }
+    
+    /* Ensure consistent font rendering */
+    * {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+  
+# Discovery settings for finding stories/tests
+discovery:
+  allowedHostnames:
+    - localhost
+  networkIdleTimeout: 1000
+  
+# Static site settings (if needed for static builds)
+static:
+  baseUrl: /
+  
+# Upload settings
+upload:
+  parallel: true
+  
+# Diff settings
+diff:
+  threshold: 0.1  # Allow 0.1% pixel difference
