@@ -4,32 +4,39 @@ import TerminalGrid from './TerminalGrid.svelte';
 import { terminalIPC } from '$lib/services/terminal-ipc';
 
 // Mock StreamingTerminal component
-vi.mock('./StreamingTerminal.svelte', () => ({
-  default: vi.fn().mockImplementation(() => ({
-    $$: {
-      fragment: null,
-      ctx: [],
-      props: {},
-      update: vi.fn(),
-      not_equal: vi.fn(),
-      bound: {},
-      on_mount: [],
-      on_destroy: [],
-      on_disconnect: [],
-      before_update: [],
-      after_update: [],
-      context: new Map(),
-      callbacks: {},
-      dirty: [],
-      skip_bound: false,
-      root: null
-    },
-    $destroy: vi.fn(),
-    $on: vi.fn(),
-    $set: vi.fn(),
-    focus: vi.fn()
-  }))
-}));
+vi.mock('./StreamingTerminal.svelte', () => {
+  const MockStreamingTerminal = vi.fn();
+  MockStreamingTerminal.mockImplementation(() => {
+    const instance = {
+      terminalId: '',
+      title: '',
+      focus: vi.fn(),
+      $destroy: vi.fn(),
+      $on: vi.fn(),
+      $set: vi.fn(),
+      $$: {
+        fragment: null,
+        ctx: [],
+        props: {},
+        update: vi.fn(),
+        not_equal: vi.fn(),
+        bound: {},
+        on_mount: [],
+        on_destroy: [],
+        on_disconnect: [],
+        before_update: [],
+        after_update: [],
+        context: new Map(),
+        callbacks: {},
+        dirty: [],
+        skip_bound: false,
+        root: null
+      }
+    };
+    return instance;
+  });
+  return { default: MockStreamingTerminal };
+});
 
 // Mock terminal IPC service
 vi.mock('$lib/services/terminal-ipc', () => ({

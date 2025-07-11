@@ -64,11 +64,13 @@ Object.defineProperty(window, 'matchMedia', {
 });
 
 // Mock ResizeObserver
-global.ResizeObserver = vi.fn().mockImplementation(() => ({
+const MockResizeObserver = vi.fn().mockImplementation(() => ({
   observe: vi.fn(),
   unobserve: vi.fn(),
   disconnect: vi.fn(),
 }));
+
+global.ResizeObserver = MockResizeObserver;
 
 // Mock IntersectionObserver
 global.IntersectionObserver = vi.fn().mockImplementation(() => ({
@@ -175,4 +177,126 @@ Element.prototype.scrollIntoView = vi.fn();
 
 // Mock self global for xterm.js addons
 (globalThis as any).self = globalThis;
+
+// Mock CodeMirror modules
+vi.mock('@codemirror/state', () => ({
+  EditorState: {
+    create: vi.fn(() => ({
+      doc: { toString: () => '' },
+      selection: { main: { from: 0, to: 0 } },
+      update: vi.fn()
+    }))
+  },
+  StateField: {
+    define: vi.fn()
+  },
+  StateEffect: {
+    define: vi.fn()
+  },
+  Compartment: vi.fn(() => ({
+    of: vi.fn(),
+    reconfigure: vi.fn()
+  }))
+}));
+
+vi.mock('@codemirror/view', () => ({
+  EditorView: vi.fn(() => ({
+    state: { doc: { toString: () => '' } },
+    dispatch: vi.fn(),
+    destroy: vi.fn(),
+    dom: document.createElement('div'),
+    contentDOM: document.createElement('div')
+  })),
+  keymap: {
+    of: vi.fn()
+  },
+  drawSelection: vi.fn(),
+  dropCursor: vi.fn(),
+  rectangularSelection: vi.fn(),
+  crosshairCursor: vi.fn(),
+  lineNumbers: vi.fn(),
+  highlightActiveLineGutter: vi.fn(),
+  highlightSpecialChars: vi.fn(),
+  ViewUpdate: vi.fn()
+}));
+
+vi.mock('@codemirror/language', () => ({
+  defaultHighlightStyle: { extension: vi.fn() },
+  bracketMatching: vi.fn(),
+  foldGutter: vi.fn(),
+  indentOnInput: vi.fn(),
+  syntaxHighlighting: vi.fn(),
+  LanguageSupport: vi.fn(),
+  StreamLanguage: {
+    define: vi.fn()
+  }
+}));
+
+vi.mock('@codemirror/commands', () => ({
+  defaultKeymap: [],
+  history: vi.fn(),
+  historyKeymap: [],
+  indentWithTab: vi.fn()
+}));
+
+vi.mock('@codemirror/search', () => ({
+  searchKeymap: [],
+  search: vi.fn(),
+  highlightSelectionMatches: vi.fn()
+}));
+
+vi.mock('@codemirror/autocomplete', () => ({
+  autocompletion: vi.fn(),
+  completionKeymap: [],
+  closeBrackets: vi.fn(),
+  closeBracketsKeymap: []
+}));
+
+vi.mock('@codemirror/lint', () => ({
+  lintKeymap: [],
+  linter: vi.fn()
+}));
+
+vi.mock('@codemirror/lang-json', () => ({
+  json: vi.fn(() => ({ extension: vi.fn() }))
+}));
+
+vi.mock('@codemirror/lang-yaml', () => ({
+  yaml: vi.fn(() => ({ extension: vi.fn() }))
+}));
+
+// Mock dynamic imports for components
+const originalImport = global.import;
+global.import = vi.fn(async (path: string) => {
+  if (path.includes('CodeMirrorEditor.svelte')) {
+    return {
+      default: vi.fn().mockImplementation(() => ({
+        $$: {
+          fragment: null,
+          ctx: [],
+          props: {},
+          update: vi.fn(),
+          not_equal: vi.fn(),
+          bound: {},
+          on_mount: [],
+          on_destroy: [],
+          on_disconnect: [],
+          before_update: [],
+          after_update: [],
+          context: new Map(),
+          callbacks: {},
+          dirty: [],
+          skip_bound: false,
+          root: null
+        },
+        $destroy: vi.fn(),
+        $on: vi.fn(),
+        $set: vi.fn(),
+        getValue: vi.fn(() => '{}'),
+        setValue: vi.fn()
+      }))
+    };
+  }
+  return originalImport(path);
+});
 

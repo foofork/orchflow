@@ -43,10 +43,10 @@ describe('CommandBar', () => {
       expect(input?.getAttribute('placeholder')).toBeTruthy();
     });
 
-    it('should render submit button', () => {
+    it('should render form element', () => {
       const { container } = render(CommandBar);
-      const button = container.querySelector('button[type="submit"]');
-      expect(button).toBeTruthy();
+      const form = container.querySelector('form');
+      expect(form).toBeTruthy();
     });
 
     it('should render command bar container', () => {
@@ -63,10 +63,11 @@ describe('CommandBar', () => {
       
       await fireEvent.input(input, { target: { value: 'cre' } });
       
+      // Wait for debounce timer (300ms in component)
       await waitFor(() => {
         const suggestions = container.querySelector('.suggestions');
         expect(suggestions).toBeTruthy();
-      });
+      }, { timeout: 500 });
     });
 
     it('should filter suggestions based on input', async () => {
@@ -76,10 +77,10 @@ describe('CommandBar', () => {
       await fireEvent.input(input, { target: { value: 'git' } });
       
       await waitFor(() => {
-        const suggestionItems = container.querySelectorAll('.suggestion-item');
+        const suggestionItems = container.querySelectorAll('.suggestion');
         expect(suggestionItems.length).toBeGreaterThan(0);
         expect(suggestionItems[0]?.textContent).toContain('git');
-      });
+      }, { timeout: 500 });
     });
 
     it('should navigate suggestions with arrow keys', async () => {
@@ -90,11 +91,11 @@ describe('CommandBar', () => {
       await waitFor(() => {
         const suggestions = container.querySelector('.suggestions');
         expect(suggestions).toBeTruthy();
-      });
+      }, { timeout: 500 });
       
       await fireEvent.keyDown(input, { key: 'ArrowDown' });
       
-      const selectedSuggestion = container.querySelector('.suggestion-item.selected');
+      const selectedSuggestion = container.querySelector('.suggestion.selected');
       expect(selectedSuggestion).toBeTruthy();
     });
 
@@ -102,16 +103,18 @@ describe('CommandBar', () => {
       const { container } = render(CommandBar);
       const input = container.querySelector('input[type="text"]') as HTMLInputElement;
       
-      await fireEvent.input(input, { target: { value: 'create' } });
+      await fireEvent.input(input, { target: { value: 'create terminal' } });
       await waitFor(() => {
         const suggestions = container.querySelector('.suggestions');
         expect(suggestions).toBeTruthy();
-      });
+      }, { timeout: 500 });
       
       await fireEvent.keyDown(input, { key: 'ArrowDown' });
       await fireEvent.keyDown(input, { key: 'Enter' });
       
-      expect(input.value).toContain('create');
+      await waitFor(() => {
+        expect(input.value).toBe('create terminal');
+      });
     });
 
     it('should hide suggestions on escape', async () => {
@@ -122,7 +125,7 @@ describe('CommandBar', () => {
       await waitFor(() => {
         const suggestions = container.querySelector('.suggestions');
         expect(suggestions).toBeTruthy();
-      });
+      }, { timeout: 500 });
       
       await fireEvent.keyDown(input, { key: 'Escape' });
       
@@ -292,7 +295,7 @@ describe('CommandBar', () => {
       expect(manager.createSession).not.toHaveBeenCalled();
     });
 
-    it('should disable submit button while loading', async () => {
+    it('should disable input while loading', async () => {
       activeSession.set({ id: 'test-session', name: 'Test' });
       
       // Create a delayed promise to control loading state
@@ -305,18 +308,17 @@ describe('CommandBar', () => {
       const { container } = render(CommandBar);
       const input = container.querySelector('input[type="text"]') as HTMLInputElement;
       const form = container.querySelector('form') as HTMLFormElement;
-      const button = container.querySelector('button[type="submit"]') as HTMLButtonElement;
       
       await fireEvent.input(input, { target: { value: 'create terminal' } });
       await fireEvent.submit(form);
       
-      // Button should be disabled while loading
-      expect(button.disabled).toBe(true);
+      // Input should be disabled while loading
+      expect(input.disabled).toBe(true);
       
       // Resolve the promise
       resolvePromise!();
       await waitFor(() => {
-        expect(button.disabled).toBe(false);
+        expect(input.disabled).toBe(false);
       });
     });
   });

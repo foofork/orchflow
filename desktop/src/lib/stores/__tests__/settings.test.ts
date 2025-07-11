@@ -55,7 +55,7 @@ describe('Settings Store', () => {
       expect(localStorageMock.getItem).toHaveBeenCalledWith('orchflow-settings');
     });
 
-    it('should load settings from localStorage if available', () => {
+    it('should load settings from localStorage if available', async () => {
       const storedSettings: Partial<Settings> = {
         theme: 'light',
         fontSize: 16,
@@ -70,7 +70,7 @@ describe('Settings Store', () => {
       
       // Need to re-import to trigger loading from localStorage
       vi.resetModules();
-      const { settings: freshSettings } = require('../settings');
+      const { settings: freshSettings } = await import('../settings');
       
       const currentSettings = get(freshSettings);
       expect(currentSettings.theme).toBe('light');
@@ -84,7 +84,7 @@ describe('Settings Store', () => {
       expect(currentSettings.wordWrap).toBe(defaultSettings.wordWrap);
     });
 
-    it('should handle corrupted localStorage data gracefully', () => {
+    it('should handle corrupted localStorage data gracefully', async () => {
       localStorageMock.getItem.mockReturnValue('invalid json');
       
       // Spy on console.error
@@ -92,7 +92,7 @@ describe('Settings Store', () => {
       
       // Need to re-import to trigger loading from localStorage
       vi.resetModules();
-      const { settings: freshSettings } = require('../settings');
+      const { settings: freshSettings } = await import('../settings');
       
       const currentSettings = get(freshSettings);
       expect(currentSettings).toEqual(defaultSettings);
@@ -277,7 +277,7 @@ describe('Settings Store', () => {
   });
 
   describe('persistence', () => {
-    it('should persist changes across store recreations', () => {
+    it('should persist changes across store recreations', async () => {
       const customSettings: Settings = {
         ...defaultSettings,
         theme: 'light',
@@ -290,7 +290,7 @@ describe('Settings Store', () => {
       // Simulate page reload by resetting mocks and reimporting
       localStorageMock.getItem.mockReturnValue(JSON.stringify(customSettings));
       vi.resetModules();
-      const { settings: newSettings } = require('../settings');
+      const { settings: newSettings } = await import('../settings');
       
       const loadedSettings = get(newSettings);
       expect(loadedSettings).toEqual(customSettings);
@@ -298,7 +298,7 @@ describe('Settings Store', () => {
   });
 
   describe('edge cases', () => {
-    it('should handle partial settings objects in localStorage', () => {
+    it('should handle partial settings objects in localStorage', async () => {
       const partialSettings = {
         theme: 'light',
         fontSize: 20,
@@ -308,7 +308,7 @@ describe('Settings Store', () => {
       localStorageMock.getItem.mockReturnValue(JSON.stringify(partialSettings));
       
       vi.resetModules();
-      const { settings: freshSettings } = require('../settings');
+      const { settings: freshSettings } = await import('../settings');
       
       const currentSettings = get(freshSettings);
       
@@ -322,7 +322,7 @@ describe('Settings Store', () => {
       expect(currentSettings.editor).toEqual(defaultSettings.editor);
     });
 
-    it('should handle deeply nested partial objects', () => {
+    it('should handle deeply nested partial objects', async () => {
       const partialSettings = {
         terminal: {
           fontSize: 16,
@@ -333,7 +333,7 @@ describe('Settings Store', () => {
       localStorageMock.getItem.mockReturnValue(JSON.stringify(partialSettings));
       
       vi.resetModules();
-      const { settings: freshSettings } = require('../settings');
+      const { settings: freshSettings } = await import('../settings');
       
       const currentSettings = get(freshSettings);
       

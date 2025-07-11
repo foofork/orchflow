@@ -66,13 +66,6 @@ vi.mock('@xterm/addon-search', () => ({
 
 vi.mock('@xterm/xterm/css/xterm.css', () => ({}));
 
-// Mock ResizeObserver
-global.ResizeObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn()
-}));
-
 describe('TauriTerminal', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -165,9 +158,9 @@ describe('TauriTerminal', () => {
       render(TauriTerminal);
       
       await waitFor(() => {
-        expect(ResizeObserver).toHaveBeenCalled();
-        const resizeObserver = ResizeObserver.mock.results[0].value;
-        expect(resizeObserver.observe).toHaveBeenCalled();
+        expect(global.ResizeObserver).toHaveBeenCalled();
+        const mockInstance = (global.ResizeObserver as any).mock.results[0].value;
+        expect(mockInstance.observe).toHaveBeenCalled();
       });
     });
   });
@@ -257,12 +250,12 @@ describe('TauriTerminal', () => {
       const { container } = render(TauriTerminal);
       
       await waitFor(() => {
-        const resizeObserver = ResizeObserver.mock.results[0].value;
-        expect(resizeObserver.observe).toHaveBeenCalled();
+        const mockInstance = (global.ResizeObserver as any).mock.results[0].value;
+        expect(mockInstance.observe).toHaveBeenCalled();
       });
       
       // Simulate ResizeObserver callback
-      const observerCallback = ResizeObserver.mock.calls[0][0];
+      const observerCallback = (global.ResizeObserver as any).mock.calls[0][0];
       observerCallback([{ contentRect: { width: 800, height: 600 } }]);
       
       await waitFor(() => {

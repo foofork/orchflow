@@ -2,6 +2,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { get } from 'svelte/store';
 import type { Session, Pane, ManagerEvent, PluginInfo } from '../../api/manager-client';
 
+// Set NODE_ENV to test before importing anything
+process.env.NODE_ENV = 'test';
+
 // Mock the manager client BEFORE importing the store
 vi.mock('../../api/manager-client', () => ({
   managerClient: {

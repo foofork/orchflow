@@ -39,14 +39,16 @@ describe('SettingsModal', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     
-    // Setup default mock settings
+    // Setup default mock settings matching the component's expected flat structure
     mockSettings = {
+      // Appearance
       theme: 'dark',
       fontSize: 14,
       fontFamily: 'JetBrains Mono',
       accentColor: '#007acc',
       compactMode: false,
       animations: true,
+      // Editor
       tabSize: 2,
       insertSpaces: true,
       wordWrap: false,
@@ -55,28 +57,25 @@ describe('SettingsModal', () => {
       bracketMatching: true,
       autoSave: true,
       autoSaveDelay: 1000,
+      // Terminal
       shell: '/bin/zsh',
       terminalFontSize: 14,
       terminalFontFamily: 'JetBrains Mono',
       scrollback: 1000,
       closeOnExit: true,
       bellStyle: 'none',
-      aiProvider: 'openai',
-      aiApiKey: '',
-      aiModel: 'gpt-4',
-      aiTemperature: 0.7,
-      aiMaxTokens: 2048,
-      enableInlineCompletion: true,
-      enableCodeSuggestions: true,
+      // Git
       gitAutoFetch: true,
       gitFetchInterval: 300,
       gitShowUntracked: true,
       gitDefaultBranch: 'main',
       gitSignCommits: false,
+      // Performance
       maxTabs: 20,
       enableVirtualization: true,
       metricsPolling: true,
       logLevel: 'info',
+      // Shortcuts
       shortcuts: {
         'command_palette': 'Ctrl+K',
         'quick_open': 'Ctrl+P',

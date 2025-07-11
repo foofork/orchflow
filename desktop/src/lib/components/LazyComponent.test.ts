@@ -4,13 +4,6 @@ import { tick } from 'svelte';
 import LazyComponent from './LazyComponent.svelte';
 import TestHelpers from './TestHelpers.svelte';
 
-// Create a mock Svelte component
-vi.mock('./MockedComponent.svelte', () => {
-  return {
-    default: TestHelpers
-  };
-});
-
 describe('LazyComponent', () => {
   let consoleErrorSpy: any;
 
