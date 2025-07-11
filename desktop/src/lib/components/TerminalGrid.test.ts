@@ -4,7 +4,7 @@ import TerminalGrid from './TerminalGrid.svelte';
 import { terminalIPC } from '$lib/services/terminal-ipc';
 
 // Mock StreamingTerminal component properly
-import MockStreamingTerminal from '$test/mocks/StreamingTerminal.svelte';
+import MockStreamingTerminal from '../../test/mocks/StreamingTerminal.svelte';
 
 vi.mock('./StreamingTerminal.svelte', () => ({
   default: MockStreamingTerminal

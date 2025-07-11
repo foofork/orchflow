@@ -50,6 +50,47 @@ vi.mock('@tauri-apps/api/event', () => ({
   once: vi.fn(() => Promise.resolve(() => {})),
 }));
 
+// Mock Tauri plugins
+vi.mock('@tauri-apps/plugin-fs', () => ({
+  readDir: vi.fn(() => Promise.resolve([])),
+  readFile: vi.fn(() => Promise.resolve(new Uint8Array())),
+  writeFile: vi.fn(() => Promise.resolve()),
+  exists: vi.fn(() => Promise.resolve(false)),
+  createDir: vi.fn(() => Promise.resolve()),
+  removeFile: vi.fn(() => Promise.resolve()),
+  removeDir: vi.fn(() => Promise.resolve()),
+}));
+
+vi.mock('@tauri-apps/plugin-shell', () => ({
+  Command: vi.fn(() => ({
+    execute: vi.fn(() => Promise.resolve({ code: 0, signal: null, stdout: '', stderr: '' })),
+    spawn: vi.fn(() => Promise.resolve({ code: 0, signal: null, stdout: '', stderr: '' })),
+    stdout: { on: vi.fn() },
+    stderr: { on: vi.fn() },
+    on: vi.fn(),
+  })),
+  open: vi.fn(() => Promise.resolve()),
+}));
+
+vi.mock('@tauri-apps/plugin-process', () => ({
+  exit: vi.fn(),
+  relaunch: vi.fn(() => Promise.resolve()),
+}));
+
+vi.mock('@tauri-apps/plugin-os', () => ({
+  platform: vi.fn(() => 'darwin'),
+  version: vi.fn(() => Promise.resolve('1.0.0')),
+  type: vi.fn(() => Promise.resolve('Darwin')),
+  arch: vi.fn(() => Promise.resolve('x86_64')),
+  tempdir: vi.fn(() => Promise.resolve('/tmp')),
+}));
+
+vi.mock('@tauri-apps/plugin-updater', () => ({
+  checkUpdate: vi.fn(() => Promise.resolve(null)),
+  installUpdate: vi.fn(() => Promise.resolve()),
+  onUpdaterEvent: vi.fn(() => Promise.resolve(() => {})),
+}));
+
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
