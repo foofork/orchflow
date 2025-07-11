@@ -8,12 +8,28 @@ import { managerClient } from '$lib/api/manager-client';
 // Mock the stores
 vi.mock('$lib/stores/manager', () => {
   const { writable } = require('svelte/store');
-  const pluginsStore = writable([]);
-  const loadedPluginsStore = writable([]);
+  let pluginsArray = [];
+  let loadedPluginsArray = [];
+  
+  const pluginsStore = writable(pluginsArray);
+  const loadedPluginsStore = writable(loadedPluginsArray);
+  
+  // Create a mock that acts as both store and array
+  const mockPlugins = Object.assign(pluginsArray, {
+    set: pluginsStore.set,
+    update: pluginsStore.update,
+    subscribe: pluginsStore.subscribe
+  });
+  
+  const mockLoadedPlugins = Object.assign(loadedPluginsArray, {
+    set: loadedPluginsStore.set,
+    update: loadedPluginsStore.update,
+    subscribe: loadedPluginsStore.subscribe
+  });
   
   return {
-    plugins: pluginsStore,
-    loadedPlugins: loadedPluginsStore
+    plugins: mockPlugins,
+    loadedPlugins: mockLoadedPlugins
   };
 });
 
@@ -65,7 +81,15 @@ describe('PluginManager', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    
+    // Reset stores with proper initial values
     plugins.set([]);
+    loadedPlugins.set([]);
+    
+    // Reset manager mock
+    mockManager.refreshPlugins.mockResolvedValue(undefined);
+    mockManager.loadPlugin.mockResolvedValue(undefined);
+    mockManager.unloadPlugin.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -74,6 +98,10 @@ describe('PluginManager', () => {
 
   describe('Rendering', () => {
     it('should render plugin manager header', () => {
+      // Ensure stores are properly initialized before rendering
+      plugins.set([]);
+      loadedPlugins.set([]);
+      
       const { getByText } = render(PluginManager);
       expect(getByText('Plugin Manager')).toBeTruthy();
     });

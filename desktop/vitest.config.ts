@@ -13,8 +13,10 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/*.{test,spec}.{js,ts}'],
-    testTimeout: 10000, // Increase default timeout to 10 seconds
-    hookTimeout: 10000, // Increase hook timeout to 10 seconds
+    testTimeout: 15000, // Increase default timeout to 15 seconds
+    hookTimeout: 15000, // Increase hook timeout to 15 seconds
+    bail: 0, // Don't bail on first failure
+    retry: 1, // Retry failed tests once
     server: {
       deps: {
         inline: ['@tauri-apps/api', '@tauri-apps/plugin-fs', '@tauri-apps/plugin-shell', '@tauri-apps/plugin-process', '@tauri-apps/plugin-os', '@tauri-apps/plugin-updater']

@@ -3,6 +3,7 @@ import { vi } from 'vitest';
 import './setup-mocks';
 import './setup-codemirror';
 import './setup-xterm';
+import { setupTestEnvironment } from './utils';
 
 // Set up Tauri globals
 (globalThis as any).window = globalThis.window || {};
@@ -322,4 +323,7 @@ global.import = vi.fn(async (path: string) => {
   }
   return originalImport(path);
 });
+
+// Setup test environment with performance mocks and other utilities
+setupTestEnvironment();
 
