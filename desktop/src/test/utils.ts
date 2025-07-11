@@ -26,7 +26,7 @@ export function renderWithStores(
 
 export const mockInvoke = (responses: Record<string, any> = {}) => {
   const tauriApi = require('@tauri-apps/api');
-  const tauriInvoke = require('@tauri-apps/api/tauri');
+  const tauriInvoke = require('@tauri-apps/api/core');
   
   // Default responses for common commands
   const defaultResponses: Record<string, any> = {

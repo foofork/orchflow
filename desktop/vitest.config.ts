@@ -43,6 +43,7 @@ export default defineConfig({
     conditions: ['browser', 'svelte'],
     alias: {
       '@tauri-apps/api/tauri': resolve(__dirname, './src/test/stubs/tauri-api.ts'),
+      '@tauri-apps/api/core': resolve(__dirname, './src/test/stubs/tauri-api.ts'),
       '@tauri-apps/api/event': resolve(__dirname, './src/test/stubs/tauri-api.ts'),
       '@tauri-apps/api/window': resolve(__dirname, './src/test/stubs/tauri-api.ts'),
       '@tauri-apps/api': resolve(__dirname, './src/test/stubs/tauri-api.ts'),

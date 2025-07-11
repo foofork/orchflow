@@ -28,7 +28,7 @@ Object.defineProperty(window, '__TAURI__', {
 });
 
 // Mock dynamic import for Tauri
-vi.mock('@tauri-apps/api/tauri', () => ({
+vi.mock('@tauri-apps/api/core', () => ({
   invoke: vi.fn()
 }));
 
@@ -314,7 +314,7 @@ describe('SettingsModal', () => {
     });
 
     it('should save settings when save button is clicked', async () => {
-      const { invoke } = await import('@tauri-apps/api/tauri');
+      const { invoke } = await import('@tauri-apps/api/core');
       
       render(SettingsModal, { 
         props: { 
@@ -424,7 +424,7 @@ describe('SettingsModal', () => {
     });
 
     it('should save settings on Ctrl+S', async () => {
-      const { invoke } = await import('@tauri-apps/api/tauri');
+      const { invoke } = await import('@tauri-apps/api/core');
       
       render(SettingsModal, { 
         props: { 

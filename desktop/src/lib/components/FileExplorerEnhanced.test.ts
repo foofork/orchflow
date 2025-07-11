@@ -95,7 +95,7 @@ const mockJoin = vi.fn();
 const mockDirname = vi.fn();
 
 // Mock the imports as functions that return the mocked values
-vi.mock('@tauri-apps/api/tauri', () => ({
+vi.mock('@tauri-apps/api/core', () => ({
   invoke: mockInvoke
 }));
 

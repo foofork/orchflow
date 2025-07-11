@@ -220,7 +220,7 @@
   async function saveCurrentFile() {
     if (activeTab?.type === 'file' && isTauri) {
       // Trigger save in Neovim
-      const { invoke } = await import('@tauri-apps/api/tauri');
+      const { invoke } = await import('@tauri-apps/api/core');
       invoke('nvim_execute_command', {
         instanceId: activeTab.metadata?.instanceId,
         command: ':w'

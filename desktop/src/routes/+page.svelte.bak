@@ -67,7 +67,7 @@
     
     // Initialize Tauri-specific features
     if (isTauri && browser) {
-      const { invoke } = await import('@tauri-apps/api/tauri');
+      const { invoke } = await import('@tauri-apps/api/core');
       const { appWindow } = await import('@tauri-apps/api/window');
       const { listen } = await import('@tauri-apps/api/event');
       
@@ -142,7 +142,7 @@
   async function saveCurrentFile() {
     if ($activeTab?.type === 'file' && isTauri) {
       // Trigger save in Neovim
-      const { invoke } = await import('@tauri-apps/api/tauri');
+      const { invoke } = await import('@tauri-apps/api/core');
       invoke('nvim_execute_command', {
         instanceId: $activeTab.metadata?.instanceId,
         command: ':w'

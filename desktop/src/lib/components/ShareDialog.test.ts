@@ -6,7 +6,7 @@ import ShareDialog from './ShareDialog.svelte';
 const mockInvoke = vi.fn();
 const mockOpen = vi.fn();
 
-vi.mock('@tauri-apps/api/tauri', () => ({
+vi.mock('@tauri-apps/api/core', () => ({
   invoke: () => mockInvoke()
 }));
 

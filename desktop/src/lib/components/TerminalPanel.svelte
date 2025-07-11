@@ -2,7 +2,7 @@
   import { createEventDispatcher, onMount, onDestroy } from 'svelte';
   import { writable, derived } from 'svelte/store';
   import StreamingTerminal from './StreamingTerminal.svelte';
-  import { invoke } from '@tauri-apps/api/tauri';
+  import { invoke } from '@tauri-apps/api/core';
   
   const dispatch = createEventDispatcher();
   

@@ -244,7 +244,7 @@
 
 			// Save to Tauri backend if available
 			if (browser && '__TAURI__' in window) {
-				const { invoke } = await import('@tauri-apps/api/tauri');
+				const { invoke } = await import('@tauri-apps/api/core');
 				await invoke('db_set_setting', {
 					key: 'orchflow_settings',
 					value: JSON.stringify(flatSettings)

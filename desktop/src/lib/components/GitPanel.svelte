@@ -57,7 +57,7 @@
     isLoading = true;
     try {
       if ('__TAURI__' in window) {
-        const { invoke } = await import('@tauri-apps/api/tauri');
+        const { invoke } = await import('@tauri-apps/api/core');
         gitStatus = await invoke('git_status');
       } else {
         // Mock data for development
@@ -92,7 +92,7 @@
     
     try {
       if ('__TAURI__' in window) {
-        const { invoke } = await import('@tauri-apps/api/tauri');
+        const { invoke } = await import('@tauri-apps/api/core');
         diffContent = await invoke('git_diff', { path: file.path, staged: file.staged });
       } else {
         // Mock diff for development
@@ -127,7 +127,7 @@ index 1234567..abcdefg 100644
   async function stageFile(file: GitFile) {
     try {
       if ('__TAURI__' in window) {
-        const { invoke } = await import('@tauri-apps/api/tauri');
+        const { invoke } = await import('@tauri-apps/api/core');
         await invoke('git_stage', { path: file.path });
       }
       await loadGitStatus();
@@ -139,7 +139,7 @@ index 1234567..abcdefg 100644
   async function unstageFile(file: GitFile) {
     try {
       if ('__TAURI__' in window) {
-        const { invoke } = await import('@tauri-apps/api/tauri');
+        const { invoke } = await import('@tauri-apps/api/core');
         await invoke('git_unstage', { path: file.path });
       }
       await loadGitStatus();
@@ -151,7 +151,7 @@ index 1234567..abcdefg 100644
   async function stageAll() {
     try {
       if ('__TAURI__' in window) {
-        const { invoke } = await import('@tauri-apps/api/tauri');
+        const { invoke } = await import('@tauri-apps/api/core');
         await invoke('git_stage_all');
       }
       await loadGitStatus();
@@ -163,7 +163,7 @@ index 1234567..abcdefg 100644
   async function unstageAll() {
     try {
       if ('__TAURI__' in window) {
-        const { invoke } = await import('@tauri-apps/api/tauri');
+        const { invoke } = await import('@tauri-apps/api/core');
         await invoke('git_unstage_all');
       }
       await loadGitStatus();
@@ -180,7 +180,7 @@ index 1234567..abcdefg 100644
     
     try {
       if ('__TAURI__' in window) {
-        const { invoke } = await import('@tauri-apps/api/tauri');
+        const { invoke } = await import('@tauri-apps/api/core');
         await invoke('git_commit', { message: commitMessage });
       }
       commitMessage = '';
@@ -194,7 +194,7 @@ index 1234567..abcdefg 100644
   async function push() {
     try {
       if ('__TAURI__' in window) {
-        const { invoke } = await import('@tauri-apps/api/tauri');
+        const { invoke } = await import('@tauri-apps/api/core');
         await invoke('git_push');
       }
       await loadGitStatus();
@@ -207,7 +207,7 @@ index 1234567..abcdefg 100644
   async function pull() {
     try {
       if ('__TAURI__' in window) {
-        const { invoke } = await import('@tauri-apps/api/tauri');
+        const { invoke } = await import('@tauri-apps/api/core');
         await invoke('git_pull');
       }
       await loadGitStatus();

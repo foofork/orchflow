@@ -22,7 +22,7 @@
   onMount(async () => {
     if (browser && '__TAURI__' in window) {
       try {
-        const { invoke } = await import('@tauri-apps/api/tauri');
+        const { invoke } = await import('@tauri-apps/api/core');
         // Get current working directory
         rootPath = await invoke('get_current_dir');
         await loadDirectory(rootPath);

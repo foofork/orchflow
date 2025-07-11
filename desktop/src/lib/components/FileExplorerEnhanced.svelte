@@ -38,7 +38,7 @@
   onMount(async () => {
     if (browser && '__TAURI__' in window) {
       try {
-        const { invoke } = await import('@tauri-apps/api/tauri');
+        const { invoke } = await import('@tauri-apps/api/core');
         rootPath = await invoke('get_current_dir');
         await loadDirectory(rootPath);
       } catch (err) {
@@ -224,7 +224,7 @@
         ? selectedPath 
         : rootPath;
       
-      const { invoke } = await import('@tauri-apps/api/tauri');
+      const { invoke } = await import('@tauri-apps/api/core');
       const { join } = await import('@tauri-apps/api/path');
       
       const newPath = await join(targetDir, dialogInputValue);
@@ -249,7 +249,7 @@
         ? selectedPath 
         : rootPath;
       
-      const { invoke } = await import('@tauri-apps/api/tauri');
+      const { invoke } = await import('@tauri-apps/api/core');
       const { join } = await import('@tauri-apps/api/path');
       
       const newPath = await join(targetDir, dialogInputValue);
@@ -275,7 +275,7 @@
     }
     
     try {
-      const { invoke } = await import('@tauri-apps/api/tauri');
+      const { invoke } = await import('@tauri-apps/api/core');
       const { dirname, join } = await import('@tauri-apps/api/path');
       
       const dir = await dirname(currentNode.path);
@@ -295,7 +295,7 @@
     if (!currentNode) return;
     
     try {
-      const { invoke } = await import('@tauri-apps/api/tauri');
+      const { invoke } = await import('@tauri-apps/api/core');
       await invoke('delete_path', { path: currentNode.path, permanent: false });
       
       showDeleteDialog = false;

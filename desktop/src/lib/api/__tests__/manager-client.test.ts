@@ -1,16 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ManagerClient, type Session, type Pane, type PaneType, type PluginInfo, type CommandHistoryEntry } from '../manager-client';
-import { invoke } from '@tauri-apps/api/tauri';
+import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 
-// Mock Tauri API
-vi.mock('@tauri-apps/api/tauri', () => ({
-  invoke: vi.fn(),
-}));
-
-vi.mock('@tauri-apps/api/event', () => ({
-  listen: vi.fn(),
-}));
+// Mocks are already set up in src/test/setup.ts
 
 describe('ManagerClient', () => {
   let client: ManagerClient;

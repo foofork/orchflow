@@ -29,8 +29,11 @@ vi.mock('@tauri-apps/api', () => ({
   },
 }));
 
-vi.mock('@tauri-apps/api/tauri', () => ({
+vi.mock('@tauri-apps/api/core', () => ({
   invoke: vi.fn(() => Promise.resolve()),
+  convertFileSrc: vi.fn((src: string) => src),
+  transformCallback: vi.fn(),
+  isTauri: vi.fn(() => true),
 }));
 
 vi.mock('@tauri-apps/api/window', () => ({
@@ -48,6 +51,7 @@ vi.mock('@tauri-apps/api/event', () => ({
   emit: vi.fn(),
   listen: vi.fn(() => Promise.resolve(() => {})),
   once: vi.fn(() => Promise.resolve(() => {})),
+  invoke: vi.fn(() => Promise.resolve()), // Add invoke here too
 }));
 
 // Mock Tauri plugins

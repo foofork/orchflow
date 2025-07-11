@@ -1,7 +1,7 @@
 // Terminal IPC Service
 // Handles communication with the Rust backend for terminal streaming
 
-import { invoke } from '@tauri-apps/api/tauri';
+import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn, emit } from '@tauri-apps/api/event';
 import { writable, type Writable } from 'svelte/store';
 
