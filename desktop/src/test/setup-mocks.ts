@@ -8,7 +8,7 @@ import { vi } from 'vitest';
 // Helper function to create proper Svelte component mocks
 function createSvelteComponentMock(componentName: string, defaultProps = {}) {
   return vi.fn().mockImplementation((options: any) => {
-    const { target, props = {} } = options;
+    const { target, props = {}, anchor, intro } = options;
     const mergedProps = { ...defaultProps, ...props };
     
     // Create actual DOM element
@@ -21,7 +21,9 @@ function createSvelteComponentMock(componentName: string, defaultProps = {}) {
       element.setAttribute('title', mergedProps.title);
     }
     
-    if (mergedProps.show !== false && mergedProps.open !== false) {
+    // For Modal/Dialog components, render children if show/open is true
+    const isVisible = mergedProps.show !== false && mergedProps.open !== false;
+    if (isVisible) {
       element.style.display = 'block';
     } else {
       element.style.display = 'none';
@@ -29,7 +31,11 @@ function createSvelteComponentMock(componentName: string, defaultProps = {}) {
     
     // Add to target if provided
     if (target) {
-      target.appendChild(element);
+      if (anchor) {
+        target.insertBefore(element, anchor);
+      } else {
+        target.appendChild(element);
+      }
     }
     
     // Create proper Svelte component interface
@@ -38,11 +44,9 @@ function createSvelteComponentMock(componentName: string, defaultProps = {}) {
       $set: vi.fn((newProps: any) => {
         Object.assign(mergedProps, newProps);
         // Update DOM based on props
-        if (newProps.show !== undefined) {
-          element.style.display = newProps.show ? 'block' : 'none';
-        }
-        if (newProps.open !== undefined) {
-          element.style.display = newProps.open ? 'block' : 'none';
+        if (newProps.show !== undefined || newProps.open !== undefined) {
+          const shouldShow = newProps.show !== false && newProps.open !== false;
+          element.style.display = shouldShow ? 'block' : 'none';
         }
         if (newProps.title !== undefined) {
           element.setAttribute('title', newProps.title);
@@ -50,8 +54,8 @@ function createSvelteComponentMock(componentName: string, defaultProps = {}) {
       }),
       
       $on: vi.fn((event: string, handler: Function) => {
-        element.addEventListener(event, handler);
-        return () => element.removeEventListener(event, handler);
+        element.addEventListener(event, handler as EventListener);
+        return () => element.removeEventListener(event, handler as EventListener);
       }),
       
       $destroy: vi.fn(() => {
@@ -60,9 +64,14 @@ function createSvelteComponentMock(componentName: string, defaultProps = {}) {
         }
       }),
       
-      // Svelte internal properties (this fixes the block.c error)
+      // Svelte internal properties
       $$: {
-        fragment: null,
+        fragment: {
+          c: vi.fn(), // create
+          m: vi.fn(), // mount
+          p: vi.fn(), // update  
+          d: vi.fn()  // destroy
+        },
         ctx: [],
         props: mergedProps,
         update: vi.fn(),
@@ -123,4 +132,3 @@ vi.mock('$lib/components/Dialog.svelte', () => ({
 
 // Export the helper for other tests
 export { createSvelteComponentMock };
-

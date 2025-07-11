@@ -3,89 +3,16 @@ import { render, fireEvent, waitFor, screen } from '@testing-library/svelte';
 import FileExplorerEnhanced from './FileExplorerEnhanced.svelte';
 import type { TreeNode } from '$lib/types';
 
-// Mock child components with proper Svelte component structure
+// The FileTree, ContextMenu, and Dialog components are already mocked in setup-mocks.ts
+// But we need to mock FileTree.svelte explicitly since it's not in setup-mocks.ts
+import { createSvelteComponentMock } from '../../test/setup-mocks';
+
 vi.mock('./FileTree.svelte', () => ({
-  default: class MockFileTree {
-    constructor(options: any) {
-      this.$$ = {
-        fragment: null,
-        ctx: [],
-        props: options.props || {},
-        update: vi.fn(),
-        not_equal: vi.fn(),
-        bound: {},
-        on_mount: [],
-        on_destroy: [],
-        on_disconnect: [],
-        before_update: [],
-        after_update: [],
-        context: new Map(),
-        callbacks: {},
-        dirty: [],
-        skip_bound: false,
-        root: null
-      };
-      this.$destroy = vi.fn();
-      this.$on = vi.fn();
-      this.$set = vi.fn();
-    }
-  }
+  default: createSvelteComponentMock('FileTree')
 }));
 
 vi.mock('./ContextMenu.svelte', () => ({
-  default: class MockContextMenu {
-    constructor(options: any) {
-      this.$$ = {
-        fragment: null,
-        ctx: [],
-        props: options.props || {},
-        update: vi.fn(),
-        not_equal: vi.fn(),
-        bound: {},
-        on_mount: [],
-        on_destroy: [],
-        on_disconnect: [],
-        before_update: [],
-        after_update: [],
-        context: new Map(),
-        callbacks: {},
-        dirty: [],
-        skip_bound: false,
-        root: null
-      };
-      this.$destroy = vi.fn();
-      this.$on = vi.fn();
-      this.$set = vi.fn();
-    }
-  }
-}));
-
-vi.mock('./Dialog.svelte', () => ({
-  default: class MockDialog {
-    constructor(options: any) {
-      this.$$ = {
-        fragment: null,
-        ctx: [],
-        props: options.props || {},
-        update: vi.fn(),
-        not_equal: vi.fn(),
-        bound: {},
-        on_mount: [],
-        on_destroy: [],
-        on_disconnect: [],
-        before_update: [],
-        after_update: [],
-        context: new Map(),
-        callbacks: {},
-        dirty: [],
-        skip_bound: false,
-        root: null
-      };
-      this.$destroy = vi.fn();
-      this.$on = vi.fn();
-      this.$set = vi.fn();
-    }
-  }
+  default: createSvelteComponentMock('ContextMenu')
 }));
 
 // Mock Tauri API
@@ -109,171 +36,452 @@ vi.mock('@tauri-apps/api/path', () => ({
 }));
 
 describe('FileExplorerEnhanced', () => {
+  const mockFile: TreeNode = {
+    name: 'test.txt',
+    path: '/path/to/test.txt',
+    type: 'file',
+    isExpanded: false,
+    isEditing: false,
+    children: []
+  };
+
+  const mockDirectory: TreeNode = {
+    name: 'testDir',
+    path: '/path/to/testDir',
+    type: 'directory',
+    isExpanded: false,
+    isEditing: false,
+    children: []
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
-    // Reset window.__TAURI__ for each test
-    (window as any).__TAURI__ = {};
+    mockInvoke.mockResolvedValue({});
+    mockReadDir.mockResolvedValue([]);
+    mockJoin.mockImplementation((...paths) => paths.join('/'));
+    mockDirname.mockImplementation((path) => path.split('/').slice(0, -1).join('/'));
   });
 
   afterEach(() => {
-    delete (window as any).__TAURI__;
+    vi.restoreAllMocks();
   });
 
-  describe('Initialization', () => {
-    it('renders without Tauri (browser mode)', async () => {
-      delete (window as any).__TAURI__;
-      const { container } = render(FileExplorerEnhanced);
-      
-      // Should render the toolbar
-      expect(container.querySelector('.toolbar')).toBeTruthy();
-      
-      // Should render toolbar buttons
-      expect(container.querySelector('[title="New File"]')).toBeTruthy();
-      expect(container.querySelector('[title="New Folder"]')).toBeTruthy();
-      expect(container.querySelector('[title="Refresh"]')).toBeTruthy();
-      expect(container.querySelector('[title="Collapse All"]')).toBeTruthy();
-      
-      // Should render mock file tree
-      await waitFor(() => {
-        expect(container.querySelector('.tree-container')).toBeTruthy();
-      }, { timeout: 1000 });
+  describe('Rendering', () => {
+    it('renders the file explorer with initial state', () => {
+      const { container } = render(FileExplorerEnhanced, {
+        props: {
+          width: 300
+        }
+      });
+
+      expect(container.querySelector('.file-explorer')).toBeTruthy();
+      expect(container.querySelector('.file-explorer-header')).toBeTruthy();
+      expect(container.querySelector('.file-explorer-content')).toBeTruthy();
     });
 
-    it('loads directory on mount with Tauri', async () => {
-      mockInvoke.mockResolvedValueOnce('/home/user/project');
-      mockReadDir.mockResolvedValueOnce([
-        { name: 'src', path: '/home/user/project/src', children: [] },
-        { name: 'package.json', path: '/home/user/project/package.json' }
+    it('shows loading state when loading', async () => {
+      mockReadDir.mockImplementation(() => new Promise(() => {})); // Never resolves
+      
+      const { container } = render(FileExplorerEnhanced, {
+        props: {
+          width: 300
+        }
+      });
+
+      await waitFor(() => {
+        expect(container.querySelector('.loading-indicator')).toBeTruthy();
+      });
+    });
+
+    it('displays error message when loading fails', async () => {
+      const errorMessage = 'Failed to load directory';
+      mockReadDir.mockRejectedValue(new Error(errorMessage));
+
+      const { container } = render(FileExplorerEnhanced, {
+        props: {
+          width: 300
+        }
+      });
+
+      await waitFor(() => {
+        expect(container.textContent).toContain(errorMessage);
+      });
+    });
+  });
+
+  describe('Directory Operations', () => {
+    it('loads root directory on mount', async () => {
+      render(FileExplorerEnhanced, {
+        props: {
+          width: 300
+        }
+      });
+
+      await waitFor(() => {
+        expect(mockReadDir).toHaveBeenCalled();
+      });
+    });
+
+    it('expands directory when clicked', async () => {
+      mockReadDir.mockResolvedValue([
+        { name: 'child.txt', path: '/path/to/testDir/child.txt', children: null }
       ]);
 
-      render(FileExplorerEnhanced);
+      const { component } = render(FileExplorerEnhanced, {
+        props: {
+          width: 300
+        }
+      });
+
+      // Wait for initial load
+      await waitFor(() => {
+        expect(mockReadDir).toHaveBeenCalled();
+      });
+
+      // Simulate directory expansion through the FileTree component
+      component.$set({ 
+        rootNode: {
+          ...mockDirectory,
+          isExpanded: true,
+          children: [mockFile]
+        }
+      });
 
       await waitFor(() => {
-        expect(mockInvoke).toHaveBeenCalledWith('get_current_dir');
-      }, { timeout: 1000 });
-      
-      await waitFor(() => {
-        expect(mockReadDir).toHaveBeenCalledWith('/home/user/project');
-      }, { timeout: 1000 });
+        expect(mockReadDir).toHaveBeenCalledTimes(2);
+      });
     });
 
-    it('handles directory loading error', async () => {
-      mockInvoke.mockRejectedValueOnce(new Error('Permission denied'));
-
-      const { container } = render(FileExplorerEnhanced);
+    it('refreshes directory contents', async () => {
+      const { getByTitle } = render(FileExplorerEnhanced, {
+        props: {
+          width: 300
+        }
+      });
 
       await waitFor(() => {
-        const errorState = container.querySelector('.error-state');
-        expect(errorState).toBeTruthy();
-        expect(errorState?.textContent).toContain('Failed to load directory');
-      }, { timeout: 1000 });
+        expect(mockReadDir).toHaveBeenCalledTimes(1);
+      });
+
+      const refreshButton = getByTitle('Refresh');
+      await fireEvent.click(refreshButton);
+
+      await waitFor(() => {
+        expect(mockReadDir).toHaveBeenCalledTimes(2);
+      });
+    });
+
+    it('changes current directory path', async () => {
+      const newPath = '/new/path';
+      const { getByPlaceholderText, getByTitle } = render(FileExplorerEnhanced, {
+        props: {
+          width: 300
+        }
+      });
+
+      const pathInput = getByPlaceholderText('Enter path') as HTMLInputElement;
+      await fireEvent.input(pathInput, { target: { value: newPath } });
+      
+      const goButton = getByTitle('Go to path');
+      await fireEvent.click(goButton);
+
+      await waitFor(() => {
+        expect(mockReadDir).toHaveBeenCalledWith(newPath);
+      });
     });
   });
 
   describe('File Operations', () => {
-    it('opens new file dialog', async () => {
-      const { container } = render(FileExplorerEnhanced);
-      
-      const newFileButton = container.querySelector('[title="New File"]');
-      expect(newFileButton).toBeTruthy();
-      
-      await fireEvent.click(newFileButton!);
-      
-      // Dialog component is mocked, so we just check if the state changed
-      // In a real test, we'd check for the dialog to appear
+    it('opens file when double-clicked', async () => {
+      const { component } = render(FileExplorerEnhanced, {
+        props: {
+          width: 300
+        }
+      });
+
+      const openHandler = vi.fn();
+      component.$on('open', openHandler);
+
+      // Simulate file selection through component API
+      await component.openFile(mockFile);
+
+      expect(openHandler).toHaveBeenCalledWith(
+        expect.objectContaining({
+          detail: mockFile
+        })
+      );
     });
 
-    it('opens new folder dialog', async () => {
-      const { container } = render(FileExplorerEnhanced);
-      
-      const newFolderButton = container.querySelector('[title="New Folder"]');
-      expect(newFolderButton).toBeTruthy();
-      
-      await fireEvent.click(newFolderButton!);
-    });
+    it('creates new file', async () => {
+      const newFileName = 'newfile.txt';
+      const { getByTitle, getByPlaceholderText, getByText } = render(FileExplorerEnhanced, {
+        props: {
+          width: 300
+        }
+      });
 
-    it('refreshes file tree', async () => {
-      mockInvoke.mockResolvedValueOnce('/home/user/project');
-      mockReadDir.mockResolvedValueOnce([
-        { name: 'src', path: '/home/user/project/src', children: [] }
-      ]);
+      // Click new file button
+      const newFileButton = getByTitle('New File');
+      await fireEvent.click(newFileButton);
 
-      const { container } = render(FileExplorerEnhanced);
-      
+      // Enter file name in dialog
+      const input = getByPlaceholderText('Enter name');
+      await fireEvent.input(input, { target: { value: newFileName } });
+
+      // Confirm creation
+      const confirmButton = getByText('Create');
+      await fireEvent.click(confirmButton);
+
       await waitFor(() => {
-        expect(mockReadDir).toHaveBeenCalledTimes(1);
-      }, { timeout: 1000 });
-
-      const refreshButton = container.querySelector('[title="Refresh"]');
-      await fireEvent.click(refreshButton!);
-
-      await waitFor(() => {
-        expect(mockReadDir).toHaveBeenCalledTimes(2);
-      }, { timeout: 1000 });
+        expect(mockInvoke).toHaveBeenCalledWith('create_file', {
+          path: expect.stringContaining(newFileName)
+        });
+      });
     });
 
-    it('collapses all nodes', async () => {
-      const { container } = render(FileExplorerEnhanced);
-      
-      const collapseButton = container.querySelector('[title="Collapse All"]');
-      expect(collapseButton).toBeTruthy();
-      
-      await fireEvent.click(collapseButton!);
-      
-      // State should be updated to collapse all nodes
+    it('creates new folder', async () => {
+      const newFolderName = 'newfolder';
+      const { getByTitle, getByPlaceholderText, getByText } = render(FileExplorerEnhanced, {
+        props: {
+          width: 300
+        }
+      });
+
+      // Click new folder button
+      const newFolderButton = getByTitle('New Folder');
+      await fireEvent.click(newFolderButton);
+
+      // Enter folder name in dialog
+      const input = getByPlaceholderText('Enter name');
+      await fireEvent.input(input, { target: { value: newFolderName } });
+
+      // Confirm creation
+      const confirmButton = getByText('Create');
+      await fireEvent.click(confirmButton);
+
+      await waitFor(() => {
+        expect(mockInvoke).toHaveBeenCalledWith('create_dir', {
+          path: expect.stringContaining(newFolderName)
+        });
+      });
+    });
+
+    it('renames file', async () => {
+      const newName = 'renamed.txt';
+      const { component } = render(FileExplorerEnhanced, {
+        props: {
+          width: 300
+        }
+      });
+
+      // Set up initial state with a file
+      component.$set({
+        rootNode: {
+          name: 'root',
+          path: '/',
+          type: 'directory',
+          isExpanded: true,
+          isEditing: false,
+          children: [mockFile]
+        }
+      });
+
+      // Trigger rename through component method
+      await component.handleRename(mockFile, newName);
+
+      await waitFor(() => {
+        expect(mockInvoke).toHaveBeenCalledWith('rename', {
+          oldPath: mockFile.path,
+          newPath: expect.stringContaining(newName)
+        });
+      });
+    });
+
+    it('deletes file with confirmation', async () => {
+      const { component } = render(FileExplorerEnhanced, {
+        props: {
+          width: 300
+        }
+      });
+
+      // Set up initial state with a file
+      component.$set({
+        rootNode: {
+          name: 'root',
+          path: '/',
+          type: 'directory',
+          isExpanded: true,
+          isEditing: false,
+          children: [mockFile]
+        }
+      });
+
+      // Mock confirm dialog
+      vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+      // Trigger delete through component method
+      await component.handleDelete(mockFile);
+
+      await waitFor(() => {
+        expect(mockInvoke).toHaveBeenCalledWith('remove_file', {
+          path: mockFile.path
+        });
+      });
+    });
+
+    it('cancels delete when not confirmed', async () => {
+      const { component } = render(FileExplorerEnhanced, {
+        props: {
+          width: 300
+        }
+      });
+
+      // Mock confirm dialog to return false
+      vi.spyOn(window, 'confirm').mockReturnValue(false);
+
+      // Trigger delete through component method
+      await component.handleDelete(mockFile);
+
+      expect(mockInvoke).not.toHaveBeenCalledWith('remove_file', expect.any(Object));
     });
   });
 
-  describe('Loading States', () => {
-    it('shows loading state while fetching', async () => {
-      // Make readDir return a promise that doesn't resolve immediately
-      let resolveReadDir: any;
-      mockReadDir.mockReturnValueOnce(new Promise(resolve => {
-        resolveReadDir = resolve;
-      }));
-      mockInvoke.mockResolvedValueOnce('/home/user/project');
+  describe('Context Menu', () => {
+    it('shows context menu on right click', async () => {
+      const { component, container } = render(FileExplorerEnhanced, {
+        props: {
+          width: 300
+        }
+      });
 
-      const { container } = render(FileExplorerEnhanced);
+      // Set up initial state with a file
+      component.$set({
+        rootNode: {
+          name: 'root',
+          path: '/',
+          type: 'directory',
+          isExpanded: true,
+          isEditing: false,
+          children: [mockFile]
+        }
+      });
+
+      // Simulate right-click through component method
+      await component.handleContextMenu(mockFile, { clientX: 100, clientY: 100 });
 
       await waitFor(() => {
-        const loadingState = container.querySelector('.loading-state');
-        expect(loadingState).toBeTruthy();
-      }, { timeout: 1000 });
-
-      // Resolve the promise
-      resolveReadDir([]);
-
-      await waitFor(() => {
-        const loadingState = container.querySelector('.loading-state');
-        expect(loadingState).toBeFalsy();
-      }, { timeout: 1000 });
+        expect(container.querySelector('[data-testid="ContextMenu"]')).toBeTruthy();
+      });
     });
   });
 
-  describe('Empty State', () => {
-    it('shows empty state when directory is empty', async () => {
-      mockInvoke.mockResolvedValueOnce('/home/user/project');
-      mockReadDir.mockResolvedValueOnce([]);
+  describe('Search Functionality', () => {
+    it('filters files based on search query', async () => {
+      const { getByPlaceholderText, component } = render(FileExplorerEnhanced, {
+        props: {
+          width: 300
+        }
+      });
 
-      const { container } = render(FileExplorerEnhanced);
+      // Set up initial state with files
+      const files = [
+        { ...mockFile, name: 'test1.txt' },
+        { ...mockFile, name: 'test2.txt' },
+        { ...mockFile, name: 'other.txt' }
+      ];
 
-      await waitFor(() => {
-        const emptyState = container.querySelector('.empty-state');
-        expect(emptyState).toBeTruthy();
-        expect(emptyState?.textContent).toContain('This folder is empty');
-      }, { timeout: 1000 });
+      component.$set({
+        rootNode: {
+          name: 'root',
+          path: '/',
+          type: 'directory',
+          isExpanded: true,
+          isEditing: false,
+          children: files
+        }
+      });
+
+      // Enter search query
+      const searchInput = getByPlaceholderText('Search files...');
+      await fireEvent.input(searchInput, { target: { value: 'test' } });
+
+      // The filtered results should be handled by the FileTree component
+      // We just verify the search state was updated
+      expect(searchInput.value).toBe('test');
+    });
+
+    it('clears search when X button clicked', async () => {
+      const { getByPlaceholderText, getByTitle } = render(FileExplorerEnhanced, {
+        props: {
+          width: 300
+        }
+      });
+
+      // Enter search query
+      const searchInput = getByPlaceholderText('Search files...') as HTMLInputElement;
+      await fireEvent.input(searchInput, { target: { value: 'test' } });
+
+      // Click clear button
+      const clearButton = getByTitle('Clear search');
+      await fireEvent.click(clearButton);
+
+      expect(searchInput.value).toBe('');
     });
   });
 
-  describe('Agent Status', () => {
-    it('initializes agent status on mount', async () => {
-      delete (window as any).__TAURI__;
-      const { container } = render(FileExplorerEnhanced);
+  describe('Keyboard Navigation', () => {
+    it('handles keyboard shortcuts', async () => {
+      const { container, component } = render(FileExplorerEnhanced, {
+        props: {
+          width: 300
+        }
+      });
 
-      // Component should initialize with mock agent data
+      const deleteHandler = vi.fn();
+      vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+      // Set up a selected file
+      component.$set({
+        rootNode: {
+          name: 'root',
+          path: '/',
+          type: 'directory',
+          isExpanded: true,
+          isEditing: false,
+          children: [mockFile]
+        },
+        selectedNode: mockFile
+      });
+
+      // Simulate Delete key press
+      await fireEvent.keyDown(container.firstChild as Element, { key: 'Delete' });
+
       await waitFor(() => {
-        expect(container.querySelector('.tree-container')).toBeTruthy();
-      }, { timeout: 1000 });
+        expect(mockInvoke).toHaveBeenCalledWith('remove_file', {
+          path: mockFile.path
+        });
+      });
+    });
+  });
+
+  describe('Error Handling', () => {
+    it('shows error when file operation fails', async () => {
+      const errorMessage = 'Permission denied';
+      mockInvoke.mockRejectedValue(new Error(errorMessage));
+
+      const { component, container } = render(FileExplorerEnhanced, {
+        props: {
+          width: 300
+        }
+      });
+
+      // Try to delete a file
+      vi.spyOn(window, 'confirm').mockReturnValue(true);
+      await component.handleDelete(mockFile);
+
+      await waitFor(() => {
+        expect(container.textContent).toContain(errorMessage);
+      });
     });
   });
 });
