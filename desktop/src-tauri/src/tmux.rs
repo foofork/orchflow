@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::process::Command;
 use std::path::PathBuf;
-use tauri::api::path::home_dir;
+use dirs::home_dir;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TmuxSession {

@@ -34,8 +34,8 @@ mod module_commands_tests;
 // #[cfg(test)]
 // mod state_manager_tests_v2;
 
-// #[cfg(test)]
-// mod terminal_stream_tests;
+#[cfg(test)]
+mod terminal_stream_tests;
 
 // #[cfg(test)]
 // mod file_manager_tests;

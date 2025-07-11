@@ -269,7 +269,7 @@ impl FileManager {
                 size: Some(metadata.len()),
                 modified: metadata.modified().ok()
                     .map(|t| chrono::DateTime::<chrono::Utc>::from(t)),
-                permissions: None, // TODO: Get actual permissions
+                permissions: Self::get_file_permissions(&path).map(|p| format!("{:o}", p)),
             });
         }
         
@@ -404,6 +404,24 @@ impl FileManager {
     /// Check if git is available for this repository
     pub fn has_git(&self) -> bool {
         self.git_integration.is_some()
+    }
+    
+    /// Get file permissions as a Unix-style octal number
+    fn get_file_permissions(path: &Path) -> Option<u32> {
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            if let Ok(metadata) = std::fs::metadata(path) {
+                Some(metadata.permissions().mode())
+            } else {
+                None
+            }
+        }
+        #[cfg(not(unix))]
+        {
+            // Windows doesn't have Unix-style permissions
+            None
+        }
     }
 }
 

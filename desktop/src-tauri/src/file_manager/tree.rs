@@ -173,7 +173,7 @@ impl FileTreeCache {
             node_type,
             size: metadata.len(),
             modified,
-            permissions: 0o644, // TODO: Get actual permissions
+            permissions: Self::get_file_permissions(&path),
             children: None,
             is_expanded: false,
             is_git_ignored,
@@ -246,5 +246,24 @@ impl FileTreeCache {
     pub async fn is_expanded(&self, path: &Path) -> bool {
         let expanded = self.expanded_dirs.read().await;
         expanded.contains(path)
+    }
+    
+    /// Get file permissions for the given path
+    fn get_file_permissions(path: &Path) -> u32 {
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            if let Ok(metadata) = std::fs::metadata(path) {
+                metadata.permissions().mode()
+            } else {
+                0o644 // Default permissions if we can't read them
+            }
+        }
+        #[cfg(not(unix))]
+        {
+            // Windows doesn't have Unix-style permissions
+            // Return a default that indicates read/write for owner
+            0o644
+        }
     }
 }

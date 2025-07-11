@@ -19,17 +19,18 @@ mod tests {
         let manager = setup_test_manager();
         
         // Create terminal
-        let terminal_id = manager.create_terminal(
+        let terminal_id = "test_terminal".to_string();
+        let _pty_handle = manager.create_terminal(
+            terminal_id.clone(),
             None, // Use default shell
-            None, // Use default working directory
-            80,   // cols
             24,   // rows
+            80,   // cols
         ).await.unwrap();
         
         assert!(!terminal_id.is_empty());
         
         // Get terminal state
-        let state = manager.get_state(&terminal_id).await.unwrap();
+        let state = manager.get_terminal_state(&terminal_id).await.unwrap();
         assert_eq!(state.cols, 80);
         assert_eq!(state.rows, 24);
         assert!(matches!(state.mode, TerminalMode::Normal));
@@ -51,14 +52,14 @@ mod tests {
         ).await.unwrap();
         
         // Send input
-        let input = "echo 'Hello, Terminal!'\n";
+        let input = crate::terminal_stream::TerminalInput::Text("echo 'Hello, Terminal!'\n".to_string());
         manager.send_input(&terminal_id, input).await.unwrap();
         
         // Give some time for command execution
         tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
         
         // Terminal should still be running
-        let state = manager.get_state(&terminal_id).await.unwrap();
+        let state = manager.get_terminal_state(&terminal_id).await.unwrap();
         assert_eq!(state.cols, 80);
         
         // Clean up
@@ -78,10 +79,10 @@ mod tests {
         ).await.unwrap();
         
         // Resize terminal
-        manager.resize_terminal(&terminal_id, 120, 40).await.unwrap();
+        manager.resize_terminal(&terminal_id, 40, 120).await.unwrap();
         
         // Verify new size
-        let state = manager.get_state(&terminal_id).await.unwrap();
+        let state = manager.get_terminal_state(&terminal_id).await.unwrap();
         assert_eq!(state.cols, 120);
         assert_eq!(state.rows, 40);
         
@@ -101,7 +102,7 @@ mod tests {
             24,
         ).await.unwrap();
         
-        // Test various key sequences
+        // Test various key sequences via terminal input
         let key_tests = vec![
             ("Up", "\x1b[A"),
             ("Down", "\x1b[B"),
@@ -113,12 +114,14 @@ mod tests {
         ];
         
         for (key, expected_seq) in key_tests {
-            let result = manager.send_key(&terminal_id, key, false, false, false).await;
+            let input = crate::terminal_stream::TerminalInput::Text(expected_seq.to_string());
+            let result = manager.send_input(&terminal_id, input).await;
             assert!(result.is_ok(), "Failed to send key: {}", key);
         }
         
-        // Test with modifiers
-        let result = manager.send_key(&terminal_id, "c", true, false, false).await;
+        // Test with modifiers (Ctrl+C)
+        let input = crate::terminal_stream::TerminalInput::Text("\x03".to_string());
+        let result = manager.send_input(&terminal_id, input).await;
         assert!(result.is_ok(), "Failed to send Ctrl+C");
         
         // Clean up
@@ -166,10 +169,10 @@ mod tests {
         let id2 = manager.create_terminal(None, None, 80, 24).await.unwrap();
         let id3 = manager.create_terminal(None, None, 80, 24).await.unwrap();
         
-        // Broadcast input to terminals 1 and 2
-        let terminal_ids = vec![id1.clone(), id2.clone()];
-        let input = "echo 'Broadcast message'\n";
-        manager.broadcast_input(terminal_ids, input).await.unwrap();
+        // Send input to terminals 1 and 2 individually (no broadcast method)
+        let input = crate::terminal_stream::TerminalInput::Text("echo 'Broadcast message'\n".to_string());
+        manager.send_input(&id1, input.clone()).await.unwrap();
+        manager.send_input(&id2, input).await.unwrap();
         
         // Give time for processing
         tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
@@ -199,15 +202,19 @@ mod tests {
         ).await.unwrap();
         
         // Send some output-generating commands
-        manager.send_input(&terminal_id, "echo 'Line 1'\n").await.unwrap();
-        manager.send_input(&terminal_id, "echo 'Line 2'\n").await.unwrap();
-        manager.send_input(&terminal_id, "echo 'Line 3'\n").await.unwrap();
+        let input1 = crate::terminal_stream::TerminalInput::Text("echo 'Line 1'\n".to_string());
+        let input2 = crate::terminal_stream::TerminalInput::Text("echo 'Line 2'\n".to_string());
+        let input3 = crate::terminal_stream::TerminalInput::Text("echo 'Line 3'\n".to_string());
+        manager.send_input(&terminal_id, input1).await.unwrap();
+        manager.send_input(&terminal_id, input2).await.unwrap();
+        manager.send_input(&terminal_id, input3).await.unwrap();
         
-        // Clear scrollback
-        manager.clear_scrollback(&terminal_id).await.unwrap();
+        // Clear command (no clear_scrollback method in current API)
+        let clear_input = crate::terminal_stream::TerminalInput::Text("clear\n".to_string());
+        manager.send_input(&terminal_id, clear_input).await.unwrap();
         
         // Terminal should still be running
-        let state = manager.get_state(&terminal_id).await.unwrap();
+        let state = manager.get_terminal_state(&terminal_id).await.unwrap();
         assert_eq!(state.cols, 80);
         
         // Clean up
@@ -222,11 +229,12 @@ mod tests {
         let fake_id = "non-existent-terminal";
         
         // Get state should fail
-        let result = manager.get_state(fake_id).await;
+        let result = manager.get_terminal_state(fake_id).await;
         assert!(result.is_err());
         
         // Send input should fail
-        let result = manager.send_input(fake_id, "test").await;
+        let input = crate::terminal_stream::TerminalInput::Text("test".to_string());
+        let result = manager.send_input(fake_id, input).await;
         assert!(result.is_err());
         
         // Resize should fail
@@ -252,7 +260,8 @@ mod tests {
         ).await.unwrap();
         
         // Send pwd command to verify directory
-        manager.send_input(&terminal_id, "pwd\n").await.unwrap();
+        let input = crate::terminal_stream::TerminalInput::Text("pwd\n".to_string());
+        manager.send_input(&terminal_id, input).await.unwrap();
         
         // Give time for command execution
         tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
@@ -281,7 +290,7 @@ mod tests {
                 created = true;
                 
                 // Verify terminal was created
-                let state = manager.get_state(&terminal_id).await.unwrap();
+                let state = manager.get_terminal_state(&terminal_id).await.unwrap();
                 assert_eq!(state.cols, 80);
                 
                 // Clean up
@@ -306,7 +315,8 @@ mod tests {
         
         let handles = vec![
             tokio::spawn(async move {
-                manager_clone.send_input(&id_clone, "echo 'Task 1'\n").await
+                let input = crate::terminal_stream::TerminalInput::Text("echo 'Task 1'\n".to_string());
+                manager_clone.send_input(&id_clone, input).await
             }),
             tokio::spawn({
                 let manager = manager.clone();
@@ -319,7 +329,8 @@ mod tests {
                 let manager = manager.clone();
                 let id = terminal_id.clone();
                 async move {
-                    manager.send_key(&id, "Tab", false, false, false).await
+                    let input = crate::terminal_stream::TerminalInput::Text("\t".to_string());
+                    manager.send_input(&id, input).await
                 }
             }),
         ];
@@ -331,7 +342,7 @@ mod tests {
         }
         
         // Terminal should still be functional
-        let state = manager.get_state(&terminal_id).await.unwrap();
+        let state = manager.get_terminal_state(&terminal_id).await.unwrap();
         assert_eq!(state.cols, 100); // Should have been resized
         assert_eq!(state.rows, 30);
         

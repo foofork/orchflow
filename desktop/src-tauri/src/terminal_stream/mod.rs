@@ -19,7 +19,7 @@ pub use protocol::{
     TerminalInput, ControlMessage,
     CreateTerminalOptions, TerminalMetadata,
 };
-pub use state::{TerminalState, TerminalMode};
+pub use state::{TerminalState, TerminalMode, CursorPosition, ProcessInfo, TerminalSelection, SelectionMode};
 
 use std::sync::Arc;
 use tokio::sync::RwLock;

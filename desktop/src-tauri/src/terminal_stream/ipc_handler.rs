@@ -3,7 +3,7 @@
 // Uses Tauri's event system for efficient desktop IPC communication
 // between the Rust backend and frontend for terminal I/O.
 
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter};
 use tokio::sync::{mpsc, RwLock};
 use std::sync::Arc;
 use std::collections::HashMap;
@@ -99,7 +99,7 @@ impl IpcHandler {
                                 };
                                 
                                 // Emit to all windows
-                                let _ = app_handle.emit_all(TERMINAL_OUTPUT_EVENT, &event);
+                                let _ = app_handle.emit(TERMINAL_OUTPUT_EVENT, &event);
                             }
                             Err(_) => break, // Channel closed
                         }
@@ -113,7 +113,7 @@ impl IpcHandler {
             }
             
             // Emit exit event
-            let _ = app_handle.emit_all(TERMINAL_EXIT_EVENT, &TerminalEvent::Exit {
+            let _ = app_handle.emit(TERMINAL_EXIT_EVENT, &TerminalEvent::Exit {
                 terminal_id: terminal_id_clone,
                 code: None,
             });
@@ -192,7 +192,7 @@ impl IpcHandler {
         match control {
             ControlMessage::Resize { rows, cols } => {
                 // Emit resize event to frontend
-                self.app_handle.emit_all(
+                self.app_handle.emit(
                     TERMINAL_STATE_EVENT,
                     &TerminalEvent::StateChanged {
                         terminal_id: terminal_id.to_string(),
@@ -212,7 +212,7 @@ impl IpcHandler {
             }
             ControlMessage::ModeChange { mode } => {
                 // Emit mode change event
-                self.app_handle.emit_all(
+                self.app_handle.emit(
                     TERMINAL_STATE_EVENT,
                     &TerminalEvent::StateChanged {
                         terminal_id: terminal_id.to_string(),
@@ -260,7 +260,7 @@ impl IpcHandler {
         terminal_id: &str,
         error: String,
     ) -> Result<(), crate::error::OrchflowError> {
-        self.app_handle.emit_all(
+        self.app_handle.emit(
             TERMINAL_ERROR_EVENT,
             &TerminalEvent::Error {
                 terminal_id: terminal_id.to_string(),

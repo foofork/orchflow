@@ -26,7 +26,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{RwLock, mpsc, broadcast};
 use serde_json::Value;
-use tauri::{AppHandle, Manager as TauriManager};
+use tauri::AppHandle;
 use crate::mux_backend::MuxBackend;
 use crate::state_manager::{StateManager, StateEvent};
 use crate::file_watcher::{FileWatchConfig, AdvancedFileWatcher};
@@ -73,8 +73,7 @@ impl Manager {
         let state_manager = StateManager::new(store.clone());
         
         // Initialize file manager if project path exists
-        let project_path = app_handle.path_resolver()
-            .app_data_dir()
+        let project_path = dirs::data_dir()
             .and_then(|p| p.parent().map(|p| p.to_path_buf()));
             
         let file_manager = project_path.as_ref()
