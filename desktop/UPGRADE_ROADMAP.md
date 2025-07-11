@@ -3,6 +3,93 @@
 
 > **📋 Task Management**: Check status, claim task as in-progress when starting work, provide concise updates, and mark complete when 100% finished.
 
+## 🎯 INCOMPLETE TASKS BY PHASE
+
+### 🔄 Phase 2: Core Framework Updates (CURRENT FOCUS)
+#### Component Testing Tasks (Priority: CRITICAL)
+**Terminal Components (0% → 80% coverage)**
+- [ ] StreamingTerminal comprehensive tests
+- [ ] TerminalGrid interaction tests  
+- [ ] Terminal state management tests
+- [ ] Terminal command security tests
+
+**Editor Components (0% → 80% coverage)**
+- [ ] CodeMirrorEditor functionality tests
+- [ ] NeovimEditor integration tests
+- [ ] Editor state persistence tests
+- [ ] Multi-editor coordination tests
+
+**Visual Regression Testing**
+- [ ] Playwright integration with @percy/playwright
+- [ ] Visual test coverage for all components
+- [ ] Cross-browser testing setup
+
+### 📦 Phase 3: Framework Modernization (NEXT)
+#### 3.1 Svelte 5 Migration
+- [ ] Convert components to use runes (modern reactive patterns)
+- [ ] Update state management patterns (enhanced store patterns)
+- [ ] Test reactive updates (verify behavior changes)
+- [ ] Performance optimization (benchmark improvements)
+
+#### 3.2 SvelteKit 2 Migration  
+- [ ] Update routing syntax (`$app/navigation` API changes)
+- [ ] Migrate load functions (new load function signature)
+- [ ] Update form actions (enhanced form action handling)
+- [ ] Test SSR/SPA modes (verify rendering modes)
+
+#### 3.3 Vite 7 Upgrade
+- [ ] Update vite.config.js (new configuration format)
+- [ ] Update plugin configurations (plugin ecosystem changes)
+- [ ] Test build processes (verify compilation)
+- [ ] Verify HMR functionality (hot module replacement)
+
+#### 3.4 Tauri Plugin Updates
+- [ ] Update all Tauri plugins (latest compatibility)
+- [ ] Test native integrations (platform-specific testing)
+- [ ] Verify updater functionality (auto-update system)
+
+#### 3.5 Testing Infrastructure
+- [ ] Update Vitest configuration (latest test runner features)
+- [ ] Migrate test suites (new API compatibility)
+- [ ] Add regression tests (upgrade validation)
+- [ ] Performance benchmarks (maintain optimization)
+
+### 🚀 Phase 4: Ecosystem Updates (FUTURE)
+#### 4.1 Development Tools
+- [ ] Update TypeScript (latest language features)
+- [ ] Upgrade development dependencies (build tool ecosystem)
+- [ ] Update linting and formatting tools (code quality)
+
+#### 4.2 Editor Components
+- [ ] Update CodeMirror extensions (latest editor features)
+- [ ] Update xterm.js and addons (terminal improvements)
+- [ ] Test editor functionality (comprehensive validation)
+
+#### 4.3 Build Optimization
+- [ ] Update build tools (latest optimization)
+- [ ] Optimize bundle sizes (performance improvements)
+- [ ] Improve build performance (development experience)
+- [ ] Achieve >80% test coverage across all components
+
+### 📊 Success Metrics (To Achieve)
+**Security**
+- [ ] 0 critical vulnerabilities
+- [ ] 0 high severity issues  
+- [ ] Security audit score > 95%
+
+**Performance**
+- [ ] Startup time < 2 seconds
+- [ ] Memory usage < 150MB baseline
+- [ ] Bundle size < 10MB total
+
+**Quality**
+- [ ] Test coverage > 85%
+- [ ] All CI/CD checks passing
+- [ ] TypeScript strict mode enabled
+- [ ] Zero ESLint errors
+
+---
+
 ## Executive Summary
 
 This roadmap provides a comprehensive strategy for upgrading OrchFlow's dependencies to address security vulnerabilities, improve performance, and maintain compatibility with the latest ecosystem developments. Integration with testing infrastructure improvements ensures upgrades are validated and sustainable.
