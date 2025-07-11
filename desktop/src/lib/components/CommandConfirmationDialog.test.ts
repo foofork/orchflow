@@ -1,3 +1,10 @@
+// NOTE: This test file has complex mocking requirements due to Modal and Icon component dependencies.
+// For better maintainability, use:
+// - CommandConfirmationDialog.unit.test.ts for pure component logic testing
+// - CommandConfirmationDialog.integration.test.ts for full component behavior testing
+//
+// This file is kept for reference but should be considered deprecated in favor of the split approach.
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import CommandConfirmationDialog from './CommandConfirmationDialog.svelte';
