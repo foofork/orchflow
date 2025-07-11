@@ -3,29 +3,60 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::terminal_stream::{TerminalStreamManager, TerminalState, TerminalMode};
-    use crate::terminal_stream::CursorPosition;
+    use crate::terminal_stream::{
+        TerminalStreamManager, TerminalState, TerminalMode,
+        CreateTerminalOptions, TerminalInput, ControlMessage,
+        IpcChannel, TerminalEvent
+    };
     use std::sync::Arc;
-    use tauri::test::{mock_builder, mock_context};
+    use async_trait::async_trait;
+    use crate::error::Result;
 
-    fn setup_test_manager() -> Arc<TerminalStreamManager> {
-        let app = mock_builder().build(mock_context()).unwrap();
-        let handle = app.handle();
-        Arc::new(TerminalStreamManager::new(handle))
+    // Mock IPC channel for testing
+    struct MockIpcChannel {
+        events: tokio::sync::Mutex<Vec<TerminalEvent>>,
+    }
+
+    impl MockIpcChannel {
+        fn new() -> Self {
+            Self {
+                events: tokio::sync::Mutex::new(Vec::new()),
+            }
+        }
+
+        async fn get_events(&self) -> Vec<TerminalEvent> {
+            self.events.lock().await.clone()
+        }
+    }
+
+    #[async_trait]
+    impl IpcChannel for MockIpcChannel {
+        async fn emit_event(&self, event: TerminalEvent) -> Result<()> {
+            self.events.lock().await.push(event);
+            Ok(())
+        }
+    }
+
+    fn setup_test_manager() -> (Arc<TerminalStreamManager>, Arc<MockIpcChannel>) {
+        let ipc_channel = Arc::new(MockIpcChannel::new());
+        let manager = Arc::new(TerminalStreamManager::with_ipc_channel(ipc_channel.clone()));
+        (manager, ipc_channel)
     }
 
     #[tokio::test]
     async fn test_terminal_creation() {
-        let manager = setup_test_manager();
+        let (manager, _ipc) = setup_test_manager();
         
         // Create terminal
-        let terminal_id = manager.create_terminal(
-            None, // Use default shell
-            None, // Use default working directory
-            80,   // cols
-            24,   // rows
-        ).await.unwrap();
+        let options = CreateTerminalOptions {
+            shell: None,
+            working_directory: None,
+            cols: 80,
+            rows: 24,
+            env: std::collections::HashMap::new(),
+        };
         
+        let terminal_id = manager.create_terminal(options).await.unwrap();
         assert!(!terminal_id.is_empty());
         
         // Get terminal state
@@ -40,22 +71,29 @@ mod tests {
 
     #[tokio::test]
     async fn test_terminal_input_output() {
-        let manager = setup_test_manager();
+        let (manager, ipc) = setup_test_manager();
         
         // Create terminal
-        let terminal_id = manager.create_terminal(
-            None,
-            None,
-            80,
-            24,
-        ).await.unwrap();
+        let options = CreateTerminalOptions {
+            shell: None,
+            working_directory: None,
+            cols: 80,
+            rows: 24,
+            env: std::collections::HashMap::new(),
+        };
+        
+        let terminal_id = manager.create_terminal(options).await.unwrap();
         
         // Send input
-        let input = "echo 'Hello, Terminal!'\n";
+        let input = TerminalInput::Data("echo 'Hello, Terminal!'\n".to_string());
         manager.send_input(&terminal_id, input).await.unwrap();
         
         // Give some time for command execution
         tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+        
+        // Check that events were emitted
+        let events = ipc.get_events().await;
+        assert!(!events.is_empty());
         
         // Terminal should still be running
         let state = manager.get_state(&terminal_id).await.unwrap();
@@ -67,18 +105,22 @@ mod tests {
 
     #[tokio::test]
     async fn test_terminal_resize() {
-        let manager = setup_test_manager();
+        let (manager, _ipc) = setup_test_manager();
         
         // Create terminal
-        let terminal_id = manager.create_terminal(
-            None,
-            None,
-            80,
-            24,
-        ).await.unwrap();
+        let options = CreateTerminalOptions {
+            shell: None,
+            working_directory: None,
+            cols: 80,
+            rows: 24,
+            env: std::collections::HashMap::new(),
+        };
+        
+        let terminal_id = manager.create_terminal(options).await.unwrap();
         
         // Resize terminal
-        manager.resize_terminal(&terminal_id, 120, 40).await.unwrap();
+        let control = ControlMessage::Resize { cols: 120, rows: 40 };
+        manager.send_control(&terminal_id, control).await.unwrap();
         
         // Verify new size
         let state = manager.get_state(&terminal_id).await.unwrap();
@@ -91,35 +133,38 @@ mod tests {
 
     #[tokio::test]
     async fn test_terminal_key_sequences() {
-        let manager = setup_test_manager();
+        let (manager, _ipc) = setup_test_manager();
         
         // Create terminal
-        let terminal_id = manager.create_terminal(
-            None,
-            None,
-            80,
-            24,
-        ).await.unwrap();
+        let options = CreateTerminalOptions {
+            shell: None,
+            working_directory: None,
+            cols: 80,
+            rows: 24,
+            env: std::collections::HashMap::new(),
+        };
+        
+        let terminal_id = manager.create_terminal(options).await.unwrap();
         
         // Test various key sequences
         let key_tests = vec![
-            ("Up", "\x1b[A"),
-            ("Down", "\x1b[B"),
-            ("Right", "\x1b[C"),
-            ("Left", "\x1b[D"),
-            ("Tab", "\t"),
-            ("Enter", "\r"),
-            ("Escape", "\x1b"),
+            TerminalInput::Data("\x1b[A".to_string()),    // Up
+            TerminalInput::Data("\x1b[B".to_string()),    // Down
+            TerminalInput::Data("\x1b[C".to_string()),    // Right
+            TerminalInput::Data("\x1b[D".to_string()),    // Left
+            TerminalInput::Data("\t".to_string()),        // Tab
+            TerminalInput::Data("\r".to_string()),        // Enter
+            TerminalInput::Data("\x1b".to_string()),      // Escape
         ];
         
-        for (key, expected_seq) in key_tests {
-            let result = manager.send_key(&terminal_id, key, false, false, false).await;
-            assert!(result.is_ok(), "Failed to send key: {}", key);
+        for input in key_tests {
+            let result = manager.send_input(&terminal_id, input).await;
+            assert!(result.is_ok());
         }
         
-        // Test with modifiers
-        let result = manager.send_key(&terminal_id, "c", true, false, false).await;
-        assert!(result.is_ok(), "Failed to send Ctrl+C");
+        // Test Ctrl+C
+        let result = manager.send_input(&terminal_id, TerminalInput::Data("\x03".to_string())).await;
+        assert!(result.is_ok());
         
         // Clean up
         manager.stop_terminal(&terminal_id).await.unwrap();
@@ -127,17 +172,20 @@ mod tests {
 
     #[tokio::test]
     async fn test_multiple_terminals() {
-        let manager = setup_test_manager();
+        let (manager, _ipc) = setup_test_manager();
         let mut terminal_ids = vec![];
         
         // Create multiple terminals
-        for i in 0..5 {
-            let id = manager.create_terminal(
-                None,
-                None,
-                80,
-                24,
-            ).await.unwrap();
+        for _i in 0..5 {
+            let options = CreateTerminalOptions {
+                shell: None,
+                working_directory: None,
+                cols: 80,
+                rows: 24,
+                env: std::collections::HashMap::new(),
+            };
+            
+            let id = manager.create_terminal(options).await.unwrap();
             terminal_ids.push(id);
         }
         
@@ -159,16 +207,24 @@ mod tests {
 
     #[tokio::test]
     async fn test_terminal_broadcast() {
-        let manager = setup_test_manager();
+        let (manager, _ipc) = setup_test_manager();
         
         // Create multiple terminals
-        let id1 = manager.create_terminal(None, None, 80, 24).await.unwrap();
-        let id2 = manager.create_terminal(None, None, 80, 24).await.unwrap();
-        let id3 = manager.create_terminal(None, None, 80, 24).await.unwrap();
+        let options = CreateTerminalOptions {
+            shell: None,
+            working_directory: None,
+            cols: 80,
+            rows: 24,
+            env: std::collections::HashMap::new(),
+        };
+        
+        let id1 = manager.create_terminal(options.clone()).await.unwrap();
+        let id2 = manager.create_terminal(options.clone()).await.unwrap();
+        let id3 = manager.create_terminal(options).await.unwrap();
         
         // Broadcast input to terminals 1 and 2
         let terminal_ids = vec![id1.clone(), id2.clone()];
-        let input = "echo 'Broadcast message'\n";
+        let input = TerminalInput::Data("echo 'Broadcast message'\n".to_string());
         manager.broadcast_input(terminal_ids, input).await.unwrap();
         
         // Give time for processing
@@ -187,24 +243,28 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_terminal_scrollback_clear() {
-        let manager = setup_test_manager();
+    async fn test_terminal_clear() {
+        let (manager, _ipc) = setup_test_manager();
         
         // Create terminal
-        let terminal_id = manager.create_terminal(
-            None,
-            None,
-            80,
-            24,
-        ).await.unwrap();
+        let options = CreateTerminalOptions {
+            shell: None,
+            working_directory: None,
+            cols: 80,
+            rows: 24,
+            env: std::collections::HashMap::new(),
+        };
+        
+        let terminal_id = manager.create_terminal(options).await.unwrap();
         
         // Send some output-generating commands
-        manager.send_input(&terminal_id, "echo 'Line 1'\n").await.unwrap();
-        manager.send_input(&terminal_id, "echo 'Line 2'\n").await.unwrap();
-        manager.send_input(&terminal_id, "echo 'Line 3'\n").await.unwrap();
+        manager.send_input(&terminal_id, TerminalInput::Data("echo 'Line 1'\n".to_string())).await.unwrap();
+        manager.send_input(&terminal_id, TerminalInput::Data("echo 'Line 2'\n".to_string())).await.unwrap();
+        manager.send_input(&terminal_id, TerminalInput::Data("echo 'Line 3'\n".to_string())).await.unwrap();
         
-        // Clear scrollback
-        manager.clear_scrollback(&terminal_id).await.unwrap();
+        // Clear terminal
+        let control = ControlMessage::Clear;
+        manager.send_control(&terminal_id, control).await.unwrap();
         
         // Terminal should still be running
         let state = manager.get_state(&terminal_id).await.unwrap();
@@ -216,7 +276,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_terminal_error_handling() {
-        let manager = setup_test_manager();
+        let (manager, _ipc) = setup_test_manager();
         
         // Test operations on non-existent terminal
         let fake_id = "non-existent-terminal";
@@ -226,33 +286,37 @@ mod tests {
         assert!(result.is_err());
         
         // Send input should fail
-        let result = manager.send_input(fake_id, "test").await;
+        let result = manager.send_input(fake_id, TerminalInput::Data("test".to_string())).await;
         assert!(result.is_err());
         
         // Resize should fail
-        let result = manager.resize_terminal(fake_id, 80, 24).await;
+        let control = ControlMessage::Resize { cols: 80, rows: 24 };
+        let result = manager.send_control(fake_id, control).await;
         assert!(result.is_err());
         
-        // Stop should fail gracefully
+        // Stop should fail
         let result = manager.stop_terminal(fake_id).await;
         assert!(result.is_err());
     }
 
     #[tokio::test]
     async fn test_terminal_working_directory() {
-        let manager = setup_test_manager();
+        let (manager, _ipc) = setup_test_manager();
         
         // Create terminal with specific working directory
         let working_dir = std::env::temp_dir().to_string_lossy().to_string();
-        let terminal_id = manager.create_terminal(
-            None,
-            Some(working_dir.clone()),
-            80,
-            24,
-        ).await.unwrap();
+        let options = CreateTerminalOptions {
+            shell: None,
+            working_directory: Some(working_dir.clone()),
+            cols: 80,
+            rows: 24,
+            env: std::collections::HashMap::new(),
+        };
+        
+        let terminal_id = manager.create_terminal(options).await.unwrap();
         
         // Send pwd command to verify directory
-        manager.send_input(&terminal_id, "pwd\n").await.unwrap();
+        manager.send_input(&terminal_id, TerminalInput::Data("pwd\n".to_string())).await.unwrap();
         
         // Give time for command execution
         tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
@@ -263,19 +327,22 @@ mod tests {
 
     #[tokio::test]
     async fn test_terminal_shell_selection() {
-        let manager = setup_test_manager();
+        let (manager, _ipc) = setup_test_manager();
         
         // Try to create terminal with specific shell (if available)
         let shells = vec!["bash", "sh", "zsh"];
         let mut created = false;
         
         for shell in shells {
-            let result = manager.create_terminal(
-                Some(shell.to_string()),
-                None,
-                80,
-                24,
-            ).await;
+            let options = CreateTerminalOptions {
+                shell: Some(shell.to_string()),
+                working_directory: None,
+                cols: 80,
+                rows: 24,
+                env: std::collections::HashMap::new(),
+            };
+            
+            let result = manager.create_terminal(options).await;
             
             if let Ok(terminal_id) = result {
                 created = true;
@@ -295,10 +362,18 @@ mod tests {
 
     #[tokio::test] 
     async fn test_terminal_concurrent_operations() {
-        let manager = setup_test_manager();
+        let (manager, _ipc) = setup_test_manager();
         
         // Create terminal
-        let terminal_id = manager.create_terminal(None, None, 80, 24).await.unwrap();
+        let options = CreateTerminalOptions {
+            shell: None,
+            working_directory: None,
+            cols: 80,
+            rows: 24,
+            env: std::collections::HashMap::new(),
+        };
+        
+        let terminal_id = manager.create_terminal(options).await.unwrap();
         
         // Perform multiple concurrent operations
         let manager_clone = manager.clone();
@@ -306,20 +381,29 @@ mod tests {
         
         let handles = vec![
             tokio::spawn(async move {
-                manager_clone.send_input(&id_clone, "echo 'Task 1'\n").await
+                manager_clone.send_input(
+                    &id_clone, 
+                    TerminalInput::Data("echo 'Task 1'\n".to_string())
+                ).await
             }),
             tokio::spawn({
                 let manager = manager.clone();
                 let id = terminal_id.clone();
                 async move {
-                    manager.resize_terminal(&id, 100, 30).await
+                    manager.send_control(
+                        &id,
+                        ControlMessage::Resize { cols: 100, rows: 30 }
+                    ).await
                 }
             }),
             tokio::spawn({
                 let manager = manager.clone();
                 let id = terminal_id.clone();
                 async move {
-                    manager.send_key(&id, "Tab", false, false, false).await
+                    manager.send_input(
+                        &id,
+                        TerminalInput::Data("\t".to_string())
+                    ).await
                 }
             }),
         ];
@@ -334,6 +418,38 @@ mod tests {
         let state = manager.get_state(&terminal_id).await.unwrap();
         assert_eq!(state.cols, 100); // Should have been resized
         assert_eq!(state.rows, 30);
+        
+        // Clean up
+        manager.stop_terminal(&terminal_id).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_terminal_environment_variables() {
+        let (manager, _ipc) = setup_test_manager();
+        
+        // Create terminal with custom environment variables
+        let mut env = std::collections::HashMap::new();
+        env.insert("CUSTOM_VAR".to_string(), "test_value".to_string());
+        env.insert("ORCHFLOW_TEST".to_string(), "true".to_string());
+        
+        let options = CreateTerminalOptions {
+            shell: None,
+            working_directory: None,
+            cols: 80,
+            rows: 24,
+            env,
+        };
+        
+        let terminal_id = manager.create_terminal(options).await.unwrap();
+        
+        // Check environment variable
+        manager.send_input(
+            &terminal_id,
+            TerminalInput::Data("echo $CUSTOM_VAR\n".to_string())
+        ).await.unwrap();
+        
+        // Give time for command execution
+        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
         
         // Clean up
         manager.stop_terminal(&terminal_id).await.unwrap();

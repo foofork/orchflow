@@ -3,7 +3,8 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::state_manager::{StateManager, ShellType};
+    use crate::state_manager::StateManager;
+    use crate::manager::ShellType;
     use crate::error::{OrchflowError, Result};
     use std::sync::Arc;
     use uuid::Uuid;

@@ -1,7 +1,17 @@
 {
-  "topology": "hierarchical",
-  "queen": "strategic",
-  "consensus": "majority",
-  "workers": 4,
-  "initialized": "2025-01-09T00:00:00Z"
+  "version": "2.0.0",
+  "initialized": "2025-07-10T11:19:54.077Z",
+  "defaults": {
+    "queenType": "strategic",
+    "maxWorkers": 8,
+    "consensusAlgorithm": "majority",
+    "memorySize": 100,
+    "autoScale": true,
+    "encryption": false
+  },
+  "mcpTools": {
+    "enabled": true,
+    "parallel": true,
+    "timeout": 60000
+  }
 }

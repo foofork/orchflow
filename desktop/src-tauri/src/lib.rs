@@ -31,30 +31,29 @@ mod performance_tests;
 #[cfg(test)]
 mod module_commands_tests;
 
-// #[cfg(test)]
-// mod state_manager_tests_v2;
+#[cfg(test)]
+mod state_manager_tests_v2;
 
-// #[cfg(test)]
-// mod terminal_stream_tests;
+#[cfg(test)]
+mod terminal_stream_tests;
 
-// #[cfg(test)]
-// mod file_manager_tests;
+#[cfg(test)]
+mod file_manager_tests;
 
-// TODO: Fix these tests after completing error system updates
-// #[cfg(test)]
-// mod layout_tests;
+#[cfg(test)]
+mod layout_tests;
 
-// #[cfg(test)]
-// mod state_manager_tests;
+#[cfg(test)]
+mod state_manager_tests;
 
-// #[cfg(test)]
-// mod error_tests;
+#[cfg(test)]
+mod error_tests;
 
-// #[cfg(test)]
-// mod terminal_search_tests;
+#[cfg(test)]
+mod terminal_search_tests;
 
-// #[cfg(test)]
-// mod plugin_event_tests;
+#[cfg(test)]
+mod plugin_event_tests;
 
-// #[cfg(test)]
-// mod test_parser_tests;
+#[cfg(test)]
+mod test_parser_tests;
