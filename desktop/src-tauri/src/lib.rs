@@ -31,14 +31,14 @@ mod performance_tests;
 #[cfg(test)]
 mod module_commands_tests;
 
-// #[cfg(test)]
-// mod state_manager_tests_v2;
+#[cfg(test)]
+//mod state_manager_tests_v2;
 
 #[cfg(test)]
 mod terminal_stream_tests;
 
-// #[cfg(test)]
-// mod file_manager_tests;
+//#[cfg(test)]
+//mod file_manager_tests;
 
 // TODO: Fix these tests after completing error system updates
 // #[cfg(test)]
