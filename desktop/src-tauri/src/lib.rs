@@ -21,6 +21,7 @@ pub mod test_parser_commands;
 pub mod modules;
 pub mod module_commands;
 pub mod terminal_stream;
+pub mod app_dirs;
 
 #[cfg(test)]
 mod working_tests;

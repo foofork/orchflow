@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Manager, PhysicalPosition, PhysicalSize, Window};
+use tauri::{AppHandle, Manager, PhysicalPosition, PhysicalSize, WebviewWindow};
 use crate::simple_state_store::SimpleStateStore;
 use std::sync::Arc;
 
@@ -27,7 +27,7 @@ impl Default for WindowState {
 }
 
 /// Save window state to database
-pub async fn save_window_state(window: &Window, state_store: Arc<SimpleStateStore>) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn save_window_state(window: &WebviewWindow, state_store: Arc<SimpleStateStore>) -> Result<(), Box<dyn std::error::Error>> {
     let position = window.outer_position()?;
     let size = window.outer_size()?;
     let is_maximized = window.is_maximized()?;
@@ -50,7 +50,7 @@ pub async fn save_window_state(window: &Window, state_store: Arc<SimpleStateStor
 }
 
 /// Restore window state from database
-pub async fn restore_window_state(window: &Window, state_store: Arc<SimpleStateStore>) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn restore_window_state(window: &WebviewWindow, state_store: Arc<SimpleStateStore>) -> Result<(), Box<dyn std::error::Error>> {
     if let Some(state_json) = state_store.get_setting("window_state").await
         .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)? {
         let window_state: WindowState = serde_json::from_str(&state_json)?;
@@ -77,7 +77,7 @@ pub async fn restore_window_state(window: &Window, state_store: Arc<SimpleStateS
 
 /// Setup window state persistence
 pub fn setup_window_state_persistence(app: &AppHandle) {
-    let window = app.get_window("main").expect("Failed to get main window");
+    let window = app.get_webview_window("main").expect("Failed to get main window");
     let state_store = app.state::<Arc<SimpleStateStore>>();
     
     // Restore window state on startup

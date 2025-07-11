@@ -34,10 +34,12 @@ pub struct GitFileStatus {
 pub async fn git_status(
     manager: State<'_, Manager>,
 ) -> Result<GitStatusResult> {
-    let project_root = manager.project_root.clone()
+    let project_root = manager.file_manager
+        .as_ref()
+        .map(|fm| fm.root_path().to_path_buf())
         .ok_or_else(|| OrchflowError::ConfigurationError {
             component: "git".to_string(),
-            reason: "No project root set".to_string(),
+            reason: "No file manager/project root set".to_string(),
         })?;
     
     let repo = Repository::open(&project_root)
@@ -91,10 +93,12 @@ pub async fn git_diff(
     staged: bool,
     manager: State<'_, Manager>,
 ) -> Result<String> {
-    let project_root = manager.project_root.clone()
+    let project_root = manager.file_manager
+        .as_ref()
+        .map(|fm| fm.root_path().to_path_buf())
         .ok_or_else(|| OrchflowError::ConfigurationError {
             component: "git".to_string(),
-            reason: "No project root set".to_string(),
+            reason: "No file manager/project root set".to_string(),
         })?;
     
     let repo = Repository::open(&project_root)
@@ -115,7 +119,7 @@ pub async fn git_diff(
                 operation: "peel to tree".to_string(),
                 details: e.to_string(),
             })?;
-        let index = repo.index()
+        let mut index = repo.index()
             .map_err(|e| OrchflowError::GitError {
                 operation: "get index".to_string(),
                 details: e.to_string(),
@@ -169,10 +173,12 @@ pub async fn git_stage(
     path: String,
     manager: State<'_, Manager>,
 ) -> Result<()> {
-    let project_root = manager.project_root.clone()
+    let project_root = manager.file_manager
+        .as_ref()
+        .map(|fm| fm.root_path().to_path_buf())
         .ok_or_else(|| OrchflowError::ConfigurationError {
             component: "git".to_string(),
-            reason: "No project root set".to_string(),
+            reason: "No file manager/project root set".to_string(),
         })?;
     
     let repo = Repository::open(&project_root)
@@ -219,10 +225,12 @@ pub async fn git_unstage(
     path: String,
     manager: State<'_, Manager>,
 ) -> Result<()> {
-    let project_root = manager.project_root.clone()
+    let project_root = manager.file_manager
+        .as_ref()
+        .map(|fm| fm.root_path().to_path_buf())
         .ok_or_else(|| OrchflowError::ConfigurationError {
             component: "git".to_string(),
-            reason: "No project root set".to_string(),
+            reason: "No file manager/project root set".to_string(),
         })?;
     
     let repo = Repository::open(&project_root)
@@ -270,10 +278,12 @@ pub async fn git_unstage(
 pub async fn git_stage_all(
     manager: State<'_, Manager>,
 ) -> Result<()> {
-    let project_root = manager.project_root.clone()
+    let project_root = manager.file_manager
+        .as_ref()
+        .map(|fm| fm.root_path().to_path_buf())
         .ok_or_else(|| OrchflowError::ConfigurationError {
             component: "git".to_string(),
-            reason: "No project root set".to_string(),
+            reason: "No file manager/project root set".to_string(),
         })?;
     
     let repo = Repository::open(&project_root)
@@ -313,10 +323,12 @@ pub async fn git_stage_all(
 pub async fn git_unstage_all(
     manager: State<'_, Manager>,
 ) -> Result<()> {
-    let project_root = manager.project_root.clone()
+    let project_root = manager.file_manager
+        .as_ref()
+        .map(|fm| fm.root_path().to_path_buf())
         .ok_or_else(|| OrchflowError::ConfigurationError {
             component: "git".to_string(),
-            reason: "No project root set".to_string(),
+            reason: "No file manager/project root set".to_string(),
         })?;
     
     let repo = Repository::open(&project_root)
@@ -351,10 +363,12 @@ pub async fn git_commit(
     message: String,
     manager: State<'_, Manager>,
 ) -> Result<()> {
-    let project_root = manager.project_root.clone()
+    let project_root = manager.file_manager
+        .as_ref()
+        .map(|fm| fm.root_path().to_path_buf())
         .ok_or_else(|| OrchflowError::ConfigurationError {
             component: "git".to_string(),
-            reason: "No project root set".to_string(),
+            reason: "No file manager/project root set".to_string(),
         })?;
     
     let repo = Repository::open(&project_root)
@@ -425,10 +439,12 @@ pub async fn git_commit(
 pub async fn git_push(
     manager: State<'_, Manager>,
 ) -> Result<()> {
-    let project_root = manager.project_root.clone()
+    let project_root = manager.file_manager
+        .as_ref()
+        .map(|fm| fm.root_path().to_path_buf())
         .ok_or_else(|| OrchflowError::ConfigurationError {
             component: "git".to_string(),
-            reason: "No project root set".to_string(),
+            reason: "No file manager/project root set".to_string(),
         })?;
     
     // Use git command for push as libgit2 doesn't have good push support
@@ -457,10 +473,12 @@ pub async fn git_push(
 pub async fn git_pull(
     manager: State<'_, Manager>,
 ) -> Result<()> {
-    let project_root = manager.project_root.clone()
+    let project_root = manager.file_manager
+        .as_ref()
+        .map(|fm| fm.root_path().to_path_buf())
         .ok_or_else(|| OrchflowError::ConfigurationError {
             component: "git".to_string(),
-            reason: "No project root set".to_string(),
+            reason: "No file manager/project root set".to_string(),
         })?;
     
     // Use git command for pull as libgit2 doesn't have good pull support
@@ -594,10 +612,12 @@ pub async fn get_file_git_status(
     path: String,
     manager: State<'_, Manager>,
 ) -> Result<Option<FileGitStatus>> {
-    let project_root = manager.project_root.clone()
+    let project_root = manager.file_manager
+        .as_ref()
+        .map(|fm| fm.root_path().to_path_buf())
         .ok_or_else(|| OrchflowError::ConfigurationError {
             component: "git".to_string(),
-            reason: "No project root set".to_string(),
+            reason: "No file manager/project root set".to_string(),
         })?;
     
     let repo = Repository::open(&project_root)
@@ -650,10 +670,12 @@ pub async fn get_file_git_status(
 pub async fn get_all_git_statuses(
     manager: State<'_, Manager>,
 ) -> Result<HashMap<String, FileGitStatus>> {
-    let project_root = manager.project_root.clone()
+    let project_root = manager.file_manager
+        .as_ref()
+        .map(|fm| fm.root_path().to_path_buf())
         .ok_or_else(|| OrchflowError::ConfigurationError {
             component: "git".to_string(),
-            reason: "No project root set".to_string(),
+            reason: "No file manager/project root set".to_string(),
         })?;
     
     let repo = Repository::open(&project_root)
@@ -705,10 +727,12 @@ pub async fn get_all_git_statuses(
 pub async fn get_git_branch_info(
     manager: State<'_, Manager>,
 ) -> Result<BranchInfo> {
-    let project_root = manager.project_root.clone()
+    let project_root = manager.file_manager
+        .as_ref()
+        .map(|fm| fm.root_path().to_path_buf())
         .ok_or_else(|| OrchflowError::ConfigurationError {
             component: "git".to_string(),
-            reason: "No project root set".to_string(),
+            reason: "No file manager/project root set".to_string(),
         })?;
     
     let repo = Repository::open(&project_root)
@@ -751,10 +775,12 @@ pub async fn get_git_branch_info(
 pub async fn has_uncommitted_changes(
     manager: State<'_, Manager>,
 ) -> Result<bool> {
-    let project_root = manager.project_root.clone()
+    let project_root = manager.file_manager
+        .as_ref()
+        .map(|fm| fm.root_path().to_path_buf())
         .ok_or_else(|| OrchflowError::ConfigurationError {
             component: "git".to_string(),
-            reason: "No project root set".to_string(),
+            reason: "No file manager/project root set".to_string(),
         })?;
     
     let repo = Repository::open(&project_root)
@@ -780,10 +806,12 @@ pub async fn has_uncommitted_changes(
 pub async fn has_git_integration(
     manager: State<'_, Manager>,
 ) -> Result<bool> {
-    let project_root = manager.project_root.clone()
+    let project_root = manager.file_manager
+        .as_ref()
+        .map(|fm| fm.root_path().to_path_buf())
         .ok_or_else(|| OrchflowError::ConfigurationError {
             component: "git".to_string(),
-            reason: "No project root set".to_string(),
+            reason: "No file manager/project root set".to_string(),
         })?;
     
     // Check if .git directory exists
@@ -796,10 +824,12 @@ pub async fn is_git_ignored(
     path: String,
     manager: State<'_, Manager>,
 ) -> Result<bool> {
-    let project_root = manager.project_root.clone()
+    let project_root = manager.file_manager
+        .as_ref()
+        .map(|fm| fm.root_path().to_path_buf())
         .ok_or_else(|| OrchflowError::ConfigurationError {
             component: "git".to_string(),
-            reason: "No project root set".to_string(),
+            reason: "No file manager/project root set".to_string(),
         })?;
     
     // Convert the path to be relative to project root if it's absolute

@@ -296,7 +296,8 @@ impl OrchflowError {
             OrchflowError::FileError { .. } |
             OrchflowError::DirectoryNotFound { .. } |
             OrchflowError::PermissionDenied { .. } |
-            OrchflowError::SearchError { .. } => ErrorCategory::FileSystem,
+            OrchflowError::SearchError { .. } |
+            OrchflowError::GitError { .. } => ErrorCategory::FileSystem,
             
             OrchflowError::PluginError { .. } |
             OrchflowError::PluginNotFound { .. } |

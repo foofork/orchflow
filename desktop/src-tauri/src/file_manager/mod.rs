@@ -82,6 +82,11 @@ impl FileManager {
         Ok(())
     }
     
+    /// Get the root path of this file manager
+    pub fn root_path(&self) -> &Path {
+        &self.root_path
+    }
+    
     // ===== Tree Operations =====
     
     /// Build a complete file tree from the root path

@@ -64,7 +64,7 @@ use metrics::*;
 use sharing_service::SharingService;
 use simple_state_store::SimpleStateStore;
 use std::sync::{Arc, Mutex};
-use tauri::Manager;
+use tauri::{Manager, Emitter};
 use tauri_plugin_fs;
 use tauri_plugin_shell;
 use tauri_plugin_process;
@@ -97,7 +97,7 @@ async fn main() {
                     Ok(metrics) => {
                         println!("App initialized successfully");
                         // Emit startup metrics to frontend if needed
-                        handle_clone.emit_all("startup-complete", metrics).ok();
+                        handle_clone.emit("startup-complete", metrics).ok();
                     }
                     Err(e) => {
                         eprintln!("Startup error: {}", e);

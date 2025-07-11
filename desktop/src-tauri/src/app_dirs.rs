@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::env;
 
 /// Replacement for directories crate using platform-specific conventions
 pub struct AppDirs {

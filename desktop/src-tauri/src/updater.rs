@@ -1,4 +1,5 @@
-use tauri::{AppHandle, Manager, Runtime};
+use tauri::{AppHandle, Manager, Runtime, Emitter};
+use tauri_plugin_updater::UpdaterExt;
 use serde::Serialize;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -58,34 +59,36 @@ pub async fn check_for_update<R: Runtime>(
 }
 
 async fn perform_update_check<R: Runtime>(app: AppHandle<R>) -> Result<UpdateStatus, String> {
-    match tauri::updater::builder(app.clone()).check().await {
-        Ok(update) => {
-            if update.is_update_available() {
+    let updater = tauri_plugin_updater::UpdaterExt::updater(&app)
+        .map_err(|e| format!("Failed to get updater: {}", e))?;
+    
+    match updater.check().await {
+        Ok(Some(update)) => {
                 // Emit update available event
-                app.emit_all("update-available", UpdateStatus {
+                app.emit("update-available", UpdateStatus {
                     available: true,
-                    version: Some(update.latest_version().to_string()),
-                    notes: update.body().map(|s| s.to_string()),
-                    pub_date: update.date().map(|d| d.to_string()),
+                    version: Some(update.version.clone()),
+                    notes: update.body.clone(),
+                    pub_date: update.date.as_ref().map(|d| d.to_string()),
                     error: None,
                 }).ok();
 
                 Ok(UpdateStatus {
                     available: true,
-                    version: Some(update.latest_version().to_string()),
-                    notes: update.body().map(|s| s.to_string()),
-                    pub_date: update.date().map(|d| d.to_string()),
+                    version: Some(update.version.clone()),
+                    notes: update.body.clone(),
+                    pub_date: update.date.as_ref().map(|d| d.to_string()),
                     error: None,
                 })
-            } else {
-                Ok(UpdateStatus {
-                    available: false,
-                    version: None,
-                    notes: None,
-                    pub_date: None,
-                    error: None,
-                })
-            }
+        }
+        Ok(None) => {
+            Ok(UpdateStatus {
+                available: false,
+                version: None,
+                notes: None,
+                pub_date: None,
+                error: None,
+            })
         }
         Err(e) => {
             let error_msg = format!("Failed to check for updates: {}", e);
@@ -114,10 +117,10 @@ pub async fn download_and_install_update<R: Runtime>(
     tokio::spawn(async move {
         match perform_update_download(app_clone.clone()).await {
             Ok(_) => {
-                app_clone.emit_all("update-downloaded", ()).ok();
+                app_clone.emit("update-downloaded", ()).ok();
             }
             Err(e) => {
-                app_clone.emit_all("update-error", e.clone()).ok();
+                app_clone.emit("update-error", e.clone()).ok();
             }
         }
         
@@ -132,20 +135,24 @@ pub async fn download_and_install_update<R: Runtime>(
 }
 
 async fn perform_update_download<R: Runtime>(app: AppHandle<R>) -> Result<(), String> {
-    match tauri::updater::builder(app.clone()).check().await {
-        Ok(update) => {
-            if !update.is_update_available() {
-                return Err("No update available".to_string());
-            }
+    let updater = tauri_plugin_updater::UpdaterExt::updater(&app)
+        .map_err(|e| format!("Failed to get updater: {}", e))?;
+    
+    match updater.check().await {
+        Ok(Some(update)) => {
             // Note: Progress tracking is not available in current Tauri version
             // The download_and_install method doesn't accept a progress callback
             update
-                .download_and_install()
+                .download_and_install(
+                    |_chunk_size, _downloaded| {},  // Progress callback
+                    || {}  // Download finished callback
+                )
                 .await
                 .map_err(|e| format!("Failed to download update: {}", e))?;
             
             Ok(())
         }
+        Ok(None) => Err("No update available".to_string()),
         Err(e) => Err(format!("Failed to check for update: {}", e)),
     }
 }
@@ -167,7 +174,7 @@ pub fn setup_auto_update_check<R: Runtime>(app: &AppHandle<R>) {
         if let Some(state) = app_clone.try_state::<UpdaterState>() {
             if let Ok(status) = check_for_update(app_clone.clone(), state).await {
                 if status.available {
-                    app_clone.emit_all("update-available", status).ok();
+                    app_clone.emit("update-available", status).ok();
                 }
             }
         }
@@ -184,7 +191,7 @@ pub fn setup_auto_update_check<R: Runtime>(app: &AppHandle<R>) {
             if let Some(state) = app_clone.try_state::<UpdaterState>() {
                 if let Ok(status) = check_for_update(app_clone.clone(), state).await {
                     if status.available {
-                        app_clone.emit_all("update-available", status).ok();
+                        app_clone.emit("update-available", status).ok();
                     }
                 }
             }

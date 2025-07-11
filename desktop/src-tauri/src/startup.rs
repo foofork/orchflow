@@ -247,7 +247,9 @@ pub fn preload_resources(app: &AppHandle) {
     
     tokio::spawn(async move {
         // Preload common module manifests
-        if let Some(modules_path) = handle.path_resolver().app_data_dir() {
+        if let Some(modules_path) = crate::app_dirs::AppDirs::new()
+            .ok()
+            .and_then(|dirs| dirs.data_dir()) {
             let modules_dir = modules_path.join("modules");
             if modules_dir.exists() {
                 // Scan and cache module manifests
