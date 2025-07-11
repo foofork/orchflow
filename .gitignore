@@ -15,3 +15,14 @@ build/
 *.iml
 coverage/
 .nyc_output/
+
+# Claude Flow and development tools
+.swarm/
+.hive-mind/
+memory/
+*.db
+*.db-shm
+*.db-wal
+
+# GitHub workflows (duplicate in subdirectories)
+desktop/.github/
