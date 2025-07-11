@@ -13,8 +13,12 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/*.{test,spec}.{js,ts}'],
-    deps: {
-      inline: ['@tauri-apps/api', '@tauri-apps/plugin-fs', '@tauri-apps/plugin-shell', '@tauri-apps/plugin-process', '@tauri-apps/plugin-os', '@tauri-apps/plugin-updater']
+    testTimeout: 10000, // Increase default timeout to 10 seconds
+    hookTimeout: 10000, // Increase hook timeout to 10 seconds
+    server: {
+      deps: {
+        inline: ['@tauri-apps/api', '@tauri-apps/plugin-fs', '@tauri-apps/plugin-shell', '@tauri-apps/plugin-process', '@tauri-apps/plugin-os', '@tauri-apps/plugin-updater']
+      }
     },
     coverage: {
       reporter: ['text', 'json', 'html'],

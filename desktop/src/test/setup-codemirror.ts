@@ -175,7 +175,10 @@ vi.mock('@codemirror/view', () => ({
 }));
 
 // Mock state module
-vi.mock('@codemirror/state', () => mockEditorState);
+vi.mock('@codemirror/state', () => ({
+  ...mockEditorState,
+  EditorState: mockEditorState
+}));
 
 // Mock basic-setup - not used anymore but keep for compatibility
 vi.mock('@codemirror/basic-setup', () => ({

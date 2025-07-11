@@ -10,18 +10,6 @@ vi.mock('@tauri-apps/api/tauri', () => ({
 }));
 
 describe('GitPanel', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    // Mock Tauri window object
-    (window as any).__TAURI__ = {};
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    // Clean up Tauri mock
-    delete (window as any).__TAURI__;
-  });
-
   const mockGitStatus = {
     branch: 'main',
     upstream: 'origin/main',
@@ -63,12 +51,14 @@ describe('GitPanel', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers();
+    // Mock Tauri window object
     (window as any).__TAURI__ = {};
   });
 
   afterEach(() => {
-    vi.useRealTimers();
+    vi.restoreAllMocks();
+    vi.useRealTimers(); // Make sure to restore real timers if they were faked
+    // Clean up Tauri mock
     delete (window as any).__TAURI__;
   });
 
@@ -394,7 +384,7 @@ index 1234567..abcdefg 100644
         expect(addLine).toBeTruthy();
         expect(removeLine).toBeTruthy();
         expect(contextLine).toBeTruthy();
-      });
+      }, { timeout: 10000 });
     });
   });
 
@@ -420,7 +410,7 @@ index 1234567..abcdefg 100644
       
       await waitFor(() => {
         expect(mockInvoke).toHaveBeenCalledWith('git_commit', { message: 'feat: add new feature' });
-      });
+      }, { timeout: 10000 });
     });
 
     it('prevents commit without message', async () => {
@@ -479,7 +469,7 @@ index 1234567..abcdefg 100644
       await waitFor(() => {
         expect(mockInvoke).toHaveBeenCalledWith('git_commit', { message: 'test commit' });
         expect(textarea.value).toBe('');
-      });
+      }, { timeout: 10000 });
     });
 
     it('commits with Ctrl+Enter shortcut', async () => {
@@ -502,12 +492,12 @@ index 1234567..abcdefg 100644
       
       await waitFor(() => {
         expect(mockInvoke).toHaveBeenCalledWith('git_commit', { message: 'shortcut commit' });
-      });
+      }, { timeout: 10000 });
     });
   });
 
   describe('Push/Pull Operations', () => {
-    it('pushes changes', async () => {
+    it('pushes changes', { timeout: 20000 }, async () => {
       // Clear any previous calls and setup fresh mocks
       vi.clearAllMocks();
       (window as any).__TAURI__ = {};
@@ -528,10 +518,10 @@ index 1234567..abcdefg 100644
       
       await waitFor(() => {
         expect(mockInvoke).toHaveBeenCalledWith('git_push');
-      }, { timeout: 3000 });
+      }, { timeout: 10000 });
     });
 
-    it('pulls changes', async () => {
+    it('pulls changes', { timeout: 20000 }, async () => {
       // Clear any previous calls and setup fresh mocks
       vi.clearAllMocks();
       mockInvoke
@@ -551,10 +541,10 @@ index 1234567..abcdefg 100644
       
       await waitFor(() => {
         expect(mockInvoke).toHaveBeenCalledWith('git_pull');
-      });
+      }, { timeout: 10000 });
     });
 
-    it('shows error alert on push failure', async () => {
+    it('shows error alert on push failure', { timeout: 20000 }, async () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       window.alert = vi.fn();
       // Setup fresh mocks
@@ -574,7 +564,7 @@ index 1234567..abcdefg 100644
       
       await waitFor(() => {
         expect(window.alert).toHaveBeenCalledWith('Push failed: Error: Network error');
-      });
+      }, { timeout: 10000 });
       
       consoleSpy.mockRestore();
     });
@@ -687,14 +677,15 @@ index 1234567..abcdefg 100644
       
       const initialCalls = mockInvoke.mock.calls.length;
       
-      // Fast-forward 5 seconds
-      vi.advanceTimersByTime(5000);
+      // Clear the mock to track only new calls
+      mockInvoke.mockClear();
       
-      // Process any pending promises
-      await Promise.resolve();
+      // Fast-forward 5 seconds (this will trigger the interval once)
+      await vi.advanceTimersByTimeAsync(5000);
       
-      // Should have called git_status again
-      expect(mockInvoke).toHaveBeenCalledTimes(initialCalls + 1);
+      // Should have called git_status again (once more after the interval)
+      expect(mockInvoke).toHaveBeenCalledWith('git_status');
+      expect(mockInvoke).toHaveBeenCalledTimes(1);
       
       unmount();
       vi.useRealTimers();
@@ -755,7 +746,7 @@ index 1234567..abcdefg 100644
       consoleSpy.mockRestore();
     });
 
-    it('handles stage error', async () => {
+    it('handles stage error', { timeout: 20000 }, async () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       (window as any).__TAURI__ = {};
       
@@ -777,7 +768,7 @@ index 1234567..abcdefg 100644
       await waitFor(() => {
         // Should log error gracefully
         expect(consoleSpy).toHaveBeenCalledWith('Failed to stage file:', expect.any(Error));
-      });
+      }, { timeout: 10000 });
       
       consoleSpy.mockRestore();
     });

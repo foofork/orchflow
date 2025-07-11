@@ -26,7 +26,11 @@
     "test:e2e": "vitest run --config vitest.config.e2e.ts",
     "test:all": "npm run test:unit && npm run test:integration",
     "test:ci": "npm run build && npm run test:all",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:performance": "vitest run --config vitest.config.performance.ts",
+    "bench": "vitest bench",
+    "bench:watch": "vitest bench --watch",
+    "bench:report": "vitest bench --reporter=json --outputFile=test-results/benchmark-results.json"
   },
   "devDependencies": {
     "@sveltejs/adapter-static": "^2.0.3",
