@@ -274,48 +274,6 @@ This changes our immediate priorities from fixing tests to improving coverage!
 - [ ] Determine core performance testing requirements and tasks
 - [ ] Search and Replace Performance tests for large codebases
 
-#### Phase 1.75: Upgrade Dependencies & Modernize Stack (Week 3) 🆕
-**Tauri & Project Dependencies Upgrade** - Modernization before abstraction
-
-📋 **SEE DETAILED UPGRADE ROADMAP**: [desktop/UPGRADE_ROADMAP.md](desktop/UPGRADE_ROADMAP.md)
-
-**Phase 2: Testing-First Minor Updates (Weeks 3-4)**
-- [ ] **Development Tool Updates** 🛠️
-  - [ ] TypeScript: 5.8.3 → latest 5.x
-  - [ ] Vitest: 3.2.4 → latest 3.x patches
-  - [ ] Testing Library updates
-- [ ] **Tauri Ecosystem Standardization** 🏗️
-  - [ ] Update all @tauri-apps packages to latest 2.x
-  - [ ] Ensure consistency across plugin versions
-- [ ] **Zero-Coverage Component Testing** 🎯
-  - [ ] Terminal Components: >90% coverage target
-  - [ ] Editor Components: >90% coverage target
-  - [ ] Visual regression POC with Playwright
-
-**Phase 3: Major Framework Planning (Weeks 5-6)**
-- [ ] **Svelte Ecosystem Migration Planning** 📋
-  - [ ] Svelte 4.2.20 → 5.35.6 (Major breaking changes)
-  - [ ] SvelteKit 1.30.4 → 2.22.5 (Major breaking changes)
-  - [ ] Create migration branch and systematic approach
-- [ ] **Build Tool Assessment** 🔧
-  - [ ] Vite 4.5.14 → 7.0.4 analysis
-  - [ ] Plugin compatibility review
-  - [ ] Performance regression testing
-
-**Phase 4: Major Framework Execution (Weeks 7-8)**
-- [ ] **Controlled Svelte Upgrade** 🔄
-  - [ ] Execute Svelte 5 migration with comprehensive testing
-  - [ ] SvelteKit 2 migration with SSG validation
-- [ ] **Build Tool Modernization** 🚀
-  - [ ] Vite 6 upgrade with performance optimization
-  - [ ] Comprehensive validation across all components
-
-**Success Metrics**:
-- Phase 1: All critical deps resolved, tests passing
-- Phase 2: >60% coverage, minor updates complete
-- Phase 3: Migration plans validated, advanced testing operational  
-- Phase 4: >80% coverage, all major upgrades complete
-
 #### Phase 2: Terminal Intelligence & Production (Weeks 4-6)
 
 **Terminal Metadata System & Orchestrator Architecture** (Week 4-5) - AI Foundation
@@ -578,59 +536,10 @@ Based on the comprehensive component analysis, professional testing implementati
 - **Rust Backend**: ~34 items (81%) - 9 completed in muxd
 - **TypeScript/Svelte Frontend**: 8 items (19%)
 
-### High Priority TODOs (13 items)
 
-#### 1. File Manager UI Operations ✅ COMPLETE
-**Location**: `src/lib/components/FileExplorerEnhanced.svelte`
-- [x] New file dialog implementation ✅
-- [x] New folder dialog implementation ✅
-- [x] Rename functionality implementation ✅
-- [x] Delete functionality implementation ✅
-
-**Backend Integration**: 
-- [x] Fixed UI parameter mismatch for rename operation ✅
-- [x] All Tauri commands properly registered and implemented ✅
-- [x] FileManager handlers use correct public API methods ✅
-
-**Impact**: All core file management features are now fully functional in the UI
-
-#### 2. Search Functionality ✅ COMPLETE
-**Location**: `src-tauri/src/search_commands.rs` and `src-tauri/src/project_search.rs`
-- [x] Implement replace_in_files functionality ✅
-- [x] Implement search history functionality ✅  
-- [x] Implement save_search functionality ✅
-- [x] Implement load_search functionality ✅
-- [x] Implement syntax highlighting for search results ✅
-- [x] Enhanced context collection for better search UX ✅
-- [x] Comprehensive test coverage with 5 passing tests ✅
-
-**Impact**: All search and replace features are now fully functional with test coverage
-
-#### 3. Module System ✅ COMPLETE
-**Location**: `src-tauri/src/module_commands.rs`
-- [x] Validate config against module.manifest.config_schema ✅
-- [x] Implement module registry search with filtering ✅
-- [x] Implement fetching module details from registry ✅
-- [x] Implement module template generation for all types ✅
-- [x] Added comprehensive test coverage with 4 passing tests ✅
-
-**Impact**: Full module system is now functional with marketplace simulation and development tools
-
-### Medium Priority TODOs (18 items)
-
-#### 4. Terminal Features - COMPLETE ✅
-- [x] Terminal active tracking ✅ (via session manager)
-- [x] Process ID tracking from PTY ✅ (implemented in muxd)
-- [x] Scrollback search implementation ✅ (with regex support and tests)
-- [x] Session ID retrieval for terminals ✅ (implemented)
-- [x] Terminal title and working directory tracking ✅ (with update APIs)
-- [x] Terminal state persistence ✅ (save/restore sessions with 3 unit tests)
 
 #### 5. AI Terminal Enhancements (NEW - from Terminal Manager Enhancements)
-**Priority 1: Core Terminal Intelligence (Week 1-2)**
-- Terminal type system with AI agent metadata
-- Configurable shell execution with .orchflow.json support
-- AI-aware command routing for swarm coordination
+
 
 **Priority 2: Enhanced Process Management (Week 2-3)**
 - Process lifecycle tracking and monitoring
@@ -703,39 +612,3 @@ Based on the comprehensive component analysis, professional testing implementati
 4. Improve session management
 
 ---
-
----
-
-## Test Infrastructure Update (January 9, 2025)
-
-### Achievements Today:
-1. **Fixed All Test Compilation Errors** ✅
-   - Fixed 39 compilation errors across test suites
-   - Updated all test files to use correct API signatures
-   - Fixed SimpleStateStore initialization (new_with_file instead of new)
-   - Removed references to non-existent methods in tests
-
-2. **Created Comprehensive Test Suites** ✅
-   - **Command History Module**: 11 tests
-     - CRUD operations, search, suggestions, stats
-     - Memory cache management, cleanup operations
-   - **File Manager Module**: 13 tests
-     - File operations (create, delete, rename, copy, move)
-     - Directory listing, tree building
-     - Search functionality
-   - **State Manager Module**: 12 tests
-     - Session lifecycle (create, list, delete)
-     - Pane management (create, update, delete)
-     - Settings management, ordering tests
-
-3. **Fixed Critical Bugs** ✅
-   - File rename operation parameter mismatch (UI passed 'newPath', backend expected 'newName')
-   - Multiple API signature mismatches in test files
-
-### Next Steps:
-1. Run full test suite to measure actual coverage improvement
-2. Write tests for remaining untested components (Terminal, Editor, UI components)
-3. Achieve >90% test coverage target
-
-*Last Updated: January 10, 2025*
-*This roadmap consolidates all previous development roadmaps and implementation plans into a single source of truth.*

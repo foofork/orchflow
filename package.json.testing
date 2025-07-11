@@ -1,0 +1,100 @@
+{
+  "name": "orchflow-testing",
+  "version": "1.0.0", 
+  "description": "Testing configuration for OrchFlow upgrade roadmap",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    
+    "test:phase1": "./scripts/test-phase1-security.sh",
+    "test:phase2": "./scripts/test-phase2-frameworks.sh", 
+    "test:phase3": "./scripts/test-phase3-modernization.sh",
+    "test:phase4": "./scripts/test-phase4-ecosystem.sh",
+    "test:upgrade:complete": "./scripts/run-complete-upgrade-tests.sh",
+    
+    "test:security": "npm run test -- --grep 'security|auth|crypto'",
+    "test:routes": "npm run test -- --grep 'route|navigation'",
+    "test:navigation": "npm run test -- --grep 'navigation|router'",
+    "test:ssr-modes": "npm run test -- --grep 'ssr|spa|rendering'",
+    "test:form-actions": "npm run test -- --grep 'form|action|submit'",
+    "test:load-functions": "npm run test -- --grep 'load|data|fetch'",
+    "test:vite-plugins": "npm run test -- --grep 'vite|plugin|build'",
+    "test:integration": "npm run test -- --grep 'integration|e2e'",
+    "test:integration:complete": "npm run test:integration && npm run test:routes && npm run test:navigation",
+    
+    "test:svelte5-reactivity": "npm run test -- --grep 'reactive|rune|state'",
+    "test:component-migration": "npm run test -- --grep 'component|migration|svelte5'",
+    "test:state-management": "npm run test -- --grep 'state|store|reactive'",
+    "test:component-compatibility": "npm run test -- --grep 'component|compat|props'",
+    "test:prop-handling": "npm run test -- --grep 'prop|binding|component'",
+    "test:event-handling": "npm run test -- --grep 'event|handler|dispatch'",
+    "test:tauri-integration": "npm run test -- --grep 'tauri|native|plugin'",
+    "test:auto-updater": "npm run test -- --grep 'updater|update|version'",
+    "test:svelte5-complete": "npm run test:svelte5-reactivity && npm run test:component-migration && npm run test:state-management",
+    
+    "test:codemirror": "npm run test -- --grep 'codemirror|editor|highlight'",
+    "test:syntax-highlighting": "npm run test -- --grep 'syntax|highlight|language'",
+    "test:editor-extensions": "npm run test -- --grep 'extension|addon|plugin'",
+    "test:terminal": "npm run test -- --grep 'terminal|xterm|shell'",
+    "test:terminal-addons": "npm run test -- --grep 'terminal.*addon|xterm.*addon'",
+    "test:dev-tools": "npm run test -- --grep 'dev|tool|development'",
+    "test:hmr": "npm run test -- --grep 'hmr|hot.*reload|hot.*module'",
+    "test:optimization": "npm run test -- --grep 'optimization|performance|bundle'",
+    "test:editor-complete": "npm run test:codemirror && npm run test:syntax-highlighting && npm run test:terminal",
+    
+    "build": "vite build",
+    "build:test": "vite build --mode test",
+    "build:analyze": "vite build --mode analyze",
+    "build:verify": "vite build && ls -la dist/",
+    "dev": "vite dev",
+    "dev:secure-test": "vite dev --host 127.0.0.1 --port 3000",
+    "dev:hmr-test": "vite dev --hmr.port 3001",
+    "preview": "vite preview",
+    
+    "bench:startup": "node benchmarks/startup.js",
+    "bench:memory": "node benchmarks/memory.js", 
+    "bench:runtime": "node benchmarks/runtime.js",
+    "bench:svelte5-performance": "node benchmarks/svelte5.js",
+    "bench:complete": "npm run bench:startup && npm run bench:memory && npm run bench:runtime",
+    
+    "analyze:bundle": "vite-bundle-analyzer dist/",
+    "analyze:treeshaking": "vite build --mode analyze --report",
+    "analyze:chunks": "vite build --mode production --analyze",
+    "analyze:final": "npm run analyze:bundle && npm run analyze:treeshaking",
+    
+    "type-check": "tsc --noEmit",
+    "type-check:strict": "tsc --noEmit --strict",
+    "lint": "eslint . --ext .js,.ts,.svelte",
+    "lint:strict": "eslint . --ext .js,.ts,.svelte --max-warnings 0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    
+    "profile:cpu": "clinic doctor --dest profile/ -- node dist/server.js",
+    "profile:memory": "clinic heapdump --dest profile/ -- node dist/server.js",
+    
+    "security:complete": "npm audit && cargo audit && npm run test:security",
+    "coverage:generate": "vitest run --coverage --reporter=html --reporter=text",
+    "metrics:capture": "node scripts/capture-metrics.js"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0", 
+    "@typescript-eslint/parser": "^6.0.0",
+    "@vitest/coverage-v8": "^1.0.0",
+    "@vitest/ui": "^1.0.0",
+    "eslint": "^8.0.0",
+    "eslint-plugin-svelte": "^2.0.0",
+    "prettier": "^3.0.0",
+    "prettier-plugin-svelte": "^3.0.0",
+    "typescript": "^5.0.0",
+    "vite": "^5.0.0",
+    "vite-bundle-analyzer": "^0.7.0",
+    "vitest": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}
