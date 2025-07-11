@@ -3,18 +3,18 @@
 
 > **📋 Task Management**: Check status, claim task as in-progress when starting work, provide concise updates, and mark complete when 100% finished.
 
-## 🎯 INCOMPLETE TASKS BY PHASE
+## 🎯 ALL INCOMPLETE TASKS BY PHASE
 
 ### 🔄 Phase 2: Core Framework Updates (CURRENT FOCUS)
 #### Component Testing Tasks (Priority: CRITICAL)
 **Terminal Components (0% → 80% coverage)**
-- [ ] StreamingTerminal comprehensive tests
-- [ ] TerminalGrid interaction tests  
+- [ ] StreamingTerminal comprehensive tests (80% coverage target)
+- [ ] TerminalGrid interaction tests
 - [ ] Terminal state management tests
 - [ ] Terminal command security tests
 
 **Editor Components (0% → 80% coverage)**
-- [ ] CodeMirrorEditor functionality tests
+- [ ] CodeMirrorEditor functionality tests (80% coverage target)
 - [ ] NeovimEditor integration tests
 - [ ] Editor state persistence tests
 - [ ] Multi-editor coordination tests
@@ -26,6 +26,7 @@
 
 ### 📦 Phase 3: Framework Modernization (NEXT)
 #### 3.1 Svelte 5 Migration
+- [ ] Create Svelte 5 migration plan with breaking change analysis
 - [ ] Convert components to use runes (modern reactive patterns)
 - [ ] Update state management patterns (enhanced store patterns)
 - [ ] Test reactive updates (verify behavior changes)
@@ -38,6 +39,7 @@
 - [ ] Test SSR/SPA modes (verify rendering modes)
 
 #### 3.3 Vite 7 Upgrade
+- [ ] Assess Vite 6 upgrade requirements and plugin compatibility
 - [ ] Update vite.config.js (new configuration format)
 - [ ] Update plugin configurations (plugin ecosystem changes)
 - [ ] Test build processes (verify compilation)
@@ -53,10 +55,20 @@
 - [ ] Migrate test suites (new API compatibility)
 - [ ] Add regression tests (upgrade validation)
 - [ ] Performance benchmarks (maintain optimization)
+- [ ] Implement advanced testing infrastructure (performance, mutation)
+  - [ ] Visual regression with Percy/Chromatic
+  - [ ] Lighthouse CI for performance monitoring
+  - [ ] Performance benchmarks and memory leak detection
+  - [ ] Mutation testing with Stryker
+- [ ] Develop custom testing utilities and automation
+  - [ ] Custom matchers (toBeAccessible, toHaveActiveSession)
+  - [ ] Mock factory system for components
+  - [ ] Test flow builders for user interactions
+  - [ ] VS Code snippets for test patterns
 
 ### 🚀 Phase 4: Ecosystem Updates (FUTURE)
 #### 4.1 Development Tools
-- [ ] Update TypeScript (latest language features)
+- [ ] Update TypeScript to latest 5.x features
 - [ ] Upgrade development dependencies (build tool ecosystem)
 - [ ] Update linting and formatting tools (code quality)
 
@@ -163,21 +175,13 @@ This roadmap provides a comprehensive strategy for upgrading OrchFlow's dependen
 
 ### 🔄 2.3 Component Testing (IN PROGRESS)
 **Terminal Components** (Priority: Critical)
-- [ ] StreamingTerminal comprehensive tests (80% coverage target)
-- [ ] TerminalGrid interaction tests
-- [ ] Terminal state management tests
-- [ ] Terminal command security tests
+- See incomplete tasks at top of file
 
 **Editor Components** (Priority: Critical)
-- [ ] CodeMirrorEditor functionality tests (80% coverage target)
-- [ ] NeovimEditor integration tests
-- [ ] Editor state persistence tests
-- [ ] Multi-editor coordination tests
+- See incomplete tasks at top of file
 
 **Visual Regression Testing**
-- [ ] Playwright integration with @percy/playwright
-- [ ] Visual test coverage for all components
-- [ ] Cross-browser testing setup
+- See incomplete tasks at top of file
 
 ### Week 4: Testing Infrastructure Enhancement
 
@@ -209,33 +213,19 @@ This roadmap provides a comprehensive strategy for upgrading OrchFlow's dependen
 *Priority: HIGH | Risk: HIGH*
 
 ### 3.1 Svelte 5.x Migration
-- [ ] **Convert components to use runes** - Modern reactive patterns
-- [ ] **Update state management patterns** - Enhanced store patterns
-- [ ] **Test reactive updates** - Verify behavior changes
-- [ ] **Performance optimization** - Benchmark improvements
+- See incomplete tasks at top of file
 
 ### 3.2 SvelteKit 1.x → 2.x Migration
-- [ ] **Update routing syntax** - `$app/navigation` API changes
-- [ ] **Migrate load functions** - New load function signature
-- [ ] **Update form actions** - Enhanced form action handling
-- [ ] **Test SSR/SPA modes** - Verify rendering modes
+- See incomplete tasks at top of file
 
 ### 3.3 Vite 4.x → 7.x Upgrade
-- [ ] **Update vite.config.js** - New configuration format
-- [ ] **Update plugin configurations** - Plugin ecosystem changes
-- [ ] **Test build processes** - Verify compilation
-- [ ] **Verify HMR functionality** - Hot module replacement
+- See incomplete tasks at top of file
 
 ### 3.4 Tauri Plugin Updates
-- [ ] **Update all Tauri plugins** - Latest compatibility
-- [ ] **Test native integrations** - Platform-specific testing
-- [ ] **Verify updater functionality** - Auto-update system
+- See incomplete tasks at top of file
 
 ### 3.5 Testing Infrastructure Modernization
-- [ ] **Update Vitest configuration** - Latest test runner features
-- [ ] **Migrate test suites** - New API compatibility
-- [ ] **Add regression tests** - Upgrade validation
-- [ ] **Performance benchmarks** - Maintain optimization
+- See incomplete tasks at top of file
 
 **Week 5-6 Deliverables**:
 - ✅ Migration plan for major frameworks
@@ -249,19 +239,13 @@ This roadmap provides a comprehensive strategy for upgrading OrchFlow's dependen
 *Priority: MEDIUM | Risk: LOW*
 
 ### 4.1 Development Tools
-- [ ] **Update TypeScript** - Latest language features
-- [ ] **Upgrade development dependencies** - Build tool ecosystem
-- [ ] **Update linting and formatting tools** - Code quality
+- See incomplete tasks at top of file
 
 ### 4.2 Editor Components
-- [ ] **Update CodeMirror extensions** - Latest editor features
-- [ ] **Update xterm.js and addons** - Terminal improvements
-- [ ] **Test editor functionality** - Comprehensive validation
+- See incomplete tasks at top of file
 
 ### 4.3 Build Optimization
-- [ ] **Update build tools** - Latest optimization
-- [ ] **Optimize bundle sizes** - Performance improvements
-- [ ] **Improve build performance** - Development experience
+- See incomplete tasks at top of file
 
 **Week 7-8 Deliverables**:
 - ✅ Svelte 5 migration complete with tests passing
@@ -405,54 +389,14 @@ npm test                 # Verify stability
 - [x] Standardize Tauri ecosystem packages (2.1.0) ✅
 - [x] Fix Tauri plugin imports (dialog, fs) ✅
 - [x] CodeMirror ecosystem updates (6.x patches) ✅
-- [ ] Implement terminal component testing (>80% coverage) 🔄 Next
-  - StreamingTerminal comprehensive tests
-  - TerminalGrid interaction tests  
-  - Terminal state management tests
-  - Terminal command security tests
-- [ ] Implement editor component testing (>80% coverage) 🔄 Next
-  - CodeMirrorEditor functionality tests
-  - NeovimEditor integration tests
-  - Editor state persistence tests
-  - Multi-editor coordination tests
-- [ ] Setup visual regression testing 🔄 Next
-  - Playwright integration with @percy/playwright
-  - Visual test coverage for all components
-  - Cross-browser testing setup
+- Component testing tasks - See incomplete tasks at top of file
+- Visual regression testing - See incomplete tasks at top of file
 
-### Phase 3 (Major Planning)
-- [ ] Create Svelte 5 migration plan with breaking change analysis
-- [ ] Assess Vite 6 upgrade requirements and plugin compatibility
-- [ ] Implement advanced testing infrastructure (performance, mutation)
-  - Visual regression with Percy/Chromatic
-  - Lighthouse CI for performance monitoring
-  - Performance benchmarks and memory leak detection
-  - Mutation testing with Stryker
-  - Property-based testing implementation
-  - Contract testing for APIs
-- [ ] Develop custom testing utilities and automation
-  - Custom matchers (toBeAccessible, toHaveActiveSession)
-  - Mock factory system for components
-  - Test flow builders for user interactions
-  - VS Code snippets for test patterns
-  - Test generation CLI tools
+### Phase 3 (Framework Modernization) - 🔄 IN PROGRESS
+- All tasks listed at top of file under Phase 3 section
 
 ### Phase 4 (Ecosystem Updates) - ⏳ PENDING
-#### 4.1 Development Tools Tasks
-- [ ] **Update TypeScript** to latest 5.x features
-- [ ] **Upgrade development dependencies** - Build tool ecosystem
-- [ ] **Update linting and formatting tools** - Code quality
-
-#### 4.2 Editor Components Tasks
-- [ ] **Update CodeMirror extensions** - Latest editor features
-- [ ] **Update xterm.js and addons** - Terminal improvements
-- [ ] **Test editor functionality** - Comprehensive validation
-
-#### 4.3 Build Optimization Tasks
-- [ ] **Update build tools** - Latest optimization
-- [ ] **Optimize bundle sizes** - Performance improvements
-- [ ] **Improve build performance** - Development experience
-- [ ] **Achieve >80% test coverage** across all components
+- All tasks listed at top of file under Phase 4 section
 
 ---
 
@@ -460,21 +404,7 @@ npm test                 # Verify stability
 
 ### 📊 Key Performance Indicators
 
-**Security Metrics:**
-- [ ] 0 critical vulnerabilities
-- [ ] 0 high severity issues
-- [ ] Security audit score > 95%
-
-**Performance Metrics:**
-- [ ] Startup time < 2 seconds
-- [ ] Memory usage < 150MB baseline
-- [ ] Bundle size < 10MB total
-
-**Quality Metrics:**
-- [ ] Test coverage > 85%
-- [ ] All CI/CD checks passing
-- [ ] TypeScript strict mode enabled
-- [ ] Zero ESLint errors
+- See success metrics in incomplete tasks section at top of file
 
 ---
 
