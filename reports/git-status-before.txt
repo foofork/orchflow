@@ -1,0 +1,29 @@
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   .swarm/memory.db
+	modified:   .swarm/memory.db-shm
+	modified:   .swarm/memory.db-wal
+	modified:   desktop/package-lock.json
+	modified:   desktop/package.json
+	modified:   desktop/src-tauri/Cargo.lock
+	modified:   desktop/src-tauri/Cargo.toml
+	modified:   desktop/vite.config.ts
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	desktop/scripts/analyze-bundle.js
+	desktop/scripts/test-tauri-native.sh
+	desktop/scripts/test-tauri-updater.sh
+	desktop/src-tauri/binaries/nvim-x86_64-unknown-linux-gnu
+	desktop/src-tauri/binaries/tmux-x86_64-unknown-linux-gnu
+	desktop/src/lib/test-utils/test-flow-builders.ts
+	desktop/stryker.config.mjs
+	desktop/tests/tauri-integration.test.ts
+	desktop/updater/
+	reports/
+
+no changes added to commit (use "git add" and/or "git commit -a")

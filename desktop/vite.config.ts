@@ -26,13 +26,36 @@ export default defineConfig({
     // Manual chunking for better caching
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Core vendor libs in separate chunk (removed @sveltejs/kit as it's external)
-          'vendor-core': ['svelte'],
-          
-          // Terminal-related libs
-          'vendor-terminal': ['@xterm/xterm', '@xterm/addon-fit'],
-        }
+        manualChunks: (id) => {
+          if (id.includes('node_modules')) {
+            // Split vendor chunks for better caching
+            if (id.includes('codemirror')) {
+              return 'vendor-editor';
+            }
+            if (id.includes('xterm')) {
+              return 'vendor-terminal';
+            }
+            if (id.includes('svelte') || id.includes('@sveltejs')) {
+              return 'vendor-svelte';
+            }
+            if (id.includes('fuse.js')) {
+              return 'vendor-search';
+            }
+            if (id.includes('@tauri-apps')) {
+              return 'vendor-tauri';
+            }
+            // Core vendor chunk for remaining dependencies
+            return 'vendor-core';
+          }
+        },
+        // Optimize chunk generation
+        experimentalMinChunkSize: 10000
+      },
+      // Enable better tree shaking
+      treeshake: {
+        moduleSideEffects: false,
+        propertyReadSideEffects: false,
+        tryCatchDeoptimization: false
       }
     },
     

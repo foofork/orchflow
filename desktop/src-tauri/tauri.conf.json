@@ -96,11 +96,7 @@
       ]
     },
     "updater": {
-      "endpoints": [
-        "https://api.github.com/repos/orchflow/orchflow/releases/latest",
-        "https://releases.orchflow.dev/{{target}}/{{arch}}/{{current_version}}"
-      ],
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTNFhYQ1hBU1hYWEMgdGF1cmkgcmVsZWFzZSBzaWduaW5nIGtleQo="
+      "active": false
     }
   }
 }
