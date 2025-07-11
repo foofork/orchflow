@@ -2,57 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import { tick } from 'svelte';
 
-// Mock CodeMirror modules before importing component
-// Note: The component incorrectly imports EditorView from basic-setup
-vi.mock('@codemirror/basic-setup', () => ({
-  basicSetup: [],
-  EditorView: vi.fn() // Component incorrectly imports from here
-}));
-
-vi.mock('@codemirror/state', () => ({
-  EditorState: {
-    create: vi.fn(() => ({})),
-    readOnly: {
-      of: vi.fn(() => []),
-      reconfigure: vi.fn(() => [])
-    },
-    reconfigure: {
-      of: vi.fn(() => [])
-    }
-  }
-}));
-
-vi.mock('@codemirror/view', () => ({
-  EditorView: vi.fn(),
-  keymap: {
-    of: vi.fn(() => [])
-  }
-}));
-
-vi.mock('@codemirror/commands', () => ({
-  indentWithTab: []
-}));
-
-vi.mock('@codemirror/theme-one-dark', () => ({
-  oneDark: []
-}));
-
-// Mock language modules
-vi.mock('@codemirror/lang-javascript', () => ({
-  javascript: vi.fn(() => [])
-}));
-
-vi.mock('@codemirror/lang-json', () => ({
-  json: vi.fn(() => [])
-}));
-
-vi.mock('@codemirror/lang-python', () => ({
-  python: vi.fn(() => [])
-}));
-
-vi.mock('@codemirror/lang-rust', () => ({
-  rust: vi.fn(() => [])
-}));
+// CodeMirror mocks are handled by setup-codemirror.ts
+// This test file should not define its own mocks as they conflict
 
 // Import component after mocks are set up
 import CodeMirrorEditor from './CodeMirrorEditor.svelte';
@@ -468,7 +419,13 @@ describe('CodeMirrorEditor Component', () => {
       render(CodeMirrorEditor);
       
       await waitFor(() => {
-        expect(keymap.of).toHaveBeenCalledWith([indentWithTab]);
+        expect(keymap.of).toHaveBeenCalled();
+        // Check that keymap.of was called with an array containing indentWithTab
+        const keymapCalls = (keymap.of as any).mock.calls;
+        const hasIndentWithTab = keymapCalls.some((call: any) => 
+          call[0] && Array.isArray(call[0]) && call[0].includes(indentWithTab)
+        );
+        expect(hasIndentWithTab).toBe(true);
       });
     });
   });

@@ -152,12 +152,47 @@
   
   export function setLanguage(lang: string) {
     if (view) {
+      // Recreate basic extensions like in onMount
+      const basicExtensions = [
+        lineNumbers ? lineNumbersExt() : [],
+        highlightActiveLineGutter(),
+        highlightSpecialChars(),
+        history(),
+        foldGutter(),
+        drawSelection(),
+        dropCursor(),
+        EditorState.allowMultipleSelections.of(true),
+        indentOnInput(),
+        syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+        bracketMatching(),
+        closeBrackets(),
+        autocompletion(),
+        rectangularSelection(),
+        crosshairCursor(),
+        highlightActiveLine(),
+        highlightSelectionMatches(),
+        keymap.of([
+          ...closeBracketsKeymap,
+          ...defaultKeymap,
+          ...searchKeymap,
+          ...historyKeymap,
+          ...completionKeymap,
+          ...lintKeymap,
+          indentWithTab
+        ])
+      ];
+
       view.dispatch({
         effects: EditorState.reconfigure.of([
-          basicSetup,
+          ...basicExtensions,
           getLanguageSupport(lang),
           theme === 'dark' ? oneDark : [],
-          EditorView.lineWrapping,
+          wordWrap ? EditorView.lineWrapping : [],
+          EditorView.theme({
+            '&': { fontSize: fontSize + 'px' },
+            '.cm-content': { fontFamily: 'Fira Code, monospace' },
+          }),
+          EditorState.readOnly.of(readOnly),
         ])
       });
     }

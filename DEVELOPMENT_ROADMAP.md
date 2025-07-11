@@ -279,22 +279,6 @@ This changes our immediate priorities from fixing tests to improving coverage!
 
 📋 **SEE DETAILED UPGRADE ROADMAP**: [desktop/UPGRADE_ROADMAP.md](desktop/UPGRADE_ROADMAP.md)
 
-**Phase 1: Critical Foundation (Weeks 1-2) - IMMEDIATE**
-- [ ] **Fix Missing Dependencies** ⚡
-  - [ ] Install missing `@codemirror/lang-yaml@6.1.2` package
-- [ ] **XTerm Package Migration** 🔄 (Breaking change coordination)
-  - [ ] Remove deprecated `xterm` packages from root
-  - [ ] Install scoped `@xterm/*` packages (v5.5.0+)
-  - [ ] Update imports across codebase
-  - [ ] Test terminal functionality thoroughly
-- [ ] **Rust Dependency Standardization** 🦀
-  - [ ] Standardize Tokio versions: both projects to `1.88`
-  - [ ] Apply Rust patch updates: serde, chrono, etc.
-- [ ] **Complete CodeMirror Test Resolution** 🧪
-  - [ ] Address remaining 13 CodeMirror test failures
-  - [ ] Enhance mock behavior for advanced features
-  - [ ] Target: 25/29 CodeMirror tests passing
-
 **Phase 2: Testing-First Minor Updates (Weeks 3-4)**
 - [ ] **Development Tool Updates** 🛠️
   - [ ] TypeScript: 5.8.3 → latest 5.x
@@ -304,8 +288,8 @@ This changes our immediate priorities from fixing tests to improving coverage!
   - [ ] Update all @tauri-apps packages to latest 2.x
   - [ ] Ensure consistency across plugin versions
 - [ ] **Zero-Coverage Component Testing** 🎯
-  - [ ] Terminal Components: >80% coverage target
-  - [ ] Editor Components: >80% coverage target
+  - [ ] Terminal Components: >90% coverage target
+  - [ ] Editor Components: >90% coverage target
   - [ ] Visual regression POC with Playwright
 
 **Phase 3: Major Framework Planning (Weeks 5-6)**

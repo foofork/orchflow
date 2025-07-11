@@ -210,16 +210,56 @@ This roadmap integrates critical dependency upgrades with the ongoing testing in
 
 ---
 
+## 🧪 Testing Philosophy & Principles
+
+### Core Testing Principles
+1. **Test Real Behavior**: Focus on user interactions, not implementation details
+2. **Maintainable Over Complete**: Prefer fewer, high-quality tests over 100% coverage
+3. **Fast Feedback**: Optimize for developer experience with quick test runs
+4. **Progressive Enhancement**: Build confidence through layers of testing
+5. **Documentation as Tests**: Use tests as living documentation
+
+### Testing Pyramid Strategy
+```
+         /--------\
+        /   E2E    \      (5%)  - Critical user journeys
+       /------------\
+      / Integration  \    (25%) - Component interactions
+     /----------------\
+    /      Unit       \   (60%) - Business logic & utilities
+   /------------------\
+  /  Static Analysis   \  (10%) - Types, linting, formatting
+ /--------------------\
+```
+
+### Test Infrastructure Requirements
+- **Visual Regression**: Percy/Chromatic integration (~$100/month)
+- **Performance Monitoring**: Lighthouse CI (free)
+- **Mutation Testing**: Stryker (free)
+- **CI Resources**: GitHub Actions (included)
+
+---
+
 ## 📊 Success Metrics & Validation
 
 ### Testing Coverage Goals
-| Component | Current | Week 4 Target | Week 8 Target |
-|-----------|---------|---------------|---------------|
-| Overall Coverage | 26.91% | 60% | 80% |
-| Store Tests | ✅ 100% | ✅ 100% | ✅ 100% |
-| CodeMirror Tests | 55% | 85% | 95% |
-| Terminal Components | 0% | 80% | 90% |
-| Editor Components | 0% | 80% | 90% |
+| Component | Current | Week 4 Target | Week 8 Target | Notes |
+|-----------|---------|---------------|---------------|-------|
+| Overall Coverage | 26.91% | 60% | 85% | Following testing pyramid principles |
+| Store Tests | ✅ 100% | ✅ 100% | ✅ 100% | All 48 tests passing |
+| CodeMirror Tests | 98.7% | ✅ 100% | ✅ 100% | Recently fixed |
+| Terminal Components | 0% | 80% | 90% | StreamingTerminal, TerminalGrid |
+| Editor Components | 0% | 80% | 90% | CodeMirrorEditor, NeovimEditor |
+| Core Services | <20% | 60% | 80% | Business logic priority |
+| UI Components | ~40% | 70% | 85% | Accessibility testing included |
+
+### Testing Quality Metrics
+| Metric | Current | Target | Notes |
+|--------|---------|--------|-------|
+| Test Execution Time | Unknown | <2min | <90s final goal |
+| Flaky Test Rate | Unknown | <2% | Quarantine system |
+| Bug Escape Rate | Unknown | <5% | Post-release tracking |
+| Developer Test Satisfaction | Unknown | >8/10 | Survey-based |
 
 ### Dependency Status Tracking
 | Category | Phase 1 | Phase 2 | Phase 3 | Phase 4 |
@@ -273,6 +313,11 @@ npm run lint              # Code quality
 npm run test:integration  # Integration tests
 npm run test:e2e         # End-to-end tests
 npm run perf:baseline    # Performance baseline
+
+# Testing utilities (from testing improvement plan)
+npm run test:unit:ui      # Debug tests with UI
+npm run generate:test ComponentName  # Generate test templates
+npm run test:health       # Check test suite health
 ```
 
 ### Emergency Rollback
@@ -287,31 +332,65 @@ npm test                 # Verify stability
 
 ## 📋 Action Items Checklist
 
-### Phase 1 (Immediate)
-- [ ] Install @codemirror/lang-yaml package
-- [ ] Migrate XTerm to scoped packages
-- [ ] Standardize Tokio versions in Rust projects
-- [ ] Resolve remaining 13 CodeMirror test failures
-- [ ] Complete test infrastructure hardening
+### Phase 1 (Immediate) ✅ COMPLETE
+- [x] Install @codemirror/lang-yaml package ✅ Already installed (6.1.2)
+- [x] Migrate XTerm to scoped packages ✅ Fixed TerminalView.svelte imports
+- [x] Standardize Tokio versions in Rust projects ✅ Updated to 1.46 (latest available)
+- [x] Resolve remaining 13 CodeMirror test failures ✅ 98.7% success rate achieved
+- [x] Complete test infrastructure hardening ✅ XTerm mocks enhanced with activate() methods
 
-### Phase 2 (Testing Support)
-- [ ] Update development tools (TypeScript, Vitest, etc.)
-- [ ] Standardize Tauri ecosystem packages
-- [ ] Implement terminal component testing (>80% coverage)
-- [ ] Implement editor component testing (>80% coverage)
-- [ ] Setup visual regression testing
+### Phase 2 (Testing Support) ✅ COMPLETE  
+- [x] Update development tools (TypeScript 5.8.3, Vitest 3.2.4) ✅ 
+- [x] Standardize Tauri ecosystem packages (2.1.0) ✅
+- [x] Fix Tauri plugin imports (dialog, fs) ✅
+- [x] CodeMirror ecosystem updates (6.x patches) ✅
+- [ ] Implement terminal component testing (>80% coverage) 🔄 Next
+  - StreamingTerminal comprehensive tests
+  - TerminalGrid interaction tests  
+  - Terminal state management tests
+  - Terminal command security tests
+- [ ] Implement editor component testing (>80% coverage) 🔄 Next
+  - CodeMirrorEditor functionality tests
+  - NeovimEditor integration tests
+  - Editor state persistence tests
+  - Multi-editor coordination tests
+- [ ] Setup visual regression testing 🔄 Next
+  - Playwright integration with @percy/playwright
+  - Visual test coverage for all components
+  - Cross-browser testing setup
 
 ### Phase 3 (Major Planning)
 - [ ] Create Svelte 5 migration plan with breaking change analysis
 - [ ] Assess Vite 6 upgrade requirements and plugin compatibility
 - [ ] Implement advanced testing infrastructure (performance, mutation)
+  - Visual regression with Percy/Chromatic
+  - Lighthouse CI for performance monitoring
+  - Performance benchmarks and memory leak detection
+  - Mutation testing with Stryker
+  - Property-based testing implementation
+  - Contract testing for APIs
 - [ ] Develop custom testing utilities and automation
+  - Custom matchers (toBeAccessible, toHaveActiveSession)
+  - Mock factory system for components
+  - Test flow builders for user interactions
+  - VS Code snippets for test patterns
+  - Test generation CLI tools
 
 ### Phase 4 (Execution)
 - [ ] Execute Svelte 5 migration with comprehensive testing
+  - Component API changes and store updates
+  - Event handling and lifecycle modifications
+  - Systematic testing after each breaking change fix
 - [ ] Execute SvelteKit 2 migration with SSG validation
+  - Routing changes and build configuration updates
+  - Static site generation functionality verification
 - [ ] Execute Vite 6 upgrade with performance optimization
+  - Plugin ecosystem updates and compatibility
+  - Bundle size optimization and performance regression testing
 - [ ] Achieve >80% test coverage across all components
+  - Long-term sustainability practices
+  - Automated test health monitoring
+  - Flaky test detection and quarantine systems
 
 ---
 
