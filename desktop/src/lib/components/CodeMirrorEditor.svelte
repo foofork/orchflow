@@ -1,14 +1,18 @@
 <script lang="ts">
   import { onMount, onDestroy, createEventDispatcher } from 'svelte';
-  import { EditorView, basicSetup } from '@codemirror/basic-setup';
-  import { EditorState } from '@codemirror/state';
+  import { EditorView, keymap, lineNumbers as lineNumbersExt, highlightActiveLineGutter, highlightSpecialChars, drawSelection, dropCursor, rectangularSelection, crosshairCursor, highlightActiveLine, placeholder } from '@codemirror/view';
+  import { EditorState, Compartment } from '@codemirror/state';
   import { javascript } from '@codemirror/lang-javascript';
   import { json } from '@codemirror/lang-json';
   import { python } from '@codemirror/lang-python';
   import { rust } from '@codemirror/lang-rust';
+  import { yaml } from '@codemirror/lang-yaml';
   import { oneDark } from '@codemirror/theme-one-dark';
-  import { keymap } from '@codemirror/view';
-  import { indentWithTab } from '@codemirror/commands';
+  import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
+  import { searchKeymap, highlightSelectionMatches } from '@codemirror/search';
+  import { autocompletion, completionKeymap, closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
+  import { bracketMatching, indentOnInput, syntaxHighlighting, defaultHighlightStyle, foldGutter } from '@codemirror/language';
+  import { lintKeymap } from '@codemirror/lint';
   
   export let value = '';
   export let language = 'json';
@@ -33,6 +37,7 @@
     json: json(),
     python: python(),
     rust: rust(),
+    yaml: yaml(),
   };
   
   function getLanguageSupport(lang: string) {
@@ -42,19 +47,47 @@
   onMount(async () => {
     try {
       // Create CodeMirror instance
+      const basicExtensions = [
+        lineNumbers ? lineNumbersExt() : [],
+        highlightActiveLineGutter(),
+        highlightSpecialChars(),
+        history(),
+        foldGutter(),
+        drawSelection(),
+        dropCursor(),
+        EditorState.allowMultipleSelections.of(true),
+        indentOnInput(),
+        syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+        bracketMatching(),
+        closeBrackets(),
+        autocompletion(),
+        rectangularSelection(),
+        crosshairCursor(),
+        highlightActiveLine(),
+        highlightSelectionMatches(),
+        keymap.of([
+          ...closeBracketsKeymap,
+          ...defaultKeymap,
+          ...searchKeymap,
+          ...historyKeymap,
+          ...completionKeymap,
+          ...lintKeymap,
+          indentWithTab
+        ])
+      ];
+
       const startState = EditorState.create({
         doc: value,
         extensions: [
-          basicSetup,
+          ...basicExtensions,
           getLanguageSupport(language),
           theme === 'dark' ? oneDark : [],
-          EditorView.lineWrapping,
+          wordWrap ? EditorView.lineWrapping : [],
           EditorView.theme({
             '&': { fontSize: fontSize + 'px' },
             '.cm-content': { fontFamily: 'Fira Code, monospace' },
           }),
           EditorState.readOnly.of(readOnly),
-          keymap.of([indentWithTab]),
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {
               const newValue = update.state.doc.toString();

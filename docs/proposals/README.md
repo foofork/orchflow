@@ -9,6 +9,11 @@ This directory contains architectural proposals and feature designs for the Orch
 - **Created**: January 2025
 - **Summary**: Architecture for orchestrating AI-driven development across multiple projects simultaneously with namespace isolation and segmented memory coordination.
 
+### [Terminal Analytics and Intelligence](./TERMINAL_ANALYTICS_INTELLIGENCE.md)
+- **Status**: Proposal
+- **Created**: January 2025
+- **Summary**: Comprehensive system for real-time terminal output analysis, pattern recognition, and intelligent insights across multiple concurrent sessions.
+
 ## Proposal Process
 
 1. **Draft**: Initial proposal creation

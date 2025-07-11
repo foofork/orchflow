@@ -168,7 +168,8 @@ describe('FileExplorer Component', () => {
     // Test: The component uses transitions that keep the DOM element during animation
     // We'll test the state change rather than DOM visibility
     it('should collapse directory when clicked again', async () => {
-      const { container } = render(FileExplorer);
+      const result = render(FileExplorer);
+      const container = result.container || document.body;
       
       await waitForComponent();
       
@@ -235,7 +236,8 @@ describe('FileExplorer Component', () => {
     // Test: The loading state is set and unset too quickly in the component
     // We'll use a controlled promise to ensure we can test the loading state
     it('should show loading indicator while expanding directory', async () => {
-      const { container } = render(FileExplorer);
+      const result = render(FileExplorer);
+      const container = result.container || document.body;
       
       await waitForComponent();
       
@@ -308,7 +310,8 @@ describe('FileExplorer Component', () => {
         { name: 'unknown.xyz', path: '/unknown.xyz' }
       ]);
       
-      const { container } = render(FileExplorer);
+      const result = render(FileExplorer);
+      const container = result.container || document.body;
       
       await waitForComponent();
       

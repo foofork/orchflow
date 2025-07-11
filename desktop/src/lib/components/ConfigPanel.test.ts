@@ -1,35 +1,107 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
+import { tick } from 'svelte';
 import ConfigPanel from './ConfigPanel.svelte';
 
-// Mock the CodeMirrorEditor component
-vi.mock('./CodeMirrorEditor.svelte', () => ({
-  default: class MockCodeMirrorEditor {
-    constructor(options: any) {
-      this.$$ = {
-        fragment: null,
-        ctx: [],
-        props: options.props || {},
-        update: vi.fn(),
-        not_equal: vi.fn(),
-        bound: {},
-        on_mount: [],
-        on_destroy: [],
-        on_disconnect: [],
-        before_update: [],
-        after_update: [],
-        context: new Map(),
-        callbacks: {},
-        dirty: [],
-        skip_bound: false,
-        root: null
+// Mock the dynamic import of CodeMirrorEditor before any tests run
+beforeAll(() => {
+  // Override the global import function for CodeMirrorEditor
+  const originalImport = global.import;
+  global.import = vi.fn(async (path: string) => {
+    if (path.includes('CodeMirrorEditor.svelte')) {
+      // Return a mock component class
+      const MockCodeMirrorEditor = class {
+        $$: any;
+        $destroy: any;
+        $on: any;
+        $set: any;
+        
+        constructor(options: any) {
+          const props = options?.props || {};
+          const target = options?.target;
+          
+          // Create a mock editor element
+          const editorEl = document.createElement('div');
+          editorEl.className = 'editor-container';
+          const editorContent = document.createElement('div');
+          editorContent.className = 'cm-editor';
+          editorContent.textContent = props.value || '';
+          editorEl.appendChild(editorContent);
+          
+          if (target) {
+            target.appendChild(editorEl);
+          }
+          
+          // Set up Svelte component interface
+          this.$$ = {
+            fragment: null,
+            ctx: [],
+            props: props,
+            update: vi.fn(),
+            not_equal: vi.fn(),
+            bound: {},
+            on_mount: [],
+            on_destroy: [],
+            on_disconnect: [],
+            before_update: [],
+            after_update: [],
+            context: new Map(),
+            callbacks: {
+              change: []
+            },
+            dirty: [],
+            skip_bound: false,
+            root: editorEl
+          };
+          
+          this.$destroy = vi.fn(() => {
+            if (editorEl.parentNode) {
+              editorEl.parentNode.removeChild(editorEl);
+            }
+          });
+          
+          this.$on = vi.fn((event: string, handler: Function) => {
+            if (!this.$$.callbacks[event]) {
+              this.$$.callbacks[event] = [];
+            }
+            this.$$.callbacks[event].push(handler);
+            
+            // Return unsubscribe function
+            return () => {
+              const idx = this.$$.callbacks[event].indexOf(handler);
+              if (idx > -1) {
+                this.$$.callbacks[event].splice(idx, 1);
+              }
+            };
+          });
+          
+          this.$set = vi.fn((newProps: any) => {
+            Object.assign(this.$$.props, newProps);
+            if (newProps.value !== undefined) {
+              editorContent.textContent = newProps.value;
+              // Trigger change event
+              if (this.$$.callbacks.change) {
+                this.$$.callbacks.change.forEach((handler: Function) => {
+                  handler({ detail: newProps.value });
+                });
+              }
+            }
+          });
+        }
       };
-      this.$destroy = vi.fn();
-      this.$on = vi.fn();
-      this.$set = vi.fn();
+      
+      return {
+        default: MockCodeMirrorEditor
+      };
     }
-  }
-}));
+    return originalImport(path);
+  });
+});
+
+afterAll(() => {
+  // Restore original import
+  vi.restoreAllMocks();
+});
 
 describe('ConfigPanel', () => {
   beforeEach(() => {

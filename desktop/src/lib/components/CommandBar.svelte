@@ -29,7 +29,8 @@
     loading = true;
     try {
       // Parse the command and execute appropriate action
-      const command = input.trim().toLowerCase();
+      const trimmedInput = input.trim();
+      const command = trimmedInput.toLowerCase();
       
       if (command === 'create terminal' || command === 'new terminal') {
         const session = $activeSession;
@@ -51,7 +52,7 @@
         console.log('Available plugins:', $plugins);
       }
       else if (command.startsWith('search ')) {
-        const query = command.substring(7);
+        const query = trimmedInput.substring(7);
         const results = await manager.searchProject(query);
         console.log('Search results:', results);
       }

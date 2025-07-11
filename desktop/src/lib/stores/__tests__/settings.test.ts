@@ -1,8 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { get } from 'svelte/store';
-import { settings, type Settings } from '../settings';
 
-// Mock localStorage
+// Mock localStorage BEFORE importing the store
 const localStorageMock = {
   getItem: vi.fn(),
   setItem: vi.fn(),
@@ -16,6 +15,9 @@ Object.defineProperty(window, 'localStorage', {
   value: localStorageMock,
   writable: true
 });
+
+// Import settings after mocking localStorage
+import { settings, type Settings } from '../settings';
 
 describe('Settings Store', () => {
   const defaultSettings: Settings = {
@@ -49,8 +51,13 @@ describe('Settings Store', () => {
   });
 
   describe('initialization', () => {
-    it('should load default settings when localStorage is empty', () => {
-      const currentSettings = get(settings);
+    it('should load default settings when localStorage is empty', async () => {
+      // Re-import the settings module to trigger initialization
+      vi.resetModules();
+      localStorageMock.getItem.mockReturnValue(null);
+      const { settings: freshSettings } = await import('../settings');
+      
+      const currentSettings = get(freshSettings);
       expect(currentSettings).toEqual(defaultSettings);
       expect(localStorageMock.getItem).toHaveBeenCalledWith('orchflow-settings');
     });

@@ -1,3 +1,5 @@
+claude-flow swarm "investigate and ensure our exports and module tests are fullfilled" --strategy development --parallel --claude
+
 # Claude Flow Command Guide for Orchflow Development
 
 This guide documents the most effective Claude Flow command workflows for developing the Orchflow terminal-based IDE project.

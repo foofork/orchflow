@@ -1,6 +1,8 @@
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 import './setup-mocks';
+import './setup-codemirror';
+import './setup-xterm';
 
 // Set up Tauri globals
 (globalThis as any).window = globalThis.window || {};
@@ -64,13 +66,18 @@ Object.defineProperty(window, 'matchMedia', {
 });
 
 // Mock ResizeObserver
-const MockResizeObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
-}));
+class MockResizeObserver {
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+  
+  constructor(callback: ResizeObserverCallback) {
+    // Store the callback if needed for tests
+    (this as any).callback = callback;
+  }
+}
 
-global.ResizeObserver = MockResizeObserver;
+global.ResizeObserver = MockResizeObserver as any;
 
 // Mock IntersectionObserver
 global.IntersectionObserver = vi.fn().mockImplementation(() => ({
@@ -178,103 +185,36 @@ Element.prototype.scrollIntoView = vi.fn();
 // Mock self global for xterm.js addons
 (globalThis as any).self = globalThis;
 
-// Mock CodeMirror modules
-vi.mock('@codemirror/state', () => ({
-  EditorState: {
-    create: vi.fn(() => ({
-      doc: { toString: () => '' },
-      selection: { main: { from: 0, to: 0 } },
-      update: vi.fn()
-    }))
-  },
-  StateField: {
-    define: vi.fn()
-  },
-  StateEffect: {
-    define: vi.fn()
-  },
-  Compartment: vi.fn(() => ({
-    of: vi.fn(),
-    reconfigure: vi.fn()
-  }))
-}));
-
-vi.mock('@codemirror/view', () => ({
-  EditorView: vi.fn(() => ({
-    state: { doc: { toString: () => '' } },
-    dispatch: vi.fn(),
-    destroy: vi.fn(),
-    dom: document.createElement('div'),
-    contentDOM: document.createElement('div')
-  })),
-  keymap: {
-    of: vi.fn()
-  },
-  drawSelection: vi.fn(),
-  dropCursor: vi.fn(),
-  rectangularSelection: vi.fn(),
-  crosshairCursor: vi.fn(),
-  lineNumbers: vi.fn(),
-  highlightActiveLineGutter: vi.fn(),
-  highlightSpecialChars: vi.fn(),
-  ViewUpdate: vi.fn()
-}));
-
-vi.mock('@codemirror/language', () => ({
-  defaultHighlightStyle: { extension: vi.fn() },
-  bracketMatching: vi.fn(),
-  foldGutter: vi.fn(),
-  indentOnInput: vi.fn(),
-  syntaxHighlighting: vi.fn(),
-  LanguageSupport: vi.fn(),
-  StreamLanguage: {
-    define: vi.fn()
-  }
-}));
-
-vi.mock('@codemirror/commands', () => ({
-  defaultKeymap: [],
-  history: vi.fn(),
-  historyKeymap: [],
-  indentWithTab: vi.fn()
-}));
-
-vi.mock('@codemirror/search', () => ({
-  searchKeymap: [],
-  search: vi.fn(),
-  highlightSelectionMatches: vi.fn()
-}));
-
-vi.mock('@codemirror/autocomplete', () => ({
-  autocompletion: vi.fn(),
-  completionKeymap: [],
-  closeBrackets: vi.fn(),
-  closeBracketsKeymap: []
-}));
-
-vi.mock('@codemirror/lint', () => ({
-  lintKeymap: [],
-  linter: vi.fn()
-}));
-
-vi.mock('@codemirror/lang-json', () => ({
-  json: vi.fn(() => ({ extension: vi.fn() }))
-}));
-
-vi.mock('@codemirror/lang-yaml', () => ({
-  yaml: vi.fn(() => ({ extension: vi.fn() }))
-}));
 
 // Mock dynamic imports for components
 const originalImport = global.import;
 global.import = vi.fn(async (path: string) => {
   if (path.includes('CodeMirrorEditor.svelte')) {
-    return {
-      default: vi.fn().mockImplementation(() => ({
-        $$: {
+    // Return a mock Svelte component constructor
+    const MockCodeMirrorEditor = class {
+      $$: any;
+      $destroy: any;
+      $on: any;
+      $set: any;
+      
+      constructor(options: any) {
+        const props = options?.props || {};
+        const target = options?.target;
+        
+        // Create a mock editor element
+        const editorEl = document.createElement('div');
+        editorEl.className = 'editor-container';
+        editorEl.innerHTML = `<div class="cm-editor">${props.value || ''}</div>`;
+        
+        if (target) {
+          target.appendChild(editorEl);
+        }
+        
+        // Set up Svelte component interface
+        this.$$ = {
           fragment: null,
           ctx: [],
-          props: {},
+          props: props,
           update: vi.fn(),
           not_equal: vi.fn(),
           bound: {},
@@ -284,17 +224,55 @@ global.import = vi.fn(async (path: string) => {
           before_update: [],
           after_update: [],
           context: new Map(),
-          callbacks: {},
+          callbacks: {
+            change: []
+          },
           dirty: [],
           skip_bound: false,
-          root: null
-        },
-        $destroy: vi.fn(),
-        $on: vi.fn(),
-        $set: vi.fn(),
-        getValue: vi.fn(() => '{}'),
-        setValue: vi.fn()
-      }))
+          root: editorEl
+        };
+        
+        this.$destroy = vi.fn(() => {
+          if (editorEl.parentNode) {
+            editorEl.parentNode.removeChild(editorEl);
+          }
+        });
+        
+        this.$on = vi.fn((event: string, handler: Function) => {
+          if (!this.$$.callbacks[event]) {
+            this.$$.callbacks[event] = [];
+          }
+          this.$$.callbacks[event].push(handler);
+          
+          // Return unsubscribe function
+          return () => {
+            const idx = this.$$.callbacks[event].indexOf(handler);
+            if (idx > -1) {
+              this.$$.callbacks[event].splice(idx, 1);
+            }
+          };
+        });
+        
+        this.$set = vi.fn((newProps: any) => {
+          Object.assign(this.$$.props, newProps);
+          if (newProps.value !== undefined) {
+            const editorContent = editorEl.querySelector('.cm-editor');
+            if (editorContent) {
+              editorContent.textContent = newProps.value;
+            }
+            // Trigger change event
+            if (this.$$.callbacks.change) {
+              this.$$.callbacks.change.forEach((handler: Function) => {
+                handler({ detail: newProps.value });
+              });
+            }
+          }
+        });
+      }
+    };
+    
+    return {
+      default: MockCodeMirrorEditor
     };
   }
   return originalImport(path);

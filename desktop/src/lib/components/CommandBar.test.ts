@@ -100,6 +100,9 @@ describe('CommandBar', () => {
     });
 
     it('should select suggestion on enter', async () => {
+      activeSession.set({ id: 'test-session', name: 'Test' });
+      manager.createTerminal.mockResolvedValue('pane-123');
+      
       const { container } = render(CommandBar);
       const input = container.querySelector('input[type="text"]') as HTMLInputElement;
       
@@ -112,8 +115,10 @@ describe('CommandBar', () => {
       await fireEvent.keyDown(input, { key: 'ArrowDown' });
       await fireEvent.keyDown(input, { key: 'Enter' });
       
+      // The input is cleared after submitting
       await waitFor(() => {
-        expect(input.value).toBe('create terminal');
+        expect(input.value).toBe('');
+        expect(manager.createTerminal).toHaveBeenCalled();
       });
     });
 

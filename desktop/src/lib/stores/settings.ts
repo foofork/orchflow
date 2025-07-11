@@ -40,13 +40,34 @@ const defaultSettings: Settings = {
   },
 };
 
+// Deep merge helper function
+function deepMerge<T extends object>(target: T, source: Partial<T>): T {
+  const result = { ...target };
+  
+  for (const key in source) {
+    if (source[key] !== undefined && source[key] !== null) {
+      if (typeof source[key] === 'object' && !Array.isArray(source[key])) {
+        result[key] = deepMerge(
+          target[key] as any || {}, 
+          source[key] as any
+        );
+      } else {
+        result[key] = source[key] as any;
+      }
+    }
+  }
+  
+  return result;
+}
+
 // Load settings from localStorage if available
 function loadSettings(): Settings {
   if (typeof window !== 'undefined') {
     const stored = localStorage.getItem('orchflow-settings');
     if (stored) {
       try {
-        return { ...defaultSettings, ...JSON.parse(stored) };
+        const parsedSettings = JSON.parse(stored);
+        return deepMerge(defaultSettings, parsedSettings);
       } catch (e) {
         console.error('Failed to parse stored settings:', e);
       }
