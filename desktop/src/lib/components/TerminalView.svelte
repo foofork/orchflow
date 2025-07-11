@@ -1,8 +1,9 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { Terminal } from 'xterm';
-  import { FitAddon } from 'xterm-addon-fit';
-  import { WebLinksAddon } from 'xterm-addon-web-links';
+  import { Terminal } from '@xterm/xterm';
+  import { FitAddon } from '@xterm/addon-fit';
+  import { WebLinksAddon } from '@xterm/addon-web-links';
+  import '@xterm/xterm/css/xterm.css';
   import { manager } from '$lib/stores/manager';
   import type { Pane } from '$lib/api/manager-client';
   

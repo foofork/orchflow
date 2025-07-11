@@ -276,30 +276,61 @@ This changes our immediate priorities from fixing tests to improving coverage!
 
 #### Phase 1.75: Upgrade Dependencies & Modernize Stack (Week 3) 🆕
 **Tauri & Project Dependencies Upgrade** - Modernization before abstraction
-- [ ] **Upgrade Tauri to v2.0+**: Update from current version to latest stable
-  - [ ] Review breaking changes and migration guide
-  - [ ] Update tauri.conf.json for v2 format
-  - [ ] Migrate API usage (invoke, events, etc.)
-  - [ ] Update all tauri-plugin-* dependencies
-  - [ ] Fix any compilation errors from API changes
-- [ ] **Update Rust dependencies**: Comprehensive dependency audit
-  - [ ] Run `cargo update` and address any breaking changes
-  - [ ] Update critical dependencies: tokio, serde, git2, etc.
-  - [ ] Resolve deprecated API usage
-  - [ ] Update dev dependencies for testing
-- [ ] **Frontend dependency updates**:
-  - [ ] Update Svelte/SvelteKit to latest
-  - [ ] Update Vite and build toolchain
-  - [ ] Update testing framework (Vitest)
-  - [ ] Update UI dependencies (CodeMirror, etc.)
-- [ ] **Test suite compatibility**: Ensure all tests pass after upgrades
-  - [ ] Fix any test failures from dependency changes
-  - [ ] Update test mocks for new APIs
-  - [ ] Verify performance benchmarks still pass
-- [ ] **Documentation updates**:
-  - [ ] Update build instructions for new requirements
-  - [ ] Document any new system dependencies
-  - [ ] Update CI/CD configurations
+
+📋 **SEE DETAILED UPGRADE ROADMAP**: [desktop/UPGRADE_ROADMAP.md](desktop/UPGRADE_ROADMAP.md)
+
+**Phase 1: Critical Foundation (Weeks 1-2) - IMMEDIATE**
+- [ ] **Fix Missing Dependencies** ⚡
+  - [ ] Install missing `@codemirror/lang-yaml@6.1.2` package
+- [ ] **XTerm Package Migration** 🔄 (Breaking change coordination)
+  - [ ] Remove deprecated `xterm` packages from root
+  - [ ] Install scoped `@xterm/*` packages (v5.5.0+)
+  - [ ] Update imports across codebase
+  - [ ] Test terminal functionality thoroughly
+- [ ] **Rust Dependency Standardization** 🦀
+  - [ ] Standardize Tokio versions: both projects to `1.88`
+  - [ ] Apply Rust patch updates: serde, chrono, etc.
+- [ ] **Complete CodeMirror Test Resolution** 🧪
+  - [ ] Address remaining 13 CodeMirror test failures
+  - [ ] Enhance mock behavior for advanced features
+  - [ ] Target: 25/29 CodeMirror tests passing
+
+**Phase 2: Testing-First Minor Updates (Weeks 3-4)**
+- [ ] **Development Tool Updates** 🛠️
+  - [ ] TypeScript: 5.8.3 → latest 5.x
+  - [ ] Vitest: 3.2.4 → latest 3.x patches
+  - [ ] Testing Library updates
+- [ ] **Tauri Ecosystem Standardization** 🏗️
+  - [ ] Update all @tauri-apps packages to latest 2.x
+  - [ ] Ensure consistency across plugin versions
+- [ ] **Zero-Coverage Component Testing** 🎯
+  - [ ] Terminal Components: >80% coverage target
+  - [ ] Editor Components: >80% coverage target
+  - [ ] Visual regression POC with Playwright
+
+**Phase 3: Major Framework Planning (Weeks 5-6)**
+- [ ] **Svelte Ecosystem Migration Planning** 📋
+  - [ ] Svelte 4.2.20 → 5.35.6 (Major breaking changes)
+  - [ ] SvelteKit 1.30.4 → 2.22.5 (Major breaking changes)
+  - [ ] Create migration branch and systematic approach
+- [ ] **Build Tool Assessment** 🔧
+  - [ ] Vite 4.5.14 → 7.0.4 analysis
+  - [ ] Plugin compatibility review
+  - [ ] Performance regression testing
+
+**Phase 4: Major Framework Execution (Weeks 7-8)**
+- [ ] **Controlled Svelte Upgrade** 🔄
+  - [ ] Execute Svelte 5 migration with comprehensive testing
+  - [ ] SvelteKit 2 migration with SSG validation
+- [ ] **Build Tool Modernization** 🚀
+  - [ ] Vite 6 upgrade with performance optimization
+  - [ ] Comprehensive validation across all components
+
+**Success Metrics**:
+- Phase 1: All critical deps resolved, tests passing
+- Phase 2: >60% coverage, minor updates complete
+- Phase 3: Migration plans validated, advanced testing operational  
+- Phase 4: >80% coverage, all major upgrades complete
 
 #### Phase 2: Terminal Intelligence & Production (Weeks 4-6)
 
