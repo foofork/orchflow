@@ -1,5 +1,10 @@
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vitest/config';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export default defineConfig({
   plugins: [sveltekit()],
@@ -8,6 +13,9 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/*.{test,spec}.{js,ts}'],
+    deps: {
+      inline: ['@tauri-apps/api', '@tauri-apps/plugin-fs', '@tauri-apps/plugin-shell', '@tauri-apps/plugin-process', '@tauri-apps/plugin-os', '@tauri-apps/plugin-updater']
+    },
     coverage: {
       reporter: ['text', 'json', 'html'],
       exclude: [
@@ -29,5 +37,16 @@ export default defineConfig({
   },
   resolve: {
     conditions: ['browser', 'svelte'],
+    alias: {
+      '@tauri-apps/api/tauri': resolve(__dirname, './src/test/stubs/tauri-api.ts'),
+      '@tauri-apps/api/event': resolve(__dirname, './src/test/stubs/tauri-api.ts'),
+      '@tauri-apps/api/window': resolve(__dirname, './src/test/stubs/tauri-api.ts'),
+      '@tauri-apps/api': resolve(__dirname, './src/test/stubs/tauri-api.ts'),
+      '@tauri-apps/plugin-fs': resolve(__dirname, './src/test/stubs/tauri-plugins.ts'),
+      '@tauri-apps/plugin-shell': resolve(__dirname, './src/test/stubs/tauri-plugins.ts'),
+      '@tauri-apps/plugin-process': resolve(__dirname, './src/test/stubs/tauri-plugins.ts'),
+      '@tauri-apps/plugin-os': resolve(__dirname, './src/test/stubs/tauri-plugins.ts'),
+      '@tauri-apps/plugin-updater': resolve(__dirname, './src/test/stubs/tauri-plugins.ts'),
+    }
   },
 });

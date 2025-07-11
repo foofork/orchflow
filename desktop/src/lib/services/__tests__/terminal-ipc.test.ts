@@ -1,22 +1,15 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-
-// Mock Tauri APIs BEFORE importing anything that uses them
-vi.mock('@tauri-apps/api/tauri', () => ({
-  invoke: vi.fn(),
-}));
-
-vi.mock('@tauri-apps/api/event', () => ({
-  emit: vi.fn(),
-  listen: vi.fn(),
-}));
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
+import { terminalIPC } from '../terminal-ipc';
+import { invoke } from '@tauri-apps/api/tauri';
+import { emit, listen } from '@tauri-apps/api/event';
 
 // Type for UnlistenFn
 type UnlistenFn = () => void;
 
-// Import after mocking
-const { invoke } = await import('@tauri-apps/api/tauri');
-const { emit, listen } = await import('@tauri-apps/api/event');
-const { terminalIPC } = await import('../terminal-ipc');
+// Cast the mocked functions
+const mockInvoke = invoke as Mock;
+const mockEmit = emit as Mock;
+const mockListen = listen as Mock;
 
 describe('Terminal IPC Service', () => {
   let mockUnlisten: UnlistenFn;
