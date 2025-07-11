@@ -5,7 +5,21 @@
 
 ## 🎯 ALL INCOMPLETE TASKS BY PHASE
 
+> **📝 Testing Scripts Available:**
+> - **Complete Test Suite**: `/workspaces/orchflow/scripts/run-complete-upgrade-tests.sh`
+> - **Phase 1 Security**: `/workspaces/orchflow/scripts/test-phase1-security.sh`
+> - **Phase 2 Frameworks**: `/workspaces/orchflow/scripts/test-phase2-frameworks.sh`
+> - **Phase 3 Modernization**: `/workspaces/orchflow/scripts/test-phase3-modernization.sh`
+> - **Phase 4 Ecosystem**: `/workspaces/orchflow/scripts/test-phase4-ecosystem.sh`
+> - **Performance Tests**: `/workspaces/orchflow/scripts/run-performance-tests.sh`
+
 ### 🔄 Phase 2: Core Framework Updates (CURRENT FOCUS)
+
+> **⚠️ Note**: Based on current dependencies, some updates may already be complete:
+> - @tauri-apps/api is already at 2.6.0 (latest)
+> - @codemirror/lang-yaml is at 6.1.2 (installed)
+> - Run `/workspaces/orchflow/scripts/test-phase2-frameworks.sh` to validate
+
 #### Component Testing Tasks (Priority: CRITICAL)
 **Terminal Components (0% → 80% coverage)**
 - [ ] StreamingTerminal comprehensive tests (80% coverage target)
@@ -25,18 +39,14 @@
 - [ ] Cross-browser testing setup
 
 ### 📦 Phase 3: Framework Modernization (NEXT)
-#### 3.1 Svelte 5 Migration
-- [ ] Create Svelte 5 migration plan with breaking change analysis
-- [ ] Convert components to use runes (modern reactive patterns)
-- [ ] Update state management patterns (enhanced store patterns)
-- [ ] Test reactive updates (verify behavior changes)
-- [ ] Performance optimization (benchmark improvements)
 
 #### 3.2 SvelteKit 2 Migration  
+- [ ] Verify SvelteKit 2 upgrade is complete (check package.json)
 - [ ] Update routing syntax (`$app/navigation` API changes)
 - [ ] Migrate load functions (new load function signature)
 - [ ] Update form actions (enhanced form action handling)
 - [ ] Test SSR/SPA modes (verify rendering modes)
+> **Test with**: `/workspaces/orchflow/scripts/test-phase3-modernization.sh`
 
 #### 3.3 Vite 7 Upgrade
 - [ ] Assess Vite 6 upgrade requirements and plugin compatibility
@@ -55,6 +65,7 @@
 - [ ] Migrate test suites (new API compatibility)
 - [ ] Add regression tests (upgrade validation)
 - [ ] Performance benchmarks (maintain optimization)
+  > **Use**: `/workspaces/orchflow/scripts/run-performance-tests.sh`
 - [ ] Implement advanced testing infrastructure (performance, mutation)
   - [ ] Visual regression with Percy/Chromatic
   - [ ] Lighthouse CI for performance monitoring
@@ -67,6 +78,9 @@
   - [ ] VS Code snippets for test patterns
 
 ### 🚀 Phase 4: Ecosystem Updates (FUTURE)
+
+> **Validation**: Run `/workspaces/orchflow/scripts/test-phase4-ecosystem.sh` after completing tasks
+
 #### 4.1 Development Tools
 - [ ] Update TypeScript to latest 5.x features
 - [ ] Upgrade development dependencies (build tool ecosystem)
@@ -82,6 +96,7 @@
 - [ ] Optimize bundle sizes (performance improvements)
 - [ ] Improve build performance (development experience)
 - [ ] Achieve >80% test coverage across all components
+  > **Full validation**: `/workspaces/orchflow/scripts/run-complete-upgrade-tests.sh`
 
 ### 📊 Success Metrics (To Achieve)
 **Security**
