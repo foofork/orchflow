@@ -87,7 +87,7 @@
     error = '';
     
     try {
-      const { readDir } = await import('@tauri-apps/api/fs');
+      const { readDir } = await import('@tauri-apps/plugin-fs');
       const entries = await readDir(path);
       const nodes: TreeNode[] = [];
       
@@ -128,7 +128,7 @@
     tree = tree; // Trigger reactivity
     
     try {
-      const { readDir } = await import('@tauri-apps/api/fs');
+      const { readDir } = await import('@tauri-apps/plugin-fs');
       const entries = await readDir(node.path);
       const children: TreeNode[] = [];
       

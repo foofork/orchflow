@@ -59,6 +59,11 @@ const mockEditorState = {
   },
   Transaction: {
     time: Date.now()
+  },
+  allowMultipleSelections: {
+    of: vi.fn((value) => ({
+      extension: { allowMultipleSelections: value }
+    }))
   }
 };
 
@@ -180,7 +185,7 @@ vi.mock('@codemirror/state', () => ({
   EditorState: mockEditorState
 }));
 
-// Mock basic-setup - not used anymore but keep for compatibility
+// Mock basic-setup - component incorrectly imports EditorView from here
 vi.mock('@codemirror/basic-setup', () => ({
   basicSetup: [
     { extension: 'lineNumbers' },
@@ -201,7 +206,9 @@ vi.mock('@codemirror/basic-setup', () => ({
     { extension: 'highlightActiveLine' },
     { extension: 'searchKeymap' },
     { extension: 'defaultKeymap' },
-  ]
+  ],
+  // Add EditorView export since component incorrectly imports it from basic-setup
+  EditorView: MockEditorView
 }));
 
 // Mock language support

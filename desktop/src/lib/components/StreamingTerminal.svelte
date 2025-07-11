@@ -82,7 +82,7 @@
   }
   
   onMount(async () => {
-    if (!browser || testMode) return;
+    if (!browser) return;
     
     try {
       // Use injected factory or default
@@ -149,9 +149,7 @@
       }
       
       // Create Rust backend terminal
-      if (!testMode) {
-        await createBackendTerminal();
-      }
+      await createBackendTerminal();
       
       // Set up event handlers
       setupEventHandlers();

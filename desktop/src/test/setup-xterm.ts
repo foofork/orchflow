@@ -28,7 +28,12 @@ export class MockTerminal {
   focus = vi.fn();
   blur = vi.fn();
   resize = vi.fn();
-  loadAddon = vi.fn();
+  loadAddon = vi.fn((addon) => {
+    // Simulate the addon activation that XTerm does internally
+    if (addon && typeof addon.activate === 'function') {
+      addon.activate(this);
+    }
+  });
 }
 
 // Create mock FitAddon
@@ -37,10 +42,33 @@ export class MockFitAddon {
   proposeDimensions = vi.fn(() => ({ cols: 80, rows: 24 }));
   activate = vi.fn();
   dispose = vi.fn();
+  _terminal = null;
+  
+  constructor() {
+    // Prevent real addon behavior in tests
+    this.fit = vi.fn();
+    this.proposeDimensions = vi.fn(() => ({ cols: 80, rows: 24 }));
+  }
 }
 
 // Create mock WebLinksAddon
 export class MockWebLinksAddon {
+  activate = vi.fn();
+  dispose = vi.fn();
+}
+
+// Create mock SearchAddon
+export class MockSearchAddon {
+  activate = vi.fn();
+  dispose = vi.fn();
+  findNext = vi.fn(() => false);
+  findPrevious = vi.fn(() => false);
+  clearSelection = vi.fn();
+  selectAll = vi.fn();
+}
+
+// Create mock WebglAddon
+export class MockWebglAddon {
   activate = vi.fn();
   dispose = vi.fn();
 }
@@ -56,6 +84,12 @@ const mockImports = {
   '@xterm/addon-web-links': {
     WebLinksAddon: MockWebLinksAddon
   },
+  '@xterm/addon-search': {
+    SearchAddon: MockSearchAddon
+  },
+  '@xterm/addon-webgl': {
+    WebglAddon: MockWebglAddon
+  },
   '@xterm/xterm/css/xterm.css': {}
 };
 
@@ -64,14 +98,37 @@ const mockImports = {
 
 // Mock the dynamic import function to return our mocks
 const originalImport = (globalThis as any).import;
-(globalThis as any).import = vi.fn(async (path: string) => {
-  // Handle our mocked modules
-  for (const [modulePath, moduleExports] of Object.entries(mockImports)) {
-    if (path.includes(modulePath)) {
-      return moduleExports;
+if (originalImport) {
+  (globalThis as any).import = vi.fn(async (path: string) => {
+    // Handle our mocked modules
+    for (const [modulePath, moduleExports] of Object.entries(mockImports)) {
+      if (path.includes(modulePath)) {
+        return moduleExports;
+      }
     }
-  }
-  
-  // Fall back to original import for other modules
-  return originalImport(path);
-});
+    
+    // Fall back to original import for other modules
+    return originalImport(path);
+  });
+}
+
+// Also setup static mocks for vi.mock() compatibility
+vi.mock('@xterm/xterm', () => ({
+  Terminal: MockTerminal
+}));
+
+vi.mock('@xterm/addon-fit', () => ({
+  FitAddon: MockFitAddon
+}));
+
+vi.mock('@xterm/addon-search', () => ({
+  SearchAddon: MockSearchAddon
+}));
+
+vi.mock('@xterm/addon-web-links', () => ({
+  WebLinksAddon: MockWebLinksAddon
+}));
+
+vi.mock('@xterm/addon-webgl', () => ({
+  WebglAddon: MockWebglAddon
+}));

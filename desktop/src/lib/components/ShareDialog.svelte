@@ -1,7 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
-  import { open } from '@tauri-apps/api/dialog';
+  import { open } from '@tauri-apps/plugin-dialog';
   import { fade, slide } from 'svelte/transition';
   
   export let show = false;
