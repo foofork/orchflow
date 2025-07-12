@@ -104,7 +104,7 @@
         // Listen for file drops
         await appWindow.onFileDropEvent((event) => {
           if (event.payload.type === 'drop') {
-            event.payload.paths.forEach(path => {
+            event.payload.paths.forEach((path: string) => {
               openFile(path);
             });
           }
@@ -132,9 +132,9 @@
   function handleKeydown(event: KeyboardEvent) {
     const key = `${event.ctrlKey || event.metaKey ? 'ctrl+' : ''}${event.shiftKey ? 'shift+' : ''}${event.key.toLowerCase()}`;
     
-    if (shortcuts[key]) {
+    if (key in shortcuts) {
       event.preventDefault();
-      shortcuts[key]();
+      (shortcuts as any)[key]();
     }
   }
   
@@ -162,7 +162,7 @@
     
     const tab: Tab = {
       id: pane.id,
-      title: pane.title,
+      title: pane.title || 'Terminal',
       type: 'terminal',
       paneId: pane.id,
       metadata: { pane }
@@ -317,7 +317,8 @@
         break;
       case 'toggleFullscreen':
         if (isTauri) {
-          const { appWindow } = await import('@tauri-apps/api/window');
+          const { getCurrentWindow } = await import('@tauri-apps/api/window');
+          const appWindow = getCurrentWindow();
           const isFullscreen = await appWindow.isFullscreen();
           await appWindow.setFullscreen(!isFullscreen);
         }
@@ -418,8 +419,8 @@
         {#if activeTab}
           {#if activeTab.type === 'terminal'}
             <Terminal 
-              paneId={activeTab.paneId}
-              title={activeTab.title}
+              paneId={activeTab.paneId || ''}
+              title={activeTab.title || 'Terminal'}
             />
           {:else if activeTab.type === 'dashboard'}
             <LazyComponent loader={DashboardEnhanced} placeholder="Loading Dashboard..." />
@@ -499,8 +500,8 @@
         <div class="editor-pane secondary">
           {#if secondaryTab.type === 'terminal'}
             <Terminal 
-              paneId={secondaryTab.paneId}
-              title={secondaryTab.title}
+              paneId={secondaryTab.paneId || ''}
+              title={secondaryTab.title || 'Terminal'}
             />
           {:else if secondaryTab.type === 'file'}
             <NeovimEditor 
@@ -526,7 +527,7 @@
   <!-- Settings Modal -->
   {#if showSettingsModal}
     <LazyComponent 
-      loader={SettingsModal}
+      loader={() => import('$lib/components/SettingsModal.svelte')}
       props={{
         isOpen: showSettingsModal,
         onClose: () => showSettingsModal = false

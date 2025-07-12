@@ -12,14 +12,14 @@ interface MockedSvelteComponent {
   $destroy: MockedFunction<() => void>;
   $$: {
     fragment: {
-      c: vi.fn(),
-      m: vi.fn(),
-      p: vi.fn(),
-      d: vi.fn()
+      c: () => {},
+      m: () => {},
+      p: () => {},
+      d: () => {}
     };
     ctx: any[];
     props: Record<string, any>;
-    update: Mock<[], void>;
+    update: () => void;
     not_equal: (a: any, b: any) => boolean;
     bound: Record<string, any>;
     on_mount: Function[];
@@ -43,7 +43,7 @@ interface MockedSvelteComponent {
 function createSvelteComponentMock(
   componentName: string, 
   defaultProps: Record<string, any> = {}
-): Mock<[options: any], MockedSvelteComponent> {
+): MockedFunction<(options: any) => MockedSvelteComponent> {
   return vi.fn().mockImplementation((options: any) => {
     const { target, props = {}, anchor, intro } = options;
     const mergedProps = { ...defaultProps, ...props };
