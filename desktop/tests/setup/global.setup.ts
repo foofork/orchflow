@@ -1,4 +1,4 @@
-import { chromium, FullConfig } from '@playwright/test';
+import { chromium, type FullConfig } from '@playwright/test';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
@@ -101,7 +101,7 @@ async function cleanup() {
     
     console.log('✅ Cleanup completed');
   } catch (error) {
-    console.warn('⚠️ Cleanup warning:', error.message);
+    console.warn('⚠️ Cleanup warning:', (error as Error).message);
   }
 }
 

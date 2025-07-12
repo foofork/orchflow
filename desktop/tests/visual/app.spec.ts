@@ -36,9 +36,7 @@ test.describe('Application Visual Regression', () => {
       // await percySnapshot(page, 'File Explorer Panel');
       
       // Take Playwright screenshot
-      await expect(fileExplorer).toHaveScreenshot('file-explorer.png', {
-        animations: 'disabled',
-      });
+      await expect(fileExplorer).toHaveScreenshot('file-explorer.png');
     }
   });
 

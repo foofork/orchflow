@@ -170,7 +170,7 @@ export function createMockSettingsStore() {
     
     getSetting: vi.fn((key: string) => {
       let value: any;
-      settings.subscribe(s => value = s[key])();
+      settings.subscribe(s => value = (s as any)[key])();
       return value;
     }),
     

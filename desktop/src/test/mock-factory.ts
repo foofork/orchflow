@@ -28,7 +28,7 @@ export function createAsyncMock<TArgs extends any[], TReturn>(
 ): MockedFunction<(...args: TArgs) => Promise<TReturn>> {
   const mock = vi.fn() as MockedFunction<(...args: TArgs) => Promise<TReturn>>;
   if (resolvedValue !== undefined) {
-    mock.mockResolvedValue(resolvedValue);
+    mock.mockResolvedValue(resolvedValue as any);
   } else {
     // Always return a Promise, even for void
     mock.mockResolvedValue(undefined as any);
@@ -44,7 +44,7 @@ export function createAsyncMock<TArgs extends any[], TReturn>(
 export function createSyncMock<TArgs extends any[], TReturn>(
   returnValue?: TReturn
 ): MockedFunction<(...args: TArgs) => TReturn> {
-  const mock = vi.fn<TArgs, TReturn>();
+  const mock = vi.fn() as MockedFunction<(...args: TArgs) => TReturn>;
   if (returnValue !== undefined) {
     mock.mockReturnValue(returnValue);
   }
@@ -59,7 +59,7 @@ export function createSyncMock<TArgs extends any[], TReturn>(
 export function createThrowingMock<TArgs extends any[]>(
   error: Error | string
 ): MockedFunction<(...args: TArgs) => never> {
-  const mock = vi.fn<TArgs, never>();
+  const mock = vi.fn() as MockedFunction<(...args: TArgs) => never>;
   mock.mockImplementation(() => {
     throw typeof error === 'string' ? new Error(error) : error;
   });
@@ -74,7 +74,7 @@ export function createThrowingMock<TArgs extends any[]>(
 export function createRejectingMock<TArgs extends any[]>(
   error: Error | string
 ): MockedFunction<(...args: TArgs) => Promise<never>> {
-  const mock = vi.fn<TArgs, Promise<never>>();
+  const mock = vi.fn() as MockedFunction<(...args: TArgs) => Promise<never>>;
   mock.mockRejectedValue(typeof error === 'string' ? new Error(error) : error);
   return mock;
 }
@@ -87,7 +87,7 @@ export function createRejectingMock<TArgs extends any[]>(
 export function createSequenceMock<TArgs extends any[], TReturn>(
   values: TReturn[]
 ): MockedFunction<(...args: TArgs) => TReturn> {
-  const mock = vi.fn<TArgs, TReturn>();
+  const mock = vi.fn() as MockedFunction<(...args: TArgs) => TReturn>;
   values.forEach(value => mock.mockReturnValueOnce(value));
   return mock;
 }
@@ -100,8 +100,8 @@ export function createSequenceMock<TArgs extends any[], TReturn>(
 export function createAsyncSequenceMock<TArgs extends any[], TReturn>(
   values: TReturn[]
 ): MockedFunction<(...args: TArgs) => Promise<TReturn>> {
-  const mock = vi.fn<TArgs, Promise<TReturn>>();
-  values.forEach(value => mock.mockResolvedValueOnce(value));
+  const mock = vi.fn() as MockedFunction<(...args: TArgs) => Promise<TReturn>>;
+  values.forEach(value => mock.mockResolvedValueOnce(value as any));
   return mock;
 }
 
@@ -110,7 +110,7 @@ export function createAsyncSequenceMock<TArgs extends any[], TReturn>(
  * @returns A typed MockedFunction that returns void
  */
 export function createVoidMock<TArgs extends any[]>(): MockedFunction<(...args: TArgs) => void> {
-  return vi.fn<TArgs, void>();
+  return vi.fn() as MockedFunction<(...args: TArgs) => void>;
 }
 
 /**
@@ -185,7 +185,7 @@ export const MockPatterns = {
   conditionalMock: <TArgs extends any[], TReturn>(
     conditions: Array<{ args: TArgs; returns: TReturn }>
   ): MockedFunction<(...args: TArgs) => TReturn> => {
-    const mock = vi.fn<TArgs, TReturn>();
+    const mock = vi.fn() as MockedFunction<(...args: TArgs) => TReturn>;
     mock.mockImplementation((...args) => {
       const condition = conditions.find(c => 
         JSON.stringify(c.args) === JSON.stringify(args)
@@ -202,13 +202,56 @@ export const MockPatterns = {
    * Create a mock that delays before resolving
    */
   delayedMock: <TReturn>(value: TReturn, delay = 100): MockedFunction<() => Promise<TReturn>> => {
-    const mock = vi.fn<[], Promise<TReturn>>();
+    const mock = vi.fn() as MockedFunction<() => Promise<TReturn>>;
     mock.mockImplementation(() => 
       new Promise(resolve => setTimeout(() => resolve(value), delay))
     );
     return mock;
   }
 };
+
+/**
+ * Create a properly typed DataTransfer mock for drag and drop tests
+ * @param overrides Optional overrides for specific DataTransfer properties
+ * @returns A properly typed DataTransfer mock
+ */
+export function createDataTransferMock(
+  overrides: Partial<DataTransfer> = {}
+): Partial<DataTransfer> {
+  return {
+    effectAllowed: 'none',
+    dropEffect: 'none',
+    setData: vi.fn() as MockedFunction<(format: string, data: string) => void>,
+    getData: vi.fn().mockReturnValue('') as MockedFunction<(format: string) => string>,
+    clearData: vi.fn() as MockedFunction<(format?: string) => void>,
+    setDragImage: vi.fn() as MockedFunction<(image: Element, x: number, y: number) => void>,
+    types: [],
+    files: [] as any,
+    items: [] as any,
+    ...overrides
+  };
+}
+
+/**
+ * Create a properly typed mock for DOM events
+ * @param eventType The type of event to mock
+ * @param properties Additional event properties
+ * @returns A properly typed event mock
+ */
+export function createEventMock<T extends Event>(
+  eventType: string,
+  properties: Partial<T> = {}
+): Partial<T> {
+  return {
+    type: eventType,
+    target: null,
+    currentTarget: null,
+    preventDefault: vi.fn(),
+    stopPropagation: vi.fn(),
+    stopImmediatePropagation: vi.fn(),
+    ...properties
+  } as Partial<T>;
+}
 
 /**
  * Export commonly used mock types

@@ -60,8 +60,8 @@ describe('Tauri Native Integrations', () => {
       expect(state).toBeDefined();
       expect(state).toHaveProperty('width');
       expect(state).toHaveProperty('height');
-      expect(state.width).toBeGreaterThan(0);
-      expect(state.height).toBeGreaterThan(0);
+      expect((state as any).width).toBeGreaterThan(0);
+      expect((state as any).height).toBeGreaterThan(0);
     });
 
     it('should handle window events', async () => {
@@ -95,8 +95,8 @@ describe('Tauri Native Integrations', () => {
         args: ['Hello, Tauri!']
       });
       expect(result).toBeDefined();
-      expect(result.stdout).toContain('Hello');
-      expect(result.code).toBe(0);
+      expect((result as any).stdout).toContain('Hello');
+      expect((result as any).code).toBe(0);
     });
 
     it('should handle command errors properly', async () => {
@@ -119,7 +119,7 @@ describe('Tauri Native Integrations', () => {
         options: { cwd: '/tmp' }
       });
       expect(result).toBeDefined();
-      expect(result.code).toBe(0);
+      expect((result as any).code).toBe(0);
     });
   });
 

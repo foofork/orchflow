@@ -1,10 +1,10 @@
-<script>
+<script lang="ts">
   import SearchReplace from '$lib/components/SearchReplace.svelte';
   
   let showSearch = false;
-  let lastReplaceResult = null;
+  let lastReplaceResult: any = null;
   
-  function handleReplaced(event) {
+  function handleReplaced(event: any) {
     lastReplaceResult = event.detail;
     showSearch = false;
   }

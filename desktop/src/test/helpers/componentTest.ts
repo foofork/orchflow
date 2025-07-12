@@ -11,6 +11,18 @@ export interface ComponentTestOptions {
   };
 }
 
+interface UtilsModule {
+  mockInvoke: (mocks: Record<string, any>) => void;
+}
+
+interface CanvasModule {
+  mockCanvasGetContext: () => void;
+}
+
+interface TerminalMocks {
+  MockTerminal: any;
+}
+
 /**
  * Professional component test helper
  * Provides consistent setup for different types of components
@@ -23,20 +35,20 @@ export function renderComponent<T extends ComponentType>(
   
   // Setup mocks if needed
   if (mocks.tauri) {
-    const { mockInvoke } = require('../utils');
+    const { mockInvoke } = require('../utils') as UtilsModule;
     mockInvoke(mocks.tauri);
   }
   
   if (mocks.terminal) {
     // Terminal-specific setup
     vi.mock('@xterm/xterm', () => ({
-      Terminal: require('../mocks/terminal').MockTerminal,
+      Terminal: (require('../mocks/terminal') as TerminalMocks).MockTerminal,
     }));
   }
   
   if (mocks.canvas) {
     // Canvas-specific setup
-    const { mockCanvasGetContext } = require('../utils/canvas');
+    const { mockCanvasGetContext } = require('../utils/canvas') as CanvasModule;
     mockCanvasGetContext();
   }
   
@@ -105,7 +117,7 @@ export function mockResizeObserver() {
           borderBoxSize: [],
           contentBoxSize: [],
           devicePixelContentBoxSize: [],
-        }], observer as any);
+        }], observer as ResizeObserver);
       }
     },
   };
@@ -115,25 +127,40 @@ export function mockResizeObserver() {
  * Test helper for drag and drop operations
  */
 export function createDragEvent(type: string, data?: Record<string, any>) {
-  const event = new Event(type, { bubbles: true, cancelable: true });
-  Object.assign(event, {
+  const event = new Event(type, { bubbles: true, cancelable: true }) as Event & {
     dataTransfer: {
-      data: {},
-      setData(key: string, value: string) {
-        this.data[key] = value;
-      },
-      getData(key: string) {
-        return this.data[key];
-      },
-      clearData() {
-        this.data = {};
-      },
-      effectAllowed: 'all',
-      dropEffect: 'none',
-      files: [],
-      items: [],
-      types: [],
+      data: Record<string, string>;
+      setData(key: string, value: string): void;
+      getData(key: string): string;
+      clearData(): void;
+      effectAllowed: string;
+      dropEffect: string;
+      files: FileList;
+      items: DataTransferItemList;
+      types: readonly string[];
+    };
+  };
+  
+  const mockDataTransfer = {
+    data: {} as Record<string, string>,
+    setData(key: string, value: string) {
+      this.data[key] = value;
     },
+    getData(key: string) {
+      return this.data[key] || '';
+    },
+    clearData() {
+      this.data = {};
+    },
+    effectAllowed: 'all',
+    dropEffect: 'none',
+    files: [] as any as FileList,
+    items: [] as any as DataTransferItemList,
+    types: [] as readonly string[],
+  };
+  
+  Object.assign(event, {
+    dataTransfer: mockDataTransfer,
     ...data,
   });
   return event;

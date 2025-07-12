@@ -524,7 +524,7 @@ export function createMockInvoke() {
     return Promise.reject(new Error(`No handler for command: ${command}`));
   });
 
-  mockInvoke.mockImplementation = (command: string, handler: Function) => {
+  (mockInvoke as any).mockImplementation = (command: string, handler: Function) => {
     handlers.set(command, handler);
   };
 
@@ -532,11 +532,11 @@ export function createMockInvoke() {
   const originalMockClear = vi.mocked(mockInvoke).mockClear;
   const originalMockReset = vi.mocked(mockInvoke).mockReset;
 
-  mockInvoke.mockClear = () => {
+  (mockInvoke as any).mockClear = () => {
     originalMockClear();
   };
 
-  mockInvoke.mockReset = () => {
+  (mockInvoke as any).mockReset = () => {
     handlers.clear();
     originalMockReset();
   };

@@ -1,4 +1,4 @@
-import { FullConfig } from '@playwright/test';
+import { type FullConfig } from '@playwright/test';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
@@ -37,7 +37,7 @@ async function closeGlobalBrowser() {
       console.log('✅ Global browser closed');
     }
   } catch (error) {
-    console.warn('⚠️ Failed to close global browser:', error.message);
+    console.warn('⚠️ Failed to close global browser:', (error as Error).message);
   }
 }
 
@@ -113,7 +113,7 @@ async function finalCleanup() {
     
     console.log('✅ Final cleanup completed');
   } catch (error) {
-    console.warn('⚠️ Final cleanup warning:', error.message);
+    console.warn('⚠️ Final cleanup warning:', (error as Error).message);
   }
 }
 

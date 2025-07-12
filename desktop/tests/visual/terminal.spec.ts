@@ -92,7 +92,7 @@ test.describe('Terminal Visual Regression', () => {
     // Take Playwright screenshot
     await expect(page).toHaveScreenshot('terminal-focused.png', {
       fullPage: false,
-      clip: await firstTerminal.boundingBox(),
+      clip: (await firstTerminal.boundingBox()) || undefined,
       animations: 'disabled',
     });
   });

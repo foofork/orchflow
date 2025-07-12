@@ -18,9 +18,7 @@ test.describe('Editor Visual Regression', () => {
       // await percySnapshot(page, 'CodeMirror Editor - Initial State');
       
       // Take Playwright screenshot
-      await expect(editor).toHaveScreenshot('codemirror-initial.png', {
-        animations: 'disabled',
-      });
+      await expect(editor).toHaveScreenshot('codemirror-initial.png');
     });
 
     test('should capture CodeMirror with different languages', async ({ page }) => {
@@ -47,9 +45,7 @@ test.describe('Editor Visual Regression', () => {
         
         // Take Playwright screenshot
         const editor = await page.locator('.cm-editor');
-        await expect(editor).toHaveScreenshot(`codemirror-${lang}.png`, {
-          animations: 'disabled',
-        });
+        await expect(editor).toHaveScreenshot(`codemirror-${lang}.png`);
       }
     });
 
@@ -71,9 +67,7 @@ test.describe('Editor Visual Regression', () => {
       
       // Take Playwright screenshot
       const editor = await page.locator('.cm-editor');
-      await expect(editor).toHaveScreenshot('codemirror-line-numbers.png', {
-        animations: 'disabled',
-      });
+      await expect(editor).toHaveScreenshot('codemirror-line-numbers.png');
     });
 
     test('should capture CodeMirror with selection', async ({ page }) => {
@@ -105,9 +99,7 @@ test.describe('Editor Visual Regression', () => {
       
       // Take Playwright screenshot
       const editor = await page.locator('.cm-editor');
-      await expect(editor).toHaveScreenshot('codemirror-dark-theme.png', {
-        animations: 'disabled',
-      });
+      await expect(editor).toHaveScreenshot('codemirror-dark-theme.png');
     });
   });
 
@@ -127,9 +119,7 @@ test.describe('Editor Visual Regression', () => {
         // await percySnapshot(page, 'Neovim Editor - Interface');
         
         // Take Playwright screenshot
-        await expect(neovimTerminal).toHaveScreenshot('neovim-interface.png', {
-          animations: 'disabled',
-        });
+        await expect(neovimTerminal).toHaveScreenshot('neovim-interface.png');
       }
     });
 

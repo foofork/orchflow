@@ -1,6 +1,37 @@
 import { writable, readable, type Writable, type Readable } from 'svelte/store';
 import { vi, type MockedFunction } from 'vitest';
-import type { Session, Pane, PluginInfo } from '$lib/api/manager-client';
+// Mock types for testing - these match the real types but avoid import issues
+interface Session {
+  id: string;
+  name: string;
+  panes: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+interface Pane {
+  id: string;
+  session_id: string;
+  pane_type: string;
+  title: string;
+  rows: number;
+  cols: number;
+  x: number;
+  y: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+interface PluginInfo {
+  id: string;
+  name: string;
+  version: string;
+  author: string;
+  description: string;
+  capabilities: string[];
+  loaded: boolean;
+}
 import { createAsyncMock, createAsyncVoidMock } from './mock-factory';
 
 // Helper to create a mock writable store that mimics a derived store
@@ -157,7 +188,7 @@ export function createMockManagerStores() {
     closePane: createAsyncVoidMock<[paneId: string]>(),
     focusPane: createAsyncVoidMock<[paneId: string]>(),
     getPaneOutput: createAsyncMock<[paneId: string], string>(),
-    subscribe: vi.fn(),
+    subscribe: vi.fn().mockImplementation((fn) => () => {}),
   };
   
   return {

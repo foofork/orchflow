@@ -58,7 +58,7 @@ async function cleanup() {
     // Wait a moment for cleanup
     await new Promise(resolve => setTimeout(resolve, 1000));
   } catch (error) {
-    console.warn('⚠️ Cleanup warning:', error.message);
+    console.warn('⚠️ Cleanup warning:', (error as Error).message);
   }
 }
 

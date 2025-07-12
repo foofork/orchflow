@@ -165,7 +165,7 @@ export function createMockPlugin(overrides: Partial<PluginInfo> = {}): PluginInf
     version: '1.0.0',
     author: 'Test Author',
     description: 'A test plugin',
-    path: '/path/to/plugin',
+    // Note: path is not a valid PluginInfo property, removing
     loaded: false,
     status: 'available',
     type: 'core',
@@ -179,8 +179,16 @@ export function createMockPlugin(overrides: Partial<PluginInfo> = {}): PluginInf
 export function createMockPane(overrides: Partial<Pane> = {}): Pane {
   return {
     id: 'test-pane',
-    title: 'Test Pane',
+    session_id: 'test-session',
     pane_type: 'Editor',
+    title: 'Test Pane',
+    rows: 24,
+    cols: 80,
+    x: 0,
+    y: 0,
+    is_active: false,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
     ...overrides
   };
 }
@@ -192,6 +200,10 @@ export function createMockSession(overrides: Partial<Session> = {}): Session {
   return {
     id: 'test-session',
     name: 'Test Session',
+    panes: [],
+    layout: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
     ...overrides
   };
 }

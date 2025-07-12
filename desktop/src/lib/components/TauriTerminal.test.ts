@@ -80,8 +80,8 @@ describe('TauriTerminal', () => {
     vi.useFakeTimers();
     
     // Setup default mock responses
-    tmux.createPane.mockResolvedValue({ id: 'pane-123' });
-    tmux.capturePane.mockResolvedValue('Terminal output\n$');
+    (tmux.createPane as any).mockResolvedValue({ id: 'pane-123' });
+    (tmux.capturePane as any).mockResolvedValue('Terminal output\n$');
   });
 
   afterEach(() => {
@@ -253,7 +253,7 @@ describe('TauriTerminal', () => {
   describe('Error Handling', () => {
     it('should handle pane creation failure gracefully', async () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      tmux.createPane.mockRejectedValue(new Error('Failed to create pane'));
+      (tmux.createPane as any).mockRejectedValue(new Error('Failed to create pane'));
       
       render(TauriTerminal, {
         props: {

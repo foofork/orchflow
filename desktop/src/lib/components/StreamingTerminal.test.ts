@@ -819,8 +819,8 @@ describe('StreamingTerminal', () => {
       });
 
       // Temporarily mock the container binding
-      const originalBind = Element.prototype.bind;
-      Element.prototype.bind = vi.fn();
+      const originalBind = (Element.prototype as any).bind;
+      (Element.prototype as any).bind = vi.fn();
 
       render(StreamingTerminal, {
         props: {
@@ -834,7 +834,7 @@ describe('StreamingTerminal', () => {
       });
 
       // Restore
-      Element.prototype.bind = originalBind;
+      (Element.prototype as any).bind = originalBind;
     });
 
     it('should handle invoke errors', async () => {

@@ -24,7 +24,7 @@ vi.mock('$lib/stores/manager', () => {
   const { writable, derived } = require('svelte/store');
   
   const mockPluginsStore = writable([]);
-  const mockLoadedPluginsStore = derived(mockPluginsStore, ($plugins) => $plugins.filter((p) => p.loaded));
+  const mockLoadedPluginsStore = derived(mockPluginsStore, ($plugins: any[]) => $plugins.filter((p: any) => p.loaded));
   
   const mockManager = {
     refreshPlugins: vi.fn().mockResolvedValue(undefined),

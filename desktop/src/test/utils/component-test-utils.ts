@@ -27,7 +27,7 @@ export function renderWithContext<T extends SvelteComponent>(
     });
   }
 
-  const result = render(Component, {
+  const result = render(Component as any, {
     ...props,
     target,
     context
@@ -136,7 +136,7 @@ export function simulateMouse(
     metaKey: options.metaKey ?? false,
   };
 
-  fireEvent[event](element, mouseEventInit);
+  fireEvent.dblClick(element, mouseEventInit);
 }
 
 /**

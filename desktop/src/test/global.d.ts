@@ -1,53 +1,112 @@
-/// <reference types="vitest/globals" />
+/// <reference types="vitest" />
 /// <reference types="@testing-library/jest-dom" />
-/// <reference types="svelte" />
+
+import type { MockedFunction, Mock } from 'vitest';
 
 declare global {
-  // Ensure vitest globals are available
+  // Node.js globals for Vitest
+  interface GlobalThis {
+    testUtilsSetup?: boolean;
+    window: Window & typeof globalThis;
+    browser: boolean;
+    self: typeof globalThis;
+  }
+
+  // Vitest global types
   const vi: typeof import('vitest').vi;
-  const expect: typeof import('vitest').expect;
-  const describe: typeof import('vitest').describe;
-  const it: typeof import('vitest').it;
-  const test: typeof import('vitest').test;
-  const beforeEach: typeof import('vitest').beforeEach;
-  const afterEach: typeof import('vitest').afterEach;
-  const beforeAll: typeof import('vitest').beforeAll;
-  const afterAll: typeof import('vitest').afterAll;
 
-  // Testing library matchers
-  namespace jest {
-    interface Matchers<R> {
-      toBeInTheDocument(): R;
-      toBeVisible(): R;
-      toBeDisabled(): R;
-      toHaveClass(className: string): R;
-      toHaveTextContent(text: string | RegExp): R;
-      toHaveAttribute(attr: string, value?: string): R;
-    }
-  }
-
-  // Svelte component types
-  interface SvelteComponent {
-    $set(props: any): void;
-    $on(event: string, handler: Function): () => void;
-    $destroy(): void;
-  }
-
-  // Mock types
-  type MockedFunction<T extends (...args: any[]) => any> = import('vitest').MockedFunction<T>;
-  type Mock<T = any> = import('vitest').Mock<T>;
-
-  // Custom test utilities
+  // Additional Tauri types
   interface Window {
-    __TAURI__?: any;
-    __TEST_MODE__?: boolean;
+    __TAURI_IPC__?: MockedFunction<(...args: any[]) => any>;
+    __TAURI_METADATA__?: {
+      __windows: any[];
+      __currentWindow: { label: string };
+    };
   }
+
+  // Mock component types for tests
+  interface MockSvelteComponent {
+    $set: Mock<[props: any], void>;
+    $on: Mock<[event: string, handler: Function], () => void>;
+    $destroy: Mock<[], void>;
+    $$: {
+      fragment: {
+        c: Mock<[], void>;
+        m: Mock<[target: HTMLElement, anchor?: Node], void>;
+        p: Mock<[ctx: any[], dirty: number[]], void>;
+        d: Mock<[detaching: boolean], void>;
+      };
+      ctx: any[];
+      props: Record<string, any>;
+      update: Mock<[], void>;
+      not_equal: (a: any, b: any) => boolean;
+      bound: Record<string, any>;
+      on_mount: Function[];
+      on_destroy: Function[];
+      on_disconnect: Function[];
+      before_update: Function[];
+      after_update: Function[];
+      context: Map<any, any>;
+      callbacks: Record<string, Function[]>;
+      dirty: number[];
+      skip_bound: boolean;
+      root: HTMLElement;
+    };
+    element: HTMLElement;
+  }
+
+  // Terminal mock types
+  interface MockTerminal {
+    open: Mock<[container: HTMLElement], void>;
+    write: Mock<[data: string], void>;
+    onData: Mock<[callback: (data: string) => void], { dispose: Mock<[], void> }>;
+    onResize: Mock<[callback: (event: { cols: number; rows: number }) => void], { dispose: Mock<[], void> }>;
+    resize: Mock<[cols: number, rows: number], void>;
+    dispose: Mock<[], void>;
+    clear: Mock<[], void>;
+    focus: Mock<[], void>;
+    blur: Mock<[], void>;
+    element: HTMLElement;
+    cols: number;
+    rows: number;
+  }
+
+  // Error types for catch blocks
+  interface ErrorWithMessage {
+    message: string;
+  }
+
+  // Canvas mock types
+  interface MockCanvasRenderingContext2D extends Partial<CanvasRenderingContext2D> {
+    [key: string]: any;
+  }
+
+  // ResizeObserver types
+  interface ResizeObserverEntry {
+    target: Element;
+    contentRect: DOMRectReadOnly;
+    borderBoxSize: readonly ResizeObserverSize[];
+    contentBoxSize: readonly ResizeObserverSize[];
+    devicePixelContentBoxSize: readonly ResizeObserverSize[];
+  }
+
+  interface ResizeObserverSize {
+    inlineSize: number;
+    blockSize: number;
+  }
+
+  type ResizeObserverCallback = (entries: ResizeObserverEntry[], observer: ResizeObserver) => void;
+
+  interface ResizeObserver {
+    observe(target: Element): void;
+    unobserve(target: Element): void;
+    disconnect(): void;
+  }
+
+  const ResizeObserver: {
+    prototype: ResizeObserver;
+    new(callback: ResizeObserverCallback): ResizeObserver;
+  };
 }
 
-// Ensure this is treated as a module
 export {};
-
-// Additional type exports for test files
-export type { MockedFunction, Mock } from 'vitest';
-export type { RenderResult } from '@testing-library/svelte';
-export type { ComponentProps, SvelteComponent } from 'svelte';

@@ -326,6 +326,5 @@ export interface AuditEvent {
 // Export stores and API
 export {
   terminalContexts as terminalSecurityStore,
-  globalSecuritySettings,
-  securityStatus
+  globalSecuritySettings
 };

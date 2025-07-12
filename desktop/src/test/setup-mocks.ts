@@ -1,4 +1,4 @@
-import { vi, type MockedFunction } from 'vitest';
+import { vi, type MockedFunction, type Mock } from 'vitest';
 
 /**
  * Enhanced Svelte component mocking to fix 'block.c is not a function' errors
@@ -12,14 +12,14 @@ interface MockedSvelteComponent {
   $destroy: MockedFunction<() => void>;
   $$: {
     fragment: {
-      c: MockedFunction<() => void>;
-      m: MockedFunction<(target: HTMLElement, anchor?: Node) => void>;
-      p: MockedFunction<(ctx: any[], dirty: number[]) => void>;
-      d: MockedFunction<(detaching: boolean) => void>;
+      c: vi.fn(),
+      m: vi.fn(),
+      p: vi.fn(),
+      d: vi.fn()
     };
     ctx: any[];
     props: Record<string, any>;
-    update: MockedFunction<() => void>;
+    update: Mock<[], void>;
     not_equal: (a: any, b: any) => boolean;
     bound: Record<string, any>;
     on_mount: Function[];
@@ -43,7 +43,7 @@ interface MockedSvelteComponent {
 function createSvelteComponentMock(
   componentName: string, 
   defaultProps: Record<string, any> = {}
-): MockedFunction<(options: any) => MockedSvelteComponent> {
+): Mock<[options: any], MockedSvelteComponent> {
   return vi.fn().mockImplementation((options: any) => {
     const { target, props = {}, anchor, intro } = options;
     const mergedProps = { ...defaultProps, ...props };
@@ -78,7 +78,7 @@ function createSvelteComponentMock(
     // Create proper Svelte component interface
     const component: MockedSvelteComponent = {
       // Standard Svelte component methods
-      $set: vi.fn<[any], void>((newProps: any) => {
+      $set: vi.fn<[props: any], void>((newProps: any) => {
         Object.assign(mergedProps, newProps);
         // Update DOM based on props
         if (newProps.show !== undefined || newProps.open !== undefined) {
@@ -90,7 +90,7 @@ function createSvelteComponentMock(
         }
       }),
       
-      $on: vi.fn<[string, Function], () => void>((event: string, handler: Function) => {
+      $on: vi.fn<[event: string, handler: Function], () => void>((event: string, handler: Function) => {
         element.addEventListener(event, handler as EventListener);
         return () => element.removeEventListener(event, handler as EventListener);
       }),
@@ -104,14 +104,14 @@ function createSvelteComponentMock(
       // Svelte internal properties
       $$: {
         fragment: {
-          c: vi.fn(), // create
-          m: vi.fn(), // mount
-          p: vi.fn(), // update  
-          d: vi.fn()  // destroy
+          c: vi.fn<[], void>(), // create
+          m: vi.fn<[target: HTMLElement, anchor?: Node], void>(), // mount
+          p: vi.fn<[ctx: any[], dirty: number[]], void>(), // update  
+          d: vi.fn<[detaching: boolean], void>()  // destroy
         },
         ctx: [],
         props: mergedProps,
-        update: vi.fn(),
+        update: vi.fn<[], void>(),
         not_equal: (a: any, b: any) => a !== b,
         bound: {},
         on_mount: [],

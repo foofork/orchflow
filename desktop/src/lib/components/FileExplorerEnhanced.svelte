@@ -396,7 +396,7 @@
       Delete
     </button>
     <div class="menu-separator"></div>
-    <button class="menu-item" on:click={() => handleCopyPath(contextMenu.node)}>
+    <button class="menu-item" on:click={() => contextMenu && handleCopyPath(contextMenu.node)}>
       <span class="menu-icon">📋</span>
       Copy Path
     </button>

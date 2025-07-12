@@ -7,6 +7,7 @@ import {
   waitForElement,
   simulateMouse 
 } from '../../test/utils/component-test-utils';
+import { createDataTransferMock } from '../../test/mock-factory';
 import TabBar from './TabBar.svelte';
 
 describe('TabBar', () => {
@@ -187,7 +188,7 @@ describe('TabBar', () => {
       component.$on('closeTab', closeHandler);
       
       const closeButton = container.querySelector('.tab-close');
-      closeButton!.focus();
+      (closeButton as HTMLElement).focus();
       
       await fireEvent.keyDown(closeButton!, { key: 'Enter' });
       
@@ -219,16 +220,11 @@ describe('TabBar', () => {
       const thirdTab = tabs[2];
       
       // Mock DataTransfer
-      const mockDataTransfer = {
-        effectAllowed: 'none',
-        dropEffect: 'none',
-        setData: vi.fn(),
-        getData: vi.fn().mockReturnValue('tab1'),
-        clearData: vi.fn(),
-        setDragImage: vi.fn()
-      };
+      const mockDataTransfer = createDataTransferMock({
+        getData: vi.fn().mockReturnValue('tab1')
+      });
       
-      await simulateDragAndDrop(firstTab, thirdTab, mockDataTransfer);
+      await simulateDragAndDrop(firstTab!, thirdTab!, mockDataTransfer);
       
       // Check tab order changed
       expect(component.tabs[0].id).toBe('tab2');
@@ -242,21 +238,16 @@ describe('TabBar', () => {
       });
       
       const firstTab = container.querySelector('.tab');
-      const initialOrder = component.tabs.map(t => t.id);
+      const initialOrder = component.tabs.map((t: any) => t.id);
       
-      const mockDataTransfer = {
-        effectAllowed: 'none',
-        dropEffect: 'none',
-        setData: vi.fn(),
-        getData: vi.fn().mockReturnValue('tab1'),
-        clearData: vi.fn(),
-        setDragImage: vi.fn()
-      };
+      const mockDataTransfer = createDataTransferMock({
+        getData: vi.fn().mockReturnValue('tab1')
+      });
       
       await simulateDragAndDrop(firstTab!, firstTab!, mockDataTransfer);
       
       // Order should remain the same
-      expect(component.tabs.map(t => t.id)).toEqual(initialOrder);
+      expect(component.tabs.map((t: { id: string }) => t.id)).toEqual(initialOrder);
     });
 
     it('should handle invalid drag data gracefully', async () => {
@@ -265,21 +256,16 @@ describe('TabBar', () => {
       });
       
       const firstTab = container.querySelector('.tab');
-      const initialOrder = component.tabs.map(t => t.id);
+      const initialOrder = component.tabs.map((t: any) => t.id);
       
-      const mockDataTransfer = {
-        effectAllowed: 'none',
-        dropEffect: 'none',
-        setData: vi.fn(),
-        getData: vi.fn().mockReturnValue('invalid-tab-id'),
-        clearData: vi.fn(),
-        setDragImage: vi.fn()
-      };
+      const mockDataTransfer = createDataTransferMock({
+        getData: vi.fn().mockReturnValue('invalid-tab-id')
+      });
       
       await simulateDragAndDrop(firstTab!, firstTab!, mockDataTransfer);
       
       // Order should remain the same
-      expect(component.tabs.map(t => t.id)).toEqual(initialOrder);
+      expect(component.tabs.map((t: { id: string }) => t.id)).toEqual(initialOrder);
     });
 
     it('should set correct drag effect', async () => {
@@ -288,14 +274,10 @@ describe('TabBar', () => {
       });
       
       const firstTab = container.querySelector('.tab');
-      const mockDataTransfer = {
-        effectAllowed: '',
-        dropEffect: '',
-        setData: vi.fn(),
-        getData: vi.fn(),
-        clearData: vi.fn(),
-        setDragImage: vi.fn()
-      };
+      const mockDataTransfer = createDataTransferMock({
+        effectAllowed: 'none',
+        dropEffect: 'none'
+      });
       
       await fireEvent.dragStart(firstTab!, { dataTransfer: mockDataTransfer });
       expect(mockDataTransfer.effectAllowed).toBe('move');
@@ -364,7 +346,7 @@ describe('TabBar', () => {
       const tabs = container.querySelectorAll('.tab');
       
       // Focus first tab
-      tabs[0].focus();
+      (tabs[0] as HTMLElement).focus();
       expect(document.activeElement).toBe(tabs[0]);
       
       // Tab to next
@@ -382,7 +364,7 @@ describe('TabBar', () => {
       });
       
       const secondTab = container.querySelectorAll('.tab')[1];
-      secondTab.focus();
+      (secondTab as HTMLElement).focus();
       
       await fireEvent.keyDown(secondTab, { key: 'Enter' });
       
@@ -395,7 +377,7 @@ describe('TabBar', () => {
       });
       
       const thirdTab = container.querySelectorAll('.tab')[2];
-      thirdTab.focus();
+      (thirdTab as HTMLElement).focus();
       
       await fireEvent.keyDown(thirdTab, { key: ' ' });
       
@@ -408,13 +390,13 @@ describe('TabBar', () => {
       });
       
       const tabs = container.querySelectorAll('.tab');
-      tabs[0].focus();
+      (tabs[0] as HTMLElement).focus();
       
       // Right arrow to next tab
       await fireEvent.keyDown(tabs[0], { key: 'ArrowRight' });
       
       // Left arrow to previous tab
-      tabs[1].focus();
+      (tabs[1] as HTMLElement).focus();
       await fireEvent.keyDown(tabs[1], { key: 'ArrowLeft' });
     });
   });

@@ -118,10 +118,22 @@ describe('Manager Store', () => {
 
     it('should load initial sessions and plugins', async () => {
       const mockSessions: Session[] = [
-        { id: 'session1', name: 'Test Session', created_at: new Date().toISOString() }
+        { 
+          id: 'session1', 
+          name: 'Test Session', 
+          panes: [],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
       ];
       const mockPlugins: PluginInfo[] = [
-        { id: 'plugin1', name: 'Test Plugin', version: '1.0.0', loaded: true, metadata: {} }
+        { 
+          id: 'plugin1', 
+          name: 'Test Plugin', 
+          version: '1.0.0', 
+          loaded: true,
+          capabilities: ['terminal', 'editor']
+        }
       ];
       
       vi.mocked(managerClient.getSessions).mockResolvedValue(mockSessions);
@@ -145,8 +157,10 @@ describe('Manager Store', () => {
     it('should create a new session', async () => {
       const newSession: Session = { 
         id: 'new-session', 
-        name: 'New Session', 
-        created_at: new Date().toISOString() 
+        name: 'New Session',
+        panes: [],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
       
       vi.mocked(managerClient.createSession).mockResolvedValue(newSession);
@@ -166,8 +180,20 @@ describe('Manager Store', () => {
 
     it('should refresh sessions', async () => {
       const mockSessions: Session[] = [
-        { id: 'session1', name: 'Session 1', created_at: new Date().toISOString() },
-        { id: 'session2', name: 'Session 2', created_at: new Date().toISOString() }
+        { 
+          id: 'session1', 
+          name: 'Session 1', 
+          panes: [],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        },
+        { 
+          id: 'session2', 
+          name: 'Session 2', 
+          panes: [],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
       ];
       
       vi.mocked(managerClient.getSessions).mockResolvedValue(mockSessions);
@@ -187,11 +213,17 @@ describe('Manager Store', () => {
     it('should refresh sessions on SessionCreated event', async () => {
       // Mock to track the refresh call
       const mockSessions: Session[] = [
-        { id: 'new-session', name: 'New Session', created_at: new Date().toISOString() }
+        { 
+          id: 'new-session', 
+          name: 'New Session',
+          panes: [],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
       ];
       vi.mocked(managerClient.getSessions).mockResolvedValue(mockSessions);
       
-      const event: ManagerEvent = { type: 'SessionCreated', session_id: 'new-session' };
+      const event: ManagerEvent = { type: 'SessionCreated', session_id: 'new-session', name: 'New Session' };
       eventHandlers.get('SessionCreated')?.(event);
       
       // Give async operations time to complete
@@ -204,8 +236,20 @@ describe('Manager Store', () => {
     it('should remove session on SessionDeleted event', async () => {
       // Set up initial state
       const initialSessions: Session[] = [
-        { id: 'session1', name: 'Session 1', created_at: new Date().toISOString() },
-        { id: 'session2', name: 'Session 2', created_at: new Date().toISOString() }
+        { 
+          id: 'session1', 
+          name: 'Session 1', 
+          panes: [],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        },
+        { 
+          id: 'session2', 
+          name: 'Session 2', 
+          panes: [],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
       ];
       vi.mocked(managerClient.getSessions).mockResolvedValue(initialSessions);
       await manager.refreshSessions();
@@ -230,9 +274,10 @@ describe('Manager Store', () => {
           is_active: true,
           cols: 80,
           rows: 24,
-          cwd: '/home/user',
-          process_id: null,
-          exit_code: null
+          x: 0,
+          y: 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         }
       ];
       vi.mocked(managerClient.getPanes).mockResolvedValue(mockPanes);
@@ -262,9 +307,10 @@ describe('Manager Store', () => {
           is_active: true,
           cols: 80,
           rows: 24,
-          cwd: '/home/user',
-          process_id: null,
-          exit_code: null
+          x: 0,
+          y: 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         }
       ];
       
@@ -315,7 +361,13 @@ describe('Manager Store', () => {
     it('should refresh plugins on PluginLoaded event', async () => {
       // Mock to track the refresh call
       const mockPlugins: PluginInfo[] = [
-        { id: 'plugin1', name: 'Test Plugin', version: '1.0.0', loaded: true, metadata: {} }
+        { 
+          id: 'plugin1', 
+          name: 'Test Plugin', 
+          version: '1.0.0', 
+          loaded: true,
+          capabilities: ['terminal', 'editor']
+        }
       ];
       vi.mocked(managerClient.listPlugins).mockResolvedValue(mockPlugins);
       
@@ -360,20 +412,21 @@ describe('Manager Store', () => {
         is_active: true,
         cols: 80,
         rows: 24,
-        cwd: '/home/user',
-        process_id: null,
-        exit_code: null
+        x: 0,
+        y: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
       
       vi.mocked(managerClient.createPane).mockResolvedValue(newPane);
       vi.mocked(managerClient.getPanes).mockResolvedValue([newPane]);
       
-      const result = await manager.createTerminal('session1', { cwd: '/home/user' });
+      const result = await manager.createTerminal('session1', { command: 'bash' });
       
       expect(result).toEqual(newPane);
       expect(managerClient.createPane).toHaveBeenCalledWith('session1', {
         paneType: 'Terminal',
-        cwd: '/home/user'
+        command: 'bash'
       });
     });
 
@@ -424,8 +477,20 @@ describe('Manager Store', () => {
 
     it('should refresh plugins', async () => {
       const mockPlugins: PluginInfo[] = [
-        { id: 'plugin1', name: 'Plugin 1', version: '1.0.0', loaded: true, metadata: {} },
-        { id: 'plugin2', name: 'Plugin 2', version: '2.0.0', loaded: false, metadata: {} }
+        { 
+          id: 'plugin1', 
+          name: 'Plugin 1', 
+          version: '1.0.0', 
+          loaded: true,
+          capabilities: ['terminal']
+        },
+        { 
+          id: 'plugin2', 
+          name: 'Plugin 2', 
+          version: '2.0.0', 
+          loaded: false,
+          capabilities: ['editor']
+        }
       ];
       
       vi.mocked(managerClient.listPlugins).mockResolvedValue(mockPlugins);
@@ -500,7 +565,12 @@ describe('Manager Store', () => {
     });
 
     it('should get command history', async () => {
-      const history = [{ command: 'ls', timestamp: Date.now() }];
+      const history = [{ 
+        id: 'cmd1',
+        command: 'ls', 
+        timestamp: new Date().toISOString(),
+        pane_id: 'pane1'
+      }];
       vi.mocked(managerClient.getCommandHistory).mockResolvedValue(history);
       
       const result = await manager.getCommandHistory('pane1', 10);

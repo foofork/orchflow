@@ -20,7 +20,7 @@ export async function checkAccessibility(
   });
 
   if (results.violations.length > 0) {
-    const violations = results.violations.map(v => ({
+    const violations = results.violations.map((v: any) => ({
       id: v.id,
       impact: v.impact,
       description: v.description,
