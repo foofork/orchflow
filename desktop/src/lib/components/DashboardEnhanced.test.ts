@@ -18,14 +18,31 @@ vi.mock('../stores/manager', () => {
       closePane: vi.fn(),
       focusPane: vi.fn()
     },
-    sessions: mockSessions,
-    panes: mockPanes,
-    isConnected: mockIsConnected
+    sessions: {
+      subscribe: mockSessions.subscribe,
+      set: mockSessions.set,
+      update: mockSessions.update
+    },
+    panes: {
+      subscribe: mockPanes.subscribe,
+      set: mockPanes.set,
+      update: mockPanes.update
+    },
+    isConnected: {
+      subscribe: mockIsConnected.subscribe,
+      set: mockIsConnected.set,
+      update: mockIsConnected.update
+    }
   };
 });
 
 // Import mocked stores after mocking
 import { manager, sessions as sessionsStore, panes as panesStore, isConnected as connectedStore } from '../stores/manager';
+
+// Type assertions for the mocked stores
+const writableSessionsStore = sessionsStore as any;
+const writablePanesStore = panesStore as any;
+const writableConnectedStore = connectedStore as any;
 
 describe('DashboardEnhanced Component', () => {
   const mockOnSelectPane = vi.fn();
@@ -34,9 +51,9 @@ describe('DashboardEnhanced Component', () => {
     vi.clearAllMocks();
     
     // Reset stores
-    sessionsStore.set([]);
-    panesStore.set(new Map());
-    connectedStore.set(true);
+    writableSessionsStore.set([]);
+    writablePanesStore.set(new Map());
+    writableConnectedStore.set(true);
     mockOnSelectPane.mockClear();
   });
 
@@ -74,7 +91,7 @@ describe('DashboardEnhanced Component', () => {
       }]
     ]);
     
-    panesStore.set(testPanes);
+    writablePanesStore.set(testPanes);
     
     const { getByText, container } = render(DashboardEnhanced, {
       props: { onSelectPane: mockOnSelectPane }
@@ -134,7 +151,7 @@ describe('DashboardEnhanced Component', () => {
       }]
     ]);
     
-    panesStore.set(testPanes);
+    writablePanesStore.set(testPanes);
     
     const { getByText, container } = render(DashboardEnhanced, {
       props: { onSelectPane: mockOnSelectPane }
@@ -161,7 +178,7 @@ describe('DashboardEnhanced Component', () => {
       }]
     ]);
     
-    panesStore.set(testPanes);
+    writablePanesStore.set(testPanes);
     
     const { getByText, container } = render(DashboardEnhanced, {
       props: { onSelectPane: mockOnSelectPane }
@@ -193,7 +210,7 @@ describe('DashboardEnhanced Component', () => {
     };
     
     const testPanes = new Map([['pane1', testPane]]);
-    panesStore.set(testPanes);
+    writablePanesStore.set(testPanes);
     
     const { getByText } = render(DashboardEnhanced, {
       props: { onSelectPane: mockOnSelectPane }
@@ -217,7 +234,7 @@ describe('DashboardEnhanced Component', () => {
     };
     
     const testPanes = new Map([['pane1', testPane]]);
-    panesStore.set(testPanes);
+    writablePanesStore.set(testPanes);
     
     vi.mocked(manager.createTerminal).mockResolvedValue({
       id: 'new-pane',
@@ -252,7 +269,7 @@ describe('DashboardEnhanced Component', () => {
       }]
     ]);
     
-    panesStore.set(testPanes);
+    writablePanesStore.set(testPanes);
     
     const { getByText } = render(DashboardEnhanced, {
       props: { onSelectPane: mockOnSelectPane }
@@ -276,7 +293,7 @@ describe('DashboardEnhanced Component', () => {
       }]
     ]);
     
-    panesStore.set(testPanes);
+    writablePanesStore.set(testPanes);
     
     const { container } = render(DashboardEnhanced, {
       props: { onSelectPane: mockOnSelectPane }
@@ -317,7 +334,7 @@ describe('DashboardEnhanced Component', () => {
       }]
     ]);
     
-    panesStore.set(testPanes);
+    writablePanesStore.set(testPanes);
     
     const { container } = render(DashboardEnhanced, {
       props: { onSelectPane: mockOnSelectPane }
@@ -342,7 +359,7 @@ describe('DashboardEnhanced Component', () => {
     };
     
     const testPanes = new Map([['pane1', testPane]]);
-    panesStore.set(testPanes);
+    writablePanesStore.set(testPanes);
     
     const { getByText, getByTitle } = render(DashboardEnhanced, {
       props: { onSelectPane: mockOnSelectPane }

@@ -61,12 +61,14 @@
         // Skip hidden files/folders
         if (entry.name?.startsWith('.')) continue;
         
-        const isDir = (entry as any).isDirectory || false;
+        const { join } = await import('@tauri-apps/api/path');
+        const fullPath = await join(path, entry.name);
+        
         nodes.push({
           name: entry.name || 'Unknown',
-          path: entry.path,
-          isDirectory: isDir,
-          children: isDir ? [] : undefined,
+          path: fullPath,
+          isDirectory: entry.isDirectory,
+          children: entry.isDirectory ? [] : undefined,
           expanded: false,
         });
       }
@@ -95,20 +97,22 @@
         const children: TreeNode[] = [];
         
         entries.sort((a, b) => {
-          if (a.children !== undefined && b.children === undefined) return -1;
-          if (a.children === undefined && b.children !== undefined) return 1;
+          if (a.isDirectory && !b.isDirectory) return -1;
+          if (!a.isDirectory && b.isDirectory) return 1;
           return a.name?.localeCompare(b.name || '') || 0;
         });
         
         for (const entry of entries) {
           if (entry.name?.startsWith('.')) continue;
           
-          const isDir = (entry as any).isDirectory || false;
+          const { join } = await import('@tauri-apps/api/path');
+          const fullPath = await join(node.path, entry.name);
+          
           children.push({
             name: entry.name || 'Unknown',
-            path: entry.path,
-            isDirectory: isDir,
-            children: isDir ? [] : undefined,
+            path: fullPath,
+            isDirectory: entry.isDirectory,
+            children: entry.isDirectory ? [] : undefined,
             expanded: false,
           });
         }

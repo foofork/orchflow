@@ -26,3 +26,5 @@ memory/
 
 # GitHub workflows (duplicate in subdirectories)
 desktop/.github/
+.swarm/memory.db-wal
+.swarm/memory.db-shm

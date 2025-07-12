@@ -120,10 +120,7 @@ describe('CommandConfirmationDialog', () => {
         open: true,
         command: 'rm -rf /',
         warning: mockWarning,
-        terminalInfo: mockTerminalInfo,
-        onConfirm: mockOnConfirm,
-        onCancel: mockOnCancel,
-        onBypass: mockOnBypass
+        terminalInfo: mockTerminalInfo
       }
     });
 
@@ -172,15 +169,17 @@ describe('CommandConfirmationDialog', () => {
   });
 
   it('calls onConfirm when proceed clicked', async () => {
-    const { container } = render(CommandConfirmationDialog, {
+    const { container, component } = render(CommandConfirmationDialog, {
       props: {
         open: true,
         command: 'rm -rf /',
         warning: mockWarning,
-        terminalInfo: mockTerminalInfo,
-        onConfirm: mockOnConfirm
+        terminalInfo: mockTerminalInfo
       }
     });
+
+    const confirmHandler = vi.fn();
+    component.$on('confirm', confirmHandler);
 
     await waitFor(() => {
       expect(container.querySelector('.confirmation-dialog')).toBeInTheDocument();
@@ -194,19 +193,27 @@ describe('CommandConfirmationDialog', () => {
       await fireEvent.click(proceedButton);
     }
 
-    expect(mockOnConfirm).toHaveBeenCalledWith(false); // rememberChoice defaults to false
+    expect(confirmHandler).toHaveBeenCalledWith(expect.objectContaining({
+      detail: expect.objectContaining({
+        command: 'rm -rf /',
+        terminalId: '1',
+        rememberChoice: false
+      })
+    }));
   });
 
   it('calls onCancel when cancel clicked', async () => {
-    const { container } = render(CommandConfirmationDialog, {
+    const { container, component } = render(CommandConfirmationDialog, {
       props: {
         open: true,
         command: 'rm -rf /',
         warning: mockWarning,
-        terminalInfo: mockTerminalInfo,
-        onCancel: mockOnCancel
+        terminalInfo: mockTerminalInfo
       }
     });
+
+    const cancelHandler = vi.fn();
+    component.$on('cancel', cancelHandler);
 
     await waitFor(() => {
       expect(container.querySelector('.confirmation-dialog')).toBeInTheDocument();
@@ -220,21 +227,28 @@ describe('CommandConfirmationDialog', () => {
       await fireEvent.click(cancelButton);
     }
 
-    expect(mockOnCancel).toHaveBeenCalled();
+    expect(cancelHandler).toHaveBeenCalledWith(expect.objectContaining({
+      detail: expect.objectContaining({
+        command: 'rm -rf /',
+        terminalId: '1'
+      })
+    }));
   });
 
   it('shows bypass option for low/medium risk', async () => {
     const lowRiskWarning = { ...mockWarning, riskLevel: 'Low' as const };
     
-    const { container } = render(CommandConfirmationDialog, {
+    const { container, component } = render(CommandConfirmationDialog, {
       props: {
         open: true,
         command: 'curl http://example.com',
         warning: lowRiskWarning,
-        terminalInfo: mockTerminalInfo,
-        onBypass: mockOnBypass
+        terminalInfo: mockTerminalInfo
       }
     });
+
+    const bypassHandler = vi.fn();
+    component.$on('bypass', bypassHandler);
 
     await waitFor(() => {
       expect(container.querySelector('.confirmation-dialog')).toBeInTheDocument();
@@ -248,7 +262,12 @@ describe('CommandConfirmationDialog', () => {
       await fireEvent.click(bypassButton);
     }
 
-    expect(mockOnBypass).toHaveBeenCalled();
+    expect(bypassHandler).toHaveBeenCalledWith(expect.objectContaining({
+      detail: expect.objectContaining({
+        command: 'curl http://example.com',
+        terminalId: '1'
+      })
+    }));
   });
 
   it('does not show bypass option for high risk', async () => {
@@ -270,15 +289,17 @@ describe('CommandConfirmationDialog', () => {
   });
 
   it('handles remember choice checkbox', async () => {
-    const { container } = render(CommandConfirmationDialog, {
+    const { container, component } = render(CommandConfirmationDialog, {
       props: {
         open: true,
         command: 'rm -rf /',
         warning: mockWarning,
-        terminalInfo: mockTerminalInfo,
-        onConfirm: mockOnConfirm
+        terminalInfo: mockTerminalInfo
       }
     });
+
+    const confirmHandler = vi.fn();
+    component.$on('confirm', confirmHandler);
 
     await waitFor(() => {
       expect(container.querySelector('.confirmation-dialog')).toBeInTheDocument();
@@ -299,7 +320,13 @@ describe('CommandConfirmationDialog', () => {
       await fireEvent.click(proceedButton);
     }
 
-    expect(mockOnConfirm).toHaveBeenCalledWith(true);
+    expect(confirmHandler).toHaveBeenCalledWith(expect.objectContaining({
+      detail: expect.objectContaining({
+        command: 'rm -rf /',
+        terminalId: '1',
+        rememberChoice: true
+      })
+    }));
   });
 
   it('copies command to clipboard', async () => {
@@ -335,15 +362,17 @@ describe('CommandConfirmationDialog', () => {
   });
 
   it('handles keyboard navigation', async () => {
-    const { container } = render(CommandConfirmationDialog, {
+    const { container, component } = render(CommandConfirmationDialog, {
       props: {
         open: true,
         command: 'rm -rf /',
         warning: mockWarning,
-        terminalInfo: mockTerminalInfo,
-        onCancel: mockOnCancel
+        terminalInfo: mockTerminalInfo
       }
     });
+
+    const cancelHandler = vi.fn();
+    component.$on('cancel', cancelHandler);
 
     await waitFor(() => {
       expect(container.querySelector('.confirmation-dialog')).toBeInTheDocument();
@@ -351,7 +380,7 @@ describe('CommandConfirmationDialog', () => {
 
     // Simulate ESC key
     await fireEvent.keyDown(document, { key: 'Escape' });
-    expect(mockOnCancel).toHaveBeenCalled();
+    expect(cancelHandler).toHaveBeenCalled();
   });
 
   it('uses correct risk styling', async () => {

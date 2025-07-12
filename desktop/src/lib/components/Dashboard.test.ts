@@ -8,7 +8,17 @@ vi.mock('$lib/stores/manager', async () => {
   const { writable, derived } = await import('svelte/store');
   const { vi } = await import('vitest');
   
-  const managerStore = writable({
+  interface ManagerState {
+    sessions: any[];
+    panes: Map<string, any>;
+    activeSessionId?: string;
+    activePaneId?: string;
+    plugins: any[];
+    terminalOutputs: Map<string, string>;
+    isConnected: boolean;
+  }
+  
+  const managerStore = writable<ManagerState>({
     sessions: [],
     panes: new Map(),
     activeSessionId: undefined,
@@ -40,7 +50,7 @@ import { manager, sessions as sessionsStore, panes as panesStore } from '$lib/st
 
 // Helper function to update manager state
 function updateManagerState(updates: any) {
-  manager.update(state => ({ ...state, ...updates }));
+  (manager as any).update((state: any) => ({ ...state, ...updates }));
 }
 
 describe('Dashboard Component', () => {
@@ -48,7 +58,7 @@ describe('Dashboard Component', () => {
     vi.clearAllMocks();
     
     // Reset manager store state
-    manager.set({
+    (manager as any).set({
       sessions: [],
       panes: new Map(),
       activeSessionId: undefined,
@@ -263,7 +273,7 @@ describe('Dashboard Component', () => {
       panes: [],
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
-    }]);
+    }] });
     updateManagerState({ panes: testPanes });
     
     const { container } = render(Dashboard);
@@ -311,7 +321,7 @@ describe('Dashboard Component', () => {
       panes: [],
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
-    }]);
+    }] });
     updateManagerState({ panes: testPanes });
     
     const { container } = render(Dashboard);
@@ -376,7 +386,7 @@ describe('Dashboard Component', () => {
       panes: [],
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
-    }]);
+    }] });
     updateManagerState({ panes: testPanes });
     
     const { container } = render(Dashboard);
@@ -408,7 +418,7 @@ describe('Dashboard Component', () => {
       panes: [],
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
-    }]);
+    }] });
     updateManagerState({ panes: testPanes });
     
     const { getByText, container } = render(Dashboard);
@@ -445,7 +455,7 @@ describe('Dashboard Component', () => {
       panes: [],
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
-    }]);
+    }] });
     updateManagerState({ panes: testPanes });
     
     const { container } = render(Dashboard);
@@ -512,7 +522,7 @@ describe('Dashboard Component', () => {
       panes: [],
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
-    }]);
+    }] });
     updateManagerState({ panes: testPanes });
     
     const { getByText, container } = render(Dashboard);

@@ -63,8 +63,6 @@ thiserror = "1.0"
 log = "0.4"
 tracing = "0.1"
 
-# Database for test results and advanced features
-sqlx = { version = "0.8.2", features = ["runtime-tokio-rustls", "sqlite", "chrono", "uuid"] }
 
 # LSP Support
 tower-lsp = "0.20"

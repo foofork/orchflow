@@ -172,8 +172,12 @@
 			await new Promise(resolve => setTimeout(resolve, 20));
 			
 			// For now, use pane title as filename
-			const ext = pane.title.split('.').pop() || '';
-			fileSymbols = generateSymbols(pane.title, ext);
+			if (pane.title) {
+				const ext = pane.title.split('.').pop() || '';
+				fileSymbols = generateSymbols(pane.title, ext);
+			} else {
+				fileSymbols = [];
+			}
 			
 			parseTime = performance.now() - startTime;
 		} catch (e) {

@@ -221,7 +221,7 @@
   ];
   
   // Extract unique categories
-  categories = [...new Set(commands.map(cmd => cmd.category).filter(Boolean))].sort();
+  categories = [...new Set(commands.map(cmd => cmd.category).filter((cat): cat is string => Boolean(cat)))].sort();
   
   // Initialize Fuse.js
   function initializeFuse() {

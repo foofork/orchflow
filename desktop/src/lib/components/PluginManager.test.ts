@@ -236,7 +236,9 @@ describe('PluginManager', () => {
       const enableButton = container.querySelector('.toggle-button');
       expect(enableButton).toBeTruthy();
       
-      await fireEvent.click(enableButton);
+      if (enableButton) {
+        await fireEvent.click(enableButton);
+      }
       
       expect(manager.loadPlugin).toHaveBeenCalledWith('docker-tools');
       expect(consoleSpy).toHaveBeenCalledWith('Failed to toggle plugin:', expect.any(Error));
@@ -256,7 +258,9 @@ describe('PluginManager', () => {
       const enableButton = container.querySelector('.toggle-button');
       expect(enableButton).toBeTruthy();
       
-      await fireEvent.click(enableButton);
+      if (enableButton) {
+        await fireEvent.click(enableButton);
+      }
       
       expect(manager.unloadPlugin).toHaveBeenCalledWith('git-integration');
     });

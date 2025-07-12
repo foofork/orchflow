@@ -96,7 +96,7 @@
     switch (pane.pane_type) {
       case 'Terminal': return '📟';
       case 'Editor': return '📝';
-      case 'FileTree': return '📁';
+      case 'FileExplorer': return '📁';
       default: return '📋';
     }
   }
@@ -128,7 +128,7 @@
     try {
       await manager.closePane(pane.id);
       // Re-create terminal in same session
-      await manager.createTerminal(pane.session_id, pane.title);
+      await manager.createTerminal(pane.session_id, { name: pane.title });
     } catch (error) {
       console.error('Failed to restart pane:', error);
     }

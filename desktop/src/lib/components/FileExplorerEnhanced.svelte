@@ -93,8 +93,8 @@
       
       // Sort entries: directories first, then files
       entries.sort((a, b) => {
-        if (a.children !== undefined && b.children === undefined) return -1;
-        if (a.children === undefined && b.children !== undefined) return 1;
+        if (a.isDirectory && !b.isDirectory) return -1;
+        if (!a.isDirectory && b.isDirectory) return 1;
         return a.name?.localeCompare(b.name || '') || 0;
       });
       
@@ -102,11 +102,14 @@
         // Skip hidden files/folders unless specifically configured to show
         if (entry.name?.startsWith('.') && entry.name !== '.gitignore') continue;
         
+        const { join } = await import('@tauri-apps/api/path');
+        const fullPath = await join(path, entry.name);
+        
         nodes.push({
           name: entry.name || 'Unknown',
-          path: entry.path,
-          isDirectory: entry.children !== undefined,
-          children: entry.children !== undefined ? [] : undefined,
+          path: fullPath,
+          isDirectory: entry.isDirectory,
+          children: entry.isDirectory ? [] : undefined,
           expanded: false,
         });
       }
@@ -133,19 +136,22 @@
       const children: TreeNode[] = [];
       
       entries.sort((a, b) => {
-        if (a.children !== undefined && b.children === undefined) return -1;
-        if (a.children === undefined && b.children !== undefined) return 1;
+        if (a.isDirectory && !b.isDirectory) return -1;
+        if (!a.isDirectory && b.isDirectory) return 1;
         return a.name?.localeCompare(b.name || '') || 0;
       });
       
       for (const entry of entries) {
         if (entry.name?.startsWith('.') && entry.name !== '.gitignore') continue;
         
+        const { join } = await import('@tauri-apps/api/path');
+        const fullPath = await join(node.path, entry.name);
+        
         children.push({
           name: entry.name || 'Unknown',
-          path: entry.path,
-          isDirectory: entry.children !== undefined,
-          children: entry.children !== undefined ? [] : undefined,
+          path: fullPath,
+          isDirectory: entry.isDirectory,
+          children: entry.isDirectory ? [] : undefined,
           expanded: false,
         });
       }
@@ -377,15 +383,15 @@
     y={contextMenu.y}
     on:close={closeContextMenu}
   >
-    <button class="menu-item" on:click={() => handleOpenFile({ detail: contextMenu.node.path })}>
+    <button class="menu-item" on:click={() => contextMenu && dispatch('openFile', contextMenu.node.path)}>
       <span class="menu-icon">📂</span>
       Open
     </button>
-    <button class="menu-item" on:click={() => handleRename(contextMenu.node)}>
+    <button class="menu-item" on:click={() => contextMenu && handleRename(contextMenu.node)}>
       <span class="menu-icon">✏️</span>
       Rename
     </button>
-    <button class="menu-item" on:click={() => handleDelete(contextMenu.node)}>
+    <button class="menu-item" on:click={() => contextMenu && handleDelete(contextMenu.node)}>
       <span class="menu-icon">🗑️</span>
       Delete
     </button>

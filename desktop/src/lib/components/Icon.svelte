@@ -2,6 +2,8 @@
   export let name: string = '';
   export let size: number | 'tiny' | 'small' | 'medium' | 'large' = 16;
   export let color: string = 'currentColor';
+  let className: string = '';
+  export { className as class };
   
   // Convert size names to numbers
   const sizeMap = {
@@ -14,7 +16,7 @@
   $: actualSize = typeof size === 'number' ? size : sizeMap[size] || 16;
 </script>
 
-<svg width={actualSize} height={actualSize} fill={color} class="icon icon-{name}">
+<svg width={actualSize} height={actualSize} fill={color} class="icon icon-{name} {className}">
   <!-- Mock icon -->
   <rect x="0" y="0" width={actualSize} height={actualSize} fill="none" />
 </svg>
