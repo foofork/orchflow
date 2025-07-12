@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { terminalIPC } from '../terminal-ipc';
 import { invoke } from '@tauri-apps/api/core';
 import { emit, listen } from '@tauri-apps/api/event';
-import { createAsyncMock, createAsyncVoidMock, createTypedMock } from '../../../test/utils/mock-factory';
+import { createAsyncMock, createAsyncVoidMock, createTypedMock } from '@/test/mock-factory';
 
 // Type for UnlistenFn
 type UnlistenFn = () => void;
@@ -24,9 +24,11 @@ vi.mock('@tauri-apps/api/event', () => ({
 }));
 
 describe('Terminal IPC Service', () => {
+  let cleanup: Array<() => void> = [];
   let eventHandlers: Map<string, ((event: any) => void)[]>;
 
   beforeEach(() => {
+    cleanup = [];
     eventHandlers = new Map();
     
     // Mock listen to capture event handlers - store multiple handlers per event
@@ -46,6 +48,9 @@ describe('Terminal IPC Service', () => {
   });
 
   afterEach(() => {
+    cleanup.forEach(fn => fn());
+    cleanup = [];
+    
     // Clean up any listeners by clearing the maps
     (terminalIPC as any).terminals.clear();
     (terminalIPC as any).listeners.clear();

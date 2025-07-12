@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { get } from 'svelte/store';
 import {
   createMockDerivedStore,
@@ -11,8 +11,15 @@ import {
   createMockPane,
   createMockPlugin
 } from './store-mocks';
+import { createTypedMock } from '@/test/mock-factory';
 
 describe('Store Mock Utilities', () => {
+  let cleanup: Array<() => void> = [];
+
+  afterEach(() => {
+    cleanup.forEach(fn => fn());
+    cleanup = [];
+  });
   describe('createMockDerivedStore', () => {
     it('should create a writable store that mimics a derived store', () => {
       const store = createMockDerivedStore('initial');

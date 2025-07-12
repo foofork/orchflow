@@ -11,6 +11,13 @@ import {
   formatUptime,
   type SystemMetrics
 } from '../metrics';
+import {
+  createTypedMock,
+  createAsyncMock,
+  createSyncMock,
+  createVoidMock,
+  getMocked
+} from '@/test/mock-factory';
 
 // Mock browser environment
 vi.mock('$app/environment', () => ({
@@ -18,10 +25,11 @@ vi.mock('$app/environment', () => ({
 }));
 
 // Mock fetch
-global.fetch = vi.fn();
-global.WebSocket = vi.fn() as any;
+global.fetch = createAsyncMock<[input: RequestInfo | URL, init?: RequestInit], Response>();
+global.WebSocket = createTypedMock<[url: string | URL, protocols?: string | string[]], WebSocket>() as any;
 
 describe('Metrics Service', () => {
+  let cleanup: Array<() => void> = [];
   let mockWebSocket: any;
   let intervalSpy: any;
   let clearIntervalSpy: any;
@@ -41,10 +49,10 @@ describe('Metrics Service', () => {
     
     // Mock WebSocket
     mockWebSocket = {
-      close: vi.fn(),
-      send: vi.fn(),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
+      close: createVoidMock(),
+      send: createTypedMock<[data: string | ArrayBuffer | Blob | ArrayBufferView], void>(),
+      addEventListener: createTypedMock<[type: string, listener: EventListener], void>(),
+      removeEventListener: createTypedMock<[type: string, listener: EventListener], void>(),
       readyState: WebSocket.OPEN,
       onopen: null,
       onmessage: null,
@@ -52,10 +60,12 @@ describe('Metrics Service', () => {
       onclose: null
     };
     
-    (global.WebSocket as any).mockImplementation(() => mockWebSocket);
+    getMocked(global.WebSocket).mockImplementation(() => mockWebSocket);
   });
 
   afterEach(() => {
+    cleanup.forEach(fn => fn());
+    cleanup = [];
     stopMetricsPolling();
     intervalSpy.mockRestore();
     clearIntervalSpy.mockRestore();
@@ -142,10 +152,10 @@ describe('Metrics Service', () => {
     };
 
     it('should fetch metrics from API', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
+      getMocked(global.fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => mockMetrics
-      });
+      } as Response);
 
       startMetricsPolling();
       
@@ -157,7 +167,7 @@ describe('Metrics Service', () => {
     });
 
     it('should handle fetch errors', async () => {
-      (global.fetch as any).mockRejectedValueOnce(new Error('Network error'));
+      getMocked(global.fetch).mockRejectedValueOnce(new Error('Network error'));
 
       startMetricsPolling();
       
@@ -168,10 +178,10 @@ describe('Metrics Service', () => {
     });
 
     it('should update metrics history', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
+      getMocked(global.fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => mockMetrics
-      });
+      } as Response);
 
       startMetricsPolling();
       
@@ -303,10 +313,10 @@ describe('Metrics Service', () => {
       };
 
       // Mock fetch to always return metrics
-      (global.fetch as any).mockResolvedValue({
+      getMocked(global.fetch).mockResolvedValue({
         ok: true,
         json: async () => ({ ...mockMetrics, timestamp: Date.now() })
-      });
+      } as Response);
 
       // Pre-fill history with 60 entries
       const history = Array.from({ length: 60 }, (_, i) => ({
@@ -334,7 +344,7 @@ describe('Metrics Service', () => {
       // Use vi.stubGlobal to mock import.meta
       vi.stubGlobal('import', { meta: { env: mockEnv } });
 
-      (global.fetch as any).mockRejectedValueOnce(new Error('Network error'));
+      getMocked(global.fetch).mockRejectedValueOnce(new Error('Network error'));
 
       startMetricsPolling();
       

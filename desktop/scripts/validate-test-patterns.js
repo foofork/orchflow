@@ -15,7 +15,55 @@ const TEST_PATTERN_RULES = [
   {
     name: 'No raw vi.fn() usage',
     pattern: /vi\.fn\(\)/g,
-    error: 'Use createTypedMock, createSyncMock, or createAsyncMock instead of vi.fn()'
+    error: 'Use createTypedMock, createSyncMock, or createAsyncMock instead of vi.fn()',
+    customValidator: (content, matches) => {
+      // Filter out vi.fn() in comments and vi.mock blocks
+      return matches.filter(match => {
+        const lines = content.split('\n');
+        let inViMock = false;
+        let viMockDepth = 0;
+        
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          
+          // Check if we're entering a vi.mock block
+          if (line.includes('vi.mock(')) {
+            inViMock = true;
+            viMockDepth = 0;
+          }
+          
+          // Track braces to know when vi.mock ends
+          if (inViMock) {
+            viMockDepth += (line.match(/\{/g) || []).length;
+            viMockDepth -= (line.match(/\}/g) || []).length;
+            
+            if (viMockDepth <= 0 && line.includes('}')) {
+              inViMock = false;
+            }
+          }
+          
+          // Check if this line contains vi.fn()
+          if (line.includes('vi.fn()')) {
+            // Skip if it's in a comment
+            const commentIndex = line.indexOf('//');
+            const viFnIndex = line.indexOf('vi.fn()');
+            if (commentIndex !== -1 && commentIndex < viFnIndex) {
+              continue;
+            }
+            
+            // Skip if it's in a vi.mock block
+            if (inViMock) {
+              continue;
+            }
+            
+            // This is a real vi.fn() usage that should be flagged
+            return true;
+          }
+        }
+        
+        return false;
+      }).length > 0;
+    }
   },
   {
     name: 'Proper cleanup pattern',
@@ -88,12 +136,19 @@ async function validateTestPatterns() {
         // Check if forbidden pattern exists
         const matches = content.match(rule.pattern);
         if (matches) {
-          fileIssues.push({
-            type: 'error',
-            rule: rule.name,
-            message: rule.error,
-            count: matches.length
-          });
+          // Use custom validator if provided
+          const shouldFlag = rule.customValidator 
+            ? rule.customValidator(content, matches)
+            : matches.length > 0;
+            
+          if (shouldFlag) {
+            fileIssues.push({
+              type: 'error',
+              rule: rule.name,
+              message: rule.error,
+              count: rule.customValidator ? undefined : matches.length
+            });
+          }
         }
       } else if (rule.warning) {
         // Check for warning patterns

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { get } from 'svelte/store';
-import { createTypedMock } from '../../../test/utils/mock-factory';
+import { createTypedMock } from '@/test/mock-factory';
 import { buildSettings } from '../../../test/test-data-builders';
 
 // Create typed mock for localStorage
@@ -25,6 +25,8 @@ Object.defineProperty(window, 'localStorage', {
 import { settings, type Settings } from '../settings';
 
 describe('Settings Store', () => {
+  let cleanup: Array<() => void> = [];
+  
   const defaultSettings: Settings = {
     theme: 'dark',
     fontSize: 14,
@@ -55,6 +57,9 @@ describe('Settings Store', () => {
     settings.reset();
     // Clear all mocks
     vi.clearAllMocks();
+    // Run cleanup functions
+    cleanup.forEach(fn => fn());
+    cleanup = [];
   });
 
   describe('initialization', () => {
@@ -103,6 +108,7 @@ describe('Settings Store', () => {
       
       // Spy on console.error
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      cleanup.push(() => consoleErrorSpy.mockRestore());
       
       // Need to re-import to trigger loading from localStorage
       vi.resetModules();
@@ -111,8 +117,6 @@ describe('Settings Store', () => {
       const currentSettings = get(freshSettings);
       expect(currentSettings).toEqual(defaultSettings);
       expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to parse stored settings:', expect.any(Error));
-      
-      consoleErrorSpy.mockRestore();
     });
   });
 

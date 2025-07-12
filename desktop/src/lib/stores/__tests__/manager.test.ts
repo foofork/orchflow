@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { get } from 'svelte/store';
 import type { Session, Pane, ManagerEvent, PluginInfo } from '../../api/manager-client';
-import { createAsyncMock, createAsyncVoidMock, createTypedMock } from '../../../test/utils/mock-factory';
+import { createAsyncMock, createAsyncVoidMock, createTypedMock } from '@/test/mock-factory';
 import { buildSession, buildPane, buildPlugin } from '../../../test/test-data-builders';
 
 // Set NODE_ENV to test before importing anything
@@ -48,6 +48,7 @@ const storeModule = await import('../manager');
 const { manager, sessions, activeSession, panes, activePane, plugins, loadedPlugins, terminalOutputs, isConnected, error } = storeModule;
 
 describe('Manager Store', () => {
+  let cleanup: Array<() => void> = [];
   let eventHandlers: Map<string, (event: ManagerEvent) => void>;
   let isInitialized = false;
   let unsubscribeFns: (() => void)[] = [];
@@ -59,7 +60,7 @@ describe('Manager Store', () => {
     // Setup mock implementations
     mockManagerClient.connectWebSocket.mockResolvedValue(undefined);
     mockManagerClient.subscribe.mockResolvedValue(undefined);
-    mockManagerClient.onEvent.mockImplementation((eventType, handler) => {
+    mockManagerClient.onEvent.mockImplementation((eventType: string, handler: (event: ManagerEvent) => void) => {
       eventHandlers.set(eventType, handler);
       const unsubscribe = () => eventHandlers.delete(eventType);
       unsubscribeFns.push(unsubscribe);
@@ -73,6 +74,7 @@ describe('Manager Store', () => {
   });
 
   afterEach(() => {
+    cleanup.forEach(fn => fn());
     // Clean up event handlers
     unsubscribeFns.forEach(fn => fn());
     eventHandlers.clear();

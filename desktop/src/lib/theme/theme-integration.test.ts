@@ -5,14 +5,15 @@
  * for both Neovim and CodeMirror editors.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { themeAPI, createTerminalTheme } from './api';
+import { createMockFunction, createSyncMock } from '@/test/mock-factory';
 
 // Mock DOM elements
 beforeEach(() => {
   // Mock getComputedStyle
-  global.getComputedStyle = vi.fn(() => ({
-    getPropertyValue: vi.fn((prop: string) => {
+  global.getComputedStyle = createSyncMock(() => ({
+    getPropertyValue: createSyncMock((prop: string) => {
       // Mock CSS custom property values
       const mockValues: Record<string, string> = {
         '--terminal-background': '#1e1e1e',
@@ -43,22 +44,28 @@ beforeEach(() => {
   // Mock document.documentElement
   global.document = {
     documentElement: {
-      setAttribute: vi.fn(),
-      getAttribute: vi.fn(),
+      setAttribute: createSyncMock(),
+      getAttribute: createSyncMock(),
       style: {
-        setProperty: vi.fn()
+        setProperty: createSyncMock()
       }
     }
   } as any;
 
   // Mock MutationObserver
-  global.MutationObserver = vi.fn(() => ({
-    observe: vi.fn(),
-    disconnect: vi.fn()
+  global.MutationObserver = createMockFunction(() => ({
+    observe: createSyncMock(),
+    disconnect: createSyncMock()
   })) as any;
 });
 
 describe('Theme API Integration', () => {
+  let cleanup: Array<() => void> = [];
+
+  afterEach(() => {
+    cleanup.forEach(fn => fn());
+    cleanup = [];
+  });
   it('should create terminal theme from CSS variables', () => {
     const terminalTheme = createTerminalTheme();
     
@@ -125,7 +132,7 @@ describe('Theme API Integration', () => {
   });
 
   it('should notify listeners on theme changes', () => {
-    const listener = vi.fn();
+    const listener = createSyncMock();
     const unsubscribe = themeAPI.onThemeChange(listener);
     
     themeAPI.applyTheme('orchflow', 'light');

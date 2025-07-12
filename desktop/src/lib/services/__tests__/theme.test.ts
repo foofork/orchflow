@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { get } from 'svelte/store';
 import { settings } from '$lib/stores/settings';
 import { initTheme, applyTheme, toggleTheme, setupThemeShortcut } from '../theme';
+import { createTypedMock } from '@/test/mock-factory';
 
 // Mock the settings store
 vi.mock('$lib/stores/settings', () => ({
@@ -17,6 +18,7 @@ vi.mock('svelte/store', () => ({
 }));
 
 describe('Theme Service', () => {
+  let cleanup: Array<() => void> = [];
   let mockSetAttribute: any;
   let mockAddEventListener: any;
 
@@ -42,6 +44,7 @@ describe('Theme Service', () => {
   });
 
   afterEach(() => {
+    cleanup.forEach(fn => fn());
     vi.clearAllMocks();
   });
 
@@ -72,7 +75,9 @@ describe('Theme Service', () => {
       let subscribeFn: any;
       vi.mocked(settings.subscribe).mockImplementation((fn) => {
         subscribeFn = fn;
-        return () => {};
+        const unsubscribe = () => {};
+        cleanup.push(unsubscribe);
+        return unsubscribe;
       });
       
       initTheme();

@@ -19,33 +19,6 @@ export function createMockFunction<T extends (...args: any[]) => any>(
   return mock as MockedFunction<T>;
 }
 
-/**
- * Create a mock function that can be used with proper TypeScript typing
- * Handles both sync and async functions with full method support
- */
-export function createTypedMock<
-  TArgs extends readonly any[] = any[],
-  TReturn = any
->(
-  implementation?: (...args: TArgs) => TReturn
-): MockedFunction<(...args: TArgs) => TReturn> {
-  const mock = vi.fn(implementation);
-  
-  // Ensure all MockedFunction methods are available and typed
-  return Object.assign(mock, {
-    mockClear: mock.mockClear.bind(mock),
-    mockReset: mock.mockReset.bind(mock),
-    mockRestore: mock.mockRestore?.bind(mock),
-    mockReturnValue: mock.mockReturnValue.bind(mock),
-    mockReturnValueOnce: mock.mockReturnValueOnce.bind(mock),
-    mockResolvedValue: mock.mockResolvedValue?.bind(mock),
-    mockResolvedValueOnce: mock.mockResolvedValueOnce?.bind(mock),
-    mockRejectedValue: mock.mockRejectedValue?.bind(mock),
-    mockRejectedValueOnce: mock.mockRejectedValueOnce?.bind(mock),
-    mockImplementation: mock.mockImplementation.bind(mock),
-    mockImplementationOnce: mock.mockImplementationOnce.bind(mock),
-  }) as MockedFunction<(...args: TArgs) => TReturn>;
-}
 
 /**
  * Create a mock for async functions with proper resolved value typing

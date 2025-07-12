@@ -1,20 +1,28 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render } from '@testing-library/svelte';
 import StatusBarEnhanced from '../StatusBarEnhanced.svelte';
+import { createTypedMock } from '@/test/mock-factory';
 
 /**
  * Example of properly isolated unit test
  * Tests only the component logic without environment dependencies
  */
 describe('StatusBarEnhanced - Simple Unit Test', () => {
+  let cleanup: Array<() => void> = [];
+
+  afterEach(() => {
+    cleanup.forEach(fn => fn());
+    cleanup = [];
+  });
   it('renders and displays basic information', () => {
-    const { getByText, container } = render(StatusBarEnhanced, {
+    const { getByText, container, unmount } = render(StatusBarEnhanced, {
       props: {
         currentFile: { path: '/src/main.ts', line: 10, column: 5 },
         encoding: 'UTF-8',
         language: 'TypeScript',
       }
     });
+    cleanup.push(unmount);
     
     // Test basic rendering
     expect(container.querySelector('.status-bar')).toBeInTheDocument();
@@ -25,14 +33,15 @@ describe('StatusBarEnhanced - Simple Unit Test', () => {
   });
 
   it('handles click events', async () => {
-    const { getByText, component } = render(StatusBarEnhanced, {
+    const { getByText, component, unmount } = render(StatusBarEnhanced, {
       props: {
         currentFile: { path: '/src/main.ts', line: 1, column: 1 },
         encoding: 'UTF-8',
       }
     });
+    cleanup.push(unmount);
     
-    const handleAction = vi.fn();
+    const handleAction = createTypedMock<[event: CustomEvent], void>();
     component.$on('action', handleAction);
     
     // Click on file info
@@ -48,7 +57,7 @@ describe('StatusBarEnhanced - Simple Unit Test', () => {
   });
 
   it('shows counts when provided', () => {
-    const { getByText } = render(StatusBarEnhanced, {
+    const { getByText, unmount } = render(StatusBarEnhanced, {
       props: {
         runningProcesses: 3,
         activePlugins: 5,
@@ -58,6 +67,7 @@ describe('StatusBarEnhanced - Simple Unit Test', () => {
         showNotifications: true
       }
     });
+    cleanup.push(unmount);
     
     expect(getByText('3 running')).toBeInTheDocument();
     expect(getByText('5 plugins')).toBeInTheDocument();

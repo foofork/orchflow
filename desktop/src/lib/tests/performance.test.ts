@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { performance } from 'perf_hooks';
 import { writable, get } from 'svelte/store';
+import { createTypedMock, createAsyncMock } from '@/test/mock-factory';
 
 // Performance test utilities
 interface PerformanceMetrics {
@@ -79,17 +80,18 @@ class PerformanceProfiler {
 }
 
 // Mock Tauri API for performance testing
-const mockTauriInvoke = vi.fn();
+const mockTauriInvoke = createAsyncMock<(cmd: string, args?: any) => Promise<any>>();
 vi.mock('@tauri-apps/api/core', () => ({
   invoke: mockTauriInvoke
 }));
 
 vi.mock('@tauri-apps/api/event', () => ({
-  listen: vi.fn(),
-  emit: vi.fn()
+  listen: createAsyncMock<() => Promise<void>>(),
+  emit: createAsyncMock<() => Promise<void>>()
 }));
 
 describe('Terminal I/O Performance Tests', () => {
+  let cleanup: Array<() => void> = [];
   const profiler = new PerformanceProfiler();
   
   beforeEach(() => {
@@ -100,6 +102,11 @@ describe('Terminal I/O Performance Tests', () => {
       await new Promise(resolve => setTimeout(resolve, Math.random() * 4 + 1));
       return { success: true };
     });
+  });
+
+  afterEach(() => {
+    cleanup.forEach(fn => fn());
+    cleanup = [];
   });
 
   it('should meet <10ms latency requirement for terminal input', async () => {
@@ -198,6 +205,7 @@ describe('Terminal I/O Performance Tests', () => {
 });
 
 describe('File System Event Performance Tests', () => {
+  let cleanup: Array<() => void> = [];
   const profiler = new PerformanceProfiler();
   
   beforeEach(() => {
@@ -209,6 +217,11 @@ describe('File System Event Performance Tests', () => {
       }
       return { success: true };
     });
+  });
+
+  afterEach(() => {
+    cleanup.forEach(fn => fn());
+    cleanup = [];
   });
 
   it('should process file change events within latency requirements', async () => {
@@ -300,6 +313,7 @@ describe('File System Event Performance Tests', () => {
 });
 
 describe('Editor State Synchronization Performance Tests', () => {
+  let cleanup: Array<() => void> = [];
   const profiler = new PerformanceProfiler();
   
   beforeEach(() => {
@@ -313,6 +327,11 @@ describe('Editor State Synchronization Performance Tests', () => {
       }
       return { success: true };
     });
+  });
+
+  afterEach(() => {
+    cleanup.forEach(fn => fn());
+    cleanup = [];
   });
 
   it('should sync cursor position with minimal latency', async () => {
@@ -413,7 +432,13 @@ describe('Editor State Synchronization Performance Tests', () => {
 });
 
 describe('Memory and Resource Usage Tests', () => {
+  let cleanup: Array<() => void> = [];
   const profiler = new PerformanceProfiler();
+
+  afterEach(() => {
+    cleanup.forEach(fn => fn());
+    cleanup = [];
+  });
   
   it('should maintain reasonable memory usage under load', async () => {
     const ITERATIONS = 10000;
@@ -503,7 +528,13 @@ describe('Memory and Resource Usage Tests', () => {
 });
 
 describe('Stress Testing', () => {
+  let cleanup: Array<() => void> = [];
   const profiler = new PerformanceProfiler();
+
+  afterEach(() => {
+    cleanup.forEach(fn => fn());
+    cleanup = [];
+  });
   
   it('should handle high-frequency updates without degradation', async () => {
     const DURATION_MS = 5000; // 5 second stress test
