@@ -376,7 +376,8 @@
   <div class="terminal-header">
     <div class="terminal-tabs" role="tablist" aria-label="Terminal tabs">
       {#each $terminalsStore as terminal}
-        <button
+        <div class="terminal-tab-container">
+          <button
           class="terminal-tab"
           class:active={terminal.isActive}
           class:drag-over={draggedOverId === terminal.id}
@@ -458,6 +459,7 @@
           {:else}
             <span class="tab-title">{terminal.title}</span>
           {/if}
+          </button>
           <button
             class="tab-close"
             on:click|stopPropagation={() => closeTerminal(terminal.id)}
@@ -465,7 +467,7 @@
           >
             ×
           </button>
-        </button>
+        </div>
       {/each}
       
       <button
@@ -800,6 +802,12 @@
   
   .terminal-tabs::-webkit-scrollbar-thumb {
     background: var(--border);
+  }
+  
+  .terminal-tab-container {
+    display: flex;
+    align-items: center;
+    position: relative;
   }
   
   .terminal-tab {

@@ -306,20 +306,26 @@
   <div class="search-replace">
     <div class="search-form">
       <div class="form-row">
+        <label for="search-pattern-input" class="visually-hidden">Search pattern</label>
         <input
+          id="search-pattern-input"
           type="text"
           class="search-input"
           placeholder="Search pattern..."
           bind:value={searchPattern}
           on:keydown={handleKeydown}
           disabled={loading || replacing}
+          aria-label="Search pattern"
         />
         
         {#if searchHistory.length > 0}
+          <label for="search-history-select" class="visually-hidden">Search history</label>
           <select 
+            id="search-history-select"
             class="history-select" 
             on:change={(e) => searchPattern = e.target?.value || ''}
             title="Search history"
+            aria-label="Search history"
           >
             <option value="">History</option>
             {#each searchHistory as pattern}
@@ -330,38 +336,45 @@
       </div>
       
       <div class="form-row">
+        <label for="replace-pattern-input" class="visually-hidden">Replace pattern</label>
         <input
+          id="replace-pattern-input"
           type="text"
           class="replace-input"
           placeholder="Replace with..."
           bind:value={replacePattern}
           disabled={loading || replacing}
+          aria-label="Replace pattern"
         />
       </div>
       
       <div class="options-row">
         <label class="checkbox">
-          <input type="checkbox" bind:checked={caseSensitive} />
+          <input type="checkbox" bind:checked={caseSensitive} aria-describedby="case-sensitive-help" />
           Case sensitive
         </label>
+        <span id="case-sensitive-help" class="visually-hidden">Match exact letter case</span>
         
         <label class="checkbox">
-          <input type="checkbox" bind:checked={wholeWord} />
+          <input type="checkbox" bind:checked={wholeWord} aria-describedby="whole-word-help" />
           Whole word
         </label>
+        <span id="whole-word-help" class="visually-hidden">Match complete words only</span>
         
         <label class="checkbox">
-          <input type="checkbox" bind:checked={useRegex} />
+          <input type="checkbox" bind:checked={useRegex} aria-describedby="regex-help" />
           Regular expression
         </label>
+        <span id="regex-help" class="visually-hidden">Use regular expression patterns</span>
       </div>
       
       <details class="advanced-options">
         <summary>Advanced Options</summary>
         
         <div class="form-group">
-          <label>Search path (leave empty for project root):</label>
+          <label for="search-path">Search path (leave empty for project root):</label>
           <input
+            id="search-path"
             type="text"
             bind:value={searchPath}
             placeholder="/path/to/search"
@@ -370,25 +383,27 @@
         </div>
         
         <div class="form-group">
-          <label>Include patterns (one per line):</label>
+          <label for="include-patterns">Include patterns (one per line):</label>
           <textarea
+            id="include-patterns"
             rows="3"
             bind:value={includePatternsText}
             placeholder="*.js&#10;src/**/*.ts"
             disabled={loading || replacing}
             on:input={() => includePatterns = includePatternsText.split('\n').filter(p => p.trim())}
-          />
+          ></textarea>
         </div>
         
         <div class="form-group">
-          <label>Exclude patterns (one per line):</label>
+          <label for="exclude-patterns">Exclude patterns (one per line):</label>
           <textarea
+            id="exclude-patterns"
             rows="3"
             bind:value={excludePatternsText}
             placeholder="node_modules/**&#10;*.log"
             disabled={loading || replacing}
             on:input={() => excludePatterns = excludePatternsText.split('\n').filter(p => p.trim())}
-          />
+          ></textarea>
         </div>
       </details>
     </div>
@@ -412,8 +427,8 @@
           </span>
           
           <div class="selection-controls">
-            <button class="btn-small" on:click={selectAll}>Select All</button>
-            <button class="btn-small" on:click={deselectAll}>Select None</button>
+            <button class="btn-small" on:click={selectAll} aria-label="Select all search results">Select All</button>
+            <button class="btn-small" on:click={deselectAll} aria-label="Deselect all search results">Select None</button>
           </div>
         </div>
         
@@ -425,6 +440,7 @@
                   type="checkbox"
                   checked={selectedFiles.has(result.path)}
                   on:change={() => toggleFileSelection(result.path)}
+                  aria-label="Select {result.path} for replacement"
                 />
                 <span class="file-path">{result.path}</span>
                 <span class="match-count">({result.total_matches} matches)</span>
@@ -470,12 +486,15 @@
   
   <div slot="actions">
     {#if savedSearches.length > 0}
+      <label for="saved-searches-select" class="visually-hidden">Saved searches</label>
       <select 
+        id="saved-searches-select"
         class="saved-searches"
         on:change={(e) => {
           const search = savedSearches.find(s => s.name === e.target?.value);
           if (search) loadSavedSearch(search);
         }}
+        aria-label="Load saved search"
       >
         <option value="">Load saved search...</option>
         {#each savedSearches as search}
@@ -538,14 +557,15 @@
     on:close={() => showSaveDialog = false}
   >
     <div class="save-form">
-      <label>
+      <label for="save-search-name">
         Search name:
-        <input 
-          type="text" 
-          bind:value={saveSearchName}
-          on:keydown={(e) => e.key === 'Enter' && saveSearch()}
-        />
       </label>
+      <input 
+        id="save-search-name"
+        type="text" 
+        bind:value={saveSearchName}
+        on:keydown={(e) => e.key === 'Enter' && saveSearch()}
+      />
     </div>
     
     <div slot="actions">
@@ -868,6 +888,19 @@
   
   .spacer {
     flex: 1;
+  }
+  
+  /* Screen reader only content */
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
   
   /* Scrollbar styling */

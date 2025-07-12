@@ -3,7 +3,6 @@
   import { createEventDispatcher } from 'svelte';
   import { fade } from 'svelte/transition';
   
-  export let sessionId: string = '';
   export let show: boolean = false;
   
   const dispatch = createEventDispatcher();
@@ -274,10 +273,10 @@ index 1234567..abcdefg 100644
 </script>
 
 {#if show}
-  <div class="git-panel-overlay" on:click={close} transition:fade={{ duration: 200 }}>
+  <div class="git-panel-overlay" on:click={close} transition:fade={{ duration: 200 }} role="dialog" aria-modal="true" aria-labelledby="git-panel-title">
     <div class="git-panel" on:click|stopPropagation>
       <div class="git-header">
-        <h2>Git</h2>
+        <h2 id="git-panel-title">Git</h2>
         <div class="git-branch">
           <span class="branch-icon">🌿</span>
           <span class="branch-name">{gitStatus?.branch || 'No branch'}</span>
@@ -291,7 +290,7 @@ index 1234567..abcdefg 100644
             <span class="branch-behind">↓{gitStatus.behind}</span>
           {/if}
         </div>
-        <button class="close-btn" on:click={close}>✕</button>
+        <button class="close-btn" on:click={close} aria-label="Close git panel">✕</button>
       </div>
       
       <div class="git-content">
@@ -299,7 +298,7 @@ index 1234567..abcdefg 100644
           <!-- Diff View -->
           <div class="diff-view">
             <div class="diff-header">
-              <button class="back-btn" on:click={() => showDiffView = false}>
+              <button class="back-btn" on:click={() => showDiffView = false} aria-label="Go back to file list">
                 ← Back
               </button>
               <span class="diff-file">{selectedFile.path}</span>
@@ -320,7 +319,7 @@ index 1234567..abcdefg 100644
               <div class="section-header">
                 <h3>Staged Changes ({gitStatus?.staged.length || 0})</h3>
                 {#if gitStatus?.staged.length > 0}
-                  <button class="section-action" on:click={unstageAll}>
+                  <button class="section-action" on:click={unstageAll} aria-label="Unstage all staged files">
                     Unstage All
                   </button>
                 {/if}
@@ -335,9 +334,9 @@ index 1234567..abcdefg 100644
                       >
                         {statusIcons[file.status]}
                       </span>
-                      <span class="file-path" on:click={() => loadDiff(file)}>
+                      <button class="file-path-btn" on:click={() => loadDiff(file)} aria-label="View diff for {file.path}">
                         {file.path}
-                      </span>
+                      </button>
                       <div class="file-stats">
                         {#if file.additions}
                           <span class="additions">+{file.additions}</span>
@@ -366,7 +365,7 @@ index 1234567..abcdefg 100644
               <div class="section-header">
                 <h3>Changes ({gitStatus?.unstaged.length || 0})</h3>
                 {#if gitStatus?.unstaged.length > 0}
-                  <button class="section-action" on:click={stageAll}>
+                  <button class="section-action" on:click={stageAll} aria-label="Stage all modified files">
                     Stage All
                   </button>
                 {/if}
@@ -381,9 +380,9 @@ index 1234567..abcdefg 100644
                       >
                         {statusIcons[file.status]}
                       </span>
-                      <span class="file-path" on:click={() => loadDiff(file)}>
+                      <button class="file-path-btn" on:click={() => loadDiff(file)} aria-label="View diff for {file.path}">
                         {file.path}
-                      </span>
+                      </button>
                       <div class="file-stats">
                         {#if file.additions}
                           <span class="additions">+{file.additions}</span>
@@ -422,9 +421,9 @@ index 1234567..abcdefg 100644
                       >
                         {statusIcons[file.status]}
                       </span>
-                      <span class="file-path" on:click={() => loadDiff(file)}>
+                      <button class="file-path-btn" on:click={() => loadDiff(file)} aria-label="View diff for {file.path}">
                         {file.path}
-                      </span>
+                      </button>
                       <button 
                         class="file-action"
                         on:click={() => stageFile(file)}
@@ -840,5 +839,41 @@ index 1234567..abcdefg 100644
   
   .diff-line.context {
     color: var(--fg-primary);
+  }
+  
+  /* File path buttons */
+  .file-path-btn {
+    background: none;
+    border: none;
+    color: var(--fg-primary);
+    cursor: pointer;
+    text-align: left;
+    font: inherit;
+    padding: 0;
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    transition: text-decoration-color 0.2s;
+  }
+  
+  .file-path-btn:hover {
+    text-decoration-color: var(--accent);
+  }
+  
+  .file-path-btn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  
+  /* Screen reader only content */
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
 </style>

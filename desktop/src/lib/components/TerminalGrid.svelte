@@ -187,6 +187,10 @@
           class="terminal-pane"
           class:active={terminal.active}
           on:click={() => focusTerminal(terminal.id)}
+          on:keydown={(e) => e.key === 'Enter' && focusTerminal(terminal.id)}
+          role="button"
+          tabindex="0"
+          aria-label="Focus terminal {terminal.name || terminal.id}"
         >
           <div class="terminal-header">
             <span class="terminal-title">{terminal.title}</span>
@@ -284,6 +288,13 @@
     background: #1e1e2e;
     border: 1px solid #313244;
     border-radius: 4px;
+    /* Reset button styles */
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    width: auto;
+    cursor: pointer;
     overflow: hidden;
     transition: border-color 0.2s;
   }

@@ -333,8 +333,9 @@
 </script>
 
 {#if show}
-  <div class="command-palette-overlay" on:click={close} transition:fade={{ duration: 150 }}>
+  <div class="command-palette-overlay" on:click={close} transition:fade={{ duration: 150 }} role="dialog" aria-modal="true" aria-labelledby="command-palette-title">
     <div class="command-palette" on:click|stopPropagation>
+      <h2 id="command-palette-title" class="visually-hidden">Command Palette</h2>
       <div class="search-container">
         <span class="search-icon">🔍</span>
         <input 
@@ -346,11 +347,16 @@
           on:keydown={handleKeydown}
           autocomplete="off"
           spellcheck="false"
+          aria-label="Search commands"
+          aria-describedby="command-help"
         />
+        <div id="command-help" class="visually-hidden">
+          Use arrow keys to navigate, Enter to execute, Escape to close
+        </div>
         <kbd class="shortcut-hint">esc</kbd>
       </div>
       
-      <div class="command-list">
+      <div class="command-list" role="listbox" aria-label="Command results">
         {#if filteredCommands.length === 0}
           <div class="no-results">
             No commands found for "{searchQuery}"
@@ -362,6 +368,9 @@
               class:selected={index === selectedIndex}
               on:click={() => executeCommand(command)}
               on:mouseenter={() => selectedIndex = index}
+              role="option"
+              aria-selected={index === selectedIndex}
+              tabindex={index === selectedIndex ? 0 : -1}
             >
               {#if command.icon}
                 <span class="command-icon">{command.icon}</span>
@@ -530,5 +539,18 @@
   
   .command-list::-webkit-scrollbar-thumb:hover {
     background: var(--fg-tertiary);
+  }
+  
+  /* Screen reader only content */
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
 </style>

@@ -3,8 +3,8 @@
   import TauriTerminal from './TauriTerminal.svelte';
   import { layoutClient, type GridLayout, type PaneLayout } from '$lib/tauri/layout';
   
-  export let sessionId: string = 'orchflow-main';
-  
+    const sessionId = 'orchflow-main'; // Fixed session ID
+
   let layout: GridLayout | null = null;
   let selectedPaneId: string | null = null;
   
@@ -77,6 +77,7 @@
       on:click={() => splitPane(true)}
       disabled={!selectedPaneId}
       title="Split Horizontally"
+      aria-label="Split selected pane horizontally"
     >
       ⬌
     </button>
@@ -84,6 +85,7 @@
       on:click={() => splitPane(false)}
       disabled={!selectedPaneId}
       title="Split Vertically"
+      aria-label="Split selected pane vertically"
     >
       ⬍
     </button>
@@ -91,6 +93,7 @@
       on:click={closePane}
       disabled={!selectedPaneId || (layout && Object.keys(layout.panes).length === 1)}
       title="Close Pane"
+      aria-label="Close selected pane"
     >
       ✕
     </button>
@@ -100,11 +103,14 @@
     <div class="pane-grid">
       {#each Object.values(layout.panes) as pane (pane.id)}
         {#if pane.children.length === 0}
-          <div 
+          <button 
             class="pane"
             class:selected={selectedPaneId === pane.id}
             style={calculateGridStyle(pane)}
             on:click={() => selectPane(pane.id)}
+            type="button"
+            aria-label="Select pane {pane.id}"
+            aria-pressed={selectedPaneId === pane.id}
           >
             {#if pane.pane_id}
               <TauriTerminal
@@ -118,7 +124,7 @@
                 <p class="hint">Click to select, then split</p>
               </div>
             {/if}
-          </div>
+          </button>
         {/if}
       {/each}
     </div>
@@ -179,6 +185,14 @@
     overflow: hidden;
     cursor: pointer;
     position: relative;
+    /* Reset button styles */
+    border: none;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    width: auto;
+    display: block;
   }
   
   .pane.selected {
@@ -205,5 +219,18 @@
     justify-content: center;
     height: 100%;
     color: var(--fg-secondary);
+  }
+  
+  /* Screen reader only content */
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
 </style>

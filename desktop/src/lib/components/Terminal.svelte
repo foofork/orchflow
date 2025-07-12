@@ -146,8 +146,15 @@
   class="terminal-container"
   bind:this={container}
   on:keydown={handleKeyDown}
+  on:click={() => container.focus()}
   tabindex="0"
+  role="application"
+  aria-label="Terminal"
+  aria-describedby="terminal-help"
 >
+  <div id="terminal-help" class="visually-hidden">
+    Use keyboard shortcuts: Ctrl+F to search, Ctrl+C to interrupt, Ctrl+D to send EOF
+  </div>
   {#if !browser}
     <div class="terminal-placeholder">Terminal (client-side only)</div>
   {/if}
@@ -181,5 +188,18 @@
   
   :global(.xterm-viewport) {
     overflow-y: auto;
+  }
+  
+  /* Screen reader only content */
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
 </style>

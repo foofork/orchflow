@@ -558,10 +558,6 @@
     background: var(--bg-hover);
   }
   
-  .agents-table tr.error {
-    background: rgba(239, 68, 68, 0.1);
-  }
-  
   .name-cell {
     display: flex;
     flex-direction: column;
@@ -655,10 +651,6 @@
     border-color: var(--accent);
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  }
-  
-  .agent-card.error {
-    border-color: var(--error);
   }
   
   .card-header {

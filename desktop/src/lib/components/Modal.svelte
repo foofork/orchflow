@@ -18,8 +18,15 @@
   
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape' && closeable) {
+      e.preventDefault();
+      e.stopPropagation();
       close();
     }
+  }
+  
+  function handleModalContentClick(e: MouseEvent) {
+    // Only prevent event bubbling if needed for this specific modal
+    e.stopPropagation();
   }
 </script>
 
@@ -36,7 +43,7 @@
     <div 
       class="modal-content"
       style="max-width: {width}"
-      on:click|stopPropagation
+      on:click={handleModalContentClick}
       role="document"
       transition:scale={{ duration: 200, start: 0.95 }}
     >

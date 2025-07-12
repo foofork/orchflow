@@ -530,7 +530,7 @@
     100% { opacity: 1; }
   }
   
-  .status-item:has(.item-text:contains("🔔")) {
+  .status-item[data-icon="🔔"] {
     animation: pulse 2s infinite;
   }
   
@@ -540,7 +540,7 @@
     50% { opacity: 0.5; }
   }
   
-  .status-item:has(.item-text:contains("⚡")) {
+  .status-item[data-icon="⚡"] {
     animation: flash 1s infinite;
   }
 </style>

@@ -396,10 +396,22 @@
 </script>
 
 {#if show}
-  <div class="quick-switcher-overlay" on:click={close} transition:fade={{ duration: 150 }}>
+  <div 
+    class="quick-switcher-overlay" 
+    on:click={close} 
+    on:keydown={(e) => e.key === 'Escape' && close()}
+    role="dialog"
+    aria-label="Quick switcher"
+    tabindex="-1"
+    transition:fade={{ duration: 150 }}
+  >
     <div 
       class="quick-switcher" 
       on:click|stopPropagation
+      on:keydown
+      role="dialog"
+      aria-label="Quick switcher content"
+      tabindex="0"
       transition:fly={{ y: -20, duration: 200 }}
     >
       <div class="search-header">

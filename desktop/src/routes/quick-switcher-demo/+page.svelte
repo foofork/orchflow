@@ -175,22 +175,24 @@
       <div class="shortcuts">
         <h3>Keyboard Shortcuts</h3>
         <table>
-          <tr>
-            <td><kbd>Tab</kbd></td>
-            <td>Cycle through modes (All → Files → Terminals → Sessions)</td>
-          </tr>
-          <tr>
-            <td><kbd>↑</kbd> / <kbd>↓</kbd></td>
-            <td>Navigate through results</td>
-          </tr>
-          <tr>
-            <td><kbd>Enter</kbd></td>
-            <td>Select the highlighted item</td>
-          </tr>
-          <tr>
-            <td><kbd>Esc</kbd></td>
-            <td>Close the quick switcher</td>
-          </tr>
+          <tbody>
+            <tr>
+              <td><kbd>Tab</kbd></td>
+              <td>Cycle through modes (All → Files → Terminals → Sessions)</td>
+            </tr>
+            <tr>
+              <td><kbd>↑</kbd> / <kbd>↓</kbd></td>
+              <td>Navigate through results</td>
+            </tr>
+            <tr>
+              <td><kbd>Enter</kbd></td>
+              <td>Select the highlighted item</td>
+            </tr>
+            <tr>
+              <td><kbd>Esc</kbd></td>
+              <td>Close the quick switcher</td>
+            </tr>
+          </tbody>
         </table>
       </div>
     </div>

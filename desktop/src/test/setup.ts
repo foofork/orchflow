@@ -4,6 +4,17 @@ import './setup-mocks';
 import './setup-codemirror';
 import './setup-xterm';
 import { setupTestEnvironment } from './utils';
+import { mockRegistry, createMock } from './utils/mock-registry';
+
+// Initialize MockRegistry for the test session
+beforeEach(() => {
+  mockRegistry.createSnapshot('test-start');
+});
+
+afterEach(() => {
+  mockRegistry.reset();
+  mockRegistry.clearCalls();
+});
 
 // Set up Tauri globals
 (globalThis as any).window = globalThis.window || {};

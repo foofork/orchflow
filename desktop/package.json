@@ -4,8 +4,10 @@
   "private": true,
   "license": "MIT OR Apache-2.0",
   "scripts": {
-    "dev": "PORT=$(node scripts/find-port.js) && vite dev --port $PORT",
-    "dev:test": "vite dev --port $PORT",
+    "dev": "PORT=$(node scripts/port-manager.js dev) && vite dev --port $PORT",
+    "dev:test": "PORT=$(node scripts/port-manager.js test) && vite dev --port $PORT",
+    "dev:e2e": "PORT=$(node scripts/port-manager.js e2e) && vite dev --port $PORT",
+    "dev:visual": "PORT=$(node scripts/port-manager.js visual) && vite dev --port $PORT",
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
@@ -24,9 +26,12 @@
     "test:unit:watch": "vitest",
     "test:unit:ui": "vitest --ui",
     "test:integration": "vitest run --config vitest.config.integration.ts",
+    "test:integration:watch": "vitest --config vitest.config.integration.ts",
+    "test:integration:ui": "vitest --config vitest.config.integration.ts --ui",
     "test:e2e": "vitest run --config vitest.config.e2e.ts",
     "test:all": "npm run test:unit && npm run test:integration",
-    "test:ci": "npm run build && npm run test:all",
+    "test:ci": "npm run build && npm run test:quality",
+    "test:pipeline": "npm run test:audit && npm run test:migrate && npm run test:quality",
     "test:coverage": "vitest run --coverage",
     "test:performance": "vitest run --config vitest.config.performance.ts",
     "test:visual": "npm run test:visual:cleanup && playwright test",
@@ -44,6 +49,12 @@
     "bench:report": "vitest bench --reporter=json --outputFile=test-results/benchmark-results.json",
     "test:mutation": "stryker run",
     "test:mutation:incremental": "stryker run --incremental",
+    "test:mutation:ci": "stryker run --concurrency 2 --timeoutMS 30000",
+    "test:audit": "node scripts/test-audit.js",
+    "test:migrate": "node scripts/migrate-tests.js",
+    "test:coverage:integration": "vitest run --config vitest.config.integration.ts --coverage",
+    "test:e2e:ci": "vitest run --config vitest.config.e2e.ts --reporter=json --outputFile=test-results/e2e-results.json",
+    "test:quality": "npm run test:unit && npm run test:integration && npm run test:e2e:ci && npm run test:mutation:ci",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "lint:test": "eslint **/*.test.ts **/*.spec.ts --config .eslintrc-test.js",
@@ -60,7 +71,7 @@
     "@stryker-mutator/vitest-runner": "^9.0.1",
     "@sveltejs/adapter-static": "^3.0.8",
     "@sveltejs/kit": "^2.22.5",
-    "@sveltejs/vite-plugin-svelte": "^3.1.2",
+    "@sveltejs/vite-plugin-svelte": "^4.0.0-next.6",
     "@tauri-apps/cli": "^2.1.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/svelte": "^5.2.8",
@@ -70,11 +81,11 @@
     "@vitest/ui": "^3.2.4",
     "happy-dom": "^18.0.1",
     "jsdom": "^26.1.0",
-    "svelte": "^4.2.7",
+    "svelte": "^5.0.0",
     "svelte-check": "^3.6.0",
     "tslib": "^2.4.1",
     "typescript": "^5.8.3",
-    "vite": "^7.0.4",
+    "vite": "^5.4.0",
     "vitest": "^3.2.4"
   },
   "dependencies": {
@@ -106,5 +117,9 @@
     "fuse.js": "^7.1.0",
     "ws": "^8.14.2"
   },
-  "type": "module"
+  "type": "module",
+  "overrides": {
+    "cookie": "^0.7.0",
+    "@sveltejs/vite-plugin-svelte": "^4.0.0-next.6"
+  }
 }

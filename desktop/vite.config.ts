@@ -56,11 +56,13 @@ export default defineConfig({
             if (id.includes('@tauri-apps')) {
               return 'vendor-tauri';
             }
-            // Core vendor chunk for remaining dependencies
-            return 'vendor-core';
+            // Group other vendor dependencies
+            return 'vendor';
           }
+          // Return undefined for main chunk files to avoid empty chunks
+          return undefined;
         },
-        // Optimize chunk generation
+        // Optimize chunk generation with better settings
         experimentalMinChunkSize: 10000
       },
       // Enable better tree shaking
@@ -75,16 +77,39 @@ export default defineConfig({
     commonjsOptions: {
       include: [/node_modules/],
       transformMixedEsModules: true
-    }
+    },
+    
+    // Better minification options
+    minify: 'esbuild',
+    target: 'esnext',
+    sourcemap: false
   },
   
   // Optimize dependencies
   optimizeDeps: {
-    include: ['svelte', '@sveltejs/kit', '@xterm/xterm', '@xterm/addon-fit', '@xterm/addon-web-links', '@xterm/addon-search']
+    include: ['svelte', '@sveltejs/kit', '@xterm/xterm', '@xterm/addon-fit', '@xterm/addon-web-links', '@xterm/addon-search'],
+    exclude: ['@tauri-apps/api', '@tauri-apps/plugin-fs', '@tauri-apps/plugin-shell'],
+    force: false, // Don't force re-optimization in development
+    entries: ['src/main.ts', 'src/app.html']
   },
   
   // Ensure worker files are handled correctly
   worker: {
     format: 'es'
+  },
+  
+  // Performance optimizations
+  esbuild: {
+    target: 'esnext',
+    platform: 'browser',
+    // Remove console logs in production
+    drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : [],
+    // Optimize for smaller bundles
+    treeShaking: true
+  },
+  
+  // Define configuration
+  define: {
+    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development')
   }
 });

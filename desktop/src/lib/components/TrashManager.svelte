@@ -1,6 +1,5 @@
 <script lang="ts">
   import { createEventDispatcher, onMount } from 'svelte';
-  import { browser } from '$app/environment';
   import Dialog from './Dialog.svelte';
   
   const dispatch = createEventDispatcher();
@@ -320,25 +319,25 @@
               on:change={handleSelectAll}
             />
           </div>
-          <div class="col-name sortable" on:click={() => toggleSort('name')}>
+          <button class="col-name sortable" on:click={() => toggleSort('name')} type="button">
             Name
             {#if sortBy === 'name'}
               <span class="sort-arrow">{sortAscending ? '↑' : '↓'}</span>
             {/if}
-          </div>
+          </button>
           <div class="col-path">Original Location</div>
-          <div class="col-size sortable" on:click={() => toggleSort('size')}>
+          <button class="col-size sortable" on:click={() => toggleSort('size')} type="button">
             Size
             {#if sortBy === 'size'}
               <span class="sort-arrow">{sortAscending ? '↑' : '↓'}</span>
             {/if}
-          </div>
-          <div class="col-date sortable" on:click={() => toggleSort('date')}>
+          </button>
+          <button class="col-date sortable" on:click={() => toggleSort('date')} type="button">
             Deleted
             {#if sortBy === 'date'}
               <span class="sort-arrow">{sortAscending ? '↑' : '↓'}</span>
             {/if}
-          </div>
+          </button>
         </div>
         
         <div class="table-body">
@@ -617,6 +616,14 @@
   .sortable {
     cursor: pointer;
     user-select: none;
+    /* Reset button styles */
+    border: none;
+    background: none;
+    font: inherit;
+    color: inherit;
+    text-align: inherit;
+    padding: 8px;
+    width: 100%;
   }
   
   .sortable:hover {

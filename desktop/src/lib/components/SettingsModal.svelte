@@ -35,6 +35,15 @@
 			closeOnExit: boolean;
 			bellStyle: 'none' | 'visual' | 'sound';
 		};
+		ai: {
+			provider: string;
+			apiKey: string;
+			model: string;
+			temperature: number;
+			maxTokens: number;
+			enableInlineCompletion: boolean;
+			enableCodeSuggestions: boolean;
+		};
 		git: {
 			autoFetch: boolean;
 			fetchInterval: number;
@@ -132,6 +141,15 @@
 				scrollback: $settings.scrollback || 1000,
 				closeOnExit: $settings.closeOnExit ?? true,
 				bellStyle: $settings.bellStyle || 'none'
+			},
+			ai: {
+				provider: $settings.aiProvider || 'openai',
+				apiKey: $settings.aiApiKey || '',
+				model: $settings.aiModel || 'gpt-4',
+				temperature: $settings.aiTemperature || 0.7,
+				maxTokens: $settings.aiMaxTokens || 2048,
+				enableInlineCompletion: $settings.enableInlineCompletion ?? true,
+				enableCodeSuggestions: $settings.enableCodeSuggestions ?? true
 			},
 			git: {
 				autoFetch: $settings.gitAutoFetch ?? true,

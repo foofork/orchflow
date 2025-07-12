@@ -1,6 +1,5 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
-  import { invoke } from '@tauri-apps/api/core';
   
   const dispatch = createEventDispatcher();
   
@@ -107,7 +106,6 @@
       placeholder="Search"
       bind:value={searchQuery}
       on:keydown={handleKeydown}
-      autofocus
     />
     <button 
       class="search-button"

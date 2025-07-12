@@ -125,13 +125,13 @@
   <div class="header">
     <h2>Dashboard</h2>
     <div class="actions">
-      <button class="toggle-view" on:click={() => showTableView = !showTableView}>
+      <button class="toggle-view" on:click={() => showTableView = !showTableView} aria-label="Toggle between grid and table view">
         {showTableView ? '📊 Grid View' : '📋 Table View'}
       </button>
-      <button class="refresh" on:click={collectMetrics}>
+      <button class="refresh" on:click={collectMetrics} aria-label="Refresh dashboard metrics">
         🔄 Refresh
       </button>
-      <button class="new-session" on:click={createNewSession}>
+      <button class="new-session" on:click={createNewSession} aria-label="Create new session">
         ➕ New Session
       </button>
     </div>
@@ -140,7 +140,7 @@
   {#if sessions.length === 0}
     <div class="empty-state">
       <p>No active sessions</p>
-      <button on:click={createNewSession}>Create First Session</button>
+      <button on:click={createNewSession} aria-label="Create your first session">Create First Session</button>
     </div>
   {:else if showTableView}
     <!-- Table View -->
@@ -174,7 +174,7 @@
                 <td>{paneMetrics.get(pane.id)?.cpu || 0}%</td>
                 <td>{formatBytes(paneMetrics.get(pane.id)?.memory || 0)}</td>
                 <td>
-                  <button class="action-btn" on:click={() => manager.focusPane(pane.id)}>
+                  <button class="action-btn" on:click={() => manager.focusPane(pane.id)} aria-label="View {pane.title} pane">
                     View
                   </button>
                 </td>
@@ -192,9 +192,11 @@
           <h3>{session.name}</h3>
           <div class="panes-grid">
             {#each getSessionPanes(session.id) as pane}
-              <div 
+              <button 
                 class="pane-card"
                 on:click={() => manager.focusPane(pane.id)}
+                type="button"
+                aria-label="Focus {pane.title || 'pane'}"
               >
                 <div class="pane-header">
                   <span class="pane-icon">
@@ -247,17 +249,19 @@
                     📁 {pane.working_dir.split('/').pop()}
                   </div>
                 {/if}
-              </div>
+              </button>
             {/each}
             
             <!-- Add New Pane Card -->
-            <div 
+            <button 
               class="pane-card add-new"
               on:click={() => createNewTerminal(session.id)}
+              type="button"
+              aria-label="Create new terminal"
             >
               <div class="add-icon">➕</div>
               <div class="add-text">New Terminal</div>
-            </div>
+            </button>
           </div>
         </div>
       {/each}
@@ -349,6 +353,12 @@
     border-radius: 8px;
     padding: 16px;
     cursor: pointer;
+    /* Reset button styles */
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    width: 100%;
+    display: block;
     transition: all 0.2s;
   }
   
@@ -500,5 +510,18 @@
   
   .action-btn:hover {
     background: var(--accent-hover);
+  }
+  
+  /* Screen reader only content */
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
 </style>

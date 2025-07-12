@@ -7,7 +7,7 @@ export default defineConfig({
     name: 'integration',
     globals: true,
     environment: 'jsdom',
-    setupFiles: ['./src/test/setup.integration.ts'],
+    setupFiles: ['./src/test/setup-integration.ts'],
     include: ['src/**/*.integration.test.{js,ts}'],
     testTimeout: 30000,
     hookTimeout: 30000,

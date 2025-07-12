@@ -186,7 +186,7 @@
   {:else if tree.length === 0}
     <div class="empty">No files in directory</div>
   {:else}
-    <div class="tree">
+    <div class="tree" role="tree" aria-label="File explorer tree">
       {#each tree as node}
         <div class="tree-node">
           <button
@@ -196,6 +196,9 @@
             on:click={() => toggleNode(node)}
             on:keydown={(e) => handleKeyDown(e, node)}
             style="padding-left: 8px"
+            aria-label="{node.isDirectory ? (node.expanded ? 'Collapse' : 'Expand') : 'Open'} {node.name}"
+            aria-expanded={node.isDirectory ? node.expanded : undefined}
+            type="button"
           >
             <span class="icon">{getFileIcon(node)}</span>
             <span class="name">{node.name}</span>
@@ -215,6 +218,9 @@
                     on:click={() => toggleNode(child)}
                     on:keydown={(e) => handleKeyDown(e, child)}
                     style="padding-left: 24px"
+                    aria-label="{child.isDirectory ? (child.expanded ? 'Collapse' : 'Expand') : 'Open'} {child.name}"
+                    aria-expanded={child.isDirectory ? child.expanded : undefined}
+                    type="button"
                   >
                     <span class="icon">{getFileIcon(child)}</span>
                     <span class="name">{child.name}</span>
@@ -234,6 +240,9 @@
                             on:click={() => toggleNode(grandchild)}
                             on:keydown={(e) => handleKeyDown(e, grandchild)}
                             style="padding-left: 40px"
+                            aria-label="{grandchild.isDirectory ? (grandchild.expanded ? 'Collapse' : 'Expand') : 'Open'} {grandchild.name}"
+                            aria-expanded={grandchild.isDirectory ? grandchild.expanded : undefined}
+                            type="button"
                           >
                             <span class="icon">{getFileIcon(grandchild)}</span>
                             <span class="name">{grandchild.name}</span>
@@ -252,7 +261,7 @@
   {/if}
   
   <div class="actions">
-    <button class="action-button" on:click={() => dispatch('share')} title="Share Project">
+    <button class="action-button" on:click={() => dispatch('share')} title="Share Project" aria-label="Share current project">
       📤 Share
     </button>
   </div>
@@ -368,5 +377,18 @@
   .node-item:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: -2px;
+  }
+  
+  /* Screen reader only content */
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
 </style>

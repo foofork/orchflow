@@ -144,7 +144,7 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'npm run dev:test',
+    command: 'npm run dev:visual',
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
@@ -152,7 +152,7 @@ export default defineConfig({
     stdout: 'pipe',
     env: {
       ...process.env,
-      PORT: DEFAULT_PORT.toString(),
+      NODE_ENV: 'test',
     },
   },
 });

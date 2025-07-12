@@ -24,7 +24,7 @@
 
 {#if loading}
   <div class="lazy-loading">
-    <div class="spinner" />
+    <div class="spinner"></div>
     <p>{placeholder}</p>
   </div>
 {:else if error}
