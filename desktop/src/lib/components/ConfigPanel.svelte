@@ -65,7 +65,7 @@
       
       return parsed;
     } catch (err) {
-      validationErrors = [`Invalid JSON: ${err.message}`];
+      validationErrors = [`Invalid JSON: ${err instanceof Error ? err.message : String(err)}`];
       return null;
     }
   }
@@ -75,13 +75,15 @@
     
     // Simple schema validation (in production, use a proper JSON Schema validator)
     for (const [key, schemaValue] of Object.entries(schema)) {
-      if (schemaValue.required && !(key in data)) {
+      const fieldSchema = schemaValue as { required?: boolean; type?: string };
+      
+      if (fieldSchema.required && !(key in data)) {
         errors.push(`Missing required field: ${key}`);
       }
       
-      if (key in data && schemaValue.type) {
+      if (key in data && fieldSchema.type) {
         const actualType = typeof data[key];
-        const expectedType = schemaValue.type;
+        const expectedType = fieldSchema.type;
         
         if (actualType !== expectedType) {
           errors.push(`Invalid type for ${key}: expected ${expectedType}, got ${actualType}`);

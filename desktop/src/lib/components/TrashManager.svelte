@@ -308,7 +308,7 @@
             <input
               type="checkbox"
               checked={selectedItems.size === filteredItems.length}
-              on:change={(e) => e.target.checked ? selectAll() : deselectAll()}
+              on:change={(e) => (e.target as HTMLInputElement).checked ? selectAll() : deselectAll()}
             />
           </div>
           <div class="col-name sortable" on:click={() => toggleSort('name')}>

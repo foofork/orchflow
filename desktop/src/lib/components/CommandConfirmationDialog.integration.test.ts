@@ -166,12 +166,10 @@ describe('CommandConfirmationDialog Integration Tests', () => {
 
       // Test High risk - should not show bypass
       await rerender({
-        props: {
-          open: true,
-          command: 'rm -rf /',
-          warning: { ...mockWarning, riskLevel: 'High' },
-          terminalInfo: mockTerminalInfo
-        }
+        open: true,
+        command: 'rm -rf /',
+        warning: { ...mockWarning, riskLevel: 'High' },
+        terminalInfo: mockTerminalInfo
       });
 
       await tick();
@@ -231,12 +229,10 @@ describe('CommandConfirmationDialog Integration Tests', () => {
 
       // Rerender with updated open state
       await rerender({
-        props: {
-          open: isOpen,
-          command: 'rm -rf /',
-          warning: mockWarning,
-          terminalInfo: mockTerminalInfo
-        }
+        open: isOpen,
+        command: 'rm -rf /',
+        warning: mockWarning,
+        terminalInfo: mockTerminalInfo
       });
 
       await tick();

@@ -6,8 +6,8 @@ import ConfigPanel from './ConfigPanel.svelte';
 // Mock the dynamic import of CodeMirrorEditor before any tests run
 beforeAll(() => {
   // Override the global import function for CodeMirrorEditor
-  const originalImport = global.import;
-  global.import = vi.fn(async (path: string) => {
+  const originalImport = (global as any).import;
+  (global as any).import = vi.fn(async (path: string) => {
     if (path.includes('CodeMirrorEditor.svelte')) {
       // Return a mock component class
       const MockCodeMirrorEditor = class {

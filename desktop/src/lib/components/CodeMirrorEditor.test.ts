@@ -36,11 +36,11 @@ describe('CodeMirrorEditor Component', () => {
       }
     };
     
-    // Get mocked modules - EditorView is imported from basic-setup in the component
-    const basicSetup = await import('@codemirror/basic-setup');
+    // Get mocked modules
+    const { EditorView } = await import('@codemirror/view');
     const { EditorState } = await import('@codemirror/state');
     
-    mockEditorViewConstructor = basicSetup.EditorView as any;
+    mockEditorViewConstructor = EditorView as any;
     mockEditorState = EditorState as any;
     
     // Setup EditorView mock to return our instance
@@ -243,11 +243,14 @@ describe('CodeMirrorEditor Component', () => {
       render(CodeMirrorEditor);
       
       await waitFor(() => {
-        expect(mockEditorState.create).toHaveBeenCalledWith(
-          expect.objectContaining({
-            extensions: expect.arrayContaining([oneDark])
-          })
+        expect(mockEditorState.create).toHaveBeenCalled();
+        const calls = vi.mocked(mockEditorState.create).mock.calls;
+        const lastCall = calls[calls.length - 1];
+        // Check if oneDark extension object is in the extensions array
+        const hasOneDark = lastCall[0]?.extensions?.some((ext: any) => 
+          ext === oneDark || ext?.extension === 'oneDark'
         );
+        expect(hasOneDark).toBe(true);
       });
     });
 

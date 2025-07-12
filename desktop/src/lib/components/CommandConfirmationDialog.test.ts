@@ -8,12 +8,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import CommandConfirmationDialog from './CommandConfirmationDialog.svelte';
+import { MockSvelteComponent } from '../../test/utils/svelte-component-mock-types';
 
 // Mock Modal component
 vi.mock('./Modal.svelte', () => {
   return {
-    default: class MockModal {
+    default: class MockModal extends MockSvelteComponent {
       constructor(options: any) {
+        super(options);
         const { target, props = {} } = options;
         
         // Create the modal element only if show is true
@@ -35,22 +37,7 @@ vi.mock('./Modal.svelte', () => {
           }, 0);
         }
         
-        this.$$ = {
-          fragment: null,
-          ctx: [],
-          props: {},
-          update: vi.fn(),
-          dirty: [],
-          after_update: [],
-          before_update: [],
-          context: new Map(),
-          callbacks: {},
-          skip_bound: false,
-          root: target,
-          on_mount: [],
-          on_destroy: []
-        };
-        
+        // Override $set to handle modal visibility
         this.$set = vi.fn((newProps: any) => {
           Object.assign(props, newProps);
           if (newProps.show === false && target) {
@@ -58,9 +45,6 @@ vi.mock('./Modal.svelte', () => {
             if (modal) modal.remove();
           }
         });
-        
-        this.$on = vi.fn();
-        this.$destroy = vi.fn();
       }
     }
   };
@@ -69,8 +53,9 @@ vi.mock('./Modal.svelte', () => {
 // Mock Icon component
 vi.mock('./Icon.svelte', () => {
   return {
-    default: class MockIcon {
+    default: class MockIcon extends MockSvelteComponent {
       constructor(options: any) {
+        super(options);
         const { target, props = {} } = options;
         
         if (target) {
@@ -81,480 +66,385 @@ vi.mock('./Icon.svelte', () => {
           target.appendChild(icon);
         }
         
-        this.$$ = {
-          fragment: null,
-          ctx: [],
-          props: {},
-          update: vi.fn(),
-          dirty: [],
-          after_update: [],
-          before_update: [],
-          context: new Map(),
-          callbacks: {},
-          skip_bound: false,
-          root: target,
-          on_mount: [],
-          on_destroy: []
-        };
-        
-        this.$set = vi.fn();
-        this.$on = vi.fn();
-        this.$destroy = vi.fn();
+        // Override $set to handle icon updates
+        this.$set = vi.fn((newProps: any) => {
+          Object.assign(props, newProps);
+          if (target) {
+            const icon = target.querySelector('.mock-icon');
+            if (icon && newProps.name) {
+              icon.setAttribute('data-icon', newProps.name);
+              icon.textContent = newProps.name;
+            }
+          }
+        });
       }
     }
   };
 });
 
-describe('CommandConfirmationDialog', () => {
-  const mockWarning = {
-    message: 'This command may be dangerous',
-    riskLevel: 'High' as const,
-    riskFactors: ['Deletes files', 'Cannot be undone'],
-    matchedPattern: 'rm -rf'
-  };
+// Mock slide transition
+vi.mock('svelte/transition', () => ({
+  slide: () => ({
+    delay: 0,
+    duration: 0,
+    css: () => ''
+  })
+}));
 
+describe('CommandConfirmationDialog', () => {
+  let mockOnConfirm: ReturnType<typeof vi.fn>;
+  let mockOnCancel: ReturnType<typeof vi.fn>;
+  let mockOnBypass: ReturnType<typeof vi.fn>;
+  
+  const mockWarning = {
+    riskLevel: 'High' as const,
+    message: 'This command could be dangerous',
+    riskFactors: ['Contains rm -rf', 'Targets root directory'],
+    matchedPattern: 'rm -rf /*'
+  };
+  
   const mockTerminalInfo = {
     id: 'term-1',
     name: 'Terminal 1'
   };
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    mockOnConfirm = vi.fn();
+    mockOnCancel = vi.fn();
+    mockOnBypass = vi.fn();
   });
 
-  describe('Rendering', () => {
-    it('renders dialog when open', async () => {
-      const { container } = render(CommandConfirmationDialog, {
-        props: {
-          open: true,
-          command: 'rm -rf /',
-          warning: mockWarning,
-          terminalInfo: mockTerminalInfo
-        }
-      });
-
-      // Wait for the component to render and move content
-      await waitFor(() => {
-        expect(container.querySelector('.confirmation-dialog')).toBeTruthy();
-      });
+  it('renders warning dialog when open', async () => {
+    const { container } = render(CommandConfirmationDialog, {
+      props: {
+        open: true,
+        command: 'rm -rf /',
+        warning: mockWarning,
+        terminalInfo: mockTerminalInfo,
+        onConfirm: mockOnConfirm,
+        onCancel: mockOnCancel,
+        onBypass: mockOnBypass
+      }
     });
 
-    it('displays risk level banner with correct styling', async () => {
-      const { container } = render(CommandConfirmationDialog, {
-        props: {
-          open: true,
-          command: 'rm -rf /',
-          warning: mockWarning,
-          terminalInfo: mockTerminalInfo
-        }
-      });
-
-      await waitFor(() => {
-        const banner = container.querySelector('.risk-banner');
-        expect(banner).toBeTruthy();
-        expect(banner?.classList.contains('bg-orange-100')).toBe(true);
-        expect(banner?.classList.contains('border-orange-300')).toBe(true);
-      });
+    // Wait for async rendering
+    await waitFor(() => {
+      expect(container.querySelector('.confirmation-dialog')).toBeInTheDocument();
     });
 
-    it('displays terminal information', async () => {
-      const { container } = render(CommandConfirmationDialog, {
-        props: {
-          open: true,
-          command: 'rm -rf /',
-          warning: mockWarning,
-          terminalInfo: mockTerminalInfo
-        }
-      });
-
-      await waitFor(() => {
-        const terminalInfo = container.querySelector('.terminal-info');
-        expect(terminalInfo?.textContent).toContain('Terminal: Terminal 1');
-      });
-    });
-
-    it('displays command in code block', async () => {
-      const { container } = render(CommandConfirmationDialog, {
-        props: {
-          open: true,
-          command: 'rm -rf /',
-          warning: mockWarning,
-          terminalInfo: mockTerminalInfo
-        }
-      });
-
-      await waitFor(() => {
-        const commandCode = container.querySelector('.command-display code');
-        expect(commandCode?.textContent).toBe('rm -rf /');
-      });
-    });
-
-    it('shows risk factors when available', async () => {
-      const { container } = render(CommandConfirmationDialog, {
-        props: {
-          open: true,
-          command: 'rm -rf /',
-          warning: mockWarning,
-          terminalInfo: mockTerminalInfo
-        }
-      });
-
-      await waitFor(() => {
-        expect(container.textContent).toContain('Deletes files');
-        expect(container.textContent).toContain('Cannot be undone');
-      });
-    });
-
-    it('shows matched pattern when available', async () => {
-      const { container } = render(CommandConfirmationDialog, {
-        props: {
-          open: true,
-          command: 'rm -rf /',
-          warning: mockWarning,
-          terminalInfo: mockTerminalInfo
-        }
-      });
-
-      await waitFor(() => {
-        expect(container.textContent).toContain('Matched pattern: rm -rf');
-      });
-    });
+    // Check key elements
+    expect(container.textContent).toContain('High Risk Command Detected');
+    expect(container.textContent).toContain('This command could be dangerous');
+    expect(container.textContent).toContain('rm -rf /');
+    expect(container.textContent).toContain('Terminal 1');
   });
 
-  describe('Risk Level Styling', () => {
-    it('applies correct styling for Low risk', async () => {
-      const { container } = render(CommandConfirmationDialog, {
-        props: {
-          open: true,
-          command: 'ls',
-          warning: { ...mockWarning, riskLevel: 'Low' },
-          terminalInfo: mockTerminalInfo
-        }
-      });
-
-      await waitFor(() => {
-        const banner = container.querySelector('.risk-banner');
-        expect(banner?.classList.contains('bg-blue-100')).toBe(true);
-        expect(banner?.classList.contains('border-blue-300')).toBe(true);
-      });
+  it('shows risk factors when toggled', async () => {
+    const { container } = render(CommandConfirmationDialog, {
+      props: {
+        open: true,
+        command: 'rm -rf /',
+        warning: mockWarning,
+        terminalInfo: mockTerminalInfo
+      }
     });
 
-    it('applies correct styling for Medium risk', async () => {
-      const { container } = render(CommandConfirmationDialog, {
-        props: {
-          open: true,
-          command: 'chmod',
-          warning: { ...mockWarning, riskLevel: 'Medium' },
-          terminalInfo: mockTerminalInfo
-        }
-      });
-
-      await waitFor(() => {
-        const banner = container.querySelector('.risk-banner');
-        expect(banner?.classList.contains('bg-yellow-100')).toBe(true);
-        expect(banner?.classList.contains('border-yellow-300')).toBe(true);
-      });
+    await waitFor(() => {
+      expect(container.querySelector('.confirmation-dialog')).toBeInTheDocument();
     });
 
-    it('applies correct styling for Critical risk', async () => {
-      const { container } = render(CommandConfirmationDialog, {
-        props: {
-          open: true,
-          command: 'sudo rm -rf /',
-          warning: { ...mockWarning, riskLevel: 'Critical' },
-          terminalInfo: mockTerminalInfo
-        }
-      });
+    // Initially collapsed
+    expect(container.querySelector('.factors-list')).not.toBeInTheDocument();
 
-      await waitFor(() => {
-        const banner = container.querySelector('.risk-banner');
-        expect(banner?.classList.contains('bg-red-100')).toBe(true);
-        expect(banner?.classList.contains('border-red-300')).toBe(true);
-      });
-    });
-  });
-
-  describe('User Interactions', () => {
-    it('toggles risk factors details', async () => {
-      const { container, getByText } = render(CommandConfirmationDialog, {
-        props: {
-          open: true,
-          command: 'rm -rf /',
-          warning: mockWarning,
-          terminalInfo: mockTerminalInfo
-        }
-      });
-
-      await waitFor(() => {
-        const detailsToggle = container.querySelector('.toggle-details span');
-        expect(detailsToggle?.textContent).toContain('Risk Analysis');
-      });
-      
-      const toggleButton = container.querySelector('.toggle-details') as HTMLElement;
+    // Toggle to show factors
+    const toggleButton = container.querySelector('.toggle-details');
+    expect(toggleButton).toBeInTheDocument();
+    if (toggleButton) {
       await fireEvent.click(toggleButton);
+    }
 
-      await waitFor(() => {
-        const factorsList = container.querySelector('.factors-list');
-        expect(factorsList).toBeTruthy();
-      });
-    });
-
-    it('copies command to clipboard', async () => {
-      const mockWriteText = vi.fn();
-      Object.assign(navigator, {
-        clipboard: {
-          writeText: mockWriteText
-        }
-      });
-
-      const { container } = render(CommandConfirmationDialog, {
-        props: {
-          open: true,
-          command: 'rm -rf /',
-          warning: mockWarning,
-          terminalInfo: mockTerminalInfo
-        }
-      });
-
-      await waitFor(() => {
-        const copyButton = container.querySelector('.copy-button') as HTMLElement;
-        expect(copyButton).toBeTruthy();
-      });
-
-      const copyButton = container.querySelector('.copy-button') as HTMLElement;
-      await fireEvent.click(copyButton);
-
-      expect(mockWriteText).toHaveBeenCalledWith('rm -rf /');
-    });
-
-    it('toggles remember choice checkbox', async () => {
-      const { container } = render(CommandConfirmationDialog, {
-        props: {
-          open: true,
-          command: 'rm -rf /',
-          warning: mockWarning,
-          terminalInfo: mockTerminalInfo
-        }
-      });
-
-      await waitFor(() => {
-        const checkbox = container.querySelector('input[type="checkbox"]') as HTMLInputElement;
-        expect(checkbox).toBeTruthy();
-      });
-
-      const checkbox = container.querySelector('input[type="checkbox"]') as HTMLInputElement;
-      expect(checkbox.checked).toBe(false);
-
-      await fireEvent.click(checkbox);
-      expect(checkbox.checked).toBe(true);
+    // Now visible
+    await waitFor(() => {
+      expect(container.querySelector('.factors-list')).toBeInTheDocument();
+      expect(container.textContent).toContain('Contains rm -rf');
+      expect(container.textContent).toContain('Targets root directory');
     });
   });
 
-  describe('Action Buttons', () => {
-    it('dispatches confirm event with correct data', async () => {
-      const mockConfirm = vi.fn();
-      const { container, component } = render(CommandConfirmationDialog, {
-        props: {
-          open: true,
-          command: 'rm -rf /',
-          warning: mockWarning,
-          terminalInfo: mockTerminalInfo
-        }
-      });
-
-      component.$on('confirm', mockConfirm);
-
-      await waitFor(() => {
-        const checkbox = container.querySelector('input[type="checkbox"]') as HTMLInputElement;
-        expect(checkbox).toBeTruthy();
-      });
-
-      const checkbox = container.querySelector('input[type="checkbox"]') as HTMLInputElement;
-      await fireEvent.click(checkbox);
-
-      const confirmButton = container.querySelector('.btn-danger') as HTMLElement;
-      await fireEvent.click(confirmButton);
-
-      expect(mockConfirm).toHaveBeenCalledWith(expect.objectContaining({
-        detail: {
-          command: 'rm -rf /',
-          terminalId: 'term-1',
-          rememberChoice: true
-        }
-      }));
+  it('calls onConfirm when proceed clicked', async () => {
+    const { container } = render(CommandConfirmationDialog, {
+      props: {
+        open: true,
+        command: 'rm -rf /',
+        warning: mockWarning,
+        terminalInfo: mockTerminalInfo,
+        onConfirm: mockOnConfirm
+      }
     });
 
-    it('dispatches cancel event', async () => {
-      const mockCancel = vi.fn();
-      const { container, component } = render(CommandConfirmationDialog, {
-        props: {
-          open: true,
-          command: 'rm -rf /',
-          warning: mockWarning,
-          terminalInfo: mockTerminalInfo
-        }
-      });
+    await waitFor(() => {
+      expect(container.querySelector('.confirmation-dialog')).toBeInTheDocument();
+    });
 
-      component.$on('cancel', mockCancel);
+    const proceedButton = container.querySelector('.btn-danger');
+    expect(proceedButton).toBeInTheDocument();
+    expect(proceedButton?.textContent).toContain('Proceed with High Risk');
 
-      await waitFor(() => {
-        const cancelButton = container.querySelector('.btn-secondary') as HTMLElement;
-        expect(cancelButton).toBeTruthy();
-      });
+    if (proceedButton) {
+      await fireEvent.click(proceedButton);
+    }
 
-      const cancelButton = container.querySelector('.btn-secondary') as HTMLElement;
+    expect(mockOnConfirm).toHaveBeenCalledWith(false); // rememberChoice defaults to false
+  });
+
+  it('calls onCancel when cancel clicked', async () => {
+    const { container } = render(CommandConfirmationDialog, {
+      props: {
+        open: true,
+        command: 'rm -rf /',
+        warning: mockWarning,
+        terminalInfo: mockTerminalInfo,
+        onCancel: mockOnCancel
+      }
+    });
+
+    await waitFor(() => {
+      expect(container.querySelector('.confirmation-dialog')).toBeInTheDocument();
+    });
+
+    const cancelButton = container.querySelector('.btn-secondary');
+    expect(cancelButton).toBeInTheDocument();
+    expect(cancelButton?.textContent).toContain('Cancel');
+
+    if (cancelButton) {
       await fireEvent.click(cancelButton);
+    }
 
-      expect(mockCancel).toHaveBeenCalled();
+    expect(mockOnCancel).toHaveBeenCalled();
+  });
+
+  it('shows bypass option for low/medium risk', async () => {
+    const lowRiskWarning = { ...mockWarning, riskLevel: 'Low' as const };
+    
+    const { container } = render(CommandConfirmationDialog, {
+      props: {
+        open: true,
+        command: 'curl http://example.com',
+        warning: lowRiskWarning,
+        terminalInfo: mockTerminalInfo,
+        onBypass: mockOnBypass
+      }
     });
 
-    it('shows bypass button for Low and Medium risk', async () => {
-      const { container } = render(CommandConfirmationDialog, {
-        props: {
-          open: true,
-          command: 'chmod',
-          warning: { ...mockWarning, riskLevel: 'Medium' },
-          terminalInfo: mockTerminalInfo
-        }
-      });
-
-      await waitFor(() => {
-        const bypassButton = container.querySelector('[title*="bypass"]');
-        expect(bypassButton).toBeTruthy();
-      });
+    await waitFor(() => {
+      expect(container.querySelector('.confirmation-dialog')).toBeInTheDocument();
     });
 
-    it('hides bypass button for High and Critical risk', async () => {
-      const { container } = render(CommandConfirmationDialog, {
-        props: {
-          open: true,
-          command: 'rm -rf /',
-          warning: mockWarning,
-          terminalInfo: mockTerminalInfo
-        }
-      });
+    const bypassButton = container.querySelector('[title*="Execute without security checks"]');
+    expect(bypassButton).toBeInTheDocument();
+    expect(bypassButton?.textContent).toContain('Bypass Security');
 
-      await waitFor(() => {
-        const content = container.querySelector('.confirmation-dialog');
-        expect(content).toBeTruthy();
-      });
-
-      const bypassButton = container.querySelector('[title*="bypass"]');
-      expect(bypassButton).toBeNull();
-    });
-
-    it('dispatches bypass event when bypass button clicked', async () => {
-      const mockBypass = vi.fn();
-      const { container, component } = render(CommandConfirmationDialog, {
-        props: {
-          open: true,
-          command: 'chmod',
-          warning: { ...mockWarning, riskLevel: 'Medium' },
-          terminalInfo: mockTerminalInfo
-        }
-      });
-
-      component.$on('bypass', mockBypass);
-
-      await waitFor(() => {
-        const bypassButton = container.querySelector('[title*="bypass"]') as HTMLElement;
-        expect(bypassButton).toBeTruthy();
-      });
-
-      const bypassButton = container.querySelector('[title*="bypass"]') as HTMLElement;
+    if (bypassButton) {
       await fireEvent.click(bypassButton);
+    }
 
-      expect(mockBypass).toHaveBeenCalled();
-    });
+    expect(mockOnBypass).toHaveBeenCalled();
   });
 
-  describe('Dialog State', () => {
-    it('closes dialog when confirm is clicked', async () => {
-      const { container, component } = render(CommandConfirmationDialog, {
-        props: {
-          open: true,
-          command: 'rm -rf /',
-          warning: mockWarning,
-          terminalInfo: mockTerminalInfo
-        }
-      });
-
-      let openProp = true;
-      component.$on('confirm', () => {
-        openProp = false;
-      });
-
-      await waitFor(() => {
-        const confirmButton = container.querySelector('.btn-danger') as HTMLElement;
-        expect(confirmButton).toBeTruthy();
-      });
-
-      const confirmButton = container.querySelector('.btn-danger') as HTMLElement;
-      await fireEvent.click(confirmButton);
-
-      expect(openProp).toBe(false);
+  it('does not show bypass option for high risk', async () => {
+    const { container } = render(CommandConfirmationDialog, {
+      props: {
+        open: true,
+        command: 'rm -rf /',
+        warning: mockWarning,
+        terminalInfo: mockTerminalInfo
+      }
     });
 
-    it('closes dialog when cancel is clicked', async () => {
-      const { container, component } = render(CommandConfirmationDialog, {
-        props: {
-          open: true,
-          command: 'rm -rf /',
-          warning: mockWarning,
-          terminalInfo: mockTerminalInfo
-        }
-      });
-
-      let openProp = true;
-      component.$on('cancel', () => {
-        openProp = false;
-      });
-
-      await waitFor(() => {
-        const cancelButton = container.querySelector('.btn-secondary') as HTMLElement;
-        expect(cancelButton).toBeTruthy();
-      });
-
-      const cancelButton = container.querySelector('.btn-secondary') as HTMLElement;
-      await fireEvent.click(cancelButton);
-
-      expect(openProp).toBe(false);
+    await waitFor(() => {
+      expect(container.querySelector('.confirmation-dialog')).toBeInTheDocument();
     });
+
+    const bypassButton = container.querySelector('[title*="Execute without security checks"]');
+    expect(bypassButton).not.toBeInTheDocument();
   });
 
-  describe('Edge Cases', () => {
-    it('handles missing risk factors gracefully', async () => {
-      const { container } = render(CommandConfirmationDialog, {
+  it('handles remember choice checkbox', async () => {
+    const { container } = render(CommandConfirmationDialog, {
+      props: {
+        open: true,
+        command: 'rm -rf /',
+        warning: mockWarning,
+        terminalInfo: mockTerminalInfo,
+        onConfirm: mockOnConfirm
+      }
+    });
+
+    await waitFor(() => {
+      expect(container.querySelector('.confirmation-dialog')).toBeInTheDocument();
+    });
+
+    const checkbox = container.querySelector('input[type="checkbox"]') as HTMLInputElement;
+    expect(checkbox).toBeInTheDocument();
+    expect(checkbox?.checked).toBe(false);
+
+    // Check the checkbox
+    if (checkbox) {
+      await fireEvent.click(checkbox);
+    }
+
+    // Confirm with remember checked
+    const proceedButton = container.querySelector('.btn-danger');
+    if (proceedButton) {
+      await fireEvent.click(proceedButton);
+    }
+
+    expect(mockOnConfirm).toHaveBeenCalledWith(true);
+  });
+
+  it('copies command to clipboard', async () => {
+    // Mock clipboard
+    const mockWriteText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, {
+      clipboard: {
+        writeText: mockWriteText
+      }
+    });
+
+    const { container } = render(CommandConfirmationDialog, {
+      props: {
+        open: true,
+        command: 'rm -rf /',
+        warning: mockWarning,
+        terminalInfo: mockTerminalInfo
+      }
+    });
+
+    await waitFor(() => {
+      expect(container.querySelector('.confirmation-dialog')).toBeInTheDocument();
+    });
+
+    const copyButton = container.querySelector('.copy-button');
+    expect(copyButton).toBeInTheDocument();
+
+    if (copyButton) {
+      await fireEvent.click(copyButton);
+    }
+
+    expect(mockWriteText).toHaveBeenCalledWith('rm -rf /');
+  });
+
+  it('handles keyboard navigation', async () => {
+    const { container } = render(CommandConfirmationDialog, {
+      props: {
+        open: true,
+        command: 'rm -rf /',
+        warning: mockWarning,
+        terminalInfo: mockTerminalInfo,
+        onCancel: mockOnCancel
+      }
+    });
+
+    await waitFor(() => {
+      expect(container.querySelector('.confirmation-dialog')).toBeInTheDocument();
+    });
+
+    // Simulate ESC key
+    await fireEvent.keyDown(document, { key: 'Escape' });
+    expect(mockOnCancel).toHaveBeenCalled();
+  });
+
+  it('uses correct risk styling', async () => {
+    // Test different risk levels
+    const riskLevels = [
+      { level: 'Low' as const, bgClass: 'bg-blue-50', textClass: 'text-blue-700' },
+      { level: 'Medium' as const, bgClass: 'bg-yellow-50', textClass: 'text-yellow-700' },
+      { level: 'High' as const, bgClass: 'bg-red-50', textClass: 'text-red-700' },
+      { level: 'Critical' as const, bgClass: 'bg-red-100', textClass: 'text-red-800' }
+    ];
+
+    for (const { level, bgClass, textClass } of riskLevels) {
+      const { container, unmount } = render(CommandConfirmationDialog, {
         props: {
           open: true,
-          command: 'rm -rf /',
-          warning: { ...mockWarning, riskFactors: undefined },
+          command: 'test command',
+          warning: { ...mockWarning, riskLevel: level },
           terminalInfo: mockTerminalInfo
         }
       });
 
       await waitFor(() => {
-        expect(container.querySelector('.confirmation-dialog')).toBeTruthy();
-      });
-      
-      expect(container.querySelector('.risk-factors')).toBeNull();
-    });
-
-    it('handles missing matched pattern gracefully', async () => {
-      const { container } = render(CommandConfirmationDialog, {
-        props: {
-          open: true,
-          command: 'rm -rf /',
-          warning: { ...mockWarning, matchedPattern: undefined },
-          terminalInfo: mockTerminalInfo
-        }
+        expect(container.querySelector('.confirmation-dialog')).toBeInTheDocument();
       });
 
-      await waitFor(() => {
-        expect(container.querySelector('.confirmation-dialog')).toBeTruthy();
-      });
+      const banner = container.querySelector('.risk-banner');
+      expect(banner?.className).toContain(bgClass);
       
-      expect(container.textContent).not.toContain('Matched pattern:');
+      const heading = container.querySelector('h3');
+      expect(heading?.className).toContain(textClass);
+      
+      unmount();
+    }
+  });
+
+  it('displays matched pattern when available', async () => {
+    const { container } = render(CommandConfirmationDialog, {
+      props: {
+        open: true,
+        command: 'rm -rf /',
+        warning: { ...mockWarning, matchedPattern: 'rm -rf /*' },
+        terminalInfo: mockTerminalInfo
+      }
     });
+
+    await waitFor(() => {
+      expect(container.querySelector('.confirmation-dialog')).toBeInTheDocument();
+    });
+
+    expect(container.textContent).toContain('Matched security pattern:');
+    expect(container.textContent).toContain('rm -rf /*');
+  });
+
+  it('handles missing risk factors gracefully', async () => {
+    const warningWithoutFactors = { ...mockWarning, riskFactors: [] };
+    
+    const { container } = render(CommandConfirmationDialog, {
+      props: {
+        open: true,
+        command: 'rm -rf /',
+        warning: warningWithoutFactors,
+        terminalInfo: mockTerminalInfo
+      }
+    });
+
+    await waitFor(() => {
+      expect(container.querySelector('.confirmation-dialog')).toBeInTheDocument();
+    });
+
+    // Should not show risk factors section
+    expect(container.querySelector('.risk-factors')).not.toBeInTheDocument();
+  });
+
+  it('handles undefined risk factors', async () => {
+    const warningWithoutFactors = { 
+      ...mockWarning, 
+      riskFactors: undefined as any 
+    };
+    
+    const { container } = render(CommandConfirmationDialog, {
+      props: {
+        open: true,
+        command: 'rm -rf /',
+        warning: warningWithoutFactors,
+        terminalInfo: mockTerminalInfo
+      }
+    });
+
+    await waitFor(() => {
+      expect(container.querySelector('.confirmation-dialog')).toBeInTheDocument();
+    });
+
+    // Should not show risk factors section and not crash
+    expect(container.querySelector('.risk-factors')).not.toBeInTheDocument();
   });
 });

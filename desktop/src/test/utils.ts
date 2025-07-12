@@ -1,6 +1,65 @@
 import { render } from '@testing-library/svelte';
-import { writable } from 'svelte/store';
+import { writable, readable, type Writable, type Readable } from 'svelte/store';
 import type { ComponentType } from 'svelte';
+import { vi } from 'vitest';
+
+// Helper to create a properly typed mock writable store
+export function createMockWritable<T>(initialValue: T): Writable<T> & {
+  mockSubscriptions: Array<(value: T) => void>;
+} {
+  let value = initialValue;
+  const mockSubscriptions: Array<(value: T) => void> = [];
+  
+  const store = {
+    subscribe: vi.fn((run: (value: T) => void) => {
+      mockSubscriptions.push(run);
+      run(value);
+      return () => {
+        const index = mockSubscriptions.indexOf(run);
+        if (index >= 0) mockSubscriptions.splice(index, 1);
+      };
+    }),
+    set: vi.fn((newValue: T) => {
+      value = newValue;
+      mockSubscriptions.forEach(sub => sub(value));
+    }),
+    update: vi.fn((updater: (value: T) => T) => {
+      value = updater(value);
+      mockSubscriptions.forEach(sub => sub(value));
+    }),
+    mockSubscriptions
+  };
+  
+  return store as any;
+}
+
+// Helper to create a properly typed mock readable store
+export function createMockReadable<T>(initialValue: T): Readable<T> & {
+  mockSubscriptions: Array<(value: T) => void>;
+  mockSet: (value: T) => void;
+} {
+  let value = initialValue;
+  const mockSubscriptions: Array<(value: T) => void> = [];
+  
+  const store = {
+    subscribe: vi.fn((run: (value: T) => void) => {
+      mockSubscriptions.push(run);
+      run(value);
+      return () => {
+        const index = mockSubscriptions.indexOf(run);
+        if (index >= 0) mockSubscriptions.splice(index, 1);
+      };
+    }),
+    mockSubscriptions,
+    // Helper method to update the value in tests
+    mockSet: (newValue: T) => {
+      value = newValue;
+      mockSubscriptions.forEach(sub => sub(value));
+    }
+  };
+  
+  return store as any;
+}
 
 export function renderWithStores(
   Component: ComponentType,
@@ -8,13 +67,13 @@ export function renderWithStores(
   stores: Record<string, any> = {}
 ) {
   const mockStores = {
-    settings: writable({
+    settings: createMockWritable({
       theme: 'dark',
       fontSize: 14,
       tabSize: 2,
     }),
-    sessions: writable([]),
-    panes: writable([]),
+    sessions: createMockWritable([]),
+    panes: createMockWritable([]),
     ...stores,
   };
 
@@ -130,13 +189,13 @@ export function mockPerformanceAPIs() {
   
   if (!global.requestAnimationFrame) {
     global.requestAnimationFrame = (callback: FrameRequestCallback) => {
-      return setTimeout(() => callback(Date.now()), 16);
+      return setTimeout(() => callback(Date.now()), 16) as unknown as number;
     };
   }
   
   if (!global.cancelAnimationFrame) {
     global.cancelAnimationFrame = (id: number) => {
-      clearTimeout(id);
+      clearTimeout(id as unknown as NodeJS.Timeout);
     };
   }
 }

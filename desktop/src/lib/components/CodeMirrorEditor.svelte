@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy, createEventDispatcher } from 'svelte';
   import { EditorView, keymap, lineNumbers as lineNumbersExt, highlightActiveLineGutter, highlightSpecialChars, drawSelection, dropCursor, rectangularSelection, crosshairCursor, highlightActiveLine, placeholder } from '@codemirror/view';
-  import { EditorState, Compartment } from '@codemirror/state';
+  import { EditorState, Compartment, StateEffect } from '@codemirror/state';
   import { javascript } from '@codemirror/lang-javascript';
   import { json } from '@codemirror/lang-json';
   import { python } from '@codemirror/lang-python';
@@ -29,6 +29,12 @@
   let view: EditorView | null = null;
   let loading = true;
   let error: string | null = null;
+  
+  // Compartments for reactive configurations
+  const readOnlyCompartment = new Compartment();
+  const languageCompartment = new Compartment();
+  const themeCompartment = new Compartment();
+  const lineWrappingCompartment = new Compartment();
   
   // Language support mapping
   const languages = {
@@ -80,14 +86,14 @@
         doc: value,
         extensions: [
           ...basicExtensions,
-          getLanguageSupport(language),
-          theme === 'dark' ? oneDark : [],
-          wordWrap ? EditorView.lineWrapping : [],
+          languageCompartment.of(getLanguageSupport(language)),
+          themeCompartment.of(theme === 'dark' ? oneDark : []),
+          lineWrappingCompartment.of(wordWrap ? EditorView.lineWrapping : []),
           EditorView.theme({
             '&': { fontSize: fontSize + 'px' },
             '.cm-content': { fontFamily: 'Fira Code, monospace' },
           }),
-          EditorState.readOnly.of(readOnly),
+          readOnlyCompartment.of(EditorState.readOnly.of(readOnly)),
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {
               const newValue = update.state.doc.toString();
@@ -132,7 +138,7 @@
   
   $: if (view) {
     view.dispatch({
-      effects: EditorState.readOnly.reconfigure(EditorState.readOnly.of(readOnly))
+      effects: readOnlyCompartment.reconfigure(EditorState.readOnly.of(readOnly))
     });
   }
   
@@ -183,17 +189,7 @@
       ];
 
       view.dispatch({
-        effects: EditorState.reconfigure.of([
-          ...basicExtensions,
-          getLanguageSupport(lang),
-          theme === 'dark' ? oneDark : [],
-          wordWrap ? EditorView.lineWrapping : [],
-          EditorView.theme({
-            '&': { fontSize: fontSize + 'px' },
-            '.cm-content': { fontFamily: 'Fira Code, monospace' },
-          }),
-          EditorState.readOnly.of(readOnly),
-        ])
+        effects: languageCompartment.reconfigure(getLanguageSupport(lang))
       });
     }
   }

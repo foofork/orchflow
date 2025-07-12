@@ -317,7 +317,7 @@
         {#if searchHistory.length > 0}
           <select 
             class="history-select" 
-            on:change={(e) => searchPattern = e.target.value}
+            on:change={(e) => searchPattern = e.target?.value || ''}
             title="Search history"
           >
             <option value="">History</option>
@@ -472,7 +472,7 @@
       <select 
         class="saved-searches"
         on:change={(e) => {
-          const search = savedSearches.find(s => s.name === e.target.value);
+          const search = savedSearches.find(s => s.name === e.target?.value);
           if (search) loadSavedSearch(search);
         }}
       >

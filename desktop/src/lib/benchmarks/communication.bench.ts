@@ -1,6 +1,5 @@
 import { bench, describe } from 'vitest';
 import { writable, get } from 'svelte/store';
-import type { TerminalManager } from '$lib/stores/manager';
 
 // Mock implementations for benchmarking
 class MockTerminalManager {

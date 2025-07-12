@@ -185,31 +185,7 @@ vi.mock('@codemirror/state', () => ({
   EditorState: mockEditorState
 }));
 
-// Mock basic-setup - component incorrectly imports EditorView from here
-vi.mock('@codemirror/basic-setup', () => ({
-  basicSetup: [
-    { extension: 'lineNumbers' },
-    { extension: 'highlightActiveLineGutter' },
-    { extension: 'highlightSpecialChars' },
-    { extension: 'history' },
-    { extension: 'foldGutter' },
-    { extension: 'drawSelection' },
-    { extension: 'dropCursor' },
-    { extension: 'allowMultipleSelections' },
-    { extension: 'indentOnInput' },
-    { extension: 'syntaxHighlighting' },
-    { extension: 'bracketMatching' },
-    { extension: 'closeBrackets' },
-    { extension: 'autocompletion' },
-    { extension: 'rectangularSelection' },
-    { extension: 'crosshairCursor' },
-    { extension: 'highlightActiveLine' },
-    { extension: 'searchKeymap' },
-    { extension: 'defaultKeymap' },
-  ],
-  // Add EditorView export since component incorrectly imports it from basic-setup
-  EditorView: MockEditorView
-}));
+// No longer need to mock basic-setup as we removed it from dependencies
 
 // Mock language support
 const createLanguageSupport = (name: string) => ({

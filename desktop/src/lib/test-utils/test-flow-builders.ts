@@ -407,37 +407,37 @@ export function generateVSCodeSnippet(name: string, code: string) {
 // Export test patterns as snippets
 export const testSnippets = {
   ...generateVSCodeSnippet('Component Test', `
-describe('${1:ComponentName}', () => {
-  const flow = new ComponentTestFlow(${1:ComponentName});
+describe('\${1:ComponentName}', () => {
+  const flow = new ComponentTestFlow(\${1:ComponentName});
   
   flow
-    .withProps({ ${2:prop}: ${3:value} })
+    .withProps({ \${2:prop}: \${3:value} })
     .testAccessibility()
     .testSnapshot()
-    .testPropChange('${2:prop}', ${3:value}, ${4:newValue});
+    .testPropChange('\${2:prop}', \${3:value}, \${4:newValue});
 });
   `),
   
   ...generateVSCodeSnippet('User Flow Test', `
-const flow = new TestFlowBuilder('${1:Test flow name}')
+const flow = new TestFlowBuilder('\${1:Test flow name}')
   .setup(() => {
     // Setup code
   })
-  .${2:click}('${3:selector}')
+  .\${2:click}('\${3:selector}')
   .wait(100)
-  .expect('${4:selector}').to${5:Exist}()
+  .expect('\${4:selector}').to\${5:Exist}()
   .createTest();
   `),
   
   ...generateVSCodeSnippet('API Mock Test', `
-const api = new ApiTestFlow('${1:baseUrl}');
+const api = new ApiTestFlow('\${1:baseUrl}');
 
 api
-  .whenInvoking('${2:command}', { ${3:args} })
-  .thenReturn({ ${4:response} });
+  .whenInvoking('\${2:command}', { \${3:args} })
+  .thenReturn({ \${4:response} });
 
 // Test code here
 
-api.expectCalled('${2:command}', ${5:1});
+api.expectCalled('\${2:command}', \${5:1});
   `)
 };

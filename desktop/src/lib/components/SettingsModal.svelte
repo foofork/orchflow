@@ -412,7 +412,7 @@
 										min="10"
 										max="24"
 										bind:value={localSettings.appearance.fontSize}
-										on:input={(e) => updateSetting('appearance', 'fontSize', +e.target.value)}
+										on:input={(e) => updateSetting('appearance', 'fontSize', +(e.target as HTMLInputElement).value)}
 									/>
 									<span class="range-value">{localSettings.appearance.fontSize}px</span>
 								</div>
@@ -422,7 +422,7 @@
 									<select
 										id="font-family"
 										bind:value={localSettings.appearance.fontFamily}
-										on:change={(e) => updateSetting('appearance', 'fontFamily', e.target.value)}
+										on:change={(e) => updateSetting('appearance', 'fontFamily', (e.target as HTMLSelectElement).value)}
 									>
 										{#each fontFamilies as font}
 											<option value={font}>{font}</option>
@@ -464,7 +464,7 @@
 										min="1"
 										max="8"
 										bind:value={localSettings.editor.tabSize}
-										on:input={(e) => updateSetting('editor', 'tabSize', +e.target.value)}
+										on:input={(e) => updateSetting('editor', 'tabSize', +(e.target as HTMLInputElement).value)}
 									/>
 								</div>
 
@@ -533,7 +533,7 @@
 											max="5000"
 											step="100"
 											bind:value={localSettings.editor.autoSaveDelay}
-											on:input={(e) => updateSetting('editor', 'autoSaveDelay', +e.target.value)}
+											on:input={(e) => updateSetting('editor', 'autoSaveDelay', +(e.target as HTMLInputElement).value)}
 										/>
 									</div>
 								{/if}
@@ -548,7 +548,7 @@
 										id="shell"
 										type="text"
 										bind:value={localSettings.terminal.shell}
-										on:input={(e) => updateSetting('terminal', 'shell', e.target.value)}
+										on:input={(e) => updateSetting('terminal', 'shell', (e.target as HTMLInputElement).value)}
 									/>
 								</div>
 
@@ -560,7 +560,7 @@
 										min="8"
 										max="24"
 										bind:value={localSettings.terminal.fontSize}
-										on:input={(e) => updateSetting('terminal', 'fontSize', +e.target.value)}
+										on:input={(e) => updateSetting('terminal', 'fontSize', +(e.target as HTMLInputElement).value)}
 									/>
 									<span class="range-value">{localSettings.terminal.fontSize}px</span>
 								</div>
@@ -570,7 +570,7 @@
 									<select
 										id="terminal-font-family"
 										bind:value={localSettings.terminal.fontFamily}
-										on:change={(e) => updateSetting('terminal', 'fontFamily', e.target.value)}
+										on:change={(e) => updateSetting('terminal', 'fontFamily', (e.target as HTMLSelectElement).value)}
 									>
 										{#each fontFamilies as font}
 											<option value={font}>{font}</option>
@@ -587,7 +587,7 @@
 										max="10000"
 										step="100"
 										bind:value={localSettings.terminal.scrollback}
-										on:input={(e) => updateSetting('terminal', 'scrollback', +e.target.value)}
+										on:input={(e) => updateSetting('terminal', 'scrollback', +(e.target as HTMLInputElement).value)}
 									/>
 								</div>
 
@@ -596,7 +596,7 @@
 									<select
 										id="bell-style"
 										bind:value={localSettings.terminal.bellStyle}
-										on:change={(e) => updateSetting('terminal', 'bellStyle', e.target.value)}
+										on:change={(e) => updateSetting('terminal', 'bellStyle', (e.target as HTMLSelectElement).value)}
 									>
 										<option value="none">None</option>
 										<option value="visual">Visual</option>
@@ -640,7 +640,7 @@
 											max="3600"
 											step="60"
 											bind:value={localSettings.git.fetchInterval}
-											on:input={(e) => updateSetting('git', 'fetchInterval', +e.target.value)}
+											on:input={(e) => updateSetting('git', 'fetchInterval', +(e.target as HTMLInputElement).value)}
 										/>
 									</div>
 								{/if}
@@ -651,7 +651,7 @@
 										id="default-branch"
 										type="text"
 										bind:value={localSettings.git.defaultBranch}
-										on:input={(e) => updateSetting('git', 'defaultBranch', e.target.value)}
+										on:input={(e) => updateSetting('git', 'defaultBranch', (e.target as HTMLInputElement).value)}
 									/>
 								</div>
 
@@ -689,7 +689,7 @@
 										min="5"
 										max="50"
 										bind:value={localSettings.performance.maxTabs}
-										on:input={(e) => updateSetting('performance', 'maxTabs', +e.target.value)}
+										on:input={(e) => updateSetting('performance', 'maxTabs', +(e.target as HTMLInputElement).value)}
 									/>
 								</div>
 
@@ -720,7 +720,7 @@
 									<select
 										id="log-level"
 										bind:value={localSettings.performance.logLevel}
-										on:change={(e) => updateSetting('performance', 'logLevel', e.target.value)}
+										on:change={(e) => updateSetting('performance', 'logLevel', (e.target as HTMLSelectElement).value)}
 									>
 										<option value="error">Error</option>
 										<option value="warn">Warning</option>
@@ -742,7 +742,7 @@
 											id="shortcut-{action}"
 											type="text"
 											value={shortcut}
-											on:input={(e) => updateShortcut(action, e.target.value)}
+											on:input={(e) => updateShortcut(action, (e.target as HTMLInputElement).value)}
 											placeholder="Enter shortcut..."
 										/>
 									</div>

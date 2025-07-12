@@ -112,7 +112,7 @@
   }
   
   async function createNewTerminal(sessionId: string) {
-    await manager.createTerminal(sessionId, 'Terminal');
+    await manager.createTerminal(sessionId, { name: 'Terminal' });
   }
   
   async function createNewSession() {
@@ -200,7 +200,8 @@
                   <span class="pane-icon">
                     {#if pane.pane_type === 'Terminal'}📟
                     {:else if pane.pane_type === 'Editor'}📝
-                    {:else if pane.pane_type === 'FileTree'}📁
+                    {:else if pane.pane_type === 'FileExplorer'}📁
+                    {:else if pane.pane_type === 'Output'}📄
                     {:else}📋{/if}
                   </span>
                   <span class="pane-name">{pane.title}</span>
@@ -241,9 +242,9 @@
                   </div>
                 </div>
                 
-                {#if pane.working_dir}
+                {#if 'working_dir' in pane && pane.working_dir}
                   <div class="working-dir" title={pane.working_dir}>
-                    📁 {pane.working_dir.split('/').pop()}
+                    📁 {(pane as any).working_dir.split('/').pop()}
                   </div>
                 {/if}
               </div>

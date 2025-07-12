@@ -5,22 +5,33 @@ import CommandBar from './CommandBar.svelte';
 import { manager, activeSession, plugins } from '$lib/stores/manager';
 
 // Mock the manager store
-vi.mock('$lib/stores/manager', () => {
-  const { writable } = require('svelte/store');
+vi.mock('$lib/stores/manager', async () => {
+  const { writable, readable } = await import('svelte/store');
+  const { vi } = await import('vitest');
+  
+  // Create writable stores for testing
+  const mockActiveSessionStore = writable(null);
+  const mockSessionsStore = writable([]);
+  const mockPanesStore = writable(new Map());
+  const mockPluginsStore = writable([]);
+  
   const mockManager = {
-    createTerminal: vi.fn(),
-    createSession: vi.fn(),
-    refreshSessions: vi.fn(),
-    refreshPlugins: vi.fn(),
-    searchProject: vi.fn(),
-    listDirectory: vi.fn(),
-    sendInput: vi.fn()
+    createTerminal: vi.fn() as any,
+    createSession: vi.fn() as any,
+    refreshSessions: vi.fn() as any,
+    refreshPlugins: vi.fn() as any,
+    searchProject: vi.fn() as any,
+    listDirectory: vi.fn() as any,
+    sendInput: vi.fn() as any,
+    subscribe: vi.fn() as any
   };
   
   return {
     manager: mockManager,
-    activeSession: writable(null),
-    plugins: writable([])
+    activeSession: mockActiveSessionStore,
+    sessions: mockSessionsStore,
+    panes: mockPanesStore,
+    plugins: mockPluginsStore
   };
 });
 
@@ -28,7 +39,7 @@ describe('CommandBar', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Mock window.prompt
-    window.prompt = vi.fn();
+    window.prompt = vi.fn() as any;
   });
 
   afterEach(() => {
@@ -100,8 +111,20 @@ describe('CommandBar', () => {
     });
 
     it('should select suggestion on enter', async () => {
-      activeSession.set({ id: 'test-session', name: 'Test' });
-      manager.createTerminal.mockResolvedValue('pane-123');
+      const { activeSession } = await import('$lib/stores/manager');
+      (activeSession as any).set({ id: 'test-session', name: 'Test' });
+      vi.mocked(manager.createTerminal).mockResolvedValue({ 
+        id: 'pane-123',
+        session_id: 'test-session',
+        pane_type: 'Terminal',
+        rows: 24,
+        cols: 80,
+        x: 0,
+        y: 0,
+        is_active: true,
+        created_at: '2023-01-01T00:00:00Z',
+        updated_at: '2023-01-01T00:00:00Z'
+      });
       
       const { container } = render(CommandBar);
       const input = container.querySelector('input[type="text"]') as HTMLInputElement;
@@ -143,8 +166,20 @@ describe('CommandBar', () => {
 
   describe('Command Execution', () => {
     it('should create terminal when executing "create terminal" command', async () => {
-      activeSession.set({ id: 'test-session', name: 'Test' });
-      manager.createTerminal.mockResolvedValue('pane-123');
+      const { activeSession } = await import('$lib/stores/manager');
+      (activeSession as any).set({ id: 'test-session', name: 'Test' });
+      vi.mocked(manager.createTerminal).mockResolvedValue({ 
+        id: 'pane-123',
+        session_id: 'test-session',
+        pane_type: 'Terminal',
+        rows: 24,
+        cols: 80,
+        x: 0,
+        y: 0,
+        is_active: true,
+        created_at: '2023-01-01T00:00:00Z',
+        updated_at: '2023-01-01T00:00:00Z'
+      });
       
       const { container } = render(CommandBar);
       const input = container.querySelector('input[type="text"]') as HTMLInputElement;
@@ -154,13 +189,19 @@ describe('CommandBar', () => {
       await fireEvent.submit(form);
       
       await waitFor(() => {
-        expect(manager.createTerminal).toHaveBeenCalledWith('test-session', 'Terminal');
+        expect(manager.createTerminal).toHaveBeenCalledWith('test-session', { name: 'Terminal' });
       });
     });
 
     it('should create session when executing "create session" command', async () => {
-      window.prompt = vi.fn().mockReturnValue('My Session');
-      manager.createSession.mockResolvedValue({ id: 'new-session' });
+      window.prompt = vi.fn().mockReturnValue('My Session') as any;
+      vi.mocked(manager.createSession).mockResolvedValue({ 
+        id: 'new-session',
+        name: 'My Session',
+        panes: [],
+        created_at: '2023-01-01T00:00:00Z',
+        updated_at: '2023-01-01T00:00:00Z'
+      });
       
       const { container } = render(CommandBar);
       const input = container.querySelector('input[type="text"]') as HTMLInputElement;
@@ -202,7 +243,7 @@ describe('CommandBar', () => {
     });
 
     it('should search project when executing search command', async () => {
-      manager.searchProject.mockResolvedValue({ results: [], stats: {} });
+      vi.mocked(manager.searchProject).mockResolvedValue({ results: [], stats: {} });
       
       const { container } = render(CommandBar);
       const input = container.querySelector('input[type="text"]') as HTMLInputElement;
@@ -217,7 +258,7 @@ describe('CommandBar', () => {
     });
 
     it('should list directory when executing "get file tree" command', async () => {
-      manager.listDirectory.mockResolvedValue([]);
+      vi.mocked(manager.listDirectory).mockResolvedValue([]);
       
       const { container } = render(CommandBar);
       const input = container.querySelector('input[type="text"]') as HTMLInputElement;
@@ -232,8 +273,24 @@ describe('CommandBar', () => {
     });
 
     it('should create terminal and run command for unknown commands', async () => {
-      activeSession.set({ id: 'test-session', name: 'Test' });
-      manager.createTerminal.mockResolvedValue('pane-123');
+      (activeSession as any).set({ 
+        id: 'test-session', 
+        name: 'Test',
+        created_at: '2023-01-01T00:00:00Z',
+        updated_at: '2023-01-01T00:00:00Z'
+      });
+      vi.mocked(manager.createTerminal).mockResolvedValue({ 
+        id: 'pane-123',
+        session_id: 'test-session',
+        pane_type: 'Terminal',
+        rows: 24,
+        cols: 80,
+        x: 0,
+        y: 0,
+        is_active: true,
+        created_at: '2023-01-01T00:00:00Z',
+        updated_at: '2023-01-01T00:00:00Z'
+      });
       
       const { container } = render(CommandBar);
       const input = container.querySelector('input[type="text"]') as HTMLInputElement;
@@ -243,15 +300,20 @@ describe('CommandBar', () => {
       await fireEvent.submit(form);
       
       await waitFor(() => {
-        expect(manager.createTerminal).toHaveBeenCalledWith('test-session', 'npm test');
+        expect(manager.createTerminal).toHaveBeenCalledWith('test-session', { command: 'npm test' });
         expect(manager.sendInput).toHaveBeenCalledWith('pane-123', 'npm test\n');
       });
     });
 
     it('should handle errors gracefully', async () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      activeSession.set({ id: 'test-session', name: 'Test' });
-      manager.createTerminal.mockRejectedValue(new Error('Failed to create terminal'));
+      (activeSession as any).set({ 
+        id: 'test-session', 
+        name: 'Test',
+        created_at: '2023-01-01T00:00:00Z',
+        updated_at: '2023-01-01T00:00:00Z'
+      });
+      vi.mocked(manager.createTerminal).mockRejectedValue(new Error('Failed to create terminal'));
       
       const { container } = render(CommandBar);
       const input = container.querySelector('input[type="text"]') as HTMLInputElement;
@@ -273,8 +335,24 @@ describe('CommandBar', () => {
 
   describe('Input Behavior', () => {
     it('should clear input after successful command', async () => {
-      activeSession.set({ id: 'test-session', name: 'Test' });
-      manager.createTerminal.mockResolvedValue('pane-123');
+      (activeSession as any).set({ 
+        id: 'test-session', 
+        name: 'Test',
+        created_at: '2023-01-01T00:00:00Z',
+        updated_at: '2023-01-01T00:00:00Z'
+      });
+      vi.mocked(manager.createTerminal).mockResolvedValue({ 
+        id: 'pane-123',
+        session_id: 'test-session',
+        pane_type: 'Terminal',
+        rows: 24,
+        cols: 80,
+        x: 0,
+        y: 0,
+        is_active: true,
+        created_at: '2023-01-01T00:00:00Z',
+        updated_at: '2023-01-01T00:00:00Z'
+      });
       
       const { container } = render(CommandBar);
       const input = container.querySelector('input[type="text"]') as HTMLInputElement;
@@ -301,14 +379,19 @@ describe('CommandBar', () => {
     });
 
     it('should disable input while loading', async () => {
-      activeSession.set({ id: 'test-session', name: 'Test' });
+      (activeSession as any).set({ 
+        id: 'test-session', 
+        name: 'Test',
+        created_at: '2023-01-01T00:00:00Z',
+        updated_at: '2023-01-01T00:00:00Z'
+      });
       
       // Create a delayed promise to control loading state
       let resolvePromise: () => void;
       const delayedPromise = new Promise((resolve) => {
         resolvePromise = () => resolve('pane-123');
       });
-      manager.createTerminal.mockReturnValue(delayedPromise);
+      vi.mocked(manager.createTerminal).mockReturnValue(delayedPromise as any);
       
       const { container } = render(CommandBar);
       const input = container.querySelector('input[type="text"]') as HTMLInputElement;
@@ -331,7 +414,7 @@ describe('CommandBar', () => {
   describe('Edge Cases', () => {
     it('should handle no active session for terminal commands', async () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      activeSession.set(null);
+      (activeSession as any).set(null);
       
       const { container } = render(CommandBar);
       const input = container.querySelector('input[type="text"]') as HTMLInputElement;
@@ -349,8 +432,14 @@ describe('CommandBar', () => {
     });
 
     it('should use default session name when prompt is cancelled', async () => {
-      window.prompt = vi.fn().mockReturnValue(null);
-      manager.createSession.mockResolvedValue({ id: 'new-session' });
+      window.prompt = vi.fn().mockReturnValue(null) as any;
+      vi.mocked(manager.createSession).mockResolvedValue({ 
+        id: 'new-session',
+        name: 'New Session',
+        panes: [],
+        created_at: '2023-01-01T00:00:00Z',
+        updated_at: '2023-01-01T00:00:00Z'
+      });
       
       const { container } = render(CommandBar);
       const input = container.querySelector('input[type="text"]') as HTMLInputElement;

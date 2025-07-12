@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { plugins, loadedPlugins } from '$lib/stores/manager';
+  import { manager, plugins, loadedPlugins } from '$lib/stores/manager';
   import { managerClient } from '$lib/api/manager-client';
   import type { PluginInfo, PluginMetadata } from '$lib/api/manager-client';
   
@@ -108,8 +108,8 @@
     </div>
   {:else}
     <div class="plugin-grid">
-      {#each plugins as plugin}
-        <div class="plugin-card" class:enabled={plugin.status === 'loaded'}>
+      {#each availablePlugins as plugin}
+        <div class="plugin-card" class:enabled={plugin.loaded}>
           <div class="plugin-header">
             <span class="plugin-icon">{getPluginIcon(plugin.id)}</span>
             <div class="plugin-info">

@@ -4,38 +4,62 @@ import { tick } from 'svelte';
 import Dashboard from './Dashboard.svelte';
 
 // Mock the manager store module first
-vi.mock('../stores/manager', () => {
-  const { writable } = require('svelte/store');
-  const mockSessions = writable([]);
-  const mockActiveSession = writable(null);
-  const mockPanes = writable(new Map());
+vi.mock('$lib/stores/manager', async () => {
+  const { writable, derived } = await import('svelte/store');
+  const { vi } = await import('vitest');
+  
+  const managerStore = writable({
+    sessions: [],
+    panes: new Map(),
+    activeSessionId: undefined,
+    activePaneId: undefined,
+    plugins: [],
+    terminalOutputs: new Map(),
+    isConnected: true
+  });
   
   return {
     manager: {
-      subscribe: vi.fn(),
-      createSession: vi.fn(),
-      createTerminal: vi.fn(),
-      focusPane: vi.fn()
+      subscribe: managerStore.subscribe,
+      createSession: vi.fn().mockResolvedValue(undefined),
+      createTerminal: vi.fn().mockResolvedValue(undefined),
+      focusPane: vi.fn().mockResolvedValue(undefined),
+      update: managerStore.update,
+      set: managerStore.set
     },
-    sessions: mockSessions,
-    activeSession: mockActiveSession,
-    panes: mockPanes
+    sessions: derived(managerStore, $manager => $manager.sessions),
+    activeSession: derived(managerStore, $manager => 
+      $manager.sessions.find(s => s.id === $manager.activeSessionId)
+    ),
+    panes: derived(managerStore, $manager => $manager.panes)
   };
 });
 
 // Import mocked manager and stores after mocking
-import { manager, sessions as sessionsStore, panes as panesStore } from '../stores/manager';
+import { manager, sessions as sessionsStore, panes as panesStore } from '$lib/stores/manager';
+
+// Helper function to update manager state
+function updateManagerState(updates: any) {
+  manager.update(state => ({ ...state, ...updates }));
+}
 
 describe('Dashboard Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     
-    // Reset stores
-    sessionsStore.set([]);
-    panesStore.set(new Map());
+    // Reset manager store state
+    manager.set({
+      sessions: [],
+      panes: new Map(),
+      activeSessionId: undefined,
+      activePaneId: undefined,
+      plugins: [],
+      terminalOutputs: new Map(),
+      isConnected: true
+    });
     
     // Mock window functions
-    global.prompt = vi.fn();
+    global.prompt = vi.fn() as any;
   });
 
   it('should render dashboard with header', () => {
@@ -48,9 +72,15 @@ describe('Dashboard Component', () => {
 
   it('should toggle between grid and table view', async () => {
     // Need at least one session to see grid/table views
-    sessionsStore.set([
-      { id: 'session1', name: 'Test Session' }
-    ]);
+    updateManagerState({ sessions: [
+      { 
+        id: 'session1', 
+        name: 'Test Session',
+        panes: [],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+    ] });
     
     const { getByText, container } = render(Dashboard);
     await tick();
@@ -77,10 +107,13 @@ describe('Dashboard Component', () => {
   });
 
   it('should create new session when clicking create button', async () => {
-    global.prompt = vi.fn().mockReturnValue('Test Session');
+    global.prompt = vi.fn().mockReturnValue('Test Session') as any;
     vi.mocked(manager.createSession).mockResolvedValue({
       id: 'new-session',
-      name: 'Test Session'
+      name: 'Test Session',
+      panes: [],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     });
     
     const { getByText } = render(Dashboard);
@@ -93,11 +126,17 @@ describe('Dashboard Component', () => {
   });
 
   it('should use default session name when prompt is cancelled', async () => {
-    sessionsStore.set([
-      { id: 'session1', name: 'Session 1' }
-    ]);
+    updateManagerState({ sessions: [
+      { 
+        id: 'session1', 
+        name: 'Session 1',
+        panes: [],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+    ] });
     
-    global.prompt = vi.fn().mockReturnValue(null);
+    global.prompt = vi.fn().mockReturnValue(null) as any;
     
     const { getByText } = render(Dashboard);
     await tick();
@@ -110,11 +149,23 @@ describe('Dashboard Component', () => {
 
   it('should display sessions in grid view', async () => {
     const testSessions = [
-      { id: 'session1', name: 'Dev Session' },
-      { id: 'session2', name: 'Test Session' }
+      { 
+        id: 'session1', 
+        name: 'Dev Session',
+        panes: [],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      },
+      { 
+        id: 'session2', 
+        name: 'Test Session',
+        panes: [],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
     ];
     
-    sessionsStore.set(testSessions);
+    updateManagerState({ sessions: testSessions });
     
     const { getByText } = render(Dashboard);
     await tick();
@@ -125,27 +176,48 @@ describe('Dashboard Component', () => {
 
   it('should display panes for each session', async () => {
     const testSessions = [
-      { id: 'session1', name: 'Dev Session' }
+      { 
+        id: 'session1', 
+        name: 'Dev Session',
+        panes: [],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
     ];
     
     const testPanes = new Map([
       ['pane1', {
         id: 'pane1',
         session_id: 'session1',
-        pane_type: 'Terminal',
+        pane_type: 'Terminal' as const,
         title: 'Terminal 1',
-        working_dir: '/home/user/project'
+        rows: 24,
+        cols: 80,
+        x: 0,
+        y: 0,
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       }],
       ['pane2', {
         id: 'pane2',
         session_id: 'session1',
-        pane_type: 'Editor',
-        title: 'main.js'
+        pane_type: 'Editor' as const,
+        title: 'main.js',
+        rows: 24,
+        cols: 80,
+        x: 0,
+        y: 0,
+        is_active: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       }]
     ]);
     
-    sessionsStore.set(testSessions);
-    panesStore.set(testPanes);
+    updateManagerState({ 
+      sessions: testSessions,
+      panes: testPanes
+    });
     
     const { getByText, container } = render(Dashboard);
     await tick();
@@ -185,8 +257,14 @@ describe('Dashboard Component', () => {
       }]
     ]);
     
-    sessionsStore.set([{ id: 'session1', name: 'Test' }]);
-    panesStore.set(testPanes);
+    updateManagerState({ sessions: [{ 
+      id: 'session1', 
+      name: 'Test',
+      panes: [],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }]);
+    updateManagerState({ panes: testPanes });
     
     const { container } = render(Dashboard);
     await tick();
@@ -199,7 +277,7 @@ describe('Dashboard Component', () => {
   });
 
   it('should create new terminal when clicking add new pane', async () => {
-    sessionsStore.set([{ id: 'session1', name: 'Test Session' }]);
+    updateManagerState({ sessions: [{ id: 'session1', name: 'Test Session' }] });
     
     vi.mocked(manager.createTerminal).mockResolvedValue({
       id: 'new-pane',
@@ -227,8 +305,14 @@ describe('Dashboard Component', () => {
       }]
     ]);
     
-    sessionsStore.set([{ id: 'session1', name: 'Test' }]);
-    panesStore.set(testPanes);
+    updateManagerState({ sessions: [{ 
+      id: 'session1', 
+      name: 'Test',
+      panes: [],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }]);
+    updateManagerState({ panes: testPanes });
     
     const { container } = render(Dashboard);
     await tick();
@@ -250,8 +334,10 @@ describe('Dashboard Component', () => {
       }]
     ]);
     
-    sessionsStore.set(testSessions);
-    panesStore.set(testPanes);
+    updateManagerState({ 
+      sessions: testSessions,
+      panes: testPanes
+    });
     
     const { getByText, container } = render(Dashboard);
     await tick();
@@ -284,8 +370,14 @@ describe('Dashboard Component', () => {
       }]
     ]);
     
-    sessionsStore.set([{ id: 'session1', name: 'Test' }]);
-    panesStore.set(testPanes);
+    updateManagerState({ sessions: [{ 
+      id: 'session1', 
+      name: 'Test',
+      panes: [],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }]);
+    updateManagerState({ panes: testPanes });
     
     const { container } = render(Dashboard);
     await tick();
@@ -310,8 +402,14 @@ describe('Dashboard Component', () => {
       }]
     ]);
     
-    sessionsStore.set([{ id: 'session1', name: 'Test' }]);
-    panesStore.set(testPanes);
+    updateManagerState({ sessions: [{ 
+      id: 'session1', 
+      name: 'Test',
+      panes: [],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }]);
+    updateManagerState({ panes: testPanes });
     
     const { getByText, container } = render(Dashboard);
     await tick();
@@ -341,8 +439,14 @@ describe('Dashboard Component', () => {
       }]
     ]);
     
-    sessionsStore.set([{ id: 'session1', name: 'Test' }]);
-    panesStore.set(testPanes);
+    updateManagerState({ sessions: [{ 
+      id: 'session1', 
+      name: 'Test',
+      panes: [],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }]);
+    updateManagerState({ panes: testPanes });
     
     const { container } = render(Dashboard);
     await tick();
@@ -374,8 +478,10 @@ describe('Dashboard Component', () => {
       }]
     ]);
     
-    sessionsStore.set(testSessions);
-    panesStore.set(testPanes);
+    updateManagerState({ 
+      sessions: testSessions,
+      panes: testPanes
+    });
     
     const { getByText, queryByText } = render(Dashboard);
     await tick();
@@ -400,8 +506,14 @@ describe('Dashboard Component', () => {
       }]
     ]);
     
-    sessionsStore.set([{ id: 'session1', name: 'Test' }]);
-    panesStore.set(testPanes);
+    updateManagerState({ sessions: [{ 
+      id: 'session1', 
+      name: 'Test',
+      panes: [],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }]);
+    updateManagerState({ panes: testPanes });
     
     const { getByText, container } = render(Dashboard);
     await tick();

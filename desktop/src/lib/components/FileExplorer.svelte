@@ -50,8 +50,10 @@
       
       // Sort entries: directories first, then files
       entries.sort((a, b) => {
-        if (a.children !== undefined && b.children === undefined) return -1;
-        if (a.children === undefined && b.children !== undefined) return 1;
+        const aIsDir = (a as any).isDirectory || false;
+        const bIsDir = (b as any).isDirectory || false;
+        if (aIsDir && !bIsDir) return -1;
+        if (!aIsDir && bIsDir) return 1;
         return a.name?.localeCompare(b.name || '') || 0;
       });
       
@@ -59,11 +61,12 @@
         // Skip hidden files/folders
         if (entry.name?.startsWith('.')) continue;
         
+        const isDir = (entry as any).isDirectory || false;
         nodes.push({
           name: entry.name || 'Unknown',
           path: entry.path,
-          isDirectory: entry.children !== undefined,
-          children: entry.children !== undefined ? [] : undefined,
+          isDirectory: isDir,
+          children: isDir ? [] : undefined,
           expanded: false,
         });
       }
@@ -100,11 +103,12 @@
         for (const entry of entries) {
           if (entry.name?.startsWith('.')) continue;
           
+          const isDir = (entry as any).isDirectory || false;
           children.push({
             name: entry.name || 'Unknown',
             path: entry.path,
-            isDirectory: entry.children !== undefined,
-            children: entry.children !== undefined ? [] : undefined,
+            isDirectory: isDir,
+            children: isDir ? [] : undefined,
             expanded: false,
           });
         }

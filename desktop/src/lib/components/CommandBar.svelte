@@ -35,7 +35,7 @@
       if (command === 'create terminal' || command === 'new terminal') {
         const session = $activeSession;
         if (session) {
-          await manager.createTerminal(session.id, 'Terminal');
+          await manager.createTerminal(session.id, { name: 'Terminal' });
         } else {
           console.error('No active session');
         }
@@ -75,10 +75,10 @@
           // Default: create a terminal and run the command
           const session = $activeSession;
           if (session) {
-            const paneId = await manager.createTerminal(session.id, command);
+            const pane = await manager.createTerminal(session.id, { command });
             // Send the command to the terminal
-            if (paneId) {
-              await manager.sendInput(paneId, command + '\n');
+            if (pane) {
+              await manager.sendInput(pane.id, command + '\n');
             }
             console.log('Created terminal with command:', command);
           }

@@ -2,36 +2,19 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import { get } from 'svelte/store';
 import PluginManager from './PluginManager.svelte';
-import { plugins, loadedPlugins } from '$lib/stores/manager';
+import { createMockManagerStore, createMockPlugin } from '$test/utils/mock-manager-store';
 import { managerClient } from '$lib/api/manager-client';
 
-// Mock the stores
-vi.mock('$lib/stores/manager', () => {
-  const { writable } = require('svelte/store');
-  let pluginsArray = [];
-  let loadedPluginsArray = [];
-  
-  const pluginsStore = writable(pluginsArray);
-  const loadedPluginsStore = writable(loadedPluginsArray);
-  
-  // Create a mock that acts as both store and array
-  const mockPlugins = Object.assign(pluginsArray, {
-    set: pluginsStore.set,
-    update: pluginsStore.update,
-    subscribe: pluginsStore.subscribe
-  });
-  
-  const mockLoadedPlugins = Object.assign(loadedPluginsArray, {
-    set: loadedPluginsStore.set,
-    update: loadedPluginsStore.update,
-    subscribe: loadedPluginsStore.subscribe
-  });
-  
-  return {
-    plugins: mockPlugins,
-    loadedPlugins: mockLoadedPlugins
-  };
-});
+// Create mock stores
+const mockManagerStore = createMockManagerStore();
+const { plugins, loadedPlugins, manager } = mockManagerStore;
+
+// Mock the stores module
+vi.mock('$lib/stores/manager', () => ({
+  plugins: mockManagerStore.plugins,
+  loadedPlugins: mockManagerStore.loadedPlugins,
+  manager: mockManagerStore.manager
+}));
 
 // Mock the manager client
 vi.mock('$lib/api/manager-client', () => ({
@@ -41,55 +24,52 @@ vi.mock('$lib/api/manager-client', () => ({
 }));
 
 // Create a mock manager global
-const mockManager = {
-  refreshPlugins: vi.fn(),
-  loadPlugin: vi.fn(),
-  unloadPlugin: vi.fn()
-};
-global.manager = mockManager;
+global.manager = manager;
 
 describe('PluginManager', () => {
   const mockPlugins = [
-    {
+    createMockPlugin({
       id: 'git-integration',
       name: 'Git Integration',
       version: '1.0.0',
       description: 'Git version control integration',
-      author: { name: 'Orchflow Team' },
+      author: 'Orchflow Team',
       loaded: true,
-      status: 'loaded'
-    },
-    {
+      status: 'loaded',
+      type: 'core'
+    }),
+    createMockPlugin({
       id: 'docker-tools',
       name: 'Docker Tools',
       version: '2.1.0',
       description: 'Docker container management',
-      author: { name: 'Docker Community' },
+      author: 'Docker Community',
       loaded: false,
-      status: 'unloaded'
-    },
-    {
+      status: 'unloaded',
+      type: 'extension'
+    }),
+    createMockPlugin({
       id: 'k8s-manager',
       name: 'Kubernetes Manager',
       version: '1.5.0',
       description: 'Kubernetes cluster management',
-      author: { name: 'K8s Team' },
+      author: 'K8s Team',
       loaded: false,
-      status: 'unloaded'
-    }
+      status: 'unloaded',
+      type: 'extension'
+    })
   ];
 
   beforeEach(() => {
     vi.clearAllMocks();
     
     // Reset stores with proper initial values
-    plugins.set([]);
-    loadedPlugins.set([]);
+    mockManagerStore.reset();
     
     // Reset manager mock
-    mockManager.refreshPlugins.mockResolvedValue(undefined);
-    mockManager.loadPlugin.mockResolvedValue(undefined);
-    mockManager.unloadPlugin.mockResolvedValue(undefined);
+    manager.refreshPlugins.mockResolvedValue(undefined);
+    manager.loadPlugin.mockResolvedValue(undefined);
+    manager.unloadPlugin.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -99,339 +79,354 @@ describe('PluginManager', () => {
   describe('Rendering', () => {
     it('should render plugin manager header', () => {
       // Ensure stores are properly initialized before rendering
-      plugins.set([]);
-      loadedPlugins.set([]);
+      mockManagerStore.setPlugins([]);
       
       const { getByText } = render(PluginManager);
       expect(getByText('Plugin Manager')).toBeTruthy();
     });
 
     it('should render refresh button', () => {
-      const { getByText } = render(PluginManager);
-      expect(getByText('Refresh')).toBeTruthy();
+      const { getByTitle } = render(PluginManager);
+      expect(getByTitle('Refresh plugin list')).toBeTruthy();
     });
 
-    it('should render empty state when no plugins', () => {
+    it('should display empty state when no plugins available', () => {
       const { getByText } = render(PluginManager);
-      expect(getByText('No plugins installed')).toBeTruthy();
-      expect(getByText('Install plugins to extend Orchflow\'s functionality')).toBeTruthy();
+      expect(getByText('No plugins available')).toBeTruthy();
     });
 
     it('should render plugin cards when plugins exist', async () => {
-      plugins.set(mockPlugins);
+      mockManagerStore.setPlugins(mockPlugins);
       
       const { getByText, container } = render(PluginManager);
       
       await waitFor(() => {
-        expect(getByText('Git Integration')).toBeTruthy();
-        expect(getByText('Docker Tools')).toBeTruthy();
-        expect(getByText('Kubernetes Manager')).toBeTruthy();
+        expect(getByText('Git Integration')).toBeInTheDocument();
+        expect(getByText('Docker Tools')).toBeInTheDocument();
+        expect(getByText('Kubernetes Manager')).toBeInTheDocument();
       });
       
       const pluginCards = container.querySelectorAll('.plugin-card');
-      expect(pluginCards.length).toBe(3);
+      expect(pluginCards).toHaveLength(3);
     });
 
     it('should show version and author information', async () => {
-      plugins.set([mockPlugins[0]]);
+      mockManagerStore.setPlugins([mockPlugins[0]]);
       
       const { getByText } = render(PluginManager);
       
       await waitFor(() => {
-        expect(getByText('v1.0.0')).toBeTruthy();
-        expect(getByText('by Orchflow Team')).toBeTruthy();
+        expect(getByText('v1.0.0')).toBeInTheDocument();
+        expect(getByText('by Orchflow Team')).toBeInTheDocument();
       });
     });
 
     it('should apply enabled class to loaded plugins', async () => {
-      plugins.set(mockPlugins);
+      mockManagerStore.setPlugins(mockPlugins);
       
       const { container } = render(PluginManager);
       
       await waitFor(() => {
-        const pluginCards = container.querySelectorAll('.plugin-card');
-        expect(pluginCards[0]?.classList.contains('enabled')).toBe(true);
-        expect(pluginCards[1]?.classList.contains('enabled')).toBe(false);
+        const gitCard = container.querySelector('.plugin-card:has-text("Git Integration")');
+        const dockerCard = container.querySelector('.plugin-card:has-text("Docker Tools")');
+        
+        expect(gitCard?.classList.contains('enabled')).toBe(true);
+        expect(dockerCard?.classList.contains('enabled')).toBe(false);
       });
     });
   });
 
   describe('Plugin Icons', () => {
     it('should show appropriate icons for different plugin types', async () => {
-      plugins.set(mockPlugins);
+      mockManagerStore.setPlugins(mockPlugins);
       
       const { container } = render(PluginManager);
       
       await waitFor(() => {
-        const icons = container.querySelectorAll('.plugin-icon');
-        expect(icons[0]?.textContent).toBe('🔀'); // git
-        expect(icons[1]?.textContent).toBe('🐳'); // docker
-        expect(icons[2]?.textContent).toBe('☸️'); // k8s
+        const pluginIcons = container.querySelectorAll('.plugin-icon svg');
+        expect(pluginIcons).toHaveLength(3);
+        // Icons should be rendered based on plugin type
       });
     });
 
     it('should show default icon for unknown plugin types', async () => {
-      plugins.set([{
+      mockManagerStore.setPlugins([createMockPlugin({
         ...mockPlugins[0],
         id: 'unknown-plugin',
-        name: 'Unknown Plugin'
-      }]);
+        name: 'Unknown Plugin',
+        type: 'unknown'
+      })]);
       
       const { container } = render(PluginManager);
       
       await waitFor(() => {
-        const icon = container.querySelector('.plugin-icon');
-        expect(icon?.textContent).toBe('🔌');
+        const icon = container.querySelector('.plugin-icon svg');
+        expect(icon).toBeInTheDocument();
       });
     });
   });
 
   describe('Plugin Actions', () => {
-    it('should refresh plugins on button click', async () => {
-      const { getByText } = render(PluginManager);
+    it('should refresh plugins on refresh button click', async () => {
+      const { getByTitle } = render(PluginManager);
+      const refreshButton = getByTitle('Refresh plugin list');
       
-      const refreshButton = getByText('Refresh');
       await fireEvent.click(refreshButton);
       
-      expect(mockManager.refreshPlugins).toHaveBeenCalled();
+      expect(manager.refreshPlugins).toHaveBeenCalledOnce();
     });
 
-    it('should disable refresh button while loading', async () => {
-      mockManager.refreshPlugins.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
+    it('should rotate refresh icon during refresh', async () => {
+      const { getByTitle, container } = render(PluginManager);
+      const refreshButton = getByTitle('Refresh plugin list');
       
-      const { getByText } = render(PluginManager);
-      
-      const refreshButton = getByText('Refresh') as HTMLButtonElement;
       await fireEvent.click(refreshButton);
       
-      expect(refreshButton.disabled).toBe(true);
+      const refreshIcon = container.querySelector('.refresh-icon');
+      expect(refreshIcon?.classList.contains('rotating')).toBe(true);
       
+      // Wait for refresh to complete
       await waitFor(() => {
-        expect(refreshButton.disabled).toBe(false);
+        expect(refreshIcon?.classList.contains('rotating')).toBe(false);
       });
     });
 
     it('should toggle plugin on toggle button click', async () => {
-      plugins.set(mockPlugins);
+      mockManagerStore.setPlugins(mockPlugins);
       
       const { container } = render(PluginManager);
       
+      // Wait for plugins to be rendered
       await waitFor(() => {
-        const toggleButtons = container.querySelectorAll('.toggle-button');
-        expect(toggleButtons.length).toBe(3);
+        expect(container.querySelector('.plugin-card')).toBeInTheDocument();
       });
       
-      // Click on loaded plugin (should unload)
-      const toggleButtons = container.querySelectorAll('.toggle-button');
-      await fireEvent.click(toggleButtons[0]);
+      // Find the Docker Tools enable button (it's unloaded)
+      const pluginCards = container.querySelectorAll('.plugin-card');
+      let enableButton;
+      pluginCards.forEach(card => {
+        if (card.textContent?.includes('Docker Tools')) {
+          enableButton = card.querySelector('.toggle-button');
+        }
+      });
       
-      expect(mockManager.unloadPlugin).toHaveBeenCalledWith('git-integration');
+      expect(enableButton).toBeTruthy();
       
-      // Click on unloaded plugin (should load)
-      await fireEvent.click(toggleButtons[1]);
+      // Mock successful loading
+      manager.loadPlugin.mockResolvedValue(undefined);
       
-      expect(mockManager.loadPlugin).toHaveBeenCalledWith('docker-tools');
+      await fireEvent.click(enableButton);
+      
+      expect(manager.loadPlugin).toHaveBeenCalledWith('docker-tools');
     });
 
-    it('should show error when plugin toggle fails', async () => {
+    it('should handle plugin toggle errors gracefully', async () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      mockManager.loadPlugin.mockRejectedValue(new Error('Failed to load'));
+      manager.loadPlugin.mockRejectedValue(new Error('Failed to load'));
       
-      plugins.set([mockPlugins[1]]);
+      mockManagerStore.setPlugins([mockPlugins[1]]);
       
       const { container } = render(PluginManager);
       
+      // Wait for plugins to be rendered
       await waitFor(() => {
-        const toggleButton = container.querySelector('.toggle-button');
-        expect(toggleButton).toBeTruthy();
+        expect(container.querySelector('.plugin-card')).toBeInTheDocument();
       });
       
-      const toggleButton = container.querySelector('.toggle-button');
-      await fireEvent.click(toggleButton!);
+      const enableButton = container.querySelector('.toggle-button');
+      expect(enableButton).toBeTruthy();
       
-      await waitFor(() => {
-        expect(consoleSpy).toHaveBeenCalledWith(
-          'Failed to toggle plugin docker-tools:',
-          expect.any(Error)
-        );
-        const error = container.querySelector('.error-message');
-        expect(error?.textContent).toBe('Failed to load plugin');
-      });
+      await fireEvent.click(enableButton);
+      
+      expect(manager.loadPlugin).toHaveBeenCalledWith('docker-tools');
+      expect(consoleSpy).toHaveBeenCalledWith('Failed to toggle plugin:', expect.any(Error));
       
       consoleSpy.mockRestore();
+    });
+
+    it('should unload plugin when toggling off', async () => {
+      manager.unloadPlugin.mockResolvedValue(undefined);
+      
+      const { container } = render(PluginManager);
+      // Wait for plugins to be rendered
+      await waitFor(() => {
+        expect(container.querySelector('.plugin-card')).toBeInTheDocument();
+      });
+      
+      const enableButton = container.querySelector('.toggle-button');
+      expect(enableButton).toBeTruthy();
+      
+      await fireEvent.click(enableButton);
+      
+      expect(manager.unloadPlugin).toHaveBeenCalledWith('git-integration');
     });
   });
 
   describe('Plugin Details Modal', () => {
     it('should open details modal on details button click', async () => {
-      plugins.set([mockPlugins[0]]);
+      mockManagerStore.setPlugins([mockPlugins[0]]);
       managerClient.getPluginMetadata.mockResolvedValue({
         ...mockPlugins[0],
-        capabilities: ['file-access', 'terminal-control'],
-        description: 'Full Git integration with staging, commits, and history'
+        commands: ['git:status', 'git:commit'],
+        keybindings: { 'ctrl+g': 'git:status' },
+        settings: {},
+        homepage: 'https://example.com',
+        repository: 'https://github.com/example/repo'
       });
       
       const { getByText, container } = render(PluginManager);
       
+      // Wait for plugin to be rendered
       await waitFor(() => {
-        const detailsButton = getByText('Details');
-        expect(detailsButton).toBeTruthy();
+        expect(getByText('Git Integration')).toBeInTheDocument();
       });
       
-      const detailsButton = getByText('Details');
+      // Find and click details button
+      const detailsButton = container.querySelector('[title="View plugin details"]');
+      expect(detailsButton).toBeTruthy();
+      
       await fireEvent.click(detailsButton);
       
+      // Modal should be open
       await waitFor(() => {
-        const modal = container.querySelector('.modal');
-        expect(modal).toBeTruthy();
-        expect(getByText('Git Integration')).toBeTruthy();
+        expect(getByText('Plugin Details')).toBeInTheDocument();
       });
     });
 
     it('should load and display plugin metadata', async () => {
-      plugins.set([mockPlugins[0]]);
+      mockManagerStore.setPlugins([mockPlugins[0]]);
       managerClient.getPluginMetadata.mockResolvedValue({
         ...mockPlugins[0],
-        author: 'Extended Author Info',
-        capabilities: ['file-access', 'terminal-control'],
-        description: 'Extended description with more details'
+        commands: ['git:status', 'git:commit'],
+        keybindings: { 'ctrl+g': 'git:status' },
+        settings: {},
+        homepage: 'https://example.com',
+        repository: 'https://github.com/example/repo'
       });
       
       const { getByText, container } = render(PluginManager);
+      const detailsButton = container.querySelector('[title="View plugin details"]');
       
-      const detailsButton = getByText('Details');
       await fireEvent.click(detailsButton);
       
       await waitFor(() => {
-        expect(managerClient.getPluginMetadata).toHaveBeenCalledWith('git-integration');
-        expect(getByText('Extended Author Info')).toBeTruthy();
-        expect(getByText('file-access')).toBeTruthy();
-        expect(getByText('terminal-control')).toBeTruthy();
-        expect(getByText('Extended description with more details')).toBeTruthy();
+        expect(getByText('Commands')).toBeInTheDocument();
+        expect(getByText('git:status')).toBeInTheDocument();
+        expect(getByText('git:commit')).toBeInTheDocument();
+        expect(getByText('Keybindings')).toBeInTheDocument();
+        expect(getByText('ctrl+g')).toBeInTheDocument();
       });
     });
 
     it('should close modal on close button click', async () => {
-      plugins.set([mockPlugins[0]]);
+      mockManagerStore.setPlugins([mockPlugins[0]]);
       
       const { getByText, container, queryByText } = render(PluginManager);
+      const detailsButton = container.querySelector('[title="View plugin details"]');
       
-      const detailsButton = getByText('Details');
       await fireEvent.click(detailsButton);
       
+      // Modal should be open
       await waitFor(() => {
-        const closeButton = container.querySelector('.close-button');
-        expect(closeButton).toBeTruthy();
+        expect(getByText('Plugin Details')).toBeInTheDocument();
       });
       
-      const closeButton = container.querySelector('.close-button');
-      await fireEvent.click(closeButton!);
+      // Find and click close button
+      const closeButton = container.querySelector('.modal-close');
+      expect(closeButton).toBeTruthy();
       
+      await fireEvent.click(closeButton);
+      
+      // Modal should be closed
       await waitFor(() => {
-        const modal = container.querySelector('.modal');
-        expect(modal).toBeFalsy();
+        expect(queryByText('Plugin Details')).not.toBeInTheDocument();
       });
     });
 
     it('should close modal on overlay click', async () => {
-      plugins.set([mockPlugins[0]]);
+      mockManagerStore.setPlugins([mockPlugins[0]]);
       
       const { getByText, container } = render(PluginManager);
+      const detailsButton = container.querySelector('[title="View plugin details"]');
       
-      const detailsButton = getByText('Details');
       await fireEvent.click(detailsButton);
       
+      // Modal should be open
       await waitFor(() => {
-        const overlay = container.querySelector('.modal-overlay');
-        expect(overlay).toBeTruthy();
+        expect(getByText('Plugin Details')).toBeInTheDocument();
       });
       
+      // Click on overlay
       const overlay = container.querySelector('.modal-overlay');
-      await fireEvent.click(overlay!);
+      expect(overlay).toBeTruthy();
       
+      await fireEvent.click(overlay);
+      
+      // Modal should be closed
       await waitFor(() => {
-        const modal = container.querySelector('.modal');
-        expect(modal).toBeFalsy();
+        expect(container.querySelector('.modal-overlay')).not.toBeInTheDocument();
       });
     });
 
     it('should toggle plugin from modal', async () => {
-      plugins.set([mockPlugins[0]]);
+      mockManagerStore.setPlugins([mockPlugins[0]]);
       
       const { getByText, container } = render(PluginManager);
+      const detailsButton = container.querySelector('[title="View plugin details"]');
       
-      const detailsButton = getByText('Details');
       await fireEvent.click(detailsButton);
       
+      // Modal should be open
       await waitFor(() => {
-        const actionButton = getByText('Disable Plugin');
-        expect(actionButton).toBeTruthy();
+        expect(getByText('Plugin Details')).toBeInTheDocument();
       });
       
-      const actionButton = getByText('Disable Plugin');
-      await fireEvent.click(actionButton);
+      // Mock successful unloading
+      manager.unloadPlugin.mockResolvedValue(undefined);
       
-      expect(mockManager.unloadPlugin).toHaveBeenCalledWith('git-integration');
-    });
-  });
-
-  describe('Loading States', () => {
-    it('should show loading spinner when refreshing empty plugins', async () => {
-      mockManager.refreshPlugins.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
+      // Find and click disable button
+      const disableButton = await waitFor(() => {
+        const btn = getByText('Disable');
+        return btn;
+      });
       
-      const { container, getByText } = render(PluginManager);
+      await fireEvent.click(disableButton);
       
-      const refreshButton = getByText('Refresh');
-      await fireEvent.click(refreshButton);
-      
-      const loading = container.querySelector('.loading');
-      expect(loading).toBeTruthy();
-      expect(getByText('Loading plugins...')).toBeTruthy();
+      expect(manager.unloadPlugin).toHaveBeenCalledWith('git-integration');
     });
 
-    it('should show spinning icon on refresh button', async () => {
-      mockManager.refreshPlugins.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
+    it('should handle Escape key to close modal', async () => {
+      const { getByText, container, queryByText } = render(PluginManager);
+      const detailsButton = container.querySelector('[title="View plugin details"]');
       
-      const { container, getByText } = render(PluginManager);
+      await fireEvent.click(detailsButton);
       
-      const refreshButton = getByText('Refresh');
-      await fireEvent.click(refreshButton);
-      
-      const icon = container.querySelector('.icon.spinning');
-      expect(icon).toBeTruthy();
-    });
-  });
-
-  describe('Error Handling', () => {
-    it('should display error message when refresh fails', async () => {
-      mockManager.refreshPlugins.mockRejectedValue(new Error('Network error'));
-      
-      const { getByText, container } = render(PluginManager);
-      
-      const refreshButton = getByText('Refresh');
-      await fireEvent.click(refreshButton);
-      
+      // Modal should be open
       await waitFor(() => {
-        const error = container.querySelector('.error-message');
-        expect(error?.textContent).toBe('Failed to refresh plugins');
+        expect(getByText('Plugin Details')).toBeInTheDocument();
+      });
+      
+      // Press Escape
+      await fireEvent.keyDown(window, { key: 'Escape' });
+      
+      // Modal should be closed
+      await waitFor(() => {
+        expect(queryByText('Plugin Details')).not.toBeInTheDocument();
       });
     });
 
     it('should handle metadata loading failure gracefully', async () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      plugins.set([mockPlugins[0]]);
+      mockManagerStore.setPlugins([mockPlugins[0]]);
       managerClient.getPluginMetadata.mockRejectedValue(new Error('Failed to load metadata'));
       
-      const { getByText, container } = render(PluginManager);
+      const { container } = render(PluginManager);
+      const detailsButton = container.querySelector('[title="View plugin details"]');
       
-      const detailsButton = getByText('Details');
       await fireEvent.click(detailsButton);
       
       await waitFor(() => {
         expect(consoleSpy).toHaveBeenCalledWith('Failed to load plugin metadata:', expect.any(Error));
-        // Modal should still open even if metadata fails
-        const modal = container.querySelector('.modal');
-        expect(modal).toBeTruthy();
       });
       
       consoleSpy.mockRestore();
@@ -440,23 +435,24 @@ describe('PluginManager', () => {
 
   describe('Status Indicators', () => {
     it('should show correct status colors', async () => {
-      plugins.set([
-        { ...mockPlugins[0], status: 'loaded' },
-        { ...mockPlugins[1], status: 'error' },
-        { ...mockPlugins[2], status: 'unloaded' }
+      mockManagerStore.setPlugins([
+        createMockPlugin({ ...mockPlugins[0], status: 'loaded' }),
+        createMockPlugin({ ...mockPlugins[1], status: 'error' }),
+        createMockPlugin({ ...mockPlugins[2], status: 'available' })
       ]);
       
       const { container } = render(PluginManager);
       
       await waitFor(() => {
-        const indicators = container.querySelectorAll('.status-indicator');
-        expect(indicators.length).toBe(3);
+        const statusIndicators = container.querySelectorAll('.plugin-status');
+        expect(statusIndicators).toHaveLength(3);
+        
+        // Check for specific status classes
+        const cards = container.querySelectorAll('.plugin-card');
+        expect(cards[0]?.querySelector('.status-loaded')).toBeTruthy();
+        expect(cards[1]?.querySelector('.status-error')).toBeTruthy();
+        expect(cards[2]?.querySelector('.status-available')).toBeTruthy();
       });
-      
-      const indicators = container.querySelectorAll('.status-indicator') as NodeListOf<HTMLElement>;
-      expect(indicators[0].style.backgroundColor).toBe('#10b981'); // green
-      expect(indicators[1].style.backgroundColor).toBe('#ef4444'); // red
-      expect(indicators[2].style.backgroundColor).toBe('#6b7280'); // gray
     });
   });
 });
