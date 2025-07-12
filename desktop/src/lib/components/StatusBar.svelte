@@ -3,7 +3,7 @@
   import { manager, activeSession, activePane, panes } from '$lib/stores/manager';
   import PluginStatusBar from './PluginStatusBar.svelte';
   
-  export let sessionId: string;
+  export const sessionId: string = ''; // External reference only
   
   let sessionName = '';
   let activePaneTitle = '';

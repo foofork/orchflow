@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   
-  export let sessionId: string = '';
+  export const sessionId: string = ''; // External reference only
   
   interface DebugConfiguration {
     name: string;

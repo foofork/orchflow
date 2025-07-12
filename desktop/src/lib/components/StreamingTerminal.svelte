@@ -5,7 +5,7 @@
   import { listen, type UnlistenFn } from '@tauri-apps/api/event';
   
   export let terminalId: string;
-  export let title: string = 'Terminal';
+  export const title: string = 'Terminal'; // External reference only
   export let initialRows: number = 24;
   export let initialCols: number = 80;
   export let shell: string | undefined = undefined;

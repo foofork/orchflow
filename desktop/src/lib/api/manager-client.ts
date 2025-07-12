@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+import { withTimeout, withRetry, exponentialBackoff, TIMEOUT_CONFIG } from '$lib/utils/timeout';
 
 // ===== Types matching Rust structures =====
 
@@ -156,11 +157,17 @@ export type ManagerEvent =
 export class ManagerClient {
   private eventListeners: Map<string, UnlistenFn[]> = new Map();
   private eventHandlers: Map<string, Set<(event: ManagerEvent) => void>> = new Map();
+  
+  // Use centralized timeout utility for all Tauri calls
 
   // Execute an action
   async execute<T = any>(action: Action): Promise<T> {
     try {
-      return await invoke('manager_execute', { action });
+      return await withTimeout(
+        invoke('manager_execute', { action }),
+        TIMEOUT_CONFIG.TAURI_API,
+        `Manager execute action ${action.type} timed out`
+      );
     } catch (error) {
       console.error('Manager execution error:', error);
       throw error;
@@ -169,17 +176,29 @@ export class ManagerClient {
 
   // Subscribe to events (uses WebSocket on port 50505)
   async subscribe(eventTypes: string[]): Promise<void> {
-    return await invoke('manager_subscribe', { eventTypes });
+    return await withTimeout(
+      invoke('manager_subscribe', { eventTypes }),
+      TIMEOUT_CONFIG.TAURI_API,
+      'Manager subscribe timed out'
+    );
   }
 
   // Direct command invocations
 
   async getSessions(): Promise<Session[]> {
-    return await invoke('get_sessions');
+    return await withTimeout(
+      invoke('get_sessions'),
+      TIMEOUT_CONFIG.TAURI_API,
+      'Get sessions timed out'
+    );
   }
 
   async getSession(sessionId: string): Promise<Session> {
-    return await invoke('get_session', { session_id: sessionId });
+    return await withTimeout(
+      invoke('get_session', { session_id: sessionId }),
+      TIMEOUT_CONFIG.TAURI_API,
+      'Get session timed out'
+    );
   }
 
   async getPanes(sessionId: string): Promise<Pane[]> {
@@ -314,10 +333,34 @@ export class ManagerClient {
   }
 
   // WebSocket connection for real-time events
+  private connectionRetries = 0;
+  private readonly MAX_WS_RETRIES = 5;
+  private wsConnectionTimeout?: number;
+  
   async connectWebSocket(): Promise<void> {
+    // Clear any existing connection timeout
+    if (this.wsConnectionTimeout) {
+      clearTimeout(this.wsConnectionTimeout);
+    }
+    
     const ws = new WebSocket('ws://localhost:50505');
+    let connectionEstablished = false;
+    
+    // Set connection timeout
+    this.wsConnectionTimeout = setTimeout(() => {
+      if (!connectionEstablished) {
+        ws.close();
+        console.error('WebSocket connection timed out');
+        this.handleConnectionFailure();
+      }
+    }, TIMEOUT_CONFIG.WEBSOCKET_CONNECT) as unknown as number;
     
     ws.onopen = () => {
+      connectionEstablished = true;
+      if (this.wsConnectionTimeout) {
+        clearTimeout(this.wsConnectionTimeout);
+      }
+      this.connectionRetries = 0; // Reset on successful connection
       console.log('Connected to Manager WebSocket');
     };
 
@@ -334,12 +377,25 @@ export class ManagerClient {
 
     ws.onerror = (error) => {
       console.error('WebSocket error:', error);
+      this.handleConnectionFailure();
     };
 
     ws.onclose = () => {
-      console.log('WebSocket connection closed, reconnecting in 5s...');
-      setTimeout(() => this.connectWebSocket(), 5000);
+      connectionEstablished = false;
+      console.log('WebSocket connection closed');
+      this.handleConnectionFailure();
     };
+  }
+  
+  private handleConnectionFailure(): void {
+    if (this.connectionRetries < this.MAX_WS_RETRIES) {
+      this.connectionRetries++;
+      const backoffMs = exponentialBackoff(this.connectionRetries - 1, 1000, TIMEOUT_CONFIG.RETRY_BACKOFF_MAX);
+      console.log(`Reconnecting WebSocket in ${backoffMs}ms (attempt ${this.connectionRetries}/${this.MAX_WS_RETRIES})`);
+      setTimeout(() => this.connectWebSocket(), backoffMs);
+    } else {
+      console.error('Max WebSocket reconnection attempts reached. Giving up.');
+    }
   }
 
   private handleEvent(event: ManagerEvent): void {
@@ -351,6 +407,9 @@ export class ManagerClient {
 
   // Cleanup
   dispose(): void {
+    if (this.wsConnectionTimeout) {
+      clearTimeout(this.wsConnectionTimeout);
+    }
     this.eventListeners.forEach(listeners => listeners.forEach(unlisten => unlisten()));
     this.eventListeners.clear();
     this.eventHandlers.clear();

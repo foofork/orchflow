@@ -2,11 +2,14 @@
   import { onMount, onDestroy } from 'svelte';
   import { browser } from '$app/environment';
   import { tmux } from '$lib/tauri/tmux';
+  import { withTimeout, exponentialBackoff, TIMEOUT_CONFIG } from '$lib/utils/timeout';
   
   export let sessionName: string = 'orchflow-main';
   export let paneId: string | null = null;
   export let command: string | undefined = undefined;
   export let title: string = 'Terminal';
+  
+  // Use centralized timeout utilities
   
   let container: HTMLDivElement;
   let terminal: any;
@@ -14,6 +17,8 @@
   let resizeObserver: ResizeObserver;
   let pollInterval: number;
   let lastContent: string = '';
+  let connectionRetries = 0;
+  const MAX_RETRIES = 5;
   
   onMount(async () => {
     if (!browser) return;
@@ -62,24 +67,54 @@
     terminal.open(container);
     fitAddon.fit();
     
-    // Create or attach to pane
+    // Create or attach to pane with timeout
     if (!paneId) {
-      const pane = await tmux.createPane(sessionName, command);
-      paneId = pane.id;
+      try {
+        const pane = await withTimeout(
+          tmux.createPane(sessionName, command),
+          TIMEOUT_CONFIG.TAURI_API,
+          'Create pane timed out'
+        );
+        paneId = pane.id;
+        connectionRetries = 0; // Reset on success
+      } catch (err) {
+        console.error('Failed to create pane:', err);
+        if (connectionRetries < MAX_RETRIES) {
+          connectionRetries++;
+          const backoffMs = exponentialBackoff(connectionRetries - 1, 1000, 10000);
+          setTimeout(() => {
+            // Retry with exponential backoff
+            window.location.reload();
+          }, backoffMs);
+        }
+        throw err;
+      }
     }
     
-    // Handle input
+    // Handle input with timeout
     terminal.onData(async (data: string) => {
       if (paneId) {
-        await tmux.sendKeys(paneId, data);
+        try {
+          await withTimeout(
+            tmux.sendKeys(paneId, data),
+            TIMEOUT_CONFIG.TAURI_API,
+            'Send keys timed out'
+          );
+        } catch (err) {
+          console.error('Failed to send input:', err);
+        }
       }
     });
     
-    // Poll for output
+    // Poll for output with reduced frequency and timeout
     pollInterval = setInterval(async () => {
       if (paneId) {
         try {
-          const content = await tmux.capturePane(paneId);
+          const content = await withTimeout(
+            tmux.capturePane(paneId),
+            TIMEOUT_CONFIG.TAURI_API,
+            'Capture pane timed out'
+          );
           if (content !== lastContent) {
             terminal.clear();
             terminal.write(content);
@@ -87,16 +122,29 @@
           }
         } catch (err) {
           console.error('Failed to capture pane:', err);
+          // Exponential backoff on repeated failures
+          if (err.message?.includes('timed out')) {
+            clearInterval(pollInterval);
+            const backoffMs = exponentialBackoff(connectionRetries - 1, TIMEOUT_CONFIG.TERMINAL_POLL, 5000);
+            setTimeout(() => {
+              pollInterval = setInterval(arguments.callee, TIMEOUT_CONFIG.TERMINAL_POLL) as unknown as number;
+            }, backoffMs);
+            connectionRetries++;
+          }
         }
       }
-    }, 100) as unknown as number;
+    }, TIMEOUT_CONFIG.TERMINAL_POLL) as unknown as number;
     
     // Handle resize
     resizeObserver = new ResizeObserver(() => {
       fitAddon.fit();
       if (paneId) {
         const { cols, rows } = fitAddon.proposeDimensions() || { cols: 80, rows: 24 };
-        tmux.resizePane(paneId, cols, rows).catch(console.error);
+        withTimeout(
+          tmux.resizePane(paneId, cols, rows),
+          TIMEOUT_CONFIG.TAURI_API,
+          'Resize pane timed out'
+        ).catch(console.error);
       }
     });
     resizeObserver.observe(container);
@@ -126,7 +174,11 @@
     if (event.ctrlKey && event.key === 'c') {
       event.preventDefault();
       if (paneId) {
-        tmux.sendKeys(paneId, '\x03'); // Ctrl+C
+        withTimeout(
+          tmux.sendKeys(paneId, '\x03'),
+          TIMEOUT_CONFIG.TAURI_API,
+          'Send Ctrl+C timed out'
+        ).catch(console.error);
       }
     }
   }

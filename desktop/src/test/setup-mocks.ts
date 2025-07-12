@@ -104,14 +104,14 @@ function createSvelteComponentMock(
       // Svelte internal properties
       $$: {
         fragment: {
-          c: vi.fn<[], void>(), // create
-          m: vi.fn<[target: HTMLElement, anchor?: Node], void>(), // mount
-          p: vi.fn<[ctx: any[], dirty: number[]], void>(), // update  
-          d: vi.fn<[detaching: boolean], void>()  // destroy
+          c: vi.fn(() => ({})), // create
+          m: vi.fn(() => ({})), // mount
+          p: vi.fn(() => ({})), // update  
+          d: vi.fn(() => ({}))  // destroy
         },
         ctx: [],
         props: mergedProps,
-        update: vi.fn<[], void>(),
+        update: vi.fn(() => ({})),
         not_equal: (a: any, b: any) => a !== b,
         bound: {},
         on_mount: [],

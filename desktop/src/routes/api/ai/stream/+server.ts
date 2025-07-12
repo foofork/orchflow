@@ -13,71 +13,49 @@ export const POST: RequestHandler = async ({ request }) => {
     response = `This code ${selection ? 'selection' : 'file'} appears to be a ${filePath?.split('.').pop() || 'text'} file. `;
     response += `It contains ${content?.split('\n').length || 0} lines of code. `;
     response += `The main purpose seems to be providing functionality for the application.`;
-  } else if (prompt.toLowerCase().includes('refactor')) {
-    response = 'I can help refactor this code to be more efficient. Here are my suggestions:\n\n';
-    response += '1. Extract common logic into reusable functions\n';
-    response += '2. Use more descriptive variable names\n';
-    response += '3. Add proper error handling\n';
-    
-    // Generate a simple diff
-    if (selection?.text) {
-      const lines = selection.text.split('\n');
-      diff = `@@ -${selection.start},${lines.length} +${selection.start},${lines.length} @@\n`;
-      lines.forEach((line: string) => {
-        diff += `-${line}\n`;
-        diff += `+${line} // refactored\n`;
-      });
-    }
-  } else if (prompt.toLowerCase().includes('document')) {
-    response = 'Adding documentation comments to the code:\n\n';
-    
-    if (selection?.text) {
-      const lines = selection.text.split('\n');
-      diff = `@@ -${selection.start},${lines.length} +${selection.start},${lines.length + 3} @@\n`;
-      diff += `+/**\n`;
-      diff += `+ * Documentation for this code\n`;
-      diff += `+ */\n`;
-      lines.forEach((line: string) => {
-        diff += ` ${line}\n`;
-      });
-    }
-  } else if (prompt.toLowerCase().includes('test')) {
-    response = 'Here are unit tests for your code:\n\n';
-    response += '```typescript\n';
-    response += 'describe("Test Suite", () => {\n';
-    response += '  it("should work correctly", () => {\n';
-    response += '    expect(true).toBe(true);\n';
-    response += '  });\n';
-    response += '});\n';
-    response += '```';
+  } else if (prompt.toLowerCase().includes('fix') || prompt.toLowerCase().includes('refactor')) {
+    diff = `@@ -1,3 +1,3 @@
+-// Original code
++// Improved code with fixes
+ function example() {
+-  return true;
++  return false; // Fixed logic
+ }`;
+    response = `I've analyzed the code and found some improvements. Here's what I would change:\n\n${diff}`;
   } else {
-    response = `I'll help you with: "${prompt}"\n\n`;
-    response += 'Based on the context provided, here are my suggestions...';
+    response = `I've reviewed the code. Based on your prompt "${prompt}", here are my suggestions...`;
   }
   
-  // Return a streaming response
-  const encoder = new TextEncoder();
+  // Create a server-sent events stream
   const stream = new ReadableStream({
-    async start(controller) {
-      // Simulate streaming tokens
-      const words = response.split(' ');
-      for (const word of words) {
-        const chunk = encoder.encode(`data: ${JSON.stringify({ type: 'token', content: word + ' ' })}\n\n`);
-        controller.enqueue(chunk);
-        await new Promise(resolve => setTimeout(resolve, 50)); // Simulate delay
-      }
+    start(controller) {
+      const encoder = new TextEncoder();
       
-      // Send diff if available
-      if (diff) {
-        const diffChunk = encoder.encode(`data: ${JSON.stringify({ type: 'diff', diff })}\n\n`);
-        controller.enqueue(diffChunk);
-      }
+      // Send response in chunks to simulate streaming
+      const chunks = response.match(/.{1,20}/g) || [response];
+      let index = 0;
       
-      // Send complete signal
-      const completeChunk = encoder.encode(`data: ${JSON.stringify({ type: 'complete' })}\n\n`);
-      controller.enqueue(completeChunk);
+      const sendChunk = () => {
+        if (index < chunks.length) {
+          const chunk = chunks[index];
+          const data = `data: ${JSON.stringify({ 
+            content: chunk,
+            diff: index === chunks.length - 1 ? diff : undefined,
+            done: index === chunks.length - 1
+          })}\n\n`;
+          
+          controller.enqueue(encoder.encode(data));
+          index++;
+          
+          if (index < chunks.length) {
+            setTimeout(sendChunk, 100); // Simulate delay
+          } else {
+            controller.close();
+          }
+        }
+      };
       
-      controller.close();
+      sendChunk();
     }
   });
   

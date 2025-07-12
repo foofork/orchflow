@@ -9,11 +9,22 @@ export default defineConfig({
     noExternal: ['@xterm/xterm', '@xterm/addon-fit', '@xterm/addon-web-links', '@xterm/addon-search']
   },
   
-  // Server configuration with fallback ports
+  // Server configuration with fallback ports and timeouts
   server: {
     port: parseInt(process.env.PORT || '5173'),
     strictPort: false, // Allow fallback to other ports
-    host: process.env.HOST || 'localhost'
+    host: process.env.HOST || 'localhost',
+    // Add timeout configurations for development server
+    cors: true,
+    hmr: {
+      timeout: 30000, // HMR timeout
+      overlay: true
+    },
+    // Development server timeout settings
+    middlewareMode: false,
+    headers: {
+      'Keep-Alive': 'timeout=30, max=1000'
+    }
   },
   
   // Env prefix for Tauri

@@ -44,8 +44,8 @@
   export let activePlugins: number = 0;
   export let backgroundTasks: Array<{ id: string; name: string; progress: number }> = [];
   export let notifications: Array<{ id: string; type: string; message: string }> = [];
-  export let onGitClick: (() => void) | undefined = undefined;
-  export let onFileClick: (() => void) | undefined = undefined;
+  export const onGitClick: (() => void) | undefined = undefined; // External reference only
+  export const onFileClick: (() => void) | undefined = undefined; // External reference only
   export let testMode = false;
   export let autoLoad = true;
   export let initialGitInfo: GitInfo | null = null;

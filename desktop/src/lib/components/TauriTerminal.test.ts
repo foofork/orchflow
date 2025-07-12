@@ -4,6 +4,7 @@ import { tick } from 'svelte';
 import TauriTerminal from './TauriTerminal.svelte';
 import { browser } from '$app/environment';
 import { tmux } from '$lib/tauri/tmux';
+import { TIMEOUT_CONFIG } from '$lib/utils/timeout';
 
 // Mock browser environment
 vi.mock('$app/environment', () => ({
@@ -179,9 +180,9 @@ describe('TauriTerminal', () => {
       
       await waitForMount();
       
-      // Fast forward time to trigger polling
+      // Fast forward time to trigger polling (using TIMEOUT_CONFIG.TERMINAL_POLL)
       await act(async () => {
-        vi.advanceTimersByTime(150);
+        vi.advanceTimersByTime(TIMEOUT_CONFIG.TERMINAL_POLL + 100);
       });
       
       expect(tmux.capturePane).toHaveBeenCalledWith('pane-123');
@@ -201,15 +202,15 @@ describe('TauriTerminal', () => {
       
       await waitForMount();
       
-      // Trigger first poll
+      // Trigger first poll (using TIMEOUT_CONFIG.TERMINAL_POLL)
       await act(async () => {
-        vi.advanceTimersByTime(150);
+        vi.advanceTimersByTime(TIMEOUT_CONFIG.TERMINAL_POLL + 100);
         await tick();
       });
       
       // Trigger second poll with new content
       await act(async () => {
-        vi.advanceTimersByTime(150);
+        vi.advanceTimersByTime(TIMEOUT_CONFIG.TERMINAL_POLL + 100);
         await tick();
       });
       
@@ -282,9 +283,9 @@ describe('TauriTerminal', () => {
       
       await waitForMount();
       
-      // Trigger polling
+      // Trigger polling (using TIMEOUT_CONFIG.TERMINAL_POLL)
       await act(async () => {
-        vi.advanceTimersByTime(150);
+        vi.advanceTimersByTime(TIMEOUT_CONFIG.TERMINAL_POLL + 100);
         await tick();
       });
       

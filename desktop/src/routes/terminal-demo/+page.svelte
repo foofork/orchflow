@@ -13,7 +13,7 @@
     { value: 'grid-2x2', label: 'Grid 2x2' },
     { value: 'grid-3x3', label: 'Grid 3x3' }
   ];
-  let selectedLayout = 'single';
+  let selectedLayout: any = 'single';
   
   function toggleMode() {
     singleTerminalMode = !singleTerminalMode;

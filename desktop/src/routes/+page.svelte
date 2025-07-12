@@ -78,52 +78,56 @@
   let showCommandPalette = false;
   let sidebarVisible = true;
   
-  onMount(async () => {
+  onMount(() => {
     // Register keyboard shortcuts
     document.addEventListener('keydown', handleKeydown);
     
-    // Initialize with a default session
-    if (!$activeSession) {
-      await manager.createSession('Default Session');
-    }
-    
-    // Preload commonly used components in the background
-    preloadComponents([
-      DashboardEnhanced,
-      PluginManager,
-      SettingsModal,
-      ShareDialog
-    ]);
-    
-    // Initialize Tauri-specific features
-    if (isTauri && browser) {
-      const { getCurrentWindow } = await import('@tauri-apps/api/window');
-      const appWindow = getCurrentWindow();
-      const { listen } = await import('@tauri-apps/api/event');
+    // Initialize application
+    (async () => {
+      // Initialize with a default session
+      if (!$activeSession) {
+        await manager.createSession('Default Session');
+      }
       
-      try {
-        // Listen for file drops
-        await appWindow.onFileDropEvent((event: any) => {
-          if (event.payload.type === 'drop') {
-            event.payload.paths.forEach((path: string) => {
-              openFile(path);
-            });
-          }
-        });
+      // Preload commonly used components in the background
+      preloadComponents([
+        DashboardEnhanced,
+        PluginManager,
+        SettingsModal,
+        ShareDialog
+      ]);
+      
+      // Initialize Tauri-specific features
+      if (isTauri && browser) {
+        const { getCurrentWindow } = await import('@tauri-apps/api/window');
+        const appWindow = getCurrentWindow();
+        
+        try {
+          // Listen for file drops - use proper event typing
+          const unlistenFileDrop = await appWindow.listen('tauri://file-drop', (event: any) => {
+            if (event.payload?.type === 'drop' && Array.isArray(event.payload.paths)) {
+              event.payload.paths.forEach((path: string) => {
+                openFile(path);
+              });
+            }
+          });
         
         // Listen for startup complete
-        const unlisten = await listen('startup-complete', (event) => {
+        const { listen } = await import('@tauri-apps/api/event');
+        const unlistenStartup = await listen('startup-complete', (event) => {
           console.log('Startup metrics:', event.payload);
         });
         
+        // Store cleanup functions for Tauri features
         return () => {
-          document.removeEventListener('keydown', handleKeydown);
-          unlisten();
+          unlistenFileDrop();
+          unlistenStartup();
         };
       } catch (err) {
         console.error('Failed to initialize Tauri features:', err);
+        }
       }
-    }
+    })();
     
     return () => {
       document.removeEventListener('keydown', handleKeydown);
@@ -528,7 +532,7 @@
   <!-- Settings Modal -->
   {#if showSettingsModal}
     <LazyComponent 
-      loader={() => import('$lib/components/SettingsModal.svelte').then(m => ({ default: m.default }))}
+      loader={() => import('$lib/components/SettingsModal.svelte')}
       props={{
         isOpen: showSettingsModal,
         onClose: () => showSettingsModal = false
