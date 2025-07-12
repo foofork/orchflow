@@ -205,8 +205,9 @@
         dryRun: false,
       });
       
-      const successCount = results.filter(r => r.success).length;
-      const totalReplacements = results.reduce((sum, r) => sum + r.replacements, 0);
+      const resultsArray = results as any[];
+      const successCount = resultsArray.filter((r: any) => r.success).length;
+      const totalReplacements = resultsArray.reduce((sum: number, r: any) => sum + r.replacements, 0);
       
       dispatch('replaced', {
         files: successCount,

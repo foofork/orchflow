@@ -116,7 +116,7 @@ describe('FileExplorerEnhanced', () => {
       });
 
       // Simulate directory expansion through the FileTree component
-      component.$set({ 
+      (component as any).$set({ 
         tree: [{
           ...mockDirectory,
           expanded: true,
@@ -244,7 +244,7 @@ describe('FileExplorerEnhanced', () => {
       });
 
       // Set up initial state with a file
-      component.$set({
+      (component as any).$set({
         tree: [{
           ...buildDirectoryNode('root', '/', [mockFile]),
           expanded: true
@@ -271,7 +271,7 @@ describe('FileExplorerEnhanced', () => {
       });
 
       // Set up initial state with a file
-      component.$set({
+      (component as any).$set({
         tree: [{
           ...buildDirectoryNode('root', '/', [mockFile]),
           expanded: true
@@ -316,7 +316,7 @@ describe('FileExplorerEnhanced', () => {
       });
 
       // Set up initial state with a file
-      component.$set({
+      (component as any).$set({
         tree: [{
           ...buildDirectoryNode('root', '/', [mockFile]),
           expanded: true
@@ -348,7 +348,7 @@ describe('FileExplorerEnhanced', () => {
         buildFileNode('other.txt', '/path/to/other.txt')
       ];
 
-      component.$set({
+      (component as any).$set({
         tree: [{
           ...buildDirectoryNode('root', '/', files),
           expanded: true
@@ -391,12 +391,12 @@ describe('FileExplorerEnhanced', () => {
       vi.spyOn(window, 'confirm').mockReturnValue(true);
 
       // Set up a selected file
-      component.$set({ 
+      (component as any).$set({ 
         tree: [{
           ...buildDirectoryNode('root', '/', [mockFile]),
           expanded: true
         }],
-        selectedPath: mockFile.path
+        selectedPath: mockFile.path as any
       });
 
       // Simulate Delete key press

@@ -176,7 +176,7 @@
 				const ext = pane.title.split('.').pop() || '';
 				fileSymbols = generateSymbols(pane.title, ext);
 			} else {
-				fileSymbols = [];
+				fileSymbols = { path: '', language: '', symbols: [] };
 			}
 			
 			parseTime = performance.now() - startTime;
@@ -233,7 +233,7 @@
 					level: 0,
 					icon: symbolIcons.class,
 					children: [
-						{ name: 'constructor', kind: 'constructor', line: 162, column: 4, endLine: 165, endColumn: 5, level: 1, icon: symbolIcons.constructor },
+						{ name: 'constructor', kind: 'constructor', line: 162, column: 4, endLine: 165, endColumn: 5, level: 1, icon: '🏗️' },
 						{ name: 'name', kind: 'property', line: 167, column: 4, endLine: 167, endColumn: 8, level: 1, icon: symbolIcons.property },
 						{ name: 'email', kind: 'property', line: 168, column: 4, endLine: 168, endColumn: 9, level: 1, icon: symbolIcons.property },
 						{ name: 'updateProfile', kind: 'method', line: 170, column: 4, endLine: 180, endColumn: 5, level: 1, icon: symbolIcons.method }

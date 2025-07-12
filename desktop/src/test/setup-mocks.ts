@@ -7,9 +7,9 @@ import { vi, type MockedFunction, type Mock } from 'vitest';
 
 // Svelte component type definition
 interface MockedSvelteComponent {
-  $set: MockedFunction<(props: any) => void>;
-  $on: MockedFunction<(event: string, handler: Function) => () => void>;
-  $destroy: MockedFunction<() => void>;
+  $set: any;
+  $on: any;
+  $destroy: any;
   $$: {
     fragment: {
       c: () => {},
@@ -43,7 +43,7 @@ interface MockedSvelteComponent {
 function createSvelteComponentMock(
   componentName: string, 
   defaultProps: Record<string, any> = {}
-): MockedFunction<(options: any) => MockedSvelteComponent> {
+): any {
   return vi.fn().mockImplementation((options: any) => {
     const { target, props = {}, anchor, intro } = options;
     const mergedProps = { ...defaultProps, ...props };
@@ -78,7 +78,7 @@ function createSvelteComponentMock(
     // Create proper Svelte component interface
     const component: MockedSvelteComponent = {
       // Standard Svelte component methods
-      $set: vi.fn<[props: any], void>((newProps: any) => {
+      $set: vi.fn((newProps: any) => {
         Object.assign(mergedProps, newProps);
         // Update DOM based on props
         if (newProps.show !== undefined || newProps.open !== undefined) {
@@ -90,12 +90,12 @@ function createSvelteComponentMock(
         }
       }),
       
-      $on: vi.fn<[event: string, handler: Function], () => void>((event: string, handler: Function) => {
+      $on: vi.fn((event: string, handler: Function) => {
         element.addEventListener(event, handler as EventListener);
         return () => element.removeEventListener(event, handler as EventListener);
       }),
       
-      $destroy: vi.fn<[], void>(() => {
+      $destroy: vi.fn(() => {
         if (element.parentNode) {
           element.parentNode.removeChild(element);
         }

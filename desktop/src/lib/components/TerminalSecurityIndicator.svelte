@@ -2,7 +2,7 @@
   import { createEventDispatcher } from 'svelte';
   import { terminalSecurityStore } from '$lib/stores/terminalSecurity';
   import Icon from './Icon.svelte';
-  import Tooltip from './Tooltip.svelte';
+  // import Tooltip from './Tooltip.svelte'; // TODO: Create Tooltip component
   
   export let terminalId: string;
   export let compact: boolean = false;
@@ -51,7 +51,7 @@
   $: securityContext = $terminalSecurityStore[terminalId];
   $: currentTier = securityContext?.tier ?? 0;
   $: tierConfig = securityTiers[currentTier];
-  $: hasAlerts = securityContext?.alerts?.length > 0;
+  $: hasAlerts = securityContext?.alerts?.length ? securityContext.alerts.length > 0 : false;
   
   function handleClick() {
     dispatch('click', { terminalId, securityContext });
@@ -65,7 +65,7 @@
 <div class="terminal-security-indicator" class:compact>
   {#if compact}
     <!-- Compact mode - just icon with tooltip -->
-    <Tooltip content={`Security: ${tierConfig.name} - ${tierConfig.description}`}>
+    <!-- <Tooltip content={`Security: ${tierConfig.name} - ${tierConfig.description}`}> -->
       <button
         class="security-badge compact {tierConfig.bgColor} {tierConfig.color}"
         on:click={handleClick}
@@ -76,7 +76,7 @@
           <span class="alert-dot"></span>
         {/if}
       </button>
-    </Tooltip>
+    <!-- </Tooltip> -->
   {:else}
     <!-- Full mode - detailed display -->
     <div class="security-panel">
@@ -87,14 +87,14 @@
         <Icon name={tierConfig.icon} size="small" />
         <span class="tier-name">{tierConfig.name}</span>
         {#if hasAlerts}
-          <span class="alert-count">{securityContext.alerts.length}</span>
+          <span class="alert-count">{securityContext?.alerts?.length || 0}</span>
         {/if}
       </button>
       
       <!-- Quick tier selector -->
       <div class="tier-selector">
         {#each Object.entries(securityTiers) as [tier, config]}
-          <Tooltip content={config.description}>
+          <!-- <Tooltip content={config.description}> -->
             <button
               class="tier-option"
               class:active={currentTier === parseInt(tier)}
@@ -103,7 +103,7 @@
             >
               <Icon name={config.icon} size="tiny" class={config.color} />
             </button>
-          </Tooltip>
+          <!-- </Tooltip> -->
         {/each}
       </div>
       

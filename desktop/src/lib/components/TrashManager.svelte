@@ -139,6 +139,15 @@
     selectedItems = selectedItems;
   }
   
+  function handleSelectAll(e: any) {
+    const target = e.target as HTMLInputElement;
+    if (target.checked) {
+      selectAll();
+    } else {
+      deselectAll();
+    }
+  }
+  
   async function restoreSelected() {
     if (selectedItems.size === 0) return;
     
@@ -308,7 +317,7 @@
             <input
               type="checkbox"
               checked={selectedItems.size === filteredItems.length}
-              on:change={(e) => (e.target as HTMLInputElement).checked ? selectAll() : deselectAll()}
+              on:change={handleSelectAll}
             />
           </div>
           <div class="col-name sortable" on:click={() => toggleSort('name')}>

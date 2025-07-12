@@ -97,12 +97,13 @@
     
     // Initialize Tauri-specific features
     if (isTauri && browser) {
-      const { appWindow } = await import('@tauri-apps/api/window');
+      const { getCurrentWindow } = await import('@tauri-apps/api/window');
+      const appWindow = getCurrentWindow();
       const { listen } = await import('@tauri-apps/api/event');
       
       try {
         // Listen for file drops
-        await appWindow.onFileDropEvent((event) => {
+        await appWindow.onFileDropEvent((event: any) => {
           if (event.payload.type === 'drop') {
             event.payload.paths.forEach((path: string) => {
               openFile(path);
@@ -527,7 +528,7 @@
   <!-- Settings Modal -->
   {#if showSettingsModal}
     <LazyComponent 
-      loader={() => import('$lib/components/SettingsModal.svelte')}
+      loader={() => import('$lib/components/SettingsModal.svelte').then(m => ({ default: m.default }))}
       props={{
         isOpen: showSettingsModal,
         onClose: () => showSettingsModal = false
