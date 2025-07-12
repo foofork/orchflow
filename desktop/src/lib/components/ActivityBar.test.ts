@@ -1,22 +1,31 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/svelte'
 import userEvent from '@testing-library/user-event'
 import ActivityBar from './ActivityBar.svelte'
 import type { ComponentProps } from 'svelte'
+import { createTypedMock } from '@/test/mock-factory'
 
 describe('ActivityBar', () => {
+  let cleanup: Array<() => void> = []
   let user: ReturnType<typeof userEvent.setup>
-  let mockViewChange: ReturnType<typeof vi.fn>
+  let mockViewChange: ReturnType<typeof createTypedMock<[string], void>>
 
   beforeEach(() => {
     user = userEvent.setup()
-    mockViewChange = vi.fn()
+    mockViewChange = createTypedMock<[string], void>()
     vi.clearAllMocks()
+  })
+
+  afterEach(() => {
+    cleanup.forEach(fn => fn())
+    cleanup = []
+    vi.restoreAllMocks()
   })
 
   describe('Rendering', () => {
     it('renders all default activity items', () => {
-      render(ActivityBar)
+      const { unmount } = render(ActivityBar)
+      cleanup.push(unmount)
       
       // Check top activities
       expect(screen.getByRole('button', { name: 'Explorer' })).toBeInTheDocument()
@@ -33,7 +42,8 @@ describe('ActivityBar', () => {
     })
 
     it('displays correct icons for each activity', () => {
-      render(ActivityBar)
+      const { unmount } = render(ActivityBar)
+      cleanup.push(unmount)
       
       const activities = [
         { label: 'Explorer', icon: '📁' },
@@ -55,7 +65,8 @@ describe('ActivityBar', () => {
     })
 
     it('shows active state for current view', () => {
-      render(ActivityBar, { activeView: 'search' })
+      const { unmount } = render(ActivityBar, { activeView: 'search' })
+      cleanup.push(unmount)
       
       const searchButton = screen.getByRole('button', { name: 'Search' })
       const explorerButton = screen.getByRole('button', { name: 'Explorer' })
@@ -65,14 +76,16 @@ describe('ActivityBar', () => {
     })
 
     it('shows explorer as active by default', () => {
-      render(ActivityBar)
+      const { unmount } = render(ActivityBar)
+      cleanup.push(unmount)
       
       const explorerButton = screen.getByRole('button', { name: 'Explorer' })
       expect(explorerButton).toHaveClass('active')
     })
 
     it('applies correct CSS classes', () => {
-      const { container } = render(ActivityBar)
+      const { container, unmount } = render(ActivityBar)
+      cleanup.push(unmount)
       
       const activityBar = container.querySelector('.activity-bar')
       expect(activityBar).toBeInTheDocument()
@@ -87,7 +100,8 @@ describe('ActivityBar', () => {
 
   describe('Click Interactions', () => {
     it('dispatches viewChange event when activity is clicked', async () => {
-      const { component } = render(ActivityBar)
+      const { component, unmount } = render(ActivityBar)
+      cleanup.push(unmount)
       
       component.$on('viewChange', (e: CustomEvent<string>) => {
         mockViewChange(e.detail)
@@ -100,7 +114,8 @@ describe('ActivityBar', () => {
     })
 
     it('dispatches viewChange event for each activity', async () => {
-      const { component } = render(ActivityBar)
+      const { component, unmount } = render(ActivityBar)
+      cleanup.push(unmount)
       
       component.$on('viewChange', (e: CustomEvent<string>) => {
         mockViewChange(e.detail)
@@ -127,7 +142,8 @@ describe('ActivityBar', () => {
     })
 
     it('handles rapid clicks correctly', async () => {
-      const { component } = render(ActivityBar)
+      const { component, unmount } = render(ActivityBar)
+      cleanup.push(unmount)
       
       component.$on('viewChange', (e: CustomEvent<string>) => {
         mockViewChange(e.detail)
@@ -147,7 +163,8 @@ describe('ActivityBar', () => {
 
   describe('Active State Management', () => {
     it('updates active state when activeView prop changes', async () => {
-      const { rerender } = render(ActivityBar, { activeView: 'explorer' })
+      const { rerender, unmount } = render(ActivityBar, { activeView: 'explorer' })
+      cleanup.push(unmount)
       
       const explorerButton = screen.getByRole('button', { name: 'Explorer' })
       const searchButton = screen.getByRole('button', { name: 'Search' })
@@ -162,7 +179,8 @@ describe('ActivityBar', () => {
     })
 
     it('maintains active state through re-renders', async () => {
-      const { rerender } = render(ActivityBar, { activeView: 'git' })
+      const { rerender, unmount } = render(ActivityBar, { activeView: 'git' })
+      cleanup.push(unmount)
       
       const gitButton = screen.getByRole('button', { name: 'Source Control' })
       expect(gitButton).toHaveClass('active')
@@ -176,7 +194,8 @@ describe('ActivityBar', () => {
 
   describe('Tooltip Functionality', () => {
     it('has correct tooltip text for each activity', () => {
-      render(ActivityBar)
+      const { unmount } = render(ActivityBar)
+      cleanup.push(unmount)
       
       const tooltips = [
         { label: 'Explorer', tooltip: 'File Explorer (Ctrl+Shift+E)' },
@@ -197,7 +216,8 @@ describe('ActivityBar', () => {
     })
 
     it('shows tooltips on hover with animation delay', async () => {
-      render(ActivityBar)
+      const { unmount } = render(ActivityBar)
+      cleanup.push(unmount)
       
       const searchButton = screen.getByRole('button', { name: 'Search' })
       
@@ -212,7 +232,8 @@ describe('ActivityBar', () => {
 
   describe('Keyboard Navigation', () => {
     it('supports Tab navigation through all activities', async () => {
-      render(ActivityBar)
+      const { unmount } = render(ActivityBar)
+      cleanup.push(unmount)
       
       const buttons = screen.getAllByRole('button')
       
@@ -225,7 +246,8 @@ describe('ActivityBar', () => {
     })
 
     it('supports Enter key to activate activities', async () => {
-      const { component } = render(ActivityBar)
+      const { component, unmount } = render(ActivityBar)
+      cleanup.push(unmount)
       
       component.$on('viewChange', (e: CustomEvent<string>) => {
         mockViewChange(e.detail)
@@ -240,7 +262,8 @@ describe('ActivityBar', () => {
     })
 
     it('supports Space key to activate activities', async () => {
-      const { component } = render(ActivityBar)
+      const { component, unmount } = render(ActivityBar)
+      cleanup.push(unmount)
       
       component.$on('viewChange', (e: CustomEvent<string>) => {
         mockViewChange(e.detail)
@@ -255,7 +278,8 @@ describe('ActivityBar', () => {
     })
 
     it('shows focus indicator when focused', () => {
-      const { container } = render(ActivityBar)
+      const { container, unmount } = render(ActivityBar)
+      cleanup.push(unmount)
       
       const searchButton = screen.getByRole('button', { name: 'Search' })
       searchButton.focus()
@@ -271,7 +295,8 @@ describe('ActivityBar', () => {
 
   describe('Accessibility', () => {
     it('has proper ARIA labels for all buttons', () => {
-      render(ActivityBar)
+      const { unmount } = render(ActivityBar)
+      cleanup.push(unmount)
       
       const buttons = screen.getAllByRole('button')
       
@@ -282,7 +307,8 @@ describe('ActivityBar', () => {
     })
 
     it('provides keyboard shortcuts in tooltips', () => {
-      render(ActivityBar)
+      const { unmount } = render(ActivityBar)
+      cleanup.push(unmount)
       
       const shortcutActivities = [
         { label: 'Explorer', shortcut: 'Ctrl+Shift+E' },
@@ -301,7 +327,8 @@ describe('ActivityBar', () => {
     })
 
     it('maintains semantic HTML structure', () => {
-      const { container } = render(ActivityBar)
+      const { container, unmount } = render(ActivityBar)
+      cleanup.push(unmount)
       
       // Check for semantic structure
       const activityBar = container.querySelector('.activity-bar')
@@ -319,7 +346,8 @@ describe('ActivityBar', () => {
 
   describe('Visual States', () => {
     it('shows active indicator bar for active items', () => {
-      render(ActivityBar, { activeView: 'git' })
+      const { unmount } = render(ActivityBar, { activeView: 'git' })
+      cleanup.push(unmount)
       
       const gitButton = screen.getByRole('button', { name: 'Source Control' })
       expect(gitButton).toHaveClass('active')
@@ -329,7 +357,8 @@ describe('ActivityBar', () => {
     })
 
     it('shows hover state on mouse over', async () => {
-      render(ActivityBar)
+      const { unmount } = render(ActivityBar)
+      cleanup.push(unmount)
       
       const dashboardButton = screen.getByRole('button', { name: 'Dashboard' })
       
@@ -340,7 +369,8 @@ describe('ActivityBar', () => {
     })
 
     it('separates top and bottom activities visually', () => {
-      const { container } = render(ActivityBar)
+      const { container, unmount } = render(ActivityBar)
+      cleanup.push(unmount)
       
       const topSection = container.querySelector('.activities')
       const bottomSection = container.querySelector('.bottom-activities')
@@ -358,7 +388,8 @@ describe('ActivityBar', () => {
 
   describe('Edge Cases', () => {
     it('handles undefined activeView prop', () => {
-      render(ActivityBar, { activeView: undefined })
+      const { unmount } = render(ActivityBar, { activeView: undefined })
+      cleanup.push(unmount)
       
       // Should default to 'explorer' being active
       const explorerButton = screen.getByRole('button', { name: 'Explorer' })
@@ -366,7 +397,8 @@ describe('ActivityBar', () => {
     })
 
     it('handles invalid activeView values', () => {
-      render(ActivityBar, { activeView: 'invalid-view' as any })
+      const { unmount } = render(ActivityBar, { activeView: 'invalid-view' as any })
+      cleanup.push(unmount)
       
       // No button should be active for invalid view
       const buttons = screen.getAllByRole('button')
@@ -376,7 +408,8 @@ describe('ActivityBar', () => {
     })
 
     it('maintains functionality when rapidly changing activeView', async () => {
-      const { rerender } = render(ActivityBar, { activeView: 'explorer' })
+      const { rerender, unmount } = render(ActivityBar, { activeView: 'explorer' })
+      cleanup.push(unmount)
       
       // Rapidly change active view
       await rerender({ activeView: 'search' })
@@ -400,12 +433,14 @@ describe('ActivityBar', () => {
       
       // Should unmount without errors
       expect(() => unmount()).not.toThrow()
+      cleanup.push(unmount)
     })
   })
 
   describe('Integration Scenarios', () => {
     it('works correctly when embedded in a layout', () => {
-      const { container } = render(ActivityBar)
+      const { container, unmount } = render(ActivityBar)
+      cleanup.push(unmount)
       
       const activityBar = container.querySelector('.activity-bar')
       expect(activityBar).toBeInTheDocument()
@@ -416,9 +451,10 @@ describe('ActivityBar', () => {
     })
 
     it('dispatches events that can be listened to by parent components', async () => {
-      const handleViewChange = vi.fn()
+      const handleViewChange = createTypedMock<[string], void>()
       
-      const { component } = render(ActivityBar, { activeView: 'explorer' })
+      const { component, unmount } = render(ActivityBar, { activeView: 'explorer' })
+      cleanup.push(unmount)
       
       component.$on('viewChange', (e: CustomEvent<string>) => {
         handleViewChange(e.detail)

@@ -2,26 +2,32 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { tick } from 'svelte';
+import { createTypedMock, createSyncMock, createAsyncMock } from '@/test/mock-factory';
 import Modal from './Modal.svelte';
 
 describe('Modal', () => {
   let user: ReturnType<typeof userEvent.setup>;
+  let cleanup: Array<() => void> = [];
   
   beforeEach(() => {
     user = userEvent.setup();
+    cleanup = [];
   });
 
   afterEach(() => {
     vi.clearAllMocks();
+    cleanup.forEach(fn => fn());
+    cleanup = [];
   });
 
   // Rendering tests
   describe('Rendering', () => {
     it('renders modal when show is true', () => {
-      const { container } = render(Modal, {
+      const { container, unmount } = render(Modal, {
         props: { show: true },
         target: document.body
       });
+      cleanup.push(unmount);
       
       const modalOverlay = container.querySelector('.modal-overlay');
       expect(modalOverlay).toBeInTheDocument();
@@ -31,39 +37,43 @@ describe('Modal', () => {
     });
 
     it('does not render modal when show is false', () => {
-      const { container } = render(Modal, {
+      const { container, unmount } = render(Modal, {
         props: { show: false },
         target: document.body
       });
+      cleanup.push(unmount);
       
       const modalOverlay = container.querySelector('.modal-overlay');
       expect(modalOverlay).not.toBeInTheDocument();
     });
 
     it('displays title when provided', () => {
-      const { getByText } = render(Modal, {
+      const { getByText, unmount } = render(Modal, {
         props: { show: true, title: 'Test Modal Title' },
         target: document.body
       });
+      cleanup.push(unmount);
       
       expect(getByText('Test Modal Title')).toBeInTheDocument();
     });
 
     it('does not render header when no title and not closeable', () => {
-      const { container } = render(Modal, {
+      const { container, unmount } = render(Modal, {
         props: { show: true, title: '', closeable: false },
         target: document.body
       });
+      cleanup.push(unmount);
       
       const modalHeader = container.querySelector('.modal-header');
       expect(modalHeader).not.toBeInTheDocument();
     });
 
     it('renders close button when closeable is true', () => {
-      const { container } = render(Modal, {
+      const { container, unmount } = render(Modal, {
         props: { show: true, closeable: true },
         target: document.body
       });
+      cleanup.push(unmount);
       
       const closeButton = container.querySelector('.close-btn');
       expect(closeButton).toBeInTheDocument();
@@ -71,30 +81,33 @@ describe('Modal', () => {
     });
 
     it('does not render close button when closeable is false', () => {
-      const { container } = render(Modal, {
+      const { container, unmount } = render(Modal, {
         props: { show: true, closeable: false },
         target: document.body
       });
+      cleanup.push(unmount);
       
       const closeButton = container.querySelector('.close-btn');
       expect(closeButton).not.toBeInTheDocument();
     });
 
     it('applies custom width', () => {
-      const { container } = render(Modal, {
+      const { container, unmount } = render(Modal, {
         props: { show: true, width: '800px' },
         target: document.body
       });
+      cleanup.push(unmount);
       
       const modalContent = container.querySelector('.modal-content');
       expect(modalContent).toHaveStyle('max-width: 800px');
     });
 
     it('uses default width when not specified', () => {
-      const { container } = render(Modal, {
+      const { container, unmount } = render(Modal, {
         props: { show: true },
         target: document.body
       });
+      cleanup.push(unmount);
       
       const modalContent = container.querySelector('.modal-content');
       expect(modalContent).toHaveStyle('max-width: 600px');
@@ -104,10 +117,11 @@ describe('Modal', () => {
   // Slot tests
   describe('Slots', () => {
     it('renders content slot', () => {
-      const { container } = render(Modal, {
+      const { container, unmount } = render(Modal, {
         props: { show: true },
         target: document.body
       });
+      cleanup.push(unmount);
       
       // Add content to the modal body manually to test slot functionality
       const modalBody = container.querySelector('.modal-body');
@@ -122,10 +136,11 @@ describe('Modal', () => {
     });
 
     it('renders footer slot area when footer content exists', () => {
-      const { container } = render(Modal, {
+      const { container, unmount } = render(Modal, {
         props: { show: true },
         target: document.body
       });
+      cleanup.push(unmount);
       
       // By default, footer should not exist
       let modalFooter = container.querySelector('.modal-footer');
@@ -138,10 +153,11 @@ describe('Modal', () => {
     });
 
     it('does not render footer when no footer slot', () => {
-      const { container } = render(Modal, {
+      const { container, unmount } = render(Modal, {
         props: { show: true },
         target: document.body
       });
+      cleanup.push(unmount);
       
       const modalFooter = container.querySelector('.modal-footer');
       expect(modalFooter).not.toBeInTheDocument();
@@ -151,10 +167,11 @@ describe('Modal', () => {
   // Event handling tests
   describe('Event Handling', () => {
     it('dispatches close event when close button is clicked', async () => {
-      const { container, component } = render(Modal, {
+      const { container, component, unmount } = render(Modal, {
         props: { show: true, closeable: true },
         target: document.body
       });
+      cleanup.push(unmount);
       
       let closeEventFired = false;
       component.$on('close', () => {
@@ -168,10 +185,11 @@ describe('Modal', () => {
     });
 
     it('closes modal when overlay is clicked', async () => {
-      const { container, component } = render(Modal, {
+      const { container, component, unmount } = render(Modal, {
         props: { show: true, closeable: true },
         target: document.body
       });
+      cleanup.push(unmount);
       
       let closeEventFired = false;
       component.$on('close', () => {
@@ -185,10 +203,11 @@ describe('Modal', () => {
     });
 
     it('does not close when overlay is clicked and closeable is false', async () => {
-      const { container, component } = render(Modal, {
+      const { container, component, unmount } = render(Modal, {
         props: { show: true, closeable: false },
         target: document.body
       });
+      cleanup.push(unmount);
       
       let closeEventFired = false;
       component.$on('close', () => {
@@ -202,10 +221,11 @@ describe('Modal', () => {
     });
 
     it('does not close when modal content is clicked', async () => {
-      const { container, component } = render(Modal, {
+      const { container, component, unmount } = render(Modal, {
         props: { show: true, closeable: true },
         target: document.body
       });
+      cleanup.push(unmount);
       
       let closeEventFired = false;
       component.$on('close', () => {
@@ -219,10 +239,11 @@ describe('Modal', () => {
     });
 
     it('closes modal on Escape key when closeable is true', async () => {
-      const { container, component } = render(Modal, {
+      const { container, component, unmount } = render(Modal, {
         props: { show: true, closeable: true },
         target: document.body
       });
+      cleanup.push(unmount);
       
       let closeEventFired = false;
       component.$on('close', () => {
@@ -236,10 +257,11 @@ describe('Modal', () => {
     });
 
     it('does not close on Escape when closeable is false', async () => {
-      const { container, component } = render(Modal, {
+      const { container, component, unmount } = render(Modal, {
         props: { show: true, closeable: false },
         target: document.body
       });
+      cleanup.push(unmount);
       
       let closeEventFired = false;
       component.$on('close', () => {
@@ -253,10 +275,11 @@ describe('Modal', () => {
     });
 
     it('does not close on other keys', async () => {
-      const { container, component } = render(Modal, {
+      const { container, component, unmount } = render(Modal, {
         props: { show: true, closeable: true },
         target: document.body
       });
+      cleanup.push(unmount);
       
       let closeEventFired = false;
       component.$on('close', () => {
@@ -313,10 +336,11 @@ describe('Modal', () => {
     });
 
     it('updates when props change', async () => {
-      const { container, component, rerender } = render(Modal, {
+      const { container, component, rerender, unmount } = render(Modal, {
         props: { show: false },
         target: document.body
       });
+      cleanup.push(unmount);
       
       // Initially not shown
       expect(container.querySelector('.modal-overlay')).not.toBeInTheDocument();
@@ -346,10 +370,11 @@ describe('Modal', () => {
   // Accessibility tests
   describe('Accessibility', () => {
     it('has proper modal structure', () => {
-      const { container } = render(Modal, {
+      const { container, unmount } = render(Modal, {
         props: { show: true, title: 'Accessible Modal' },
         target: document.body
       });
+      cleanup.push(unmount);
       
       const modalOverlay = container.querySelector('.modal-overlay');
       const modalContent = container.querySelector('.modal-content');
@@ -363,20 +388,22 @@ describe('Modal', () => {
     });
 
     it('close button has proper aria-label', () => {
-      const { container } = render(Modal, {
+      const { container, unmount } = render(Modal, {
         props: { show: true, closeable: true },
         target: document.body
       });
+      cleanup.push(unmount);
       
       const closeButton = container.querySelector('.close-btn');
       expect(closeButton).toHaveAttribute('aria-label', 'Close');
     });
 
     it('maintains keyboard navigation', async () => {
-      const { container } = render(Modal, {
+      const { container, unmount } = render(Modal, {
         props: { show: true, title: 'Keyboard Modal', closeable: true },
         target: document.body
       });
+      cleanup.push(unmount);
       
       // Add focusable elements to test keyboard navigation
       const modalBody = container.querySelector('.modal-body');
@@ -401,10 +428,11 @@ describe('Modal', () => {
   // Edge cases
   describe('Edge Cases', () => {
     it('handles rapid show/hide toggling', async () => {
-      const { component, container } = render(Modal, {
+      const { component, container, unmount } = render(Modal, {
         props: { show: true },
         target: document.body
       });
+      cleanup.push(unmount);
       
       // Rapid toggling
       await component.$set({ show: false });
@@ -421,10 +449,11 @@ describe('Modal', () => {
     });
 
     it('handles empty title gracefully', () => {
-      const { container } = render(Modal, {
+      const { container, unmount } = render(Modal, {
         props: { show: true, title: '', closeable: true },
         target: document.body
       });
+      cleanup.push(unmount);
       
       const modalHeader = container.querySelector('.modal-header');
       const h2 = container.querySelector('h2');
@@ -436,10 +465,11 @@ describe('Modal', () => {
     });
 
     it('handles very long content with scrolling', () => {
-      const { container } = render(Modal, {
+      const { container, unmount } = render(Modal, {
         props: { show: true },
         target: document.body
       });
+      cleanup.push(unmount);
       
       // Add long content to test scrolling
       const modalBody = container.querySelector('.modal-body');
@@ -469,15 +499,17 @@ describe('Modal', () => {
     });
 
     it('handles multiple modals (z-index stacking)', () => {
-      const { container: container1 } = render(Modal, {
+      const { container: container1, unmount: unmount1 } = render(Modal, {
         props: { show: true, title: 'Modal 1' },
         target: document.body
       });
+      cleanup.push(unmount1);
       
-      const { container: container2 } = render(Modal, {
+      const { container: container2, unmount: unmount2 } = render(Modal, {
         props: { show: true, title: 'Modal 2' },
         target: document.body
       });
+      cleanup.push(unmount2);
       
       const modal1 = container1.querySelector('.modal-overlay');
       const modal2 = container2.querySelector('.modal-overlay');
@@ -496,10 +528,11 @@ describe('Modal', () => {
   // Transition tests
   describe('Transitions', () => {
     it('applies fade transition to overlay', () => {
-      const { container } = render(Modal, {
+      const { container, unmount } = render(Modal, {
         props: { show: true },
         target: document.body
       });
+      cleanup.push(unmount);
       
       const overlay = container.querySelector('.modal-overlay');
       // Transition attributes are applied by Svelte at runtime
@@ -507,10 +540,11 @@ describe('Modal', () => {
     });
 
     it('applies scale transition to content', () => {
-      const { container } = render(Modal, {
+      const { container, unmount } = render(Modal, {
         props: { show: true },
         target: document.body
       });
+      cleanup.push(unmount);
       
       const content = container.querySelector('.modal-content');
       // Transition attributes are applied by Svelte at runtime

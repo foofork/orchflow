@@ -4,6 +4,7 @@ import { tick } from 'svelte';
 import StreamingTerminal from './StreamingTerminal.svelte';
 import { invoke } from '@tauri-apps/api/core';
 import { listen, emit } from '@tauri-apps/api/event';
+import { createTypedMock, createAsyncMock, createVoidMock } from '@/test/mock-factory';
 
 // Mock the Tauri API
 vi.mock('@tauri-apps/api/core');
@@ -18,6 +19,7 @@ vi.mock('$app/environment', () => ({
 let resizeObserverInstances: any[] = [];
 
 describe('StreamingTerminal', () => {
+  let cleanup: Array<() => void> = [];
   let mockUnlisten: Mock;
   let eventHandlers: Map<string, (event: any) => void>;
   let mockTerminal: any;
@@ -27,16 +29,17 @@ describe('StreamingTerminal', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    cleanup = [];
     
     // Reset ResizeObserver instances
     resizeObserverInstances = [];
     
     // Setup ResizeObserver mock
-    global.ResizeObserver = vi.fn().mockImplementation((callback) => {
+    global.ResizeObserver = createTypedMock<[callback: ResizeObserverCallback], ResizeObserver>().mockImplementation((callback) => {
       const instance = {
-        observe: vi.fn(),
-        unobserve: vi.fn(),
-        disconnect: vi.fn(),
+        observe: createVoidMock(),
+        unobserve: createVoidMock(),
+        disconnect: createVoidMock(),
         callback
       };
       resizeObserverInstances.push(instance);
@@ -45,7 +48,7 @@ describe('StreamingTerminal', () => {
     eventHandlers = new Map();
     
     // Mock unlisten function
-    mockUnlisten = vi.fn();
+    mockUnlisten = createVoidMock();
     
     // Mock listen to capture event handlers and track unlisten calls
     vi.mocked(listen).mockImplementation(async (event, handler) => {
@@ -63,47 +66,49 @@ describe('StreamingTerminal', () => {
       cols: 80,
       element: document.createElement('div'),
       buffer: { active: { type: 'normal' } },
-      open: vi.fn(),
-      write: vi.fn(),
-      writeln: vi.fn(),
-      clear: vi.fn(),
-      focus: vi.fn(),
-      blur: vi.fn(),
-      dispose: vi.fn(),
-      onData: vi.fn((callback) => {
+      open: createVoidMock(),
+      write: createVoidMock<[data: string]>(),
+      writeln: createVoidMock<[data: string]>(),
+      clear: createVoidMock(),
+      focus: createVoidMock(),
+      blur: createVoidMock(),
+      dispose: createVoidMock(),
+      onData: createTypedMock<[callback: (data: string) => void], { dispose: () => void }>().mockImplementation((callback) => {
         mockTerminal._dataCallback = callback;
-        return { dispose: vi.fn() };
+        return { dispose: createVoidMock() };
       }),
-      onResize: vi.fn((callback) => {
+      onResize: createTypedMock<[callback: (data: { cols: number; rows: number }) => void], { dispose: () => void }>().mockImplementation((callback) => {
         mockTerminal._resizeCallback = callback;
-        return { dispose: vi.fn() };
+        return { dispose: createVoidMock() };
       }),
-      resize: vi.fn((cols, rows) => {
+      resize: createTypedMock<[cols: number, rows: number], void>().mockImplementation((cols, rows) => {
         mockTerminal.cols = cols;
         mockTerminal.rows = rows;
       }),
-      loadAddon: vi.fn()
+      loadAddon: createVoidMock<[addon: any]>()
     };
 
     mockFitAddon = {
-      fit: vi.fn(),
-      dispose: vi.fn()
+      fit: createVoidMock(),
+      dispose: createVoidMock()
     };
 
     mockWebglAddon = {
-      onContextLoss: vi.fn((callback) => {
+      onContextLoss: createTypedMock<[callback: () => void], void>().mockImplementation((callback) => {
         mockWebglAddon._contextLossCallback = callback;
       }),
-      dispose: vi.fn()
+      dispose: createVoidMock()
     };
 
     mockSearchAddon = {
-      findNext: vi.fn(),
-      dispose: vi.fn()
+      findNext: createVoidMock<[term: string]>(),
+      dispose: createVoidMock()
     };
   });
 
   afterEach(() => {
+    cleanup.forEach(fn => fn());
+    cleanup = [];
     vi.restoreAllMocks();
   });
 
@@ -131,12 +136,12 @@ describe('StreamingTerminal', () => {
     });
 
     it('should initialize terminal with custom props', async () => {
-      const mockFactory = vi.fn().mockResolvedValue({
+      const mockFactory = createAsyncMock<[], { term: any; FitAddon: () => any; WebglAddon: () => any; SearchAddon: () => any; WebLinksAddon: () => any }>({
         term: mockTerminal,
-        FitAddon: vi.fn(() => mockFitAddon),
-        WebglAddon: vi.fn(() => mockWebglAddon),
-        SearchAddon: vi.fn(() => mockSearchAddon),
-        WebLinksAddon: vi.fn()
+        FitAddon: createTypedMock<[], any>().mockReturnValue(mockFitAddon),
+        WebglAddon: createTypedMock<[], any>().mockReturnValue(mockWebglAddon),
+        SearchAddon: createTypedMock<[], any>().mockReturnValue(mockSearchAddon),
+        WebLinksAddon: createTypedMock<[], any>()
       });
 
       const { container } = render(StreamingTerminal, {
@@ -158,9 +163,9 @@ describe('StreamingTerminal', () => {
     });
 
     it('should create backend terminal with correct parameters', async () => {
-      const mockFactory = vi.fn().mockResolvedValue({
+      const mockFactory = createAsyncMock<[], { term: any; FitAddon: () => any }>({
         term: mockTerminal,
-        FitAddon: vi.fn(() => mockFitAddon)
+        FitAddon: createTypedMock<[], any>().mockReturnValue(mockFitAddon)
       });
 
       render(StreamingTerminal, {
@@ -187,14 +192,16 @@ describe('StreamingTerminal', () => {
 
     it('should handle terminal factory errors gracefully', async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      const mockFactory = vi.fn().mockRejectedValue(new Error('Factory failed'));
+      const mockFactory = createAsyncMock<[], any>();
+      mockFactory.mockRejectedValue(new Error('Factory failed'));
 
-      render(StreamingTerminal, {
+      const { unmount } = render(StreamingTerminal, {
         props: {
           terminalId: 'test-terminal-error',
           terminalFactory: mockFactory
         }
       });
+      cleanup.push(unmount);
 
       await waitFor(() => {
         expect(consoleErrorSpy).toHaveBeenCalledWith(
@@ -209,20 +216,21 @@ describe('StreamingTerminal', () => {
 
   describe('Terminal Addons', () => {
     it('should load all addons when available', async () => {
-      const mockFactory = vi.fn().mockResolvedValue({
+      const mockFactory = createAsyncMock<[], { term: any; FitAddon: () => any; WebglAddon: () => any; SearchAddon: () => any; WebLinksAddon: () => any }>({
         term: mockTerminal,
-        FitAddon: vi.fn(() => mockFitAddon),
-        WebglAddon: vi.fn(() => mockWebglAddon),
-        SearchAddon: vi.fn(() => mockSearchAddon),
-        WebLinksAddon: vi.fn()
+        FitAddon: createTypedMock<[], any>().mockReturnValue(mockFitAddon),
+        WebglAddon: createTypedMock<[], any>().mockReturnValue(mockWebglAddon),
+        SearchAddon: createTypedMock<[], any>().mockReturnValue(mockSearchAddon),
+        WebLinksAddon: createTypedMock<[], any>()
       });
 
-      render(StreamingTerminal, {
+      const { unmount } = render(StreamingTerminal, {
         props: {
           terminalId: 'test-terminal-addons',
           terminalFactory: mockFactory
         }
       });
+      cleanup.push(unmount);
 
       await waitFor(() => {
         expect(mockTerminal.loadAddon).toHaveBeenCalledTimes(4); // fit, webgl, search, weblinks
@@ -233,28 +241,29 @@ describe('StreamingTerminal', () => {
       const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       
       const failingWebglAddon = {
-        dispose: vi.fn()
+        dispose: createVoidMock()
       };
       
-      const mockFactory = vi.fn().mockResolvedValue({
+      const mockFactory = createAsyncMock<[], { term: any; FitAddon: () => any; WebglAddon: () => any }>({
         term: {
           ...mockTerminal,
-          loadAddon: vi.fn((addon) => {
+          loadAddon: createTypedMock<[addon: any], void>().mockImplementation((addon) => {
             if (addon === failingWebglAddon) {
               throw new Error('WebGL not supported');
             }
           })
         },
-        FitAddon: vi.fn(() => mockFitAddon),
-        WebglAddon: vi.fn(() => failingWebglAddon)
+        FitAddon: createTypedMock<[], any>().mockReturnValue(mockFitAddon),
+        WebglAddon: createTypedMock<[], any>().mockReturnValue(failingWebglAddon)
       });
 
-      render(StreamingTerminal, {
+      const { unmount } = render(StreamingTerminal, {
         props: {
           terminalId: 'test-terminal-webgl-fail',
           terminalFactory: mockFactory
         }
       });
+      cleanup.push(unmount);
 
       await waitFor(() => {
         expect(consoleWarnSpy).toHaveBeenCalledWith(
@@ -267,17 +276,18 @@ describe('StreamingTerminal', () => {
     });
 
     it('should handle WebGL context loss', async () => {
-      const mockFactory = vi.fn().mockResolvedValue({
+      const mockFactory = createAsyncMock<[], { term: any; WebglAddon: () => any }>({
         term: mockTerminal,
-        WebglAddon: vi.fn(() => mockWebglAddon)
+        WebglAddon: createTypedMock<[], any>().mockReturnValue(mockWebglAddon)
       });
 
-      render(StreamingTerminal, {
+      const { unmount } = render(StreamingTerminal, {
         props: {
           terminalId: 'test-terminal-context-loss',
           terminalFactory: mockFactory
         }
       });
+      cleanup.push(unmount);
 
       await waitFor(() => {
         expect(mockWebglAddon.onContextLoss).toHaveBeenCalled();
@@ -291,16 +301,17 @@ describe('StreamingTerminal', () => {
 
   describe('Event Handling', () => {
     it('should handle terminal input', async () => {
-      const mockFactory = vi.fn().mockResolvedValue({
+      const mockFactory = createAsyncMock<[], { term: any }>({
         term: mockTerminal
       });
 
-      render(StreamingTerminal, {
+      const { unmount } = render(StreamingTerminal, {
         props: {
           terminalId: 'test-terminal-input',
           terminalFactory: mockFactory
         }
       });
+      cleanup.push(unmount);
 
       await waitFor(() => {
         expect(mockTerminal.onData).toHaveBeenCalled();
@@ -316,17 +327,18 @@ describe('StreamingTerminal', () => {
     });
 
     it('should not send input to backend in test mode', async () => {
-      const mockFactory = vi.fn().mockResolvedValue({
+      const mockFactory = createAsyncMock<[], { term: any }>({
         term: mockTerminal
       });
 
-      render(StreamingTerminal, {
+      const { unmount } = render(StreamingTerminal, {
         props: {
           terminalId: 'test-terminal-test-mode',
           testMode: true,
           terminalFactory: mockFactory
         }
       });
+      cleanup.push(unmount);
 
       await waitFor(() => {
         expect(mockTerminal.onData).toHaveBeenCalled();
@@ -342,16 +354,17 @@ describe('StreamingTerminal', () => {
     });
 
     it('should handle terminal resize', async () => {
-      const mockFactory = vi.fn().mockResolvedValue({
+      const mockFactory = createAsyncMock<[], { term: any }>({
         term: mockTerminal
       });
 
-      render(StreamingTerminal, {
+      const { unmount } = render(StreamingTerminal, {
         props: {
           terminalId: 'test-terminal-resize',
           terminalFactory: mockFactory
         }
       });
+      cleanup.push(unmount);
 
       await waitFor(() => {
         expect(mockTerminal.onResize).toHaveBeenCalled();
@@ -368,16 +381,17 @@ describe('StreamingTerminal', () => {
     });
 
     it('should handle terminal output events', async () => {
-      const mockFactory = vi.fn().mockResolvedValue({
+      const mockFactory = createAsyncMock<[], { term: any }>({
         term: mockTerminal
       });
 
-      render(StreamingTerminal, {
+      const { unmount } = render(StreamingTerminal, {
         props: {
           terminalId: 'test-terminal-output',
           terminalFactory: mockFactory
         }
       });
+      cleanup.push(unmount);
 
       await waitFor(() => {
         expect(listen).toHaveBeenCalledWith('terminal-output', expect.any(Function));
@@ -398,16 +412,17 @@ describe('StreamingTerminal', () => {
     });
 
     it('should handle terminal exit events', async () => {
-      const mockFactory = vi.fn().mockResolvedValue({
+      const mockFactory = createAsyncMock<[], { term: any }>({
         term: mockTerminal
       });
 
-      render(StreamingTerminal, {
+      const { unmount } = render(StreamingTerminal, {
         props: {
           terminalId: 'test-terminal-exit',
           terminalFactory: mockFactory
         }
       });
+      cleanup.push(unmount);
 
       await waitFor(() => {
         expect(listen).toHaveBeenCalledWith('terminal-exit', expect.any(Function));
@@ -428,16 +443,17 @@ describe('StreamingTerminal', () => {
     });
 
     it('should handle terminal error events', async () => {
-      const mockFactory = vi.fn().mockResolvedValue({
+      const mockFactory = createAsyncMock<[], { term: any }>({
         term: mockTerminal
       });
 
-      render(StreamingTerminal, {
+      const { unmount } = render(StreamingTerminal, {
         props: {
           terminalId: 'test-terminal-error',
           terminalFactory: mockFactory
         }
       });
+      cleanup.push(unmount);
 
       await waitFor(() => {
         expect(listen).toHaveBeenCalledWith('terminal-error', expect.any(Function));
@@ -458,16 +474,17 @@ describe('StreamingTerminal', () => {
     });
 
     it('should ignore events for other terminals', async () => {
-      const mockFactory = vi.fn().mockResolvedValue({
+      const mockFactory = createAsyncMock<[], { term: any }>({
         term: mockTerminal
       });
 
-      render(StreamingTerminal, {
+      const { unmount } = render(StreamingTerminal, {
         props: {
           terminalId: 'test-terminal-1',
           terminalFactory: mockFactory
         }
       });
+      cleanup.push(unmount);
 
       await waitFor(() => {
         expect(listen).toHaveBeenCalled();
@@ -493,17 +510,18 @@ describe('StreamingTerminal', () => {
 
   describe('Resize Observer', () => {
     it('should set up resize observer when fit addon is available', async () => {
-      const mockFactory = vi.fn().mockResolvedValue({
+      const mockFactory = createAsyncMock<[], { term: any; FitAddon: () => any }>({
         term: mockTerminal,
-        FitAddon: vi.fn(() => mockFitAddon)
+        FitAddon: createTypedMock<[], any>().mockReturnValue(mockFitAddon)
       });
 
-      const { container } = render(StreamingTerminal, {
+      const { container, unmount } = render(StreamingTerminal, {
         props: {
           terminalId: 'test-terminal-resize-observer',
           terminalFactory: mockFactory
         }
       });
+      cleanup.push(unmount);
 
       await waitFor(() => {
         expect(mockFactory).toHaveBeenCalled();
@@ -517,17 +535,18 @@ describe('StreamingTerminal', () => {
     });
 
     it('should trigger fit on resize', async () => {
-      const mockFactory = vi.fn().mockResolvedValue({
+      const mockFactory = createAsyncMock<[], { term: any; FitAddon: () => any }>({
         term: mockTerminal,
-        FitAddon: vi.fn(() => mockFitAddon)
+        FitAddon: createTypedMock<[], any>().mockReturnValue(mockFitAddon)
       });
 
-      const { container } = render(StreamingTerminal, {
+      const { container, unmount } = render(StreamingTerminal, {
         props: {
           terminalId: 'test-terminal-fit',
           terminalFactory: mockFactory
         }
       });
+      cleanup.push(unmount);
 
       await waitFor(() => {
         expect(mockFitAddon.fit).toHaveBeenCalled();
@@ -554,16 +573,17 @@ describe('StreamingTerminal', () => {
 
   describe('Public Methods', () => {
     it('should expose write method', async () => {
-      const mockFactory = vi.fn().mockResolvedValue({
+      const mockFactory = createAsyncMock<[], { term: any }>({
         term: mockTerminal
       });
 
-      const { component } = render(StreamingTerminal, {
+      const { component, unmount } = render(StreamingTerminal, {
         props: {
           terminalId: 'test-terminal-write',
           terminalFactory: mockFactory
         }
       });
+      cleanup.push(unmount);
 
       await waitFor(() => {
         expect(mockFactory).toHaveBeenCalled();
@@ -574,16 +594,17 @@ describe('StreamingTerminal', () => {
     });
 
     it('should expose clear method', async () => {
-      const mockFactory = vi.fn().mockResolvedValue({
+      const mockFactory = createAsyncMock<[], { term: any }>({
         term: mockTerminal
       });
 
-      const { component } = render(StreamingTerminal, {
+      const { component, unmount } = render(StreamingTerminal, {
         props: {
           terminalId: 'test-terminal-clear',
           terminalFactory: mockFactory
         }
       });
+      cleanup.push(unmount);
 
       await waitFor(() => {
         expect(mockFactory).toHaveBeenCalled();
@@ -594,16 +615,17 @@ describe('StreamingTerminal', () => {
     });
 
     it('should expose focus method', async () => {
-      const mockFactory = vi.fn().mockResolvedValue({
+      const mockFactory = createAsyncMock<[], { term: any }>({
         term: mockTerminal
       });
 
-      const { component } = render(StreamingTerminal, {
+      const { component, unmount } = render(StreamingTerminal, {
         props: {
           terminalId: 'test-terminal-focus',
           terminalFactory: mockFactory
         }
       });
+      cleanup.push(unmount);
 
       await waitFor(() => {
         expect(mockFactory).toHaveBeenCalled();
@@ -614,16 +636,17 @@ describe('StreamingTerminal', () => {
     });
 
     it('should expose blur method', async () => {
-      const mockFactory = vi.fn().mockResolvedValue({
+      const mockFactory = createAsyncMock<[], { term: any }>({
         term: mockTerminal
       });
 
-      const { component } = render(StreamingTerminal, {
+      const { component, unmount } = render(StreamingTerminal, {
         props: {
           terminalId: 'test-terminal-blur',
           terminalFactory: mockFactory
         }
       });
+      cleanup.push(unmount);
 
       await waitFor(() => {
         expect(mockFactory).toHaveBeenCalled();
@@ -634,17 +657,18 @@ describe('StreamingTerminal', () => {
     });
 
     it('should expose search method', async () => {
-      const mockFactory = vi.fn().mockResolvedValue({
+      const mockFactory = createAsyncMock<[], { term: any; SearchAddon: () => any }>({
         term: mockTerminal,
-        SearchAddon: vi.fn(() => mockSearchAddon)
+        SearchAddon: createTypedMock<[], any>().mockReturnValue(mockSearchAddon)
       });
 
-      const { component } = render(StreamingTerminal, {
+      const { component, unmount } = render(StreamingTerminal, {
         props: {
           terminalId: 'test-terminal-search',
           terminalFactory: mockFactory
         }
       });
+      cleanup.push(unmount);
 
       await waitFor(() => {
         expect(mockFactory).toHaveBeenCalled();
@@ -655,16 +679,17 @@ describe('StreamingTerminal', () => {
     });
 
     it('should expose resize method', async () => {
-      const mockFactory = vi.fn().mockResolvedValue({
+      const mockFactory = createAsyncMock<[], { term: any }>({
         term: mockTerminal
       });
 
-      const { component } = render(StreamingTerminal, {
+      const { component, unmount } = render(StreamingTerminal, {
         props: {
           terminalId: 'test-terminal-resize-method',
           terminalFactory: mockFactory
         }
       });
+      cleanup.push(unmount);
 
       await waitFor(() => {
         expect(mockFactory).toHaveBeenCalled();
@@ -675,12 +700,13 @@ describe('StreamingTerminal', () => {
     });
 
     it('should handle methods when terminal is not initialized', () => {
-      const { component } = render(StreamingTerminal, {
+      const { component, unmount } = render(StreamingTerminal, {
         props: {
           terminalId: 'test-terminal-uninitialized',
-          terminalFactory: vi.fn().mockResolvedValue(null)
+          terminalFactory: createAsyncMock<[], null>(null)
         }
       });
+      cleanup.push(unmount);
 
       // These should not throw errors
       expect(() => {
@@ -696,11 +722,11 @@ describe('StreamingTerminal', () => {
 
   describe('Cleanup', () => {
     it('should clean up on destroy', async () => {
-      const mockFactory = vi.fn().mockResolvedValue({
+      const mockFactory = createAsyncMock<[], { term: any; FitAddon: () => any; WebglAddon: () => any; SearchAddon: () => any }>({
         term: mockTerminal,
-        FitAddon: vi.fn(() => mockFitAddon),
-        WebglAddon: vi.fn(() => mockWebglAddon),
-        SearchAddon: vi.fn(() => mockSearchAddon)
+        FitAddon: createTypedMock<[], any>().mockReturnValue(mockFitAddon),
+        WebglAddon: createTypedMock<[], any>().mockReturnValue(mockWebglAddon),
+        SearchAddon: createTypedMock<[], any>().mockReturnValue(mockSearchAddon)
       });
 
       const { unmount } = render(StreamingTerminal, {
@@ -736,7 +762,7 @@ describe('StreamingTerminal', () => {
     });
 
     it('should not close backend terminal in test mode', async () => {
-      const mockFactory = vi.fn().mockResolvedValue({
+      const mockFactory = createAsyncMock<[], { term: any }>({
         term: mockTerminal
       });
 
@@ -764,7 +790,7 @@ describe('StreamingTerminal', () => {
     it('should handle cleanup errors gracefully', async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       
-      const mockFactory = vi.fn().mockResolvedValue({
+      const mockFactory = createAsyncMock<[], { term: any }>({
         term: mockTerminal
       });
 
@@ -799,14 +825,15 @@ describe('StreamingTerminal', () => {
 
   describe('Edge Cases', () => {
     it('should handle direct terminal instance from factory', async () => {
-      const mockFactory = vi.fn().mockResolvedValue(mockTerminal);
+      const mockFactory = createAsyncMock<[], any>(mockTerminal);
 
-      render(StreamingTerminal, {
+      const { unmount } = render(StreamingTerminal, {
         props: {
           terminalId: 'test-terminal-direct',
           terminalFactory: mockFactory
         }
       });
+      cleanup.push(unmount);
 
       await waitFor(() => {
         expect(mockTerminal.open).toHaveBeenCalled();
@@ -814,20 +841,21 @@ describe('StreamingTerminal', () => {
     });
 
     it('should handle missing container', async () => {
-      const mockFactory = vi.fn().mockResolvedValue({
+      const mockFactory = createAsyncMock<[], { term: any }>({
         term: mockTerminal
       });
 
       // Temporarily mock the container binding
       const originalBind = (Element.prototype as any).bind;
-      (Element.prototype as any).bind = vi.fn();
+      (Element.prototype as any).bind = createVoidMock();
 
-      render(StreamingTerminal, {
+      const { unmount } = render(StreamingTerminal, {
         props: {
           terminalId: 'test-terminal-no-container',
           terminalFactory: mockFactory
         }
       });
+      cleanup.push(unmount);
 
       await waitFor(() => {
         expect(mockFactory).toHaveBeenCalled();
@@ -842,16 +870,17 @@ describe('StreamingTerminal', () => {
       
       vi.mocked(invoke).mockRejectedValue(new Error('Backend error'));
 
-      const mockFactory = vi.fn().mockResolvedValue({
+      const mockFactory = createAsyncMock<[], { term: any }>({
         term: mockTerminal
       });
 
-      render(StreamingTerminal, {
+      const { unmount } = render(StreamingTerminal, {
         props: {
           terminalId: 'test-terminal-invoke-error',
           terminalFactory: mockFactory
         }
       });
+      cleanup.push(unmount);
 
       await waitFor(() => {
         expect(consoleErrorSpy).toHaveBeenCalledWith(

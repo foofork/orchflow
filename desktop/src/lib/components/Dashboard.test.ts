@@ -1,10 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import Dashboard from './Dashboard.svelte';
 import { createMockManagerStores } from '@/test/store-mocks';
 import { buildSession, buildPane } from '@/test/test-data-builders';
-import { createAsyncMock, createAsyncVoidMock } from '@/test/mock-factory';
+import { createAsyncMock, createAsyncVoidMock, createSyncMock } from '@/test/mock-factory';
 
 // Mock the manager store module
 vi.mock('$lib/stores/manager', () => {
@@ -28,7 +28,12 @@ function updateManagerState(updates: any) {
   (manager as any).update((state: any) => ({ ...state, ...updates }));
 }
 
+// Mock global prompt
+const mockPrompt = createSyncMock<[string?], string | null>();
+
 describe('Dashboard Component', () => {
+  let cleanup: Array<() => void> = [];
+
   beforeEach(() => {
     vi.clearAllMocks();
     
@@ -44,11 +49,18 @@ describe('Dashboard Component', () => {
     });
     
     // Mock window functions
-    global.prompt = vi.fn() as any;
+    global.prompt = mockPrompt as any;
+  });
+
+  afterEach(() => {
+    cleanup.forEach(fn => fn());
+    cleanup = [];
+    vi.clearAllMocks();
   });
 
   it('should render dashboard with header', () => {
-    const { container, getByText } = render(Dashboard);
+    const { container, getByText, unmount } = render(Dashboard);
+    cleanup.push(unmount);
     
     const dashboard = container.querySelector('.dashboard');
     expect(dashboard).toBeTruthy();
@@ -61,7 +73,8 @@ describe('Dashboard Component', () => {
       buildSession({ id: 'session1', name: 'Test Session' })
     ] });
     
-    const { getByText, container } = render(Dashboard);
+    const { getByText, container, unmount } = render(Dashboard);
+    cleanup.push(unmount);
     await tick();
     
     // Should start in grid view
@@ -79,14 +92,15 @@ describe('Dashboard Component', () => {
   });
 
   it('should show empty state when no sessions exist', () => {
-    const { getByText } = render(Dashboard);
+    const { getByText, unmount } = render(Dashboard);
+    cleanup.push(unmount);
     
     expect(getByText('No active sessions')).toBeTruthy();
     expect(getByText('Create First Session')).toBeTruthy();
   });
 
   it('should create new session when clicking create button', async () => {
-    global.prompt = vi.fn().mockReturnValue('Test Session') as any;
+    mockPrompt.mockReturnValue('Test Session');
     vi.mocked(manager.createSession).mockResolvedValue(
       buildSession({
         id: 'new-session',
@@ -94,12 +108,13 @@ describe('Dashboard Component', () => {
       })
     );
     
-    const { getByText } = render(Dashboard);
+    const { getByText, unmount } = render(Dashboard);
+    cleanup.push(unmount);
     
     const createButton = getByText('Create First Session');
     await fireEvent.click(createButton);
     
-    expect(global.prompt).toHaveBeenCalledWith('Session name:');
+    expect(mockPrompt).toHaveBeenCalledWith('Session name:');
     expect(manager.createSession).toHaveBeenCalledWith('Test Session');
   });
 
@@ -108,9 +123,10 @@ describe('Dashboard Component', () => {
       buildSession({ id: 'session1', name: 'Session 1' })
     ] });
     
-    global.prompt = vi.fn().mockReturnValue(null) as any;
+    mockPrompt.mockReturnValue(null);
     
-    const { getByText } = render(Dashboard);
+    const { getByText, unmount } = render(Dashboard);
+    cleanup.push(unmount);
     await tick();
     
     const createButton = getByText('➕ New Session');
@@ -127,7 +143,8 @@ describe('Dashboard Component', () => {
     
     updateManagerState({ sessions: testSessions });
     
-    const { getByText } = render(Dashboard);
+    const { getByText, unmount } = render(Dashboard);
+    cleanup.push(unmount);
     await tick();
     
     expect(getByText('Dev Session')).toBeTruthy();
@@ -161,7 +178,8 @@ describe('Dashboard Component', () => {
       panes: testPanes
     });
     
-    const { getByText, container } = render(Dashboard);
+    const { getByText, container, unmount } = render(Dashboard);
+    cleanup.push(unmount);
     await tick();
     
     expect(getByText('Terminal 1')).toBeTruthy();
@@ -204,7 +222,8 @@ describe('Dashboard Component', () => {
     ] });
     updateManagerState({ panes: testPanes });
     
-    const { container } = render(Dashboard);
+    const { container, unmount } = render(Dashboard);
+    cleanup.push(unmount);
     await tick();
     
     const icons = Array.from(container.querySelectorAll('.pane-icon')).map(el => el.textContent);
@@ -228,7 +247,8 @@ describe('Dashboard Component', () => {
       })
     );
     
-    const { getByText } = render(Dashboard);
+    const { getByText, unmount } = render(Dashboard);
+    cleanup.push(unmount);
     await tick();
     
     const addButton = getByText('New Terminal');
@@ -252,7 +272,8 @@ describe('Dashboard Component', () => {
     ] });
     updateManagerState({ panes: testPanes });
     
-    const { container } = render(Dashboard);
+    const { container, unmount } = render(Dashboard);
+    cleanup.push(unmount);
     await tick();
     
     const paneCard = container.querySelector('.pane-card:not(.add-new)');
@@ -277,7 +298,8 @@ describe('Dashboard Component', () => {
       panes: testPanes
     });
     
-    const { getByText, container } = render(Dashboard);
+    const { getByText, container, unmount } = render(Dashboard);
+    cleanup.push(unmount);
     await tick();
     
     // Switch to table view
@@ -313,7 +335,8 @@ describe('Dashboard Component', () => {
     ] });
     updateManagerState({ panes: testPanes });
     
-    const { container } = render(Dashboard);
+    const { container, unmount } = render(Dashboard);
+    cleanup.push(unmount);
     await tick();
     
     // Wait for metrics collection (happens in onMount)
@@ -341,7 +364,8 @@ describe('Dashboard Component', () => {
     ] });
     updateManagerState({ panes: testPanes });
     
-    const { getByText, container } = render(Dashboard);
+    const { getByText, container, unmount } = render(Dashboard);
+    cleanup.push(unmount);
     await tick();
     
     const refreshButton = getByText('🔄 Refresh');
@@ -389,7 +413,8 @@ describe('Dashboard Component', () => {
       panes: testPanes
     });
     
-    const { getByText, queryByText } = render(Dashboard);
+    const { getByText, queryByText, unmount } = render(Dashboard);
+    cleanup.push(unmount);
     await tick();
     
     // Should show both sessions' panes
@@ -417,7 +442,8 @@ describe('Dashboard Component', () => {
     ] });
     updateManagerState({ panes: testPanes });
     
-    const { getByText, container } = render(Dashboard);
+    const { getByText, container, unmount } = render(Dashboard);
+    cleanup.push(unmount);
     await tick();
     
     // Switch to table view

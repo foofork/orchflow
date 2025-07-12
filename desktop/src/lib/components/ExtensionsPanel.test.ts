@@ -1,20 +1,26 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
+import { createTypedMock } from '@/test/mock-factory';
 import ExtensionsPanel from './ExtensionsPanel.svelte';
 
 describe('ExtensionsPanel', () => {
+  let cleanup: Array<() => void> = [];
+
   beforeEach(() => {
+    cleanup = [];
     vi.clearAllMocks();
     vi.useFakeTimers();
   });
 
   afterEach(() => {
+    cleanup.forEach(fn => fn());
     vi.useRealTimers();
   });
 
   describe('Rendering', () => {
     it('renders extensions panel', () => {
-      const { container } = render(ExtensionsPanel);
+      const { container, unmount } = render(ExtensionsPanel);
+      cleanup.push(unmount);
 
       expect(container.querySelector('.extensions-panel')).toBeTruthy();
       expect(container.querySelector('.search-bar')).toBeTruthy();
@@ -23,14 +29,16 @@ describe('ExtensionsPanel', () => {
     });
 
     it('shows loading state initially', () => {
-      const { container } = render(ExtensionsPanel);
+      const { container, unmount } = render(ExtensionsPanel);
+      cleanup.push(unmount);
 
       expect(container.querySelector('.loading')).toBeTruthy();
       expect(container.querySelector('.loading')?.textContent).toBe('Loading extensions...');
     });
 
     it('renders extension tabs', () => {
-      const { container } = render(ExtensionsPanel);
+      const { container, unmount } = render(ExtensionsPanel);
+      cleanup.push(unmount);
 
       const tabs = container.querySelectorAll('.tab');
       expect(tabs.length).toBe(3);
@@ -41,7 +49,8 @@ describe('ExtensionsPanel', () => {
     });
 
     it('renders search input', () => {
-      const { container } = render(ExtensionsPanel);
+      const { container, unmount } = render(ExtensionsPanel);
+      cleanup.push(unmount);
 
       const searchInput = container.querySelector('.search-input') as HTMLInputElement;
       expect(searchInput).toBeTruthy();
@@ -51,7 +60,8 @@ describe('ExtensionsPanel', () => {
 
   describe('Extension Loading', () => {
     it('loads and displays extensions after timeout', async () => {
-      const { container } = render(ExtensionsPanel);
+      const { container, unmount } = render(ExtensionsPanel);
+      cleanup.push(unmount);
 
       // Initially shows loading
       expect(container.querySelector('.loading')).toBeTruthy();
@@ -74,7 +84,8 @@ describe('ExtensionsPanel', () => {
     });
 
     it('displays installed extensions with correct styling', async () => {
-      const { container } = render(ExtensionsPanel);
+      const { container, unmount } = render(ExtensionsPanel);
+      cleanup.push(unmount);
 
       vi.advanceTimersByTime(300);
       
@@ -94,7 +105,8 @@ describe('ExtensionsPanel', () => {
 
   describe('Search Functionality', () => {
     it('filters extensions by name', async () => {
-      const { container } = render(ExtensionsPanel);
+      const { container, unmount } = render(ExtensionsPanel);
+      cleanup.push(unmount);
 
       vi.advanceTimersByTime(300);
       
@@ -114,7 +126,8 @@ describe('ExtensionsPanel', () => {
     });
 
     it('filters extensions by description', async () => {
-      const { container } = render(ExtensionsPanel);
+      const { container, unmount } = render(ExtensionsPanel);
+      cleanup.push(unmount);
 
       vi.advanceTimersByTime(300);
       
@@ -134,7 +147,8 @@ describe('ExtensionsPanel', () => {
     });
 
     it('shows empty state when no extensions match', async () => {
-      const { container } = render(ExtensionsPanel);
+      const { container, unmount } = render(ExtensionsPanel);
+      cleanup.push(unmount);
 
       vi.advanceTimersByTime(300);
       
@@ -153,7 +167,8 @@ describe('ExtensionsPanel', () => {
     });
 
     it('performs case-insensitive search', async () => {
-      const { container } = render(ExtensionsPanel);
+      const { container, unmount } = render(ExtensionsPanel);
+      cleanup.push(unmount);
 
       vi.advanceTimersByTime(300);
       
@@ -175,7 +190,8 @@ describe('ExtensionsPanel', () => {
 
   describe('Extension Actions', () => {
     it('shows toggle button for installed extensions', async () => {
-      const { container } = render(ExtensionsPanel);
+      const { container, unmount } = render(ExtensionsPanel);
+      cleanup.push(unmount);
 
       vi.advanceTimersByTime(300);
       
@@ -192,7 +208,8 @@ describe('ExtensionsPanel', () => {
     });
 
     it('shows install button for non-installed extensions', async () => {
-      const { container } = render(ExtensionsPanel);
+      const { container, unmount } = render(ExtensionsPanel);
+      cleanup.push(unmount);
 
       vi.advanceTimersByTime(300);
       
@@ -209,8 +226,11 @@ describe('ExtensionsPanel', () => {
     });
 
     it('toggles extension enabled state', async () => {
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-      const { container } = render(ExtensionsPanel);
+      const consoleSpy = createTypedMock<[...any[]], void>();
+      vi.spyOn(console, 'log').mockImplementation(consoleSpy);
+      cleanup.push(() => vi.restoreAllMocks());
+      const { container, unmount } = render(ExtensionsPanel);
+      cleanup.push(unmount);
 
       vi.advanceTimersByTime(300);
       
@@ -237,13 +257,14 @@ describe('ExtensionsPanel', () => {
       expect(toggleBtn.classList.contains('enabled')).toBe(true);
       expect(toggleBtn.textContent).toBe('✓');
       expect(consoleSpy).toHaveBeenCalledWith('Extension vim-mode enabled');
-
-      consoleSpy.mockRestore();
     });
 
     it('installs extension when install button clicked', async () => {
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-      const { container } = render(ExtensionsPanel);
+      const consoleSpy = createTypedMock<[...any[]], void>();
+      vi.spyOn(console, 'log').mockImplementation(consoleSpy);
+      cleanup.push(() => vi.restoreAllMocks());
+      const { container, unmount } = render(ExtensionsPanel);
+      cleanup.push(unmount);
 
       vi.advanceTimersByTime(300);
       
@@ -272,13 +293,14 @@ describe('ExtensionsPanel', () => {
         expect(prettierExtension?.querySelector('.toggle-btn')).toBeTruthy();
         expect(prettierExtension?.querySelector('.install-btn')).toBeFalsy();
       });
-
-      consoleSpy.mockRestore();
     });
 
     it('does not toggle uninstalled extensions', async () => {
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-      const { container } = render(ExtensionsPanel);
+      const consoleSpy = createTypedMock<[...any[]], void>();
+      vi.spyOn(console, 'log').mockImplementation(consoleSpy);
+      cleanup.push(() => vi.restoreAllMocks());
+      const { container, unmount } = render(ExtensionsPanel);
+      cleanup.push(unmount);
 
       vi.advanceTimersByTime(300);
       
@@ -294,13 +316,13 @@ describe('ExtensionsPanel', () => {
       });
 
       expect(consoleSpy).not.toHaveBeenCalled();
-      consoleSpy.mockRestore();
     });
   });
 
   describe('UI States', () => {
     it('shows correct title attribute on toggle button', async () => {
-      const { container } = render(ExtensionsPanel);
+      const { container, unmount } = render(ExtensionsPanel);
+      cleanup.push(unmount);
 
       vi.advanceTimersByTime(300);
       
@@ -320,7 +342,8 @@ describe('ExtensionsPanel', () => {
     });
 
     it('maintains extension state after filtering', async () => {
-      const { container } = render(ExtensionsPanel);
+      const { container, unmount } = render(ExtensionsPanel);
+      cleanup.push(unmount);
 
       vi.advanceTimersByTime(300);
       

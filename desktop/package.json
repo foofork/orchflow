@@ -43,7 +43,12 @@
     "bench:watch": "vitest bench --watch",
     "bench:report": "vitest bench --reporter=json --outputFile=test-results/benchmark-results.json",
     "test:mutation": "stryker run",
-    "test:mutation:incremental": "stryker run --incremental"
+    "test:mutation:incremental": "stryker run --incremental",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "lint:test": "eslint **/*.test.ts **/*.spec.ts --config .eslintrc-test.js",
+    "lint:test:fix": "eslint **/*.test.ts **/*.spec.ts --config .eslintrc-test.js --fix",
+    "test:validate-patterns": "node scripts/validate-test-patterns.js"
   },
   "devDependencies": {
     "@lhci/cli": "^0.15.1",

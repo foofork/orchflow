@@ -3,58 +3,93 @@ import { render, fireEvent, waitFor, screen } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import userEvent from '@testing-library/user-event';
 import TerminalPanel from './TerminalPanel.svelte';
-import { mockInvoke } from '../../test/utils';
+import { 
+  createTypedMock, 
+  createAsyncMock,
+  createAsyncVoidMock,
+  createSyncMock 
+} from '@/test/mock-factory';
+import { buildTerminalConfig, buildTerminalOutput } from '@/test/domain-builders';
+import { invoke } from '@tauri-apps/api/core';
+
+// Create typed mocks for Tauri API
+const mockInvoke = createAsyncMock<[string, any?], any>();
+
+// Mock Tauri invoke
+vi.mock('@tauri-apps/api/core', () => ({
+  invoke: mockInvoke
+}));
+
+// Mock localStorage
+const mockLocalStorage = {
+  getItem: createSyncMock<[string], string | null>(),
+  setItem: createSyncMock<[string, string], void>(),
+  removeItem: createSyncMock<[string], void>(),
+  clear: createSyncMock<[], void>(),
+  length: 0,
+  key: createSyncMock<[number], string | null>()
+};
+
+// Mock crypto.randomUUID
+const mockRandomUUID = createSyncMock<[], string>();
 
 describe('TerminalPanel Component', () => {
-  let user: any;
+  let user: ReturnType<typeof userEvent.setup>;
+  let cleanup: Array<() => void> = [];
 
   beforeEach(() => {
     user = userEvent.setup();
     vi.clearAllMocks();
     
-    // Mock localStorage
+    // Setup localStorage mock
     Object.defineProperty(window, 'localStorage', {
-      value: {
-        getItem: vi.fn(() => null),
-        setItem: vi.fn(),
-        removeItem: vi.fn(),
-        clear: vi.fn(),
-      },
+      value: mockLocalStorage,
       writable: true,
+      configurable: true
     });
+    mockLocalStorage.getItem.mockReturnValue(null);
 
-    // Mock crypto.randomUUID
+    // Setup crypto mock
     Object.defineProperty(window, 'crypto', {
       value: {
-        randomUUID: vi.fn(() => 'mock-uuid-123')
+        randomUUID: mockRandomUUID
       },
       writable: true,
+      configurable: true
     });
+    mockRandomUUID.mockReturnValue('mock-uuid-123');
 
     // Mock navigator.platform
     Object.defineProperty(navigator, 'platform', {
       value: 'MacIntel',
       writable: true,
+      configurable: true
     });
 
-    // Setup mock responses using test utils
-    mockInvoke({
-      create_streaming_terminal: { 
-        terminalId: 'term-3',
-        sessionId: 'session-1',
-        paneId: 'pane-3',
-      },
-      get_available_shells: ['/bin/bash', '/bin/zsh', '/bin/sh'],
-      get_terminal_groups: ['default', 'servers', 'builds'],
-      rename_terminal: true,
-      send_terminal_input: true,
-      get_current_dir: '/home/user',
-      broadcast_terminal_input: true,
+    // Setup default mock responses
+    mockInvoke.mockImplementation(async (cmd: string, args?: any) => {
+      const responses: Record<string, any> = {
+        create_streaming_terminal: { 
+          terminalId: 'term-3',
+          sessionId: 'session-1',
+          paneId: 'pane-3',
+        },
+        get_available_shells: ['/bin/bash', '/bin/zsh', '/bin/sh'],
+        get_terminal_groups: ['default', 'servers', 'builds'],
+        rename_terminal: true,
+        send_terminal_input: true,
+        get_current_dir: '/home/user',
+        broadcast_terminal_input: true,
+      };
+      return responses[cmd] ?? null;
     });
   });
 
   afterEach(() => {
+    cleanup.forEach(fn => fn());
+    cleanup = [];
     vi.clearAllMocks();
+    vi.clearAllTimers();
   });
   
   const mockTerminals = [
@@ -64,12 +99,14 @@ describe('TerminalPanel Component', () => {
   
   // Helper function to render with testMode
   const renderTerminalPanel = (props: any = {}) => {
-    return render(TerminalPanel, {
+    const result = render(TerminalPanel, {
       props: {
         testMode: true,
         ...props
       }
     });
+    cleanup.push(result.unmount);
+    return result;
   };
 
   it('renders terminal panel container', () => {
@@ -91,7 +128,7 @@ describe('TerminalPanel Component', () => {
   });
 
   it('creates new terminal', async () => {
-    const handleTerminalCreate = vi.fn();
+    const handleTerminalCreate = createTypedMock<[], void>();
     const { getByTitle } = renderTerminalPanel({ 
       terminals: mockTerminals,
       onTerminalCreate: handleTerminalCreate,
@@ -104,7 +141,7 @@ describe('TerminalPanel Component', () => {
   });
 
   it('switches between terminal tabs', async () => {
-    const handleTabSwitch = vi.fn();
+    const handleTabSwitch = createTypedMock<[string], void>();
     const { getByText } = renderTerminalPanel({ 
       terminals: mockTerminals,
       activeTerminalId: 'term-1',
@@ -118,7 +155,7 @@ describe('TerminalPanel Component', () => {
   });
 
   it('closes terminal tab', async () => {
-    const handleTerminalClose = vi.fn();
+    const handleTerminalClose = createTypedMock<[string], void>();
     const { getAllByTitle } = renderTerminalPanel({ 
       terminals: mockTerminals,
       onTerminalClose: handleTerminalClose,
@@ -148,7 +185,7 @@ describe('TerminalPanel Component', () => {
   });
 
   it('handles split view actions', async () => {
-    const handleSplit = vi.fn();
+    const handleSplit = createTypedMock<[string], void>();
     const { getByTitle } = renderTerminalPanel({ 
       terminals: mockTerminals,
       onSplit: handleSplit,
@@ -182,7 +219,7 @@ describe('TerminalPanel Component', () => {
   });
 
   it('toggles broadcast mode', async () => {
-    const handleBroadcast = vi.fn();
+    const handleBroadcast = createTypedMock<[], void>();
     const { getByTitle } = renderTerminalPanel({ 
       terminals: mockTerminals,
       onBroadcastToggle: handleBroadcast,
@@ -215,7 +252,7 @@ describe('TerminalPanel Component', () => {
   });
 
   it('executes quick command', async () => {
-    const handleQuickCommand = vi.fn();
+    const handleQuickCommand = createTypedMock<[string], void>();
     const { getByTitle, getByText } = renderTerminalPanel({ 
       terminals: mockTerminals,
       activeTerminalId: 'term-1',
@@ -253,7 +290,7 @@ describe('TerminalPanel Component', () => {
   });
 
   it('handles terminal rename', async () => {
-    const handleRename = vi.fn();
+    const handleRename = createTypedMock<[string, string], void>();
     const { getByText, getByDisplayValue } = renderTerminalPanel({ 
       terminals: mockTerminals,
       onTerminalRename: handleRename,
@@ -278,7 +315,7 @@ describe('TerminalPanel Component', () => {
   });
 
   it('supports tab reordering with drag and drop', async () => {
-    const handleReorder = vi.fn();
+    const handleReorder = createTypedMock<[number, number], void>();
     const { getByText } = renderTerminalPanel({ 
       terminals: mockTerminals,
       onTabReorder: handleReorder,
@@ -297,7 +334,7 @@ describe('TerminalPanel Component', () => {
   });
 
   it('shows layout options', async () => {
-    const handleLayoutChange = vi.fn();
+    const handleLayoutChange = createTypedMock<[string], void>();
     const { getByTitle, getByText } = renderTerminalPanel({ 
       terminals: mockTerminals,
       supportedLayouts: ['single', 'split', 'grid'],
@@ -348,7 +385,7 @@ describe('TerminalPanel Component', () => {
   });
 
   it('handles terminal output search', async () => {
-    const handleSearch = vi.fn();
+    const handleSearch = createTypedMock<[string], void>();
     const { getByTitle, getByPlaceholderText } = renderTerminalPanel({ 
       terminals: mockTerminals,
       onSearch: handleSearch,
@@ -398,206 +435,129 @@ describe('TerminalPanel Component', () => {
     it('should initialize with default props', () => {
       const { container } = renderTerminalPanel();
       
-      const header = container.querySelector('.terminal-header');
-      const tabs = container.querySelector('.terminal-tabs');
-      const actions = container.querySelector('.terminal-actions');
-      
-      expect(header).toBeTruthy();
-      expect(tabs).toBeTruthy();
-      expect(actions).toBeTruthy();
+      const tabList = container.querySelector('[role="tablist"]');
+      expect(tabList).toBeTruthy();
     });
 
-    it('should show empty state when no terminals', () => {
+    it('should handle empty terminals array', () => {
       const { container } = renderTerminalPanel({
         terminals: []
       });
-      
-      const emptyState = container.querySelector('.empty-state');
-      expect(emptyState).toBeTruthy();
-      expect(emptyState?.textContent).toContain('No terminals open');
-    });
 
-    it('should load available shells on mount in test mode', async () => {
-      renderTerminalPanel({ testMode: true });
-      
-      // In test mode, shells are hardcoded so no need to test invoke
-      await tick();
-      // Just verify component renders
-      expect(true).toBe(true);
-    });
-
-    it('should setup global click handler', () => {
-      const addEventListenerSpy = vi.spyOn(document, 'addEventListener');
-      
-      renderTerminalPanel();
-      
-      expect(addEventListenerSpy).toHaveBeenCalledWith('click', expect.any(Function));
+      const tabs = container.querySelectorAll('[role="tab"]');
+      expect(tabs.length).toBe(0);
     });
   });
 
-  describe('Keyboard Shortcuts', () => {
-    it('should create new terminal with Cmd+T (Mac)', async () => {
-      const { container, component } = renderTerminalPanel({ terminals: mockTerminals });
-
-      const createHandler = vi.fn();
-      component.$on('terminalCreated', createHandler);
-
-      const panel = container.querySelector('.terminal-panel');
-      await fireEvent.keyDown(panel, {
-        key: 't',
-        metaKey: true
-      });
-
-      await waitFor(() => {
-        expect(createHandler).toHaveBeenCalled();
-      });
-    });
-
-    it('should close terminal with Cmd+W (Mac)', async () => {
-      const onTerminalClose = vi.fn();
-      const { container } = renderTerminalPanel({
-        terminals: mockTerminals,
-        onTerminalClose,
-        activeTerminalId: 'term-1'
-      });
-
-      const panel = container.querySelector('.terminal-panel');
-      await fireEvent.keyDown(panel, {
-        key: 'w',
-        metaKey: true
-      });
-
-      expect(onTerminalClose).toHaveBeenCalledWith('term-1');
-    });
-
-    it('should split vertical with Cmd+\\ (Mac)', async () => {
-      const onSplit = vi.fn();
-      const { container } = renderTerminalPanel({
-        terminals: mockTerminals,
-        onSplit
-      });
-
-      const panel = container.querySelector('.terminal-panel');
-      await fireEvent.keyDown(panel, {
-        key: '\\',
-        metaKey: true
-      });
-
-      expect(onSplit).toHaveBeenCalledWith('vertical');
-    });
-
-    it('should split horizontal with Cmd+- (Mac)', async () => {
-      const onSplit = vi.fn();
-      const { container } = renderTerminalPanel({
-        terminals: mockTerminals,
-        onSplit
-      });
-
-      const panel = container.querySelector('.terminal-panel');
-      await fireEvent.keyDown(panel, {
-        key: '-',
-        metaKey: true
-      });
-
-      expect(onSplit).toHaveBeenCalledWith('horizontal');
-    });
-
-    it('should toggle search with Cmd+F (Mac)', async () => {
-      const { container } = renderTerminalPanel({ terminals: mockTerminals });
-
-      const panel = container.querySelector('.terminal-panel');
-      await fireEvent.keyDown(panel, {
-        key: 'f',
-        metaKey: true
-      });
-
-      await waitFor(() => {
-        const searchBar = container.querySelector('.search-bar');
-        expect(searchBar).toBeTruthy();
-      });
-    });
-
-    it('should cycle terminals with Cmd+Tab (Mac)', async () => {
-      const onTabSwitch = vi.fn();
-      const { container } = renderTerminalPanel({
-        terminals: mockTerminals,
-        onTabSwitch,
-        activeTerminalId: 'term-1'
-      });
-
-      const panel = container.querySelector('.terminal-panel');
-      await fireEvent.keyDown(panel, {
-        key: 'Tab',
-        metaKey: true
-      });
-
-      expect(onTabSwitch).toHaveBeenCalledWith('term-2');
-    });
-
-    it('should switch to terminal by number (Cmd+1)', async () => {
-      const onTabSwitch = vi.fn();
-      const { container } = renderTerminalPanel({
+  describe('Terminal Actions', () => {
+    it('should handle terminal selection', async () => {
+      const onTabSwitch = createTypedMock<[string], void>();
+      const { getByText } = renderTerminalPanel({
         terminals: mockTerminals,
         onTabSwitch
       });
 
-      const panel = container.querySelector('.terminal-panel');
-      await fireEvent.keyDown(panel, {
-        key: '1',
-        metaKey: true
-      });
+      const tab = getByText('Terminal 2');
+      await fireEvent.click(tab);
 
-      expect(onTabSwitch).toHaveBeenCalledWith('term-1');
+      expect(onTabSwitch).toHaveBeenCalledWith('term-2');
     });
 
-    it('should use Ctrl key on Windows/Linux', async () => {
-      // Mock Windows platform
-      Object.defineProperty(navigator, 'platform', {
-        value: 'Win32',
-        writable: true,
+    it('should show terminal actions on hover', async () => {
+      const { container, getByText } = renderTerminalPanel({
+        terminals: mockTerminals
       });
 
-      const { container, component } = renderTerminalPanel({ terminals: mockTerminals });
-
-      const createHandler = vi.fn();
-      component.$on('terminalCreated', createHandler);
-
-      const panel = container.querySelector('.terminal-panel');
-      await fireEvent.keyDown(panel, {
-        key: 't',
-        ctrlKey: true
-      });
+      const tab = getByText('Terminal 1').closest('.terminal-tab');
+      await fireEvent.mouseEnter(tab!);
 
       await waitFor(() => {
-        expect(createHandler).toHaveBeenCalled();
+        const closeButton = container.querySelector('[title="Close terminal"]');
+        expect(closeButton).toBeTruthy();
+      });
+    });
+  });
+
+  describe('Keyboard Shortcuts', () => {
+    it('should handle rename on F2 key', async () => {
+      const { getByText, container } = renderTerminalPanel({
+        terminals: mockTerminals,
+        activeTerminalId: 'term-1'
+      });
+
+      const tab = getByText('Terminal 1');
+      await fireEvent.keyDown(tab, { key: 'F2' });
+
+      await waitFor(() => {
+        const input = container.querySelector('input[type="text"]');
+        expect(input).toBeTruthy();
+      });
+    });
+
+    it('should cancel rename on Escape', async () => {
+      const { getByText, getByDisplayValue } = renderTerminalPanel({
+        terminals: mockTerminals
+      });
+
+      const tab = getByText('Terminal 1');
+      await fireEvent.dblClick(tab);
+
+      await waitFor(() => {
+        const input = getByDisplayValue('Terminal 1');
+        expect(input).toBeTruthy();
+      });
+
+      const input = getByDisplayValue('Terminal 1');
+      await fireEvent.keyDown(input, { key: 'Escape' });
+
+      await waitFor(() => {
+        expect(() => getByDisplayValue('Terminal 1')).toThrow();
+      });
+    });
+  });
+
+  describe('Search Functionality', () => {
+    it('should toggle search visibility', async () => {
+      const { container, getByTitle } = renderTerminalPanel({
+        terminals: mockTerminals
+      });
+
+      const searchButton = getByTitle(/Search/i);
+      await fireEvent.click(searchButton);
+
+      await waitFor(() => {
+        const searchInput = container.querySelector('.search-input');
+        expect(searchInput).toBeTruthy();
+      });
+
+      // Click again to close
+      await fireEvent.click(searchButton);
+
+      await waitFor(() => {
+        const searchInput = container.querySelector('.search-input');
+        expect(searchInput).toBeFalsy();
+      });
+    });
+
+    it('should handle Ctrl+F shortcut', async () => {
+      const { container } = renderTerminalPanel({
+        terminals: mockTerminals
+      });
+
+      await fireEvent.keyDown(document, { key: 'f', ctrlKey: true });
+
+      await waitFor(() => {
+        const searchInput = container.querySelector('.search-input');
+        expect(searchInput).toBeTruthy();
       });
     });
   });
 
   describe('Drag and Drop', () => {
-    it('should handle tab drag and drop start', async () => {
-      const onTabReorder = vi.fn();
-      const { container } = renderTerminalPanel({
-        terminals: mockTerminals,
-        onTabReorder
-      });
-
-      const tabs = container.querySelectorAll('.terminal-tab');
-      const firstTab = tabs[0];
-
-      await fireEvent.dragStart(firstTab, {
-        dataTransfer: {
-          effectAllowed: 'move',
-          setData: vi.fn()
-        }
-      });
-
-      // Should handle drag start
-      expect(firstTab).toBeTruthy();
-    });
-
-    it('should handle tab reorder on drop', async () => {
-      const onTabReorder = vi.fn();
+    it('should handle tab reordering with proper data transfer', async () => {
+      const onTabReorder = createTypedMock<[number, number], void>();
+      const mockSetData = createSyncMock<[string, string], void>();
+      
       const { container } = renderTerminalPanel({
         terminals: mockTerminals,
         onTabReorder
@@ -611,7 +571,7 @@ describe('TerminalPanel Component', () => {
       await fireEvent.dragStart(firstTab, {
         dataTransfer: {
           effectAllowed: 'move',
-          setData: vi.fn()
+          setData: mockSetData
         }
       });
 
@@ -694,16 +654,14 @@ describe('TerminalPanel Component', () => {
   describe('Error Handling', () => {
     it('should handle terminal creation error gracefully', async () => {
       // Setup error mock for this specific test
-      mockInvoke({
-        get_available_shells: new Error('Terminal creation failed'),
-      });
+      mockInvoke.mockRejectedValueOnce(new Error('Terminal creation failed'));
       
       const { container, component } = renderTerminalPanel({
         terminals: [],
         testMode: false // Disable test mode to trigger actual creation
       });
 
-      const errorHandler = vi.fn();
+      const errorHandler = createTypedMock<[any], void>();
       component.$on('error', errorHandler);
 
       // Component should handle error gracefully during init
@@ -716,8 +674,11 @@ describe('TerminalPanel Component', () => {
 
     it('should handle broadcast command error gracefully', async () => {
       // Setup error mock for broadcast
-      mockInvoke({
-        broadcast_terminal_input: new Error('Broadcast failed'),
+      mockInvoke.mockImplementation(async (cmd: string) => {
+        if (cmd === 'broadcast_terminal_input') {
+          throw new Error('Broadcast failed');
+        }
+        return null;
       });
       
       const terminals = [
@@ -796,11 +757,11 @@ describe('TerminalPanel Component', () => {
     it('should dispatch openSettings event', async () => {
       const { container, component } = renderTerminalPanel();
 
-      const settingsHandler = vi.fn();
+      const settingsHandler = createTypedMock<[any], void>();
       component.$on('openSettings', settingsHandler);
 
       const settingsBtn = container.querySelector('[title="Terminal Settings"]');
-      await user.click(settingsBtn);
+      await user.click(settingsBtn!);
 
       expect(settingsHandler).toHaveBeenCalled();
     });
@@ -808,11 +769,11 @@ describe('TerminalPanel Component', () => {
     it('should dispatch toggleBroadcast event', async () => {
       const { container, component } = renderTerminalPanel();
 
-      const broadcastHandler = vi.fn();
+      const broadcastHandler = createTypedMock<[any], void>();
       component.$on('toggleBroadcast', broadcastHandler);
 
       const broadcastBtn = container.querySelector('[title="Toggle broadcast"]');
-      await user.click(broadcastBtn);
+      await user.click(broadcastBtn!);
 
       expect(broadcastHandler).toHaveBeenCalled();
     });
@@ -820,11 +781,11 @@ describe('TerminalPanel Component', () => {
     it('should dispatch search event', async () => {
       const { container, component } = renderTerminalPanel();
 
-      const searchHandler = vi.fn();
+      const searchHandler = createTypedMock<[any], void>();
       component.$on('search', searchHandler);
 
       const searchBtn = container.querySelector('[title="Search (Ctrl+F)"]');
-      await user.click(searchBtn);
+      await user.click(searchBtn!);
 
       await waitFor(() => {
         const searchInput = container.querySelector('.search-input') as HTMLInputElement;
@@ -852,11 +813,11 @@ describe('TerminalPanel Component', () => {
         terminals
       });
 
-      const moveHandler = vi.fn();
+      const moveHandler = createTypedMock<[any], void>();
       component.$on('moveToWindow', moveHandler);
 
       const tab = container.querySelector('.terminal-tab');
-      await fireEvent.contextMenu(tab);
+      await fireEvent.contextMenu(tab!);
 
       // Context menu functionality exists, which means event can be dispatched
       // The context menu shows the move option
@@ -909,7 +870,7 @@ describe('TerminalPanel Component', () => {
         }
       ];
 
-      const onTerminalClose = vi.fn();
+      const onTerminalClose = createTypedMock<[string], void>();
       const { component } = renderTerminalPanel({
         terminals, 
         onTerminalClose

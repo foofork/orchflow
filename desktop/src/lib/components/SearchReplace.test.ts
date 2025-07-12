@@ -1,11 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import SearchReplace from './SearchReplace.svelte';
 import { mockInvoke } from '../../test/utils';
+import { createTypedMock } from '@/test/mock-factory';
 
 describe('SearchReplace', () => {
   let user: ReturnType<typeof userEvent.setup>;
+  let cleanup: Array<() => void> = [];
   
   const mockSearchResults = {
     results: [
@@ -47,7 +49,7 @@ describe('SearchReplace', () => {
   
   // Helper function to render with test mode
   const renderSearchReplace = (props: any = {}) => {
-    return render(SearchReplace, {
+    const result = render(SearchReplace, {
       props: {
         testMode: true,
         autoLoad: false,
@@ -55,11 +57,14 @@ describe('SearchReplace', () => {
         ...props
       }
     });
+    cleanup.push(result.unmount);
+    return result;
   };
   
   beforeEach(() => {
     user = userEvent.setup();
     vi.clearAllMocks();
+    cleanup = [];
     mockInvoke({
       search_project: mockSearchResults,
       perform_replace: {
@@ -69,6 +74,10 @@ describe('SearchReplace', () => {
       get_search_history: ['searchTerm', 'oldSearch', 'previousQuery'],
       get_saved_searches: [],
     });
+  });
+
+  afterEach(() => {
+    cleanup.forEach(fn => fn());
   });
 
   it('renders search input', () => {

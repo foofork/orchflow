@@ -1,38 +1,43 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { get } from 'svelte/store';
 import type { Session, Pane, ManagerEvent, PluginInfo } from '../../api/manager-client';
+import { createAsyncMock, createAsyncVoidMock, createTypedMock } from '../../../test/utils/mock-factory';
+import { buildSession, buildPane, buildPlugin } from '../../../test/test-data-builders';
 
 // Set NODE_ENV to test before importing anything
 process.env.NODE_ENV = 'test';
 
+// Create mock functions with proper types
+const mockManagerClient = {
+  connectWebSocket: createAsyncVoidMock(),
+  subscribe: createAsyncVoidMock(),
+  onEvent: createTypedMock<(eventType: string, handler: (event: ManagerEvent) => void) => (() => void)>(),
+  getSessions: createAsyncMock<Session[]>(),
+  getPanes: createAsyncMock<Pane[]>(),
+  listPlugins: createAsyncMock<PluginInfo[]>(),
+  createSession: createAsyncMock<Session>(),
+  deleteSession: createAsyncVoidMock(),
+  createPane: createAsyncMock<Pane>(),
+  closePane: createAsyncVoidMock(),
+  sendInput: createAsyncVoidMock(),
+  sendKeys: createAsyncVoidMock(),
+  selectBackendPane: createAsyncVoidMock(),
+  loadPlugin: createAsyncVoidMock(),
+  unloadPlugin: createAsyncVoidMock(),
+  persistState: createAsyncVoidMock(),
+  readFile: createAsyncMock<string>(),
+  saveFile: createAsyncVoidMock(),
+  listDirectory: createAsyncMock<any[]>(),
+  watchFile: createAsyncVoidMock(),
+  unwatchFile: createAsyncVoidMock(),
+  searchProject: createAsyncMock<any[]>(),
+  getCommandHistory: createAsyncMock<any[]>(),
+  dispose: createAsyncVoidMock(),
+};
+
 // Mock the manager client BEFORE importing the store
 vi.mock('../../api/manager-client', () => ({
-  managerClient: {
-    connectWebSocket: vi.fn(),
-    subscribe: vi.fn(),
-    onEvent: vi.fn(),
-    getSessions: vi.fn(),
-    getPanes: vi.fn(),
-    listPlugins: vi.fn(),
-    createSession: vi.fn(),
-    deleteSession: vi.fn(),
-    createPane: vi.fn(),
-    closePane: vi.fn(),
-    sendInput: vi.fn(),
-    sendKeys: vi.fn(),
-    selectBackendPane: vi.fn(),
-    loadPlugin: vi.fn(),
-    unloadPlugin: vi.fn(),
-    persistState: vi.fn(),
-    readFile: vi.fn(),
-    saveFile: vi.fn(),
-    listDirectory: vi.fn(),
-    watchFile: vi.fn(),
-    unwatchFile: vi.fn(),
-    searchProject: vi.fn(),
-    getCommandHistory: vi.fn(),
-    dispose: vi.fn(),
-  }
+  managerClient: mockManagerClient
 }));
 
 // Import store AFTER mocking to prevent auto-init issues
@@ -45,35 +50,45 @@ const { manager, sessions, activeSession, panes, activePane, plugins, loadedPlug
 describe('Manager Store', () => {
   let eventHandlers: Map<string, (event: ManagerEvent) => void>;
   let isInitialized = false;
+  let unsubscribeFns: (() => void)[] = [];
   
   beforeEach(() => {
-    vi.clearAllMocks();
     eventHandlers = new Map();
+    unsubscribeFns = [];
     
     // Setup mock implementations
-    vi.mocked(managerClient.connectWebSocket).mockResolvedValue(undefined);
-    vi.mocked(managerClient.subscribe).mockResolvedValue(undefined);
-    vi.mocked(managerClient.onEvent).mockImplementation((eventType, handler) => {
+    mockManagerClient.connectWebSocket.mockResolvedValue(undefined);
+    mockManagerClient.subscribe.mockResolvedValue(undefined);
+    mockManagerClient.onEvent.mockImplementation((eventType, handler) => {
       eventHandlers.set(eventType, handler);
-      return () => eventHandlers.delete(eventType);
+      const unsubscribe = () => eventHandlers.delete(eventType);
+      unsubscribeFns.push(unsubscribe);
+      return unsubscribe;
     });
     
     // Default data - ensure proper return types
-    vi.mocked(managerClient.getSessions).mockResolvedValue([]);
-    vi.mocked(managerClient.getPanes).mockResolvedValue([]);
-    vi.mocked(managerClient.listPlugins).mockResolvedValue([]);
+    mockManagerClient.getSessions.mockResolvedValue([]);
+    mockManagerClient.getPanes.mockResolvedValue([]);
+    mockManagerClient.listPlugins.mockResolvedValue([]);
   });
 
   afterEach(() => {
-    try {
-      // Only destroy if manager was initialized
-      if (isInitialized) {
+    // Clean up event handlers
+    unsubscribeFns.forEach(fn => fn());
+    eventHandlers.clear();
+    
+    // Only destroy if manager was initialized
+    if (isInitialized) {
+      try {
         manager.destroy();
-        isInitialized = false;
+      } catch (e) {
+        // Ignore errors during cleanup
       }
-    } catch (e) {
-      // Ignore errors during cleanup
+      isInitialized = false;
     }
+    
+    // Clear all mocks
+    vi.clearAllMocks();
   });
 
   describe('initialization', () => {
@@ -81,8 +96,8 @@ describe('Manager Store', () => {
       await manager.init();
       isInitialized = true;
       
-      expect(managerClient.connectWebSocket).toHaveBeenCalled();
-      expect(managerClient.subscribe).toHaveBeenCalledWith([
+      expect(mockManagerClient.connectWebSocket).toHaveBeenCalled();
+      expect(mockManagerClient.subscribe).toHaveBeenCalledWith([
         'SessionCreated',
         'SessionDeleted',
         'PaneCreated',
@@ -107,7 +122,7 @@ describe('Manager Store', () => {
 
     it('should handle initialization errors', async () => {
       const errorMsg = 'Connection failed';
-      vi.mocked(managerClient.connectWebSocket).mockRejectedValue(new Error(errorMsg));
+      mockManagerClient.connectWebSocket.mockRejectedValue(new Error(errorMsg));
       
       await manager.init();
       isInitialized = true;
@@ -117,27 +132,11 @@ describe('Manager Store', () => {
     });
 
     it('should load initial sessions and plugins', async () => {
-      const mockSessions: Session[] = [
-        { 
-          id: 'session1', 
-          name: 'Test Session', 
-          panes: [],
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }
-      ];
-      const mockPlugins: PluginInfo[] = [
-        { 
-          id: 'plugin1', 
-          name: 'Test Plugin', 
-          version: '1.0.0', 
-          loaded: true,
-          capabilities: ['terminal', 'editor']
-        }
-      ];
+      const mockSessions = [buildSession({ id: 'session1', name: 'Test Session' })];
+      const mockPlugins = [buildPlugin({ id: 'plugin1', name: 'Test Plugin', loaded: true })];
       
-      vi.mocked(managerClient.getSessions).mockResolvedValue(mockSessions);
-      vi.mocked(managerClient.listPlugins).mockResolvedValue(mockPlugins);
+      mockManagerClient.getSessions.mockResolvedValue(mockSessions);
+      mockManagerClient.listPlugins.mockResolvedValue(mockPlugins);
       
       await manager.init();
       isInitialized = true;
@@ -155,48 +154,30 @@ describe('Manager Store', () => {
     });
 
     it('should create a new session', async () => {
-      const newSession: Session = { 
-        id: 'new-session', 
-        name: 'New Session',
-        panes: [],
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
+      const newSession = buildSession({ id: 'new-session', name: 'New Session' });
       
-      vi.mocked(managerClient.createSession).mockResolvedValue(newSession);
-      vi.mocked(managerClient.getSessions).mockResolvedValue([newSession]);
+      mockManagerClient.createSession.mockResolvedValue(newSession);
+      mockManagerClient.getSessions.mockResolvedValue([newSession]);
       
       const result = await manager.createSession('New Session');
       
       expect(result).toEqual(newSession);
-      expect(managerClient.createSession).toHaveBeenCalledWith('New Session');
+      expect(mockManagerClient.createSession).toHaveBeenCalledWith('New Session');
     });
 
     it('should delete a session', async () => {
       await manager.deleteSession('session1');
       
-      expect(managerClient.deleteSession).toHaveBeenCalledWith('session1');
+      expect(mockManagerClient.deleteSession).toHaveBeenCalledWith('session1');
     });
 
     it('should refresh sessions', async () => {
-      const mockSessions: Session[] = [
-        { 
-          id: 'session1', 
-          name: 'Session 1', 
-          panes: [],
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        },
-        { 
-          id: 'session2', 
-          name: 'Session 2', 
-          panes: [],
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }
+      const mockSessions = [
+        buildSession({ id: 'session1', name: 'Session 1' }),
+        buildSession({ id: 'session2', name: 'Session 2' })
       ];
       
-      vi.mocked(managerClient.getSessions).mockResolvedValue(mockSessions);
+      mockManagerClient.getSessions.mockResolvedValue(mockSessions);
       
       await manager.refreshSessions();
       
@@ -211,17 +192,8 @@ describe('Manager Store', () => {
     });
 
     it('should refresh sessions on SessionCreated event', async () => {
-      // Mock to track the refresh call
-      const mockSessions: Session[] = [
-        { 
-          id: 'new-session', 
-          name: 'New Session',
-          panes: [],
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }
-      ];
-      vi.mocked(managerClient.getSessions).mockResolvedValue(mockSessions);
+      const mockSessions = [buildSession({ id: 'new-session', name: 'New Session' })];
+      mockManagerClient.getSessions.mockResolvedValue(mockSessions);
       
       const event: ManagerEvent = { type: 'SessionCreated', session_id: 'new-session', name: 'New Session' };
       eventHandlers.get('SessionCreated')?.(event);
@@ -230,28 +202,16 @@ describe('Manager Store', () => {
       await new Promise(resolve => setTimeout(resolve, 0));
       
       // Verify getSessions was called to refresh
-      expect(managerClient.getSessions).toHaveBeenCalled();
+      expect(mockManagerClient.getSessions).toHaveBeenCalled();
     });
 
     it('should remove session on SessionDeleted event', async () => {
       // Set up initial state
-      const initialSessions: Session[] = [
-        { 
-          id: 'session1', 
-          name: 'Session 1', 
-          panes: [],
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        },
-        { 
-          id: 'session2', 
-          name: 'Session 2', 
-          panes: [],
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }
+      const initialSessions = [
+        buildSession({ id: 'session1', name: 'Session 1' }),
+        buildSession({ id: 'session2', name: 'Session 2' })
       ];
-      vi.mocked(managerClient.getSessions).mockResolvedValue(initialSessions);
+      mockManagerClient.getSessions.mockResolvedValue(initialSessions);
       await manager.refreshSessions();
       
       // Delete session1
@@ -264,23 +224,13 @@ describe('Manager Store', () => {
     });
 
     it('should refresh panes on PaneCreated event', async () => {
-      // Mock to track the refresh call
-      const mockPanes: Pane[] = [
-        { 
-          id: 'pane1', 
-          session_id: 'session1',
-          pane_type: 'Terminal',
-          title: 'New Pane',
-          is_active: true,
-          cols: 80,
-          rows: 24,
-          x: 0,
-          y: 0,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }
-      ];
-      vi.mocked(managerClient.getPanes).mockResolvedValue(mockPanes);
+      const mockPanes = [buildPane({ 
+        id: 'pane1', 
+        session_id: 'session1',
+        title: 'New Pane',
+        is_active: true
+      })];
+      mockManagerClient.getPanes.mockResolvedValue(mockPanes);
       
       const event: ManagerEvent = { 
         type: 'PaneCreated', 
@@ -293,28 +243,19 @@ describe('Manager Store', () => {
       await new Promise(resolve => setTimeout(resolve, 0));
       
       // Verify getPanes was called with the session ID
-      expect(managerClient.getPanes).toHaveBeenCalledWith('session1');
+      expect(mockManagerClient.getPanes).toHaveBeenCalledWith('session1');
     });
 
     it('should handle PaneClosed event', async () => {
       // Set up initial pane
-      const mockPanes: Pane[] = [
-        { 
-          id: 'pane1', 
-          session_id: 'session1',
-          pane_type: 'Terminal',
-          title: 'Test Pane',
-          is_active: true,
-          cols: 80,
-          rows: 24,
-          x: 0,
-          y: 0,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }
-      ];
+      const mockPanes = [buildPane({ 
+        id: 'pane1', 
+        session_id: 'session1',
+        title: 'Test Pane',
+        is_active: true
+      })];
       
-      vi.mocked(managerClient.getPanes).mockResolvedValue(mockPanes);
+      mockManagerClient.getPanes.mockResolvedValue(mockPanes);
       await manager.refreshPanes('session1');
       
       // Add some terminal output
@@ -359,17 +300,12 @@ describe('Manager Store', () => {
     });
 
     it('should refresh plugins on PluginLoaded event', async () => {
-      // Mock to track the refresh call
-      const mockPlugins: PluginInfo[] = [
-        { 
-          id: 'plugin1', 
-          name: 'Test Plugin', 
-          version: '1.0.0', 
-          loaded: true,
-          capabilities: ['terminal', 'editor']
-        }
-      ];
-      vi.mocked(managerClient.listPlugins).mockResolvedValue(mockPlugins);
+      const mockPlugins = [buildPlugin({ 
+        id: 'plugin1', 
+        name: 'Test Plugin', 
+        loaded: true
+      })];
+      mockManagerClient.listPlugins.mockResolvedValue(mockPlugins);
       
       const event: ManagerEvent = { type: 'PluginLoaded', plugin_id: 'plugin1' };
       eventHandlers.get('PluginLoaded')?.(event);
@@ -378,13 +314,11 @@ describe('Manager Store', () => {
       await new Promise(resolve => setTimeout(resolve, 0));
       
       // Verify listPlugins was called to refresh
-      expect(managerClient.listPlugins).toHaveBeenCalled();
+      expect(mockManagerClient.listPlugins).toHaveBeenCalled();
     });
 
     it('should refresh plugins on PluginUnloaded event', async () => {
-      // Mock to track the refresh call
-      const mockPlugins: PluginInfo[] = [];
-      vi.mocked(managerClient.listPlugins).mockResolvedValue(mockPlugins);
+      mockManagerClient.listPlugins.mockResolvedValue([]);
       
       const event: ManagerEvent = { type: 'PluginUnloaded', plugin_id: 'plugin1' };
       eventHandlers.get('PluginUnloaded')?.(event);
@@ -393,7 +327,7 @@ describe('Manager Store', () => {
       await new Promise(resolve => setTimeout(resolve, 0));
       
       // Verify listPlugins was called to refresh
-      expect(managerClient.listPlugins).toHaveBeenCalled();
+      expect(mockManagerClient.listPlugins).toHaveBeenCalled();
     });
   });
 
@@ -404,27 +338,21 @@ describe('Manager Store', () => {
     });
 
     it('should create a terminal', async () => {
-      const newPane: Pane = {
+      const newPane = buildPane({
         id: 'new-pane',
         session_id: 'session1',
         pane_type: 'Terminal',
         title: 'New Terminal',
-        is_active: true,
-        cols: 80,
-        rows: 24,
-        x: 0,
-        y: 0,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
+        is_active: true
+      });
       
-      vi.mocked(managerClient.createPane).mockResolvedValue(newPane);
-      vi.mocked(managerClient.getPanes).mockResolvedValue([newPane]);
+      mockManagerClient.createPane.mockResolvedValue(newPane);
+      mockManagerClient.getPanes.mockResolvedValue([newPane]);
       
       const result = await manager.createTerminal('session1', { command: 'bash' });
       
       expect(result).toEqual(newPane);
-      expect(managerClient.createPane).toHaveBeenCalledWith('session1', {
+      expect(mockManagerClient.createPane).toHaveBeenCalledWith('session1', {
         paneType: 'Terminal',
         command: 'bash'
       });
@@ -433,25 +361,25 @@ describe('Manager Store', () => {
     it('should close a pane', async () => {
       await manager.closePane('pane1');
       
-      expect(managerClient.closePane).toHaveBeenCalledWith('pane1');
+      expect(mockManagerClient.closePane).toHaveBeenCalledWith('pane1');
     });
 
     it('should send input to a pane', async () => {
       await manager.sendInput('pane1', 'ls -la');
       
-      expect(managerClient.sendInput).toHaveBeenCalledWith('pane1', 'ls -la');
+      expect(mockManagerClient.sendInput).toHaveBeenCalledWith('pane1', 'ls -la');
     });
 
     it('should send keys to a pane', async () => {
       await manager.sendKeys('pane1', 'Ctrl+C');
       
-      expect(managerClient.sendKeys).toHaveBeenCalledWith('pane1', 'Ctrl+C');
+      expect(mockManagerClient.sendKeys).toHaveBeenCalledWith('pane1', 'Ctrl+C');
     });
 
     it('should focus a pane', async () => {
       await manager.focusPane('pane2');
       
-      expect(managerClient.selectBackendPane).toHaveBeenCalledWith('pane2');
+      expect(mockManagerClient.selectBackendPane).toHaveBeenCalledWith('pane2');
       const state = get(manager);
       expect(state.activePaneId).toBe('pane2');
     });
@@ -466,34 +394,22 @@ describe('Manager Store', () => {
     it('should load a plugin', async () => {
       await manager.loadPlugin('plugin1');
       
-      expect(managerClient.loadPlugin).toHaveBeenCalledWith('plugin1');
+      expect(mockManagerClient.loadPlugin).toHaveBeenCalledWith('plugin1');
     });
 
     it('should unload a plugin', async () => {
       await manager.unloadPlugin('plugin1');
       
-      expect(managerClient.unloadPlugin).toHaveBeenCalledWith('plugin1');
+      expect(mockManagerClient.unloadPlugin).toHaveBeenCalledWith('plugin1');
     });
 
     it('should refresh plugins', async () => {
-      const mockPlugins: PluginInfo[] = [
-        { 
-          id: 'plugin1', 
-          name: 'Plugin 1', 
-          version: '1.0.0', 
-          loaded: true,
-          capabilities: ['terminal']
-        },
-        { 
-          id: 'plugin2', 
-          name: 'Plugin 2', 
-          version: '2.0.0', 
-          loaded: false,
-          capabilities: ['editor']
-        }
+      const mockPlugins = [
+        buildPlugin({ id: 'plugin1', name: 'Plugin 1', loaded: true }),
+        buildPlugin({ id: 'plugin2', name: 'Plugin 2', loaded: false })
       ];
       
-      vi.mocked(managerClient.listPlugins).mockResolvedValue(mockPlugins);
+      mockManagerClient.listPlugins.mockResolvedValue(mockPlugins);
       
       await manager.refreshPlugins();
       
@@ -511,40 +427,40 @@ describe('Manager Store', () => {
 
     it('should read a file', async () => {
       const content = 'file content';
-      vi.mocked(managerClient.readFile).mockResolvedValue(content);
+      mockManagerClient.readFile.mockResolvedValue(content);
       
       const result = await manager.readFile('/path/to/file');
       
       expect(result).toBe(content);
-      expect(managerClient.readFile).toHaveBeenCalledWith('/path/to/file');
+      expect(mockManagerClient.readFile).toHaveBeenCalledWith('/path/to/file');
     });
 
     it('should save a file', async () => {
       await manager.saveFile('/path/to/file', 'new content');
       
-      expect(managerClient.saveFile).toHaveBeenCalledWith('/path/to/file', 'new content');
+      expect(mockManagerClient.saveFile).toHaveBeenCalledWith('/path/to/file', 'new content');
     });
 
     it('should list directory', async () => {
       const files = [{ name: 'file1.txt', type: 'file' }];
-      vi.mocked(managerClient.listDirectory).mockResolvedValue(files);
+      mockManagerClient.listDirectory.mockResolvedValue(files);
       
       const result = await manager.listDirectory('/path');
       
       expect(result).toEqual(files);
-      expect(managerClient.listDirectory).toHaveBeenCalledWith('/path');
+      expect(mockManagerClient.listDirectory).toHaveBeenCalledWith('/path');
     });
 
     it('should watch a file', async () => {
       await manager.watchFile('/path/to/file');
       
-      expect(managerClient.watchFile).toHaveBeenCalledWith('/path/to/file');
+      expect(mockManagerClient.watchFile).toHaveBeenCalledWith('/path/to/file');
     });
 
     it('should unwatch a file', async () => {
       await manager.unwatchFile('/path/to/file');
       
-      expect(managerClient.unwatchFile).toHaveBeenCalledWith('/path/to/file');
+      expect(mockManagerClient.unwatchFile).toHaveBeenCalledWith('/path/to/file');
     });
   });
 
@@ -556,12 +472,12 @@ describe('Manager Store', () => {
 
     it('should search project', async () => {
       const results = [{ file: 'test.ts', matches: [] }];
-      vi.mocked(managerClient.searchProject).mockResolvedValue(results);
+      mockManagerClient.searchProject.mockResolvedValue(results);
       
       const result = await manager.searchProject('test', { caseSensitive: true });
       
       expect(result).toEqual(results);
-      expect(managerClient.searchProject).toHaveBeenCalledWith('test', { caseSensitive: true });
+      expect(mockManagerClient.searchProject).toHaveBeenCalledWith('test', { caseSensitive: true });
     });
 
     it('should get command history', async () => {
@@ -571,12 +487,12 @@ describe('Manager Store', () => {
         timestamp: new Date().toISOString(),
         pane_id: 'pane1'
       }];
-      vi.mocked(managerClient.getCommandHistory).mockResolvedValue(history);
+      mockManagerClient.getCommandHistory.mockResolvedValue(history);
       
       const result = await manager.getCommandHistory('pane1', 10);
       
       expect(result).toEqual(history);
-      expect(managerClient.getCommandHistory).toHaveBeenCalledWith('pane1', 10);
+      expect(mockManagerClient.getCommandHistory).toHaveBeenCalledWith('pane1', 10);
     });
   });
 
@@ -589,7 +505,7 @@ describe('Manager Store', () => {
     it('should persist state', async () => {
       await manager.persistState();
       
-      expect(managerClient.persistState).toHaveBeenCalled();
+      expect(mockManagerClient.persistState).toHaveBeenCalled();
     });
   });
 
@@ -599,8 +515,8 @@ describe('Manager Store', () => {
       isInitialized = true;
       
       // Set up event handlers to verify they are cleaned up
-      const unsubscribeSpy = vi.fn();
-      vi.mocked(managerClient.onEvent).mockReturnValue(unsubscribeSpy);
+      const unsubscribeSpy = createTypedMock<() => void>();
+      mockManagerClient.onEvent.mockReturnValue(unsubscribeSpy);
       
       // Re-init to register event handlers with our spy
       await manager.init();
@@ -608,7 +524,7 @@ describe('Manager Store', () => {
       manager.destroy();
       isInitialized = false;
       
-      expect(managerClient.dispose).toHaveBeenCalled();
+      expect(mockManagerClient.dispose).toHaveBeenCalled();
     });
   });
 });

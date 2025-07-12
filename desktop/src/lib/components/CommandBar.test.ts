@@ -3,6 +3,12 @@ import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import { get } from 'svelte/store';
 import CommandBar from './CommandBar.svelte';
 import { manager, activeSession, plugins } from '$lib/stores/manager';
+import { 
+  createAsyncMock, 
+  createAsyncVoidMock, 
+  createSyncMock, 
+  createTypedMock 
+} from '@/test/mock-factory';
 
 // Mock the manager store
 vi.mock('$lib/stores/manager', async () => {
@@ -15,15 +21,16 @@ vi.mock('$lib/stores/manager', async () => {
   const mockPanesStore = writable(new Map());
   const mockPluginsStore = writable([]);
   
+  const mockFactory = await import('@/test/mock-factory');
   const mockManager = {
-    createTerminal: vi.fn() as any,
-    createSession: vi.fn() as any,
-    refreshSessions: vi.fn() as any,
-    refreshPlugins: vi.fn() as any,
-    searchProject: vi.fn() as any,
-    listDirectory: vi.fn() as any,
-    sendInput: vi.fn() as any,
-    subscribe: vi.fn() as any
+    createTerminal: mockFactory.createAsyncMock() as any,
+    createSession: mockFactory.createAsyncMock() as any,
+    refreshSessions: mockFactory.createAsyncVoidMock() as any,
+    refreshPlugins: mockFactory.createAsyncVoidMock() as any,
+    searchProject: mockFactory.createAsyncMock() as any,
+    listDirectory: mockFactory.createAsyncMock() as any,
+    sendInput: mockFactory.createAsyncVoidMock() as any,
+    subscribe: mockFactory.createSyncMock() as any
   };
   
   return {
@@ -36,32 +43,39 @@ vi.mock('$lib/stores/manager', async () => {
 });
 
 describe('CommandBar', () => {
+  let cleanup: Array<() => void> = [];
+
   beforeEach(() => {
     vi.clearAllMocks();
     // Mock window.prompt
-    window.prompt = vi.fn() as any;
+    window.prompt = createTypedMock<[string], string | null>() as any;
   });
 
   afterEach(() => {
+    cleanup.forEach(fn => fn());
+    cleanup = [];
     vi.restoreAllMocks();
   });
 
   describe('Rendering', () => {
     it('should render input field', () => {
-      const { container } = render(CommandBar);
+      const { container, unmount } = render(CommandBar);
+      cleanup.push(unmount);
       const input = container.querySelector('input[type="text"]');
       expect(input).toBeTruthy();
       expect(input?.getAttribute('placeholder')).toBeTruthy();
     });
 
     it('should render form element', () => {
-      const { container } = render(CommandBar);
+      const { container, unmount } = render(CommandBar);
+      cleanup.push(unmount);
       const form = container.querySelector('form');
       expect(form).toBeTruthy();
     });
 
     it('should render command bar container', () => {
-      const { container } = render(CommandBar);
+      const { container, unmount } = render(CommandBar);
+      cleanup.push(unmount);
       const commandBar = container.querySelector('.command-bar');
       expect(commandBar).toBeTruthy();
     });
@@ -69,7 +83,8 @@ describe('CommandBar', () => {
 
   describe('Suggestions', () => {
     it('should show suggestions when typing', async () => {
-      const { container } = render(CommandBar);
+      const { container, unmount } = render(CommandBar);
+      cleanup.push(unmount);
       const input = container.querySelector('input[type="text"]') as HTMLInputElement;
       
       await fireEvent.input(input, { target: { value: 'cre' } });
@@ -82,7 +97,8 @@ describe('CommandBar', () => {
     });
 
     it('should filter suggestions based on input', async () => {
-      const { container } = render(CommandBar);
+      const { container, unmount } = render(CommandBar);
+      cleanup.push(unmount);
       const input = container.querySelector('input[type="text"]') as HTMLInputElement;
       
       await fireEvent.input(input, { target: { value: 'git' } });
@@ -95,7 +111,8 @@ describe('CommandBar', () => {
     });
 
     it('should navigate suggestions with arrow keys', async () => {
-      const { container } = render(CommandBar);
+      const { container, unmount } = render(CommandBar);
+      cleanup.push(unmount);
       const input = container.querySelector('input[type="text"]') as HTMLInputElement;
       
       await fireEvent.input(input, { target: { value: 'create' } });
@@ -126,7 +143,8 @@ describe('CommandBar', () => {
         updated_at: '2023-01-01T00:00:00Z'
       });
       
-      const { container } = render(CommandBar);
+      const { container, unmount } = render(CommandBar);
+      cleanup.push(unmount);
       const input = container.querySelector('input[type="text"]') as HTMLInputElement;
       
       await fireEvent.input(input, { target: { value: 'create terminal' } });
@@ -146,7 +164,8 @@ describe('CommandBar', () => {
     });
 
     it('should hide suggestions on escape', async () => {
-      const { container } = render(CommandBar);
+      const { container, unmount } = render(CommandBar);
+      cleanup.push(unmount);
       const input = container.querySelector('input[type="text"]') as HTMLInputElement;
       
       await fireEvent.input(input, { target: { value: 'create' } });
@@ -181,7 +200,8 @@ describe('CommandBar', () => {
         updated_at: '2023-01-01T00:00:00Z'
       });
       
-      const { container } = render(CommandBar);
+      const { container, unmount } = render(CommandBar);
+      cleanup.push(unmount);
       const input = container.querySelector('input[type="text"]') as HTMLInputElement;
       const form = container.querySelector('form') as HTMLFormElement;
       
@@ -194,7 +214,7 @@ describe('CommandBar', () => {
     });
 
     it('should create session when executing "create session" command', async () => {
-      window.prompt = vi.fn().mockReturnValue('My Session') as any;
+      window.prompt = createTypedMock<[string], string | null>().mockReturnValue('My Session') as any;
       vi.mocked(manager.createSession).mockResolvedValue({ 
         id: 'new-session',
         name: 'My Session',
@@ -203,7 +223,8 @@ describe('CommandBar', () => {
         updated_at: '2023-01-01T00:00:00Z'
       });
       
-      const { container } = render(CommandBar);
+      const { container, unmount } = render(CommandBar);
+      cleanup.push(unmount);
       const input = container.querySelector('input[type="text"]') as HTMLInputElement;
       const form = container.querySelector('form') as HTMLFormElement;
       
@@ -217,7 +238,8 @@ describe('CommandBar', () => {
     });
 
     it('should refresh sessions when executing "list sessions" command', async () => {
-      const { container } = render(CommandBar);
+      const { container, unmount } = render(CommandBar);
+      cleanup.push(unmount);
       const input = container.querySelector('input[type="text"]') as HTMLInputElement;
       const form = container.querySelector('form') as HTMLFormElement;
       
@@ -230,7 +252,8 @@ describe('CommandBar', () => {
     });
 
     it('should refresh plugins when executing "list plugins" command', async () => {
-      const { container } = render(CommandBar);
+      const { container, unmount } = render(CommandBar);
+      cleanup.push(unmount);
       const input = container.querySelector('input[type="text"]') as HTMLInputElement;
       const form = container.querySelector('form') as HTMLFormElement;
       
@@ -245,7 +268,8 @@ describe('CommandBar', () => {
     it('should search project when executing search command', async () => {
       vi.mocked(manager.searchProject).mockResolvedValue({ results: [], stats: {} });
       
-      const { container } = render(CommandBar);
+      const { container, unmount } = render(CommandBar);
+      cleanup.push(unmount);
       const input = container.querySelector('input[type="text"]') as HTMLInputElement;
       const form = container.querySelector('form') as HTMLFormElement;
       
@@ -260,7 +284,8 @@ describe('CommandBar', () => {
     it('should list directory when executing "get file tree" command', async () => {
       vi.mocked(manager.listDirectory).mockResolvedValue([]);
       
-      const { container } = render(CommandBar);
+      const { container, unmount } = render(CommandBar);
+      cleanup.push(unmount);
       const input = container.querySelector('input[type="text"]') as HTMLInputElement;
       const form = container.querySelector('form') as HTMLFormElement;
       
@@ -292,7 +317,8 @@ describe('CommandBar', () => {
         updated_at: '2023-01-01T00:00:00Z'
       });
       
-      const { container } = render(CommandBar);
+      const { container, unmount } = render(CommandBar);
+      cleanup.push(unmount);
       const input = container.querySelector('input[type="text"]') as HTMLInputElement;
       const form = container.querySelector('form') as HTMLFormElement;
       
@@ -315,7 +341,8 @@ describe('CommandBar', () => {
       });
       vi.mocked(manager.createTerminal).mockRejectedValue(new Error('Failed to create terminal'));
       
-      const { container } = render(CommandBar);
+      const { container, unmount } = render(CommandBar);
+      cleanup.push(unmount);
       const input = container.querySelector('input[type="text"]') as HTMLInputElement;
       const form = container.querySelector('form') as HTMLFormElement;
       
@@ -354,7 +381,8 @@ describe('CommandBar', () => {
         updated_at: '2023-01-01T00:00:00Z'
       });
       
-      const { container } = render(CommandBar);
+      const { container, unmount } = render(CommandBar);
+      cleanup.push(unmount);
       const input = container.querySelector('input[type="text"]') as HTMLInputElement;
       const form = container.querySelector('form') as HTMLFormElement;
       
@@ -367,7 +395,8 @@ describe('CommandBar', () => {
     });
 
     it('should not submit empty commands', async () => {
-      const { container } = render(CommandBar);
+      const { container, unmount } = render(CommandBar);
+      cleanup.push(unmount);
       const input = container.querySelector('input[type="text"]') as HTMLInputElement;
       const form = container.querySelector('form') as HTMLFormElement;
       
@@ -393,7 +422,8 @@ describe('CommandBar', () => {
       });
       vi.mocked(manager.createTerminal).mockReturnValue(delayedPromise as any);
       
-      const { container } = render(CommandBar);
+      const { container, unmount } = render(CommandBar);
+      cleanup.push(unmount);
       const input = container.querySelector('input[type="text"]') as HTMLInputElement;
       const form = container.querySelector('form') as HTMLFormElement;
       
@@ -416,7 +446,8 @@ describe('CommandBar', () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       (activeSession as any).set(null);
       
-      const { container } = render(CommandBar);
+      const { container, unmount } = render(CommandBar);
+      cleanup.push(unmount);
       const input = container.querySelector('input[type="text"]') as HTMLInputElement;
       const form = container.querySelector('form') as HTMLFormElement;
       
@@ -432,7 +463,7 @@ describe('CommandBar', () => {
     });
 
     it('should use default session name when prompt is cancelled', async () => {
-      window.prompt = vi.fn().mockReturnValue(null) as any;
+      window.prompt = createTypedMock().mockReturnValue(null) as any;
       vi.mocked(manager.createSession).mockResolvedValue({ 
         id: 'new-session',
         name: 'New Session',
@@ -441,7 +472,8 @@ describe('CommandBar', () => {
         updated_at: '2023-01-01T00:00:00Z'
       });
       
-      const { container } = render(CommandBar);
+      const { container, unmount } = render(CommandBar);
+      cleanup.push(unmount);
       const input = container.querySelector('input[type="text"]') as HTMLInputElement;
       const form = container.querySelector('form') as HTMLFormElement;
       
@@ -456,7 +488,8 @@ describe('CommandBar', () => {
     it('should handle plugin command format', async () => {
       const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
       
-      const { container } = render(CommandBar);
+      const { container, unmount } = render(CommandBar);
+      cleanup.push(unmount);
       const input = container.querySelector('input[type="text"]') as HTMLInputElement;
       const form = container.querySelector('form') as HTMLFormElement;
       

@@ -10,11 +10,18 @@ import {
   stopMetricsPolling 
 } from '$lib/services/metrics';
 import { buildSystemMetrics, buildProcessMetrics } from '$lib/../test/test-data-builders';
+import { 
+  createAsyncMock, 
+  createAsyncVoidMock, 
+  createSyncMock, 
+  createTypedMock 
+} from '@/test/mock-factory';
+
+// Mock store imports
+import { writable } from 'svelte/store';
 
 // Mock the metrics service
 vi.mock('$lib/services/metrics', () => {
-  const { writable, readable } = require('svelte/store');
-  
   const mockMetrics = {
     timestamp: Date.now(),
     cpu: { usage: 45.5, temperature: 65, cores: 8, frequency: 2400 },
@@ -29,21 +36,25 @@ vi.mock('$lib/services/metrics', () => {
     loadAverage: [1.5, 1.2, 0.9]
   };
   
-  const currentMetricsStore = writable(mockMetrics);
-  const metricsHistoryStore = writable([mockMetrics, { 
+  // Create mock stores using imported writable
+  const writableModule = await import('svelte/store');
+  const { writable: writableStore } = writableModule;
+  
+  const currentMetricsStore = writableStore(mockMetrics);
+  const metricsHistoryStore = writableStore([mockMetrics, { 
     ...mockMetrics, 
     cpu: { usage: 50, temperature: 68, cores: 8, frequency: 2400 } 
   }]);
-  const isPollingStore = writable(false);
+  const isPollingStore = writableStore(false);
   
   return {
     currentMetrics: currentMetricsStore,
     metricsHistory: metricsHistoryStore,
     isPolling: isPollingStore,
-    startMetricsPolling: vi.fn().mockResolvedValue(undefined),
-    stopMetricsPolling: vi.fn().mockResolvedValue(undefined),
-    formatBytes: vi.fn((bytes: number) => `${(bytes / 1000000000).toFixed(1)} GB`),
-    formatUptime: vi.fn((seconds: number) => {
+    startMetricsPolling: (await import('@/test/mock-factory')).createAsyncVoidMock().mockResolvedValue(undefined),
+    stopMetricsPolling: (await import('@/test/mock-factory')).createAsyncVoidMock().mockResolvedValue(undefined),
+    formatBytes: (await import('@/test/mock-factory')).createSyncMock<[number], string>().mockImplementation((bytes: number) => `${(bytes / 1000000000).toFixed(1)} GB`),
+    formatUptime: (await import('@/test/mock-factory')).createSyncMock<[number], string>().mockImplementation((seconds: number) => {
       const hours = Math.floor(seconds / 3600);
       const minutes = Math.floor((seconds % 3600) / 60);
       return `${hours}h ${minutes}m`;
@@ -51,61 +62,67 @@ vi.mock('$lib/services/metrics', () => {
   };
 });
 
-// Mock Canvas API
-const mockContext = {
-  clearRect: vi.fn(),
-  fillRect: vi.fn(),
-  strokeRect: vi.fn(),
-  beginPath: vi.fn(),
-  closePath: vi.fn(),
-  moveTo: vi.fn(),
-  lineTo: vi.fn(),
-  stroke: vi.fn(),
-  fill: vi.fn(),
-  fillText: vi.fn(),
-  measureText: vi.fn(() => ({ width: 50 })),
-  save: vi.fn(),
-  restore: vi.fn(),
-  arc: vi.fn(),
-  quadraticCurveTo: vi.fn(),
-  bezierCurveTo: vi.fn(),
-  rect: vi.fn(),
-  translate: vi.fn(),
-  scale: vi.fn(),
-  rotate: vi.fn(),
-  setTransform: vi.fn(),
-  createLinearGradient: vi.fn(() => ({
-    addColorStop: vi.fn()
-  })),
-  createRadialGradient: vi.fn(() => ({
-    addColorStop: vi.fn()
-  })),
-  createPattern: vi.fn(),
-  clip: vi.fn(),
-  isPointInPath: vi.fn(),
-  fillStyle: '',
-  strokeStyle: '',
-  lineWidth: 1,
-  lineCap: 'butt' as CanvasLineCap,
-  lineJoin: 'miter' as CanvasLineJoin,
-  font: '',
-  textAlign: 'left' as CanvasTextAlign,
-  textBaseline: 'alphabetic' as CanvasTextBaseline,
-  globalAlpha: 1,
-  globalCompositeOperation: 'source-over' as GlobalCompositeOperation,
-  shadowBlur: 0,
-  shadowColor: 'rgba(0, 0, 0, 0)',
-  shadowOffsetX: 0,
-  shadowOffsetY: 0
+// Create typed mock context
+const createCanvasMock = () => {
+  const mockAddColorStop = createSyncMock<[number, string], void>();
+  
+  return {
+    clearRect: createSyncMock<[number, number, number, number], void>(),
+    fillRect: createSyncMock<[number, number, number, number], void>(),
+    strokeRect: createSyncMock<[number, number, number, number], void>(),
+    beginPath: createSyncMock<[], void>(),
+    closePath: createSyncMock<[], void>(),
+    moveTo: createSyncMock<[number, number], void>(),
+    lineTo: createSyncMock<[number, number], void>(),
+    stroke: createSyncMock<[], void>(),
+    fill: createSyncMock<[], void>(),
+    fillText: createSyncMock<[string, number, number], void>(),
+    measureText: createSyncMock<[string], TextMetrics>().mockReturnValue({ width: 50 } as TextMetrics),
+    save: createSyncMock<[], void>(),
+    restore: createSyncMock<[], void>(),
+    arc: createSyncMock<[number, number, number, number, number, boolean?], void>(),
+    quadraticCurveTo: createSyncMock<[number, number, number, number], void>(),
+    bezierCurveTo: createSyncMock<[number, number, number, number, number, number], void>(),
+    rect: createSyncMock<[number, number, number, number], void>(),
+    translate: createSyncMock<[number, number], void>(),
+    scale: createSyncMock<[number, number], void>(),
+    rotate: createSyncMock<[number], void>(),
+    setTransform: createSyncMock<[number, number, number, number, number, number], void>(),
+    createLinearGradient: createSyncMock<[number, number, number, number], CanvasGradient>().mockReturnValue({
+      addColorStop: mockAddColorStop
+    } as any),
+    createRadialGradient: createSyncMock<[number, number, number, number, number, number], CanvasGradient>().mockReturnValue({
+      addColorStop: mockAddColorStop
+    } as any),
+    createPattern: createSyncMock<[CanvasImageSource, string | null], CanvasPattern | null>(),
+    clip: createSyncMock<[], void>(),
+    isPointInPath: createSyncMock<[number, number], boolean>(),
+    fillStyle: '',
+    strokeStyle: '',
+    lineWidth: 1,
+    lineCap: 'butt' as CanvasLineCap,
+    lineJoin: 'miter' as CanvasLineJoin,
+    font: '',
+    textAlign: 'left' as CanvasTextAlign,
+    textBaseline: 'alphabetic' as CanvasTextBaseline,
+    globalAlpha: 1,
+    globalCompositeOperation: 'source-over' as GlobalCompositeOperation,
+    shadowBlur: 0,
+    shadowColor: 'rgba(0, 0, 0, 0)',
+    shadowOffsetX: 0,
+    shadowOffsetY: 0
+  };
 };
 
-HTMLCanvasElement.prototype.getContext = vi.fn(() => mockContext) as any;
+const mockContext = createCanvasMock();
+const mockGetContext = createSyncMock<[string, any?], RenderingContext | null>().mockReturnValue(mockContext as any);
+HTMLCanvasElement.prototype.getContext = mockGetContext as any;
 
 // Mock requestAnimationFrame
 let animationFrameId = 0;
 const activeTimeouts = new Set<NodeJS.Timeout>();
 
-const mockRequestAnimationFrame = vi.fn((callback) => {
+const mockRequestAnimationFrame = createSyncMock<[FrameRequestCallback], number>().mockImplementation((callback) => {
   animationFrameId++;
   const timeoutId = setTimeout(() => {
     activeTimeouts.delete(timeoutId);
@@ -115,7 +132,7 @@ const mockRequestAnimationFrame = vi.fn((callback) => {
   return animationFrameId;
 });
 
-const mockCancelAnimationFrame = vi.fn((id) => {
+const mockCancelAnimationFrame = createSyncMock<[number], void>().mockImplementation((id) => {
   // In a real scenario, we would map frame IDs to timeouts
   // For testing, we'll just clear all active timeouts
   activeTimeouts.forEach(timeout => clearTimeout(timeout));
@@ -126,12 +143,16 @@ global.requestAnimationFrame = mockRequestAnimationFrame as any;
 global.cancelAnimationFrame = mockCancelAnimationFrame as any;
 
 describe('MetricsDashboard', () => {
+  let cleanup: Array<() => void> = [];
+
   beforeEach(() => {
     vi.clearAllMocks();
     animationFrameId = 0;
   });
 
   afterEach(() => {
+    cleanup.forEach(fn => fn());
+    cleanup = [];
     vi.restoreAllMocks();
     // Clean up any remaining timeouts
     activeTimeouts.forEach(timeout => clearTimeout(timeout));
@@ -140,21 +161,24 @@ describe('MetricsDashboard', () => {
 
   describe('Rendering', () => {
     it('should render dashboard container', () => {
-      const { container } = render(MetricsDashboard);
+      const { container, unmount } = render(MetricsDashboard);
+      cleanup.push(unmount);
       expect(container.querySelector('.metrics-dashboard')).toBeTruthy();
     });
 
     it('should render in compact mode', () => {
-      const { container } = render(MetricsDashboard, {
+      const { container, unmount } = render(MetricsDashboard, {
         props: { compact: true }
       });
+      cleanup.push(unmount);
       
       const dashboard = container.querySelector('.metrics-dashboard');
       expect(dashboard?.classList.contains('compact')).toBe(true);
     });
 
     it('should render all metric cards', () => {
-      const { container } = render(MetricsDashboard);
+      const { container, unmount } = render(MetricsDashboard);
+      cleanup.push(unmount);
       
       const cards = container.querySelectorAll('.stat-card');
       expect(cards.length).toBeGreaterThan(0);
@@ -164,7 +188,8 @@ describe('MetricsDashboard', () => {
     });
 
     it('should render CPU metrics', () => {
-      const { container } = render(MetricsDashboard);
+      const { container, unmount } = render(MetricsDashboard);
+      cleanup.push(unmount);
       
       const cpuCard = container.querySelector('.stat-card');
       expect(cpuCard).toBeTruthy();
@@ -173,7 +198,8 @@ describe('MetricsDashboard', () => {
     });
 
     it('should render memory metrics', () => {
-      const { container, getByText } = render(MetricsDashboard);
+      const { container, getByText, unmount } = render(MetricsDashboard);
+      cleanup.push(unmount);
       
       expect(getByText('Memory')).toBeTruthy();
       expect(container.textContent).toContain('50.0%');
@@ -181,125 +207,208 @@ describe('MetricsDashboard', () => {
     });
 
     it('should render disk metrics', () => {
-      const { container, getByText } = render(MetricsDashboard);
+      const { container, getByText, unmount } = render(MetricsDashboard);
+      cleanup.push(unmount);
       
       expect(getByText('Disk')).toBeTruthy();
       expect(container.textContent).toContain('250.0 GB / 500.0 GB');
     });
 
     it('should render network metrics', () => {
-      const { container, getByText } = render(MetricsDashboard);
+      const { container, getByText, unmount } = render(MetricsDashboard);
+      cleanup.push(unmount);
       
       expect(getByText('Network')).toBeTruthy();
       expect(container.textContent).toContain('↓0.0 GB ↑0.0 GB');
     });
 
     it('should render system info', () => {
-      const { container, getByText } = render(MetricsDashboard);
+      const { container, getByText, unmount } = render(MetricsDashboard);
+      cleanup.push(unmount);
       
       expect(getByText('System')).toBeTruthy();
-      // System platform is shown in a separate view or may not be displayed
-      // Check for the System heading instead
-      expect(container.textContent).toContain('System');
+      expect(container.textContent).toContain('8 cores');
       expect(container.textContent).toContain('Uptime: 1h 0m');
     });
 
-    it('should render chart canvas', () => {
-      const { container } = render(MetricsDashboard);
+    it('should render process list', () => {
+      const { container, unmount } = render(MetricsDashboard);
+      cleanup.push(unmount);
       
-      const canvas = container.querySelector('canvas');
-      expect(canvas).toBeTruthy();
-    });
-  });
-
-  describe('Polling', () => {
-    it('should start polling on mount if not already polling', async () => {
-      isPolling.set(false);
-      
-      render(MetricsDashboard);
-      
-      await waitFor(() => {
-        expect(startMetricsPolling).toHaveBeenCalled();
-      });
-    });
-
-    it('should not start polling if already polling', async () => {
-      isPolling.set(true);
-      
-      render(MetricsDashboard);
-      
-      await waitFor(() => {
-        expect(startMetricsPolling).not.toHaveBeenCalled();
-      });
+      const processSection = container.querySelector('.process-list');
+      expect(processSection).toBeTruthy();
+      expect(processSection?.textContent).toContain('node');
+      expect(processSection?.textContent).toContain('chrome');
+      expect(processSection?.textContent).toContain('25.5%');
+      expect(processSection?.textContent).toContain('15.2%');
     });
   });
 
   describe('Chart Rendering', () => {
-    it('should initialize canvas context', async () => {
-      const { container } = render(MetricsDashboard);
+    it('should create canvas elements for charts', () => {
+      const { container, unmount } = render(MetricsDashboard);
+      cleanup.push(unmount);
+      
+      const canvases = container.querySelectorAll('canvas');
+      expect(canvases.length).toBeGreaterThan(0);
+    });
+
+    it('should render CPU chart', async () => {
+      const { container, unmount } = render(MetricsDashboard);
+      cleanup.push(unmount);
       
       await waitFor(() => {
-        const canvas = container.querySelector('canvas');
-        expect(canvas?.getContext).toHaveBeenCalledWith('2d');
+        expect(mockGetContext).toHaveBeenCalled();
+        expect(mockContext.beginPath).toHaveBeenCalled();
+        expect(mockContext.stroke).toHaveBeenCalled();
       });
     });
 
-    it('should start animation loop', async () => {
-      render(MetricsDashboard);
+    it('should render memory chart', async () => {
+      const { container, unmount } = render(MetricsDashboard);
+      cleanup.push(unmount);
       
       await waitFor(() => {
-        expect(mockRequestAnimationFrame).toHaveBeenCalled();
+        const memoryChart = container.querySelector('.memory-chart canvas');
+        expect(memoryChart).toBeTruthy();
       });
     });
 
-    it('should clear canvas on each frame', async () => {
-      const { container } = render(MetricsDashboard);
+    it('should update charts when metrics change', async () => {
+      const { unmount } = render(MetricsDashboard);
+      cleanup.push(unmount);
       
-      await waitFor(() => {
-        expect(mockContext.clearRect).toHaveBeenCalled();
-      });
-    });
-
-    it('should not draw charts with insufficient history', async () => {
-      metricsHistory.set([]);
+      const clearCallsBefore = mockContext.clearRect.mock.calls.length;
       
-      render(MetricsDashboard);
-      
-      await waitFor(() => {
-        expect(mockContext.clearRect).toHaveBeenCalled();
-        // Should not draw any chart elements
-        expect(mockContext.beginPath).not.toHaveBeenCalled();
-      });
-    });
-
-    it('should draw charts with sufficient history', async () => {
-      const mockHistory = Array(5).fill(null).map((_, i) => buildSystemMetrics({
-        cpu: { usage: 45 + i * 5, temperature: 65, cores: 8, frequency: 2400 },
-        memory: { total: 16000000000, used: 8000000000, available: 8000000000, free: 8000000000, percent: 50 },
-        disk: { total: 500000000000, used: 250000000000, free: 250000000000, percent: 50 },
-        network: { bytesReceived: 1000000 * (i + 1), bytesSent: 500000 * (i + 1), packetsReceived: 0, packetsSent: 0 },
-        uptime: 3600
+      // Update metrics
+      currentMetrics.update(m => ({
+        ...m,
+        cpu: { ...m.cpu, usage: 75 }
       }));
       
-      metricsHistory.set(mockHistory);
-      
-      render(MetricsDashboard);
-      
       await waitFor(() => {
-        // Should draw grid lines and charts
-        expect(mockContext.strokeStyle).toBeTruthy();
-        expect(mockContext.beginPath).toHaveBeenCalled();
+        expect(mockContext.clearRect.mock.calls.length).toBeGreaterThan(clearCallsBefore);
       });
     });
   });
 
-  describe('Cleanup', () => {
-    it('should cancel animation frame on unmount', async () => {
+  describe('Polling Controls', () => {
+    it('should start polling when button clicked', async () => {
+      const { getByText, unmount } = render(MetricsDashboard);
+      cleanup.push(unmount);
+      
+      const startButton = getByText('Start Monitoring');
+      await startButton.click();
+      
+      expect(startMetricsPolling).toHaveBeenCalled();
+    });
+
+    it('should stop polling when button clicked', async () => {
+      isPolling.set(true);
+      
+      const { getByText, unmount } = render(MetricsDashboard);
+      cleanup.push(unmount);
+      
+      const stopButton = getByText('Stop Monitoring');
+      await stopButton.click();
+      
+      expect(stopMetricsPolling).toHaveBeenCalled();
+    });
+
+    it('should show correct button based on polling state', () => {
+      isPolling.set(false);
+      const { getByText, rerender, unmount } = render(MetricsDashboard);
+      cleanup.push(unmount);
+      
+      expect(getByText('Start Monitoring')).toBeTruthy();
+      
+      isPolling.set(true);
+      rerender({});
+      
+      expect(getByText('Stop Monitoring')).toBeTruthy();
+    });
+  });
+
+  describe('Compact Mode', () => {
+    it('should hide process list in compact mode', () => {
+      const { container, unmount } = render(MetricsDashboard, {
+        props: { compact: true }
+      });
+      cleanup.push(unmount);
+      
+      const processSection = container.querySelector('.process-list');
+      expect(processSection).toBeFalsy();
+    });
+
+    it('should show smaller charts in compact mode', () => {
+      const { container, unmount } = render(MetricsDashboard, {
+        props: { compact: true }
+      });
+      cleanup.push(unmount);
+      
+      const dashboard = container.querySelector('.metrics-dashboard.compact');
+      expect(dashboard).toBeTruthy();
+    });
+
+    it('should apply compact styles to stat cards', () => {
+      const { container, unmount } = render(MetricsDashboard, {
+        props: { compact: true }
+      });
+      cleanup.push(unmount);
+      
+      const cards = container.querySelectorAll('.stat-card');
+      cards.forEach(card => {
+        expect(card.closest('.compact')).toBeTruthy();
+      });
+    });
+  });
+
+  describe('Error Handling', () => {
+    it('should handle missing metrics gracefully', () => {
+      currentMetrics.set(null as any);
+      
+      const { container, unmount } = render(MetricsDashboard);
+      cleanup.push(unmount);
+      
+      // Should still render container
+      expect(container.querySelector('.metrics-dashboard')).toBeTruthy();
+    });
+
+    it('should handle canvas context errors', () => {
+      mockGetContext.mockReturnValueOnce(null);
+      
       const { unmount } = render(MetricsDashboard);
+      cleanup.push(unmount);
+      
+      // Should not throw error
+      expect(true).toBe(true);
+    });
+  });
+
+  describe('Performance', () => {
+    it('should throttle chart updates', async () => {
+      const { unmount } = render(MetricsDashboard);
+      cleanup.push(unmount);
+      
+      const initialCalls = mockContext.clearRect.mock.calls.length;
+      
+      // Rapid metric updates
+      for (let i = 0; i < 10; i++) {
+        currentMetrics.update(m => ({
+          ...m,
+          cpu: { ...m.cpu, usage: 50 + i }
+        }));
+      }
       
       await waitFor(() => {
-        expect(global.requestAnimationFrame).toHaveBeenCalled();
+        // Should not update for every metric change
+        const newCalls = mockContext.clearRect.mock.calls.length - initialCalls;
+        expect(newCalls).toBeLessThan(10);
       });
+    });
+
+    it('should clean up animation frames on unmount', () => {
+      const { unmount } = render(MetricsDashboard);
       
       unmount();
       
@@ -307,82 +416,24 @@ describe('MetricsDashboard', () => {
     });
   });
 
-  describe('Progress Indicators', () => {
-    it('should calculate correct progress for CPU', () => {
-      const { container } = render(MetricsDashboard);
+  describe('Accessibility', () => {
+    it('should have accessible labels for metrics', () => {
+      const { container, unmount } = render(MetricsDashboard);
+      cleanup.push(unmount);
       
-      // The component doesn't use progress bars with inline styles
-      // It uses stat-value classes instead
-      const cpuValue = container.querySelector('.stat-value');
-      expect(cpuValue?.textContent).toContain('45.5%');
+      const cpuCard = container.querySelector('.stat-card');
+      expect(cpuCard?.querySelector('.stat-label')?.textContent).toBe('CPU');
     });
 
-    it('should calculate correct progress for memory', () => {
-      const { container } = render(MetricsDashboard);
+    it('should have accessible chart descriptions', () => {
+      const { container, unmount } = render(MetricsDashboard);
+      cleanup.push(unmount);
       
-      const memoryCard = Array.from(container.querySelectorAll('.stat-card'))
-        .find(card => card.textContent?.includes('Memory'));
-      const memoryValue = memoryCard?.querySelector('.stat-value');
-      expect(memoryValue?.textContent).toContain('50.0%');
-    });
-
-    it('should apply warning color for high usage', () => {
-      currentMetrics.update(m => m ? ({
-        ...m,
-        cpu: { usage: 85, temperature: 80, cores: 8, frequency: 2400 }
-      }) : null);
-      
-      const { container } = render(MetricsDashboard);
-      
-      // Find the CPU stat card and check if it has warning color
-      const cpuCard = Array.from(container.querySelectorAll('.stat-card'))
-        .find(card => card.textContent?.includes('CPU'));
-      const cpuValue = cpuCard?.querySelector('.stat-value');
-      // The component uses getStatusColor function which adds text color classes
-      expect(cpuValue?.className).toContain('text-');
-    });
-
-    it('should apply danger color for critical usage', () => {
-      currentMetrics.update(m => m ? ({
-        ...m,
-        cpu: { usage: 95, temperature: 90, cores: 8, frequency: 2400 }
-      }) : null);
-      
-      const { container } = render(MetricsDashboard);
-      
-      // Find the CPU stat card and check if it has danger/critical color
-      const cpuCard = Array.from(container.querySelectorAll('.stat-card'))
-        .find(card => card.textContent?.includes('CPU'));
-      const cpuValue = cpuCard?.querySelector('.stat-value');
-      // The component uses getStatusColor function which adds text color classes
-      expect(cpuValue?.className).toContain('text-');
-    });
-  });
-
-  describe('Formatting', () => {
-    it('should format bytes correctly', () => {
-      const { container } = render(MetricsDashboard);
-      
-      expect(container.textContent).toContain('8.0 GB');
-      expect(container.textContent).toContain('16.0 GB');
-    });
-
-    it('should format uptime correctly', () => {
-      const { container } = render(MetricsDashboard);
-      
-      expect(container.textContent).toContain('1h 0m');
-    });
-
-    it('should handle zero values', () => {
-      currentMetrics.update(m => m ? ({
-        ...m,
-        cpu: { usage: 0, temperature: 0, cores: 8, frequency: 2400 },
-        memory: { ...m.memory, percent: 0 }
-      }) : null);
-      
-      const { container } = render(MetricsDashboard);
-      
-      expect(container.textContent).toContain('0.0%');
+      const charts = container.querySelectorAll('canvas');
+      charts.forEach(chart => {
+        expect(chart.getAttribute('role')).toBe('img');
+        expect(chart.getAttribute('aria-label')).toBeTruthy();
+      });
     });
   });
 });

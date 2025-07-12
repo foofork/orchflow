@@ -1,13 +1,15 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render } from '@testing-library/svelte';
 import TerminalPanel from './TerminalPanel.svelte';
 import type { Terminal } from '$lib/types';
+import { createVoidMock } from '@/test/mock-factory';
 
 /**
  * Unit tests for TerminalPanel component
  * Tests component logic without canvas rendering
  */
 describe('TerminalPanel - Unit Tests', () => {
+  let cleanup: Array<() => void> = [];
   const mockTerminals: Terminal[] = [
     {
       id: 'term-1',
@@ -33,13 +35,20 @@ describe('TerminalPanel - Unit Tests', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    cleanup = [];
+  });
+
+  afterEach(() => {
+    cleanup.forEach(fn => fn());
+    cleanup = [];
   });
 
   describe('Terminal Management', () => {
     it('displays terminal tabs', () => {
-      const { getAllByRole } = render(TerminalPanel, {
+      const { getAllByRole, unmount } = render(TerminalPanel, {
         props: { terminals: mockTerminals, testMode: true },
       });
+      cleanup.push(unmount);
       
       const tabs = getAllByRole('tab');
       expect(tabs).toHaveLength(2);
@@ -48,15 +57,16 @@ describe('TerminalPanel - Unit Tests', () => {
     });
 
     it('creates new terminal when callback is triggered', async () => {
-      const onTerminalCreate = vi.fn();
+      const onTerminalCreate = createVoidMock<[]>();
       
-      const { getByTitle } = render(TerminalPanel, {
+      const { getByTitle, unmount } = render(TerminalPanel, {
         props: { 
           terminals: mockTerminals,
           onTerminalCreate,
           testMode: true,
         },
       });
+      cleanup.push(unmount);
       
       const newTerminalButton = getByTitle(/New terminal/i);
       await newTerminalButton.click();
@@ -65,15 +75,16 @@ describe('TerminalPanel - Unit Tests', () => {
     });
 
     it('closes terminal when close button clicked', async () => {
-      const onTerminalClose = vi.fn();
+      const onTerminalClose = createVoidMock<[string]>();
       
-      const { getAllByTitle } = render(TerminalPanel, {
+      const { getAllByTitle, unmount } = render(TerminalPanel, {
         props: {
           terminals: mockTerminals,
           onTerminalClose,
           testMode: true,
         },
       });
+      cleanup.push(unmount);
       
       const closeButtons = getAllByTitle(/Close terminal/i);
       await closeButtons[0].click();
@@ -84,13 +95,14 @@ describe('TerminalPanel - Unit Tests', () => {
 
   describe('State Management', () => {
     it('indicates active terminal', () => {
-      const { getAllByRole } = render(TerminalPanel, {
+      const { getAllByRole, unmount } = render(TerminalPanel, {
         props: {
           terminals: mockTerminals,
           activeTerminalId: 'term-1',
           testMode: true,
         },
       });
+      cleanup.push(unmount);
       
       const tabs = getAllByRole('tab');
       expect(tabs[0]).toHaveAttribute('aria-selected', 'true');
@@ -98,13 +110,14 @@ describe('TerminalPanel - Unit Tests', () => {
     });
 
     it('shows process information', () => {
-      const { getByText, container } = render(TerminalPanel, {
+      const { getByText, container, unmount } = render(TerminalPanel, {
         props: {
           terminals: mockTerminals,
           activeTerminalId: 'term-1',
           testMode: true,
         },
       });
+      cleanup.push(unmount);
       
       // Process info is shown in status bar
       const statusBar = container.querySelector('.terminal-status');
@@ -120,13 +133,14 @@ describe('TerminalPanel - Unit Tests', () => {
         { label: 'Run Tests', command: 'npm test' },
       ];
       
-      const { getByText, getByTitle } = render(TerminalPanel, {
+      const { getByText, getByTitle, unmount } = render(TerminalPanel, {
         props: {
           terminals: mockTerminals,
           quickCommands,
           testMode: true,
         },
       });
+      cleanup.push(unmount);
       
       // Click quick commands button to open menu
       const quickCommandsButton = getByTitle(/Quick commands/i);
@@ -138,12 +152,12 @@ describe('TerminalPanel - Unit Tests', () => {
     });
 
     it('executes quick command when clicked', async () => {
-      const onQuickCommand = vi.fn();
+      const onQuickCommand = createVoidMock<[string]>();
       const quickCommands = [
         { label: 'Git Status', command: 'git status' },
       ];
       
-      const { getByText, getByTitle } = render(TerminalPanel, {
+      const { getByText, getByTitle, unmount } = render(TerminalPanel, {
         props: {
           terminals: mockTerminals,
           activeTerminalId: 'term-1',
@@ -152,6 +166,7 @@ describe('TerminalPanel - Unit Tests', () => {
           testMode: true,
         },
       });
+      cleanup.push(unmount);
       
       // Open quick commands menu
       const quickCommandsButton = getByTitle(/Quick commands/i);
@@ -166,9 +181,10 @@ describe('TerminalPanel - Unit Tests', () => {
 
   describe('Accessibility', () => {
     it('has proper ARIA labels', () => {
-      const { getByRole, getAllByRole } = render(TerminalPanel, {
+      const { getByRole, getAllByRole, unmount } = render(TerminalPanel, {
         props: { terminals: mockTerminals, testMode: true },
       });
+      cleanup.push(unmount);
       
       expect(getByRole('tablist')).toHaveAttribute('aria-label', 'Terminal tabs');
       
@@ -178,9 +194,9 @@ describe('TerminalPanel - Unit Tests', () => {
     });
 
     it('supports keyboard navigation', async () => {
-      const onTabSwitch = vi.fn();
+      const onTabSwitch = createVoidMock<[string]>();
       
-      const { getAllByRole } = render(TerminalPanel, {
+      const { getAllByRole, unmount } = render(TerminalPanel, {
         props: {
           terminals: mockTerminals,
           activeTerminalId: 'term-1',
@@ -188,6 +204,7 @@ describe('TerminalPanel - Unit Tests', () => {
           testMode: true,
         },
       });
+      cleanup.push(unmount);
       
       const tabs = getAllByRole('tab');
       tabs[0].focus();

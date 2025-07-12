@@ -4,6 +4,7 @@
   import { FitAddon } from '@xterm/addon-fit';
   import { tmux } from '$lib/tauri/tmux';
   import { NeovimClient } from '$lib/tauri/neovim';
+  import { createTerminalTheme, watchThemeChanges } from '$lib/theme/api';
   import '@xterm/xterm/css/xterm.css';
   
   export let filePath: string | null = null;
@@ -19,34 +20,18 @@
   let lastContent: string = '';
   let paneId: string | null = null;
   let nvimClient: NeovimClient | null = null;
+  let themeUnsubscribe: (() => void) | null = null;
   
   onMount(async () => {
-    // Create terminal
+    // Get initial theme from CSS variables
+    const initialTheme = createTerminalTheme();
+    
+    // Create terminal with dynamic theme
     terminal = new XTerm({
-      theme: {
-        background: '#1e1e1e',
-        foreground: '#d4d4d4',
-        cursor: '#ffffff',
-        black: '#000000',
-        red: '#cd3131',
-        green: '#0dbc79',
-        yellow: '#e5e510',
-        blue: '#2472c8',
-        magenta: '#bc3fbc',
-        cyan: '#11a8cd',
-        white: '#e5e5e5',
-        brightBlack: '#666666',
-        brightRed: '#f14c4c',
-        brightGreen: '#23d18b',
-        brightYellow: '#f5f543',
-        brightBlue: '#3b8eea',
-        brightMagenta: '#d670d6',
-        brightCyan: '#29b8db',
-        brightWhite: '#e5e5e5'
-      },
+      theme: initialTheme,
       fontFamily: 'var(--font-mono)',
-      fontSize: 13,
-      lineHeight: 1.2,
+      fontSize: parseInt(getComputedStyle(document.documentElement).getPropertyValue('--font-body').replace('px', '')) || 13,
+      lineHeight: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--line-height-normal')) || 1.2,
       cursorBlink: true,
       cursorStyle: 'block',
       scrollback: 10000,
@@ -59,6 +44,11 @@
     // Open terminal in container
     terminal.open(container);
     fitAddon.fit();
+    
+    // Watch for theme changes and update terminal
+    themeUnsubscribe = watchThemeChanges((newTheme) => {
+      terminal.options.theme = newTheme;
+    });
     
     try {
       // Create Neovim instance
@@ -158,6 +148,9 @@
     if (resizeObserver) {
       resizeObserver.disconnect();
     }
+    if (themeUnsubscribe) {
+      themeUnsubscribe();
+    }
     if (terminal) {
       terminal.dispose();
     }
@@ -205,7 +198,7 @@
   .editor-container {
     display: flex;
     height: 100%;
-    background: var(--bg-primary);
+    background: var(--editor-bg);
   }
   
   .editor-wrapper {
@@ -219,36 +212,42 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 5px 10px;
-    background: var(--bg-secondary);
-    border-bottom: 1px solid var(--border);
-    font-size: 12px;
-    color: var(--fg-secondary);
+    padding: var(--space-xs) var(--space-sm);
+    background: var(--editor-gutter-bg);
+    border-bottom: 1px solid var(--editor-border);
+    font-size: var(--font-body-sm);
+    color: var(--editor-gutter-fg);
   }
   
   .editor-title {
-    font-weight: 500;
+    font-weight: var(--font-weight-medium);
+    color: var(--editor-gutter-active);
   }
   
   .editor-actions {
     display: flex;
-    gap: 5px;
+    gap: var(--space-xs);
   }
   
   .editor-action {
     background: none;
     border: none;
-    color: var(--fg-secondary);
+    color: var(--editor-gutter-fg);
     cursor: pointer;
-    padding: 2px 6px;
-    border-radius: 3px;
-    font-size: 12px;
-    transition: all 0.2s;
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-body-sm);
+    transition: all var(--duration-fast) var(--ease-out);
   }
   
   .editor-action:hover {
-    background: var(--bg-hover);
-    color: var(--fg-primary);
+    background: var(--state-hover-bg);
+    color: var(--state-hover-fg);
+  }
+  
+  .editor-action:focus {
+    outline: var(--state-focus-outline);
+    outline-offset: var(--state-focus-outline-offset);
   }
   
   .editor-terminal {
@@ -258,6 +257,9 @@
   
   :global(.xterm) {
     height: 100%;
-    padding: 5px;
+    padding: var(--space-xs);
+    font-family: var(--font-mono);
+    font-size: var(--font-body);
+    line-height: var(--line-height-normal);
   }
 </style>

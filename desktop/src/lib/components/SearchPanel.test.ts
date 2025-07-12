@@ -1,46 +1,55 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import SearchPanel from './SearchPanel.svelte';
+import { createTypedMock, createSyncMock, createAsyncMock } from '@/test/mock-factory';
 
 // Mock Tauri API
 vi.mock('@tauri-apps/api/core', () => ({
-  invoke: vi.fn()
+  invoke: createAsyncMock<[string, any], any>()
 }));
 
 describe('SearchPanel', () => {
+  let cleanup: Array<() => void> = [];
+
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
+    cleanup = [];
   });
 
   afterEach(() => {
+    cleanup.forEach(fn => fn());
     vi.restoreAllMocks();
     vi.useRealTimers();
   });
 
   describe('Rendering', () => {
     it('should render search input', () => {
-      const { container } = render(SearchPanel);
+      const { container, unmount } = render(SearchPanel);
+      cleanup.push(unmount);
       const input = container.querySelector('.search-input');
       expect(input).toBeTruthy();
       expect(input?.getAttribute('placeholder')).toBe('Search');
     });
 
     it('should render search button', () => {
-      const { container } = render(SearchPanel);
+      const { container, unmount } = render(SearchPanel);
+      cleanup.push(unmount);
       const button = container.querySelector('.search-button');
       expect(button).toBeTruthy();
       expect(button?.textContent).toBe('🔍');
     });
 
     it('should render search options', () => {
-      const { getByText } = render(SearchPanel);
+      const { getByText, unmount } = render(SearchPanel);
+      cleanup.push(unmount);
       expect(getByText('Match Case')).toBeTruthy();
       expect(getByText('Use Regex')).toBeTruthy();
     });
 
     it('should render filter inputs', () => {
-      const { getByLabelText } = render(SearchPanel);
+      const { getByLabelText, unmount } = render(SearchPanel);
+      cleanup.push(unmount);
       const includeInput = getByLabelText('Include:');
       const excludeInput = getByLabelText('Exclude:');
       
@@ -49,20 +58,23 @@ describe('SearchPanel', () => {
     });
 
     it('should show default exclude pattern', () => {
-      const { getByLabelText } = render(SearchPanel);
+      const { getByLabelText, unmount } = render(SearchPanel);
+      cleanup.push(unmount);
       const excludeInput = getByLabelText('Exclude:') as HTMLInputElement;
       expect(excludeInput.value).toBe('**/node_modules/**,**/.git/**');
     });
 
     it('should show search hint when no search performed', () => {
-      const { getByText } = render(SearchPanel);
+      const { getByText, unmount } = render(SearchPanel);
+      cleanup.push(unmount);
       expect(getByText('Type to search across all files')).toBeTruthy();
     });
   });
 
   describe('Search Functionality', () => {
     it('should perform search on button click', async () => {
-      const { container, getByText } = render(SearchPanel);
+      const { container, getByText, unmount } = render(SearchPanel);
+      cleanup.push(unmount);
       const input = container.querySelector('.search-input') as HTMLInputElement;
       const button = container.querySelector('.search-button') as HTMLButtonElement;
       
@@ -81,7 +93,8 @@ describe('SearchPanel', () => {
     });
 
     it('should perform search on Enter key', async () => {
-      const { container, getByText } = render(SearchPanel);
+      const { container, getByText, unmount } = render(SearchPanel);
+      cleanup.push(unmount);
       const input = container.querySelector('.search-input') as HTMLInputElement;
       
       await fireEvent.input(input, { target: { value: 'test_query' } });
@@ -97,7 +110,8 @@ describe('SearchPanel', () => {
     });
 
     it('should not search with empty query', async () => {
-      const { container, queryByText } = render(SearchPanel);
+      const { container, queryByText, unmount } = render(SearchPanel);
+      cleanup.push(unmount);
       const button = container.querySelector('.search-button') as HTMLButtonElement;
       
       await fireEvent.click(button);
@@ -107,7 +121,8 @@ describe('SearchPanel', () => {
     });
 
     it('should disable search button when searching', async () => {
-      const { container } = render(SearchPanel);
+      const { container, unmount } = render(SearchPanel);
+      cleanup.push(unmount);
       const input = container.querySelector('.search-input') as HTMLInputElement;
       const button = container.querySelector('.search-button') as HTMLButtonElement;
       
@@ -126,7 +141,8 @@ describe('SearchPanel', () => {
     });
 
     it('should clear results when query is cleared', async () => {
-      const { container, getByText, queryByText } = render(SearchPanel);
+      const { container, getByText, queryByText, unmount } = render(SearchPanel);
+      cleanup.push(unmount);
       const input = container.querySelector('.search-input') as HTMLInputElement;
       const button = container.querySelector('.search-button') as HTMLButtonElement;
       
@@ -151,7 +167,8 @@ describe('SearchPanel', () => {
 
   describe('Search Results', () => {
     it('should display search results', async () => {
-      const { container, getByText } = render(SearchPanel);
+      const { container, getByText, unmount } = render(SearchPanel);
+      cleanup.push(unmount);
       const input = container.querySelector('.search-input') as HTMLInputElement;
       
       await fireEvent.input(input, { target: { value: 'process_data' } });
@@ -167,7 +184,8 @@ describe('SearchPanel', () => {
     });
 
     it('should highlight matches in results', async () => {
-      const { container } = render(SearchPanel);
+      const { container, unmount } = render(SearchPanel);
+      cleanup.push(unmount);
       const input = container.querySelector('.search-input') as HTMLInputElement;
       
       await fireEvent.input(input, { target: { value: 'process_data' } });
@@ -183,7 +201,8 @@ describe('SearchPanel', () => {
     });
 
     it('should handle case-insensitive search', async () => {
-      const { container, getByLabelText } = render(SearchPanel);
+      const { container, getByLabelText, unmount } = render(SearchPanel);
+      cleanup.push(unmount);
       const input = container.querySelector('.search-input') as HTMLInputElement;
       const caseSensitiveCheckbox = getByLabelText('Match Case') as HTMLInputElement;
       
@@ -203,7 +222,8 @@ describe('SearchPanel', () => {
     });
 
     it('should show no results message when nothing found', async () => {
-      const { container, getByText } = render(SearchPanel);
+      const { container, getByText, unmount } = render(SearchPanel);
+      cleanup.push(unmount);
       const input = container.querySelector('.search-input') as HTMLInputElement;
       
       await fireEvent.input(input, { target: { value: 'nonexistent_query' } });
@@ -222,7 +242,8 @@ describe('SearchPanel', () => {
 
   describe('Search Options', () => {
     it('should toggle case sensitive option', async () => {
-      const { getByLabelText } = render(SearchPanel);
+      const { getByLabelText, unmount } = render(SearchPanel);
+      cleanup.push(unmount);
       const checkbox = getByLabelText('Match Case') as HTMLInputElement;
       
       expect(checkbox.checked).toBe(false);
@@ -235,7 +256,8 @@ describe('SearchPanel', () => {
     });
 
     it('should toggle regex option', async () => {
-      const { getByLabelText } = render(SearchPanel);
+      const { getByLabelText, unmount } = render(SearchPanel);
+      cleanup.push(unmount);
       const checkbox = getByLabelText('Use Regex') as HTMLInputElement;
       
       expect(checkbox.checked).toBe(false);
@@ -245,7 +267,8 @@ describe('SearchPanel', () => {
     });
 
     it('should update include pattern', async () => {
-      const { getByLabelText } = render(SearchPanel);
+      const { getByLabelText, unmount } = render(SearchPanel);
+      cleanup.push(unmount);
       const input = getByLabelText('Include:') as HTMLInputElement;
       
       await fireEvent.input(input, { target: { value: '*.rs,*.ts' } });
@@ -253,7 +276,8 @@ describe('SearchPanel', () => {
     });
 
     it('should update exclude pattern', async () => {
-      const { getByLabelText } = render(SearchPanel);
+      const { getByLabelText, unmount } = render(SearchPanel);
+      cleanup.push(unmount);
       const input = getByLabelText('Exclude:') as HTMLInputElement;
       
       await fireEvent.input(input, { target: { value: '**/target/**' } });
@@ -263,7 +287,8 @@ describe('SearchPanel', () => {
 
   describe('Result Interaction', () => {
     it('should emit openFile event when clicking result', async () => {
-      const { container, component } = render(SearchPanel);
+      const { container, component, unmount } = render(SearchPanel);
+      cleanup.push(unmount);
       const input = container.querySelector('.search-input') as HTMLInputElement;
       
       let eventData: any = null;
@@ -292,7 +317,8 @@ describe('SearchPanel', () => {
     });
 
     it('should handle multiple result clicks', async () => {
-      const { container, component } = render(SearchPanel);
+      const { container, component, unmount } = render(SearchPanel);
+      cleanup.push(unmount);
       const input = container.querySelector('.search-input') as HTMLInputElement;
       
       const events: any[] = [];
@@ -322,11 +348,13 @@ describe('SearchPanel', () => {
 
   describe('Error Handling', () => {
     it('should handle search errors gracefully', async () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleSpy = createTypedMock<[any], void>();
+      vi.spyOn(console, 'error').mockImplementation(consoleSpy);
       
       // Mock the simulateSearch to throw an error
       // In a real test, we'd mock the invoke function
-      const { container } = render(SearchPanel);
+      const { container, unmount } = render(SearchPanel);
+      cleanup.push(unmount);
       const input = container.querySelector('.search-input') as HTMLInputElement;
       
       await fireEvent.input(input, { target: { value: 'test' } });
@@ -335,20 +363,22 @@ describe('SearchPanel', () => {
       // The current implementation doesn't actually throw errors
       // but the error handling path exists in the code
       
-      consoleSpy.mockRestore();
+      vi.mocked(console.error).mockRestore();
     });
   });
 
   describe('UI States', () => {
     it('should disable search button when query is empty', () => {
-      const { container } = render(SearchPanel);
+      const { container, unmount } = render(SearchPanel);
+      cleanup.push(unmount);
       const button = container.querySelector('.search-button') as HTMLButtonElement;
       
       expect(button.disabled).toBe(true);
     });
 
     it('should enable search button when query is entered', async () => {
-      const { container } = render(SearchPanel);
+      const { container, unmount } = render(SearchPanel);
+      cleanup.push(unmount);
       const input = container.querySelector('.search-input') as HTMLInputElement;
       const button = container.querySelector('.search-button') as HTMLButtonElement;
       
@@ -358,7 +388,8 @@ describe('SearchPanel', () => {
     });
 
     it('should trim whitespace from query', async () => {
-      const { container } = render(SearchPanel);
+      const { container, unmount } = render(SearchPanel);
+      cleanup.push(unmount);
       const input = container.querySelector('.search-input') as HTMLInputElement;
       const button = container.querySelector('.search-button') as HTMLButtonElement;
       

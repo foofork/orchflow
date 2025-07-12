@@ -1,16 +1,21 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { get } from 'svelte/store';
+import { createTypedMock } from '../../../test/utils/mock-factory';
+import { buildSettings } from '../../../test/test-data-builders';
+
+// Create typed mock for localStorage
+const createLocalStorageMock = () => ({
+  getItem: createTypedMock<Storage['getItem']>(),
+  setItem: createTypedMock<Storage['setItem']>(),
+  removeItem: createTypedMock<Storage['removeItem']>(),
+  clear: createTypedMock<Storage['clear']>(),
+  length: 0,
+  key: createTypedMock<Storage['key']>()
+});
+
+const localStorageMock = createLocalStorageMock();
 
 // Mock localStorage BEFORE importing the store
-const localStorageMock = {
-  getItem: vi.fn(),
-  setItem: vi.fn(),
-  removeItem: vi.fn(),
-  clear: vi.fn(),
-  length: 0,
-  key: vi.fn()
-};
-
 Object.defineProperty(window, 'localStorage', {
   value: localStorageMock,
   writable: true
@@ -41,13 +46,15 @@ describe('Settings Store', () => {
   };
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    // Reset all mocks
     localStorageMock.getItem.mockReturnValue(null);
   });
 
   afterEach(() => {
     // Reset the store by recreating it
     settings.reset();
+    // Clear all mocks
+    vi.clearAllMocks();
   });
 
   describe('initialization', () => {
@@ -111,12 +118,11 @@ describe('Settings Store', () => {
 
   describe('set', () => {
     it('should update settings and save to localStorage', () => {
-      const newSettings: Settings = {
-        ...defaultSettings,
+      const newSettings = buildSettings({
         theme: 'light',
         fontSize: 16,
         autoSave: true,
-      };
+      });
       
       settings.set(newSettings);
       
@@ -134,7 +140,7 @@ describe('Settings Store', () => {
       // @ts-ignore
       delete global.window;
       
-      const newSettings = { ...defaultSettings, theme: 'light' as const };
+      const newSettings = buildSettings({ theme: 'light' });
       settings.set(newSettings);
       
       const currentSettings = get(settings);
@@ -202,11 +208,11 @@ describe('Settings Store', () => {
   describe('reset', () => {
     it('should reset to default settings and clear localStorage', () => {
       // First modify settings
-      settings.set({
-        ...defaultSettings,
+      const customSettings = buildSettings({
         theme: 'light',
         fontSize: 20,
       });
+      settings.set(customSettings);
       
       // Then reset
       settings.reset();
@@ -285,12 +291,11 @@ describe('Settings Store', () => {
 
   describe('persistence', () => {
     it('should persist changes across store recreations', async () => {
-      const customSettings: Settings = {
-        ...defaultSettings,
+      const customSettings = buildSettings({
         theme: 'light',
         fontSize: 18,
         autoSave: true,
-      };
+      });
       
       settings.set(customSettings);
       
@@ -307,7 +312,7 @@ describe('Settings Store', () => {
   describe('edge cases', () => {
     it('should handle partial settings objects in localStorage', async () => {
       const partialSettings = {
-        theme: 'light',
+        theme: 'light' as const,
         fontSize: 20,
         // Missing many other properties
       };
@@ -348,6 +353,58 @@ describe('Settings Store', () => {
       expect(currentSettings.terminal.fontSize).toBe(16);
       expect(currentSettings.terminal.fontFamily).toBe(defaultSettings.terminal.fontFamily);
       expect(currentSettings.terminal.cursorBlink).toBe(defaultSettings.terminal.cursorBlink);
+    });
+  });
+
+  describe('settings builder integration', () => {
+    it('should work with buildSettings helper', () => {
+      const customSettings = buildSettings({
+        theme: 'light',
+        fontSize: 18,
+        terminal: {
+          fontSize: 16,
+          fontFamily: 'JetBrains Mono',
+          cursorBlink: false,
+        },
+        editor: {
+          vim: true,
+          lineNumbers: false,
+          rulers: [100],
+        },
+      });
+
+      settings.set(customSettings);
+      
+      const currentSettings = get(settings);
+      expect(currentSettings.theme).toBe('light');
+      expect(currentSettings.fontSize).toBe(18);
+      expect(currentSettings.terminal.fontSize).toBe(16);
+      expect(currentSettings.terminal.fontFamily).toBe('JetBrains Mono');
+      expect(currentSettings.editor.vim).toBe(true);
+      expect(currentSettings.editor.rulers).toEqual([100]);
+    });
+
+    it('should use buildSettings for partial updates', () => {
+      const initial = buildSettings({ theme: 'dark' });
+      settings.set(initial);
+
+      const updated = buildSettings({ 
+        theme: 'light',
+        fontSize: 20,
+      });
+      
+      settings.update(s => ({
+        ...s,
+        theme: updated.theme,
+        fontSize: updated.fontSize,
+      }));
+
+      const currentSettings = get(settings);
+      expect(currentSettings.theme).toBe('light');
+      expect(currentSettings.fontSize).toBe(20);
+      // Other settings remain unchanged
+      expect(currentSettings.tabSize).toBe(initial.tabSize);
+      expect(currentSettings.terminal).toEqual(initial.terminal);
     });
   });
 });

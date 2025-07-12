@@ -1,17 +1,26 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
+import { createTypedMock } from '@/test/mock-factory';
 import DebugPanel from './DebugPanel.svelte';
 
 describe('DebugPanel', () => {
+  let cleanup: Array<() => void> = [];
+
   beforeEach(() => {
     vi.clearAllMocks();
+    cleanup = [];
+  });
+
+  afterEach(() => {
+    cleanup.forEach(fn => fn());
   });
 
   describe('Rendering', () => {
     it('renders debug panel', () => {
-      const { container } = render(DebugPanel, {
+      const { container, unmount } = render(DebugPanel, {
         props: { sessionId: 'test-session' }
       });
+      cleanup.push(unmount);
 
       expect(container.querySelector('.debug-panel')).toBeTruthy();
       expect(container.querySelector('.debug-header')).toBeTruthy();
@@ -19,9 +28,10 @@ describe('DebugPanel', () => {
     });
 
     it('loads and displays debug configurations', async () => {
-      const { container } = render(DebugPanel, {
+      const { container, unmount } = render(DebugPanel, {
         props: { sessionId: 'test-session' }
       });
+      cleanup.push(unmount);
 
       await waitFor(() => {
         const select = container.querySelector('.config-select') as HTMLSelectElement;
@@ -34,9 +44,10 @@ describe('DebugPanel', () => {
     });
 
     it('shows start button when not debugging', () => {
-      const { container } = render(DebugPanel, {
+      const { container, unmount } = render(DebugPanel, {
         props: { sessionId: 'test-session' }
       });
+      cleanup.push(unmount);
 
       const startBtn = container.querySelector('.control-btn.start');
       expect(startBtn).toBeTruthy();
@@ -44,9 +55,10 @@ describe('DebugPanel', () => {
     });
 
     it('shows no debug message when not debugging', () => {
-      const { container } = render(DebugPanel, {
+      const { container, unmount } = render(DebugPanel, {
         props: { sessionId: 'test-session' }
       });
+      cleanup.push(unmount);
 
       const noDebug = container.querySelector('.no-debug');
       expect(noDebug).toBeTruthy();
@@ -56,10 +68,13 @@ describe('DebugPanel', () => {
 
   describe('Debug Session', () => {
     it('starts debugging when start button clicked', async () => {
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-      const { container } = render(DebugPanel, {
+      const consoleSpy = createTypedMock<[message?: any, ...optionalParams: any[]], void>();
+      vi.spyOn(console, 'log').mockImplementation(consoleSpy);
+      const { container, unmount } = render(DebugPanel, {
         props: { sessionId: 'test-session' }
       });
+      cleanup.push(unmount);
+      cleanup.push(() => vi.mocked(console.log).mockRestore());
 
       // Wait for configurations to load
       await waitFor(() => {
@@ -81,14 +96,13 @@ describe('DebugPanel', () => {
         expect(container.querySelector('.control-btn[title="Restart"]')).toBeTruthy();
         expect(container.querySelector('.control-btn.stop')).toBeTruthy();
       });
-
-      consoleSpy.mockRestore();
     });
 
     it('displays call stack when debugging', async () => {
-      const { container } = render(DebugPanel, {
+      const { container, unmount } = render(DebugPanel, {
         props: { sessionId: 'test-session' }
       });
+      cleanup.push(unmount);
 
       // Start debugging
       await waitFor(() => {
@@ -112,9 +126,10 @@ describe('DebugPanel', () => {
     });
 
     it('displays variables when debugging', async () => {
-      const { container } = render(DebugPanel, {
+      const { container, unmount } = render(DebugPanel, {
         props: { sessionId: 'test-session' }
       });
+      cleanup.push(unmount);
 
       // Start debugging
       await waitFor(() => {
@@ -141,9 +156,10 @@ describe('DebugPanel', () => {
     });
 
     it('displays breakpoints when debugging', async () => {
-      const { container } = render(DebugPanel, {
+      const { container, unmount } = render(DebugPanel, {
         props: { sessionId: 'test-session' }
       });
+      cleanup.push(unmount);
 
       // Start debugging
       await waitFor(() => {
@@ -168,10 +184,13 @@ describe('DebugPanel', () => {
 
   describe('Debug Controls', () => {
     it('handles continue execution', async () => {
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-      const { container } = render(DebugPanel, {
+      const consoleSpy = createTypedMock<[message?: any, ...optionalParams: any[]], void>();
+      vi.spyOn(console, 'log').mockImplementation(consoleSpy);
+      const { container, unmount } = render(DebugPanel, {
         props: { sessionId: 'test-session' }
       });
+      cleanup.push(unmount);
+      cleanup.push(() => vi.mocked(console.log).mockRestore());
 
       // Start debugging
       await waitFor(() => {
@@ -192,14 +211,16 @@ describe('DebugPanel', () => {
       await fireEvent.click(continueBtn);
 
       expect(consoleSpy).toHaveBeenCalledWith('Continue execution');
-      consoleSpy.mockRestore();
     });
 
     it('handles step over', async () => {
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-      const { container } = render(DebugPanel, {
+      const consoleSpy = createTypedMock<[message?: any, ...optionalParams: any[]], void>();
+      vi.spyOn(console, 'log').mockImplementation(consoleSpy);
+      const { container, unmount } = render(DebugPanel, {
         props: { sessionId: 'test-session' }
       });
+      cleanup.push(unmount);
+      cleanup.push(() => vi.mocked(console.log).mockRestore());
 
       // Start debugging
       await waitFor(() => {
@@ -215,14 +236,16 @@ describe('DebugPanel', () => {
       await fireEvent.click(stepOverBtn);
 
       expect(consoleSpy).toHaveBeenCalledWith('Step over');
-      consoleSpy.mockRestore();
     });
 
     it('handles step into', async () => {
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-      const { container } = render(DebugPanel, {
+      const consoleSpy = createTypedMock<[message?: any, ...optionalParams: any[]], void>();
+      vi.spyOn(console, 'log').mockImplementation(consoleSpy);
+      const { container, unmount } = render(DebugPanel, {
         props: { sessionId: 'test-session' }
       });
+      cleanup.push(unmount);
+      cleanup.push(() => vi.mocked(console.log).mockRestore());
 
       // Start debugging
       await waitFor(() => {
@@ -238,14 +261,16 @@ describe('DebugPanel', () => {
       await fireEvent.click(stepIntoBtn);
 
       expect(consoleSpy).toHaveBeenCalledWith('Step into');
-      consoleSpy.mockRestore();
     });
 
     it('handles step out', async () => {
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-      const { container } = render(DebugPanel, {
+      const consoleSpy = createTypedMock<[message?: any, ...optionalParams: any[]], void>();
+      vi.spyOn(console, 'log').mockImplementation(consoleSpy);
+      const { container, unmount } = render(DebugPanel, {
         props: { sessionId: 'test-session' }
       });
+      cleanup.push(unmount);
+      cleanup.push(() => vi.mocked(console.log).mockRestore());
 
       // Start debugging
       await waitFor(() => {
@@ -261,14 +286,16 @@ describe('DebugPanel', () => {
       await fireEvent.click(stepOutBtn);
 
       expect(consoleSpy).toHaveBeenCalledWith('Step out');
-      consoleSpy.mockRestore();
     });
 
     it('handles restart', async () => {
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-      const { container } = render(DebugPanel, {
+      const consoleSpy = createTypedMock<[message?: any, ...optionalParams: any[]], void>();
+      vi.spyOn(console, 'log').mockImplementation(consoleSpy);
+      const { container, unmount } = render(DebugPanel, {
         props: { sessionId: 'test-session' }
       });
+      cleanup.push(unmount);
+      cleanup.push(() => vi.mocked(console.log).mockRestore());
 
       // Start debugging
       await waitFor(() => {
@@ -284,13 +311,13 @@ describe('DebugPanel', () => {
       await fireEvent.click(restartBtn);
 
       expect(consoleSpy).toHaveBeenCalledWith('Restart debugging');
-      consoleSpy.mockRestore();
     });
 
     it('stops debugging when stop button clicked', async () => {
-      const { container } = render(DebugPanel, {
+      const { container, unmount } = render(DebugPanel, {
         props: { sessionId: 'test-session' }
       });
+      cleanup.push(unmount);
 
       // Start debugging
       await waitFor(() => {
@@ -315,9 +342,10 @@ describe('DebugPanel', () => {
 
   describe('Breakpoint Management', () => {
     it('removes breakpoint when remove button clicked', async () => {
-      const { container } = render(DebugPanel, {
+      const { container, unmount } = render(DebugPanel, {
         props: { sessionId: 'test-session' }
       });
+      cleanup.push(unmount);
 
       // Start debugging
       await waitFor(() => {
@@ -349,9 +377,10 @@ describe('DebugPanel', () => {
 
   describe('Configuration Selection', () => {
     it('changes selected configuration', async () => {
-      const { container } = render(DebugPanel, {
+      const { container, unmount } = render(DebugPanel, {
         props: { sessionId: 'test-session' }
       });
+      cleanup.push(unmount);
 
       await waitFor(() => {
         const select = container.querySelector('.config-select') as HTMLSelectElement;
@@ -370,9 +399,10 @@ describe('DebugPanel', () => {
     });
 
     it('disables configuration select when debugging', async () => {
-      const { container } = render(DebugPanel, {
+      const { container, unmount } = render(DebugPanel, {
         props: { sessionId: 'test-session' }
       });
+      cleanup.push(unmount);
 
       await waitFor(() => {
         const select = container.querySelector('.config-select') as HTMLSelectElement;
@@ -395,17 +425,19 @@ describe('DebugPanel', () => {
     it('handles empty configurations gracefully', () => {
       // This test would require mocking the loadConfigurations function
       // which is internal to the component
-      const { container } = render(DebugPanel, {
+      const { container, unmount } = render(DebugPanel, {
         props: { sessionId: 'test-session' }
       });
+      cleanup.push(unmount);
 
       expect(container.querySelector('.debug-panel')).toBeTruthy();
     });
 
     it('disables start button when no configuration selected', async () => {
-      const { container } = render(DebugPanel, {
+      const { container, unmount } = render(DebugPanel, {
         props: { sessionId: 'test-session' }
       });
+      cleanup.push(unmount);
 
       await waitFor(() => {
         const startBtn = container.querySelector('.control-btn.start') as HTMLButtonElement;

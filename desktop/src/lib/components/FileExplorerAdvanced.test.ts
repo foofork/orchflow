@@ -1,11 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import FileExplorerAdvanced from './FileExplorerAdvanced.svelte';
 import { mockInvoke, createMockFile } from '../../test/utils';
+import { createTypedMock } from '@/test/mock-factory';
 
 describe('FileExplorerAdvanced', () => {
   let user: ReturnType<typeof userEvent.setup>;
+  let cleanup: Array<() => void> = [];
   
   const mockFileTree = [
     {
@@ -61,7 +63,7 @@ describe('FileExplorerAdvanced', () => {
   
   // Helper function to render with test mode
   const renderFileExplorer = (props: any = {}) => {
-    return render(FileExplorerAdvanced, {
+    const result = render(FileExplorerAdvanced, {
       props: {
         testMode: true,
         autoLoad: false,
@@ -70,10 +72,13 @@ describe('FileExplorerAdvanced', () => {
         ...props
       }
     });
+    cleanup.push(result.unmount);
+    return result;
   };
 
   beforeEach(() => {
     user = userEvent.setup();
+    cleanup = [];
     vi.clearAllMocks();
     mockInvoke({
       get_file_tree: mockFileTree,
@@ -97,6 +102,10 @@ describe('FileExplorerAdvanced', () => {
       rename_path: true,
       delete_path: true,
     });
+  });
+
+  afterEach(() => {
+    cleanup.forEach(fn => fn());
   });
 
   it('renders file explorer container', () => {

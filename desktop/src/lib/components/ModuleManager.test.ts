@@ -1,17 +1,20 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import ModuleManager from './ModuleManager.svelte';
+import { createAsyncMock } from '@/test/mock-factory';
 
 // Mock moduleClient
 vi.mock('$lib/tauri/modules', () => ({
   moduleClient: {
-    scanModules: vi.fn(),
-    listModules: vi.fn(),
-    enableModule: vi.fn()
+    scanModules: createAsyncMock<[], void>(undefined),
+    listModules: createAsyncMock<[], any[]>([]),
+    enableModule: createAsyncMock<[string, boolean], void>(undefined)
   }
 }));
 
 describe('ModuleManager', () => {
+  let cleanup: Array<() => void> = [];
+
   const mockModules = [
     {
       name: 'vim-mode',
@@ -50,6 +53,7 @@ describe('ModuleManager', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    cleanup = [];
     const { moduleClient } = await import('$lib/tauri/modules');
     mockModuleClient = moduleClient as any;
     mockModuleClient.scanModules.mockResolvedValue(undefined);
@@ -57,9 +61,14 @@ describe('ModuleManager', () => {
     mockModuleClient.enableModule.mockResolvedValue(undefined);
   });
 
+  afterEach(() => {
+    cleanup.forEach(fn => fn());
+  });
+
   describe('Rendering', () => {
     it('renders module manager', () => {
-      const { container } = render(ModuleManager);
+      const { container, unmount } = render(ModuleManager);
+      cleanup.push(unmount);
 
       expect(container.querySelector('.module-manager')).toBeTruthy();
       expect(container.querySelector('.header')).toBeTruthy();
@@ -67,14 +76,16 @@ describe('ModuleManager', () => {
     });
 
     it('shows loading state initially', () => {
-      const { container } = render(ModuleManager);
+      const { container, unmount } = render(ModuleManager);
+      cleanup.push(unmount);
 
       expect(container.querySelector('.loading')).toBeTruthy();
       expect(container.querySelector('.loading')?.textContent).toContain('Loading modules...');
     });
 
     it('renders refresh button', () => {
-      const { container } = render(ModuleManager);
+      const { container, unmount } = render(ModuleManager);
+      cleanup.push(unmount);
 
       const refreshBtn = container.querySelector('.refresh-button');
       expect(refreshBtn).toBeTruthy();
@@ -84,7 +95,8 @@ describe('ModuleManager', () => {
 
   describe('Module Loading', () => {
     it('loads modules on mount', async () => {
-      render(ModuleManager);
+      const { unmount } = render(ModuleManager);
+      cleanup.push(unmount);
 
       await waitFor(() => {
         expect(mockModuleClient.scanModules).toHaveBeenCalledTimes(1);
@@ -93,7 +105,8 @@ describe('ModuleManager', () => {
     });
 
     it('displays modules after loading', async () => {
-      const { container } = render(ModuleManager);
+      const { container, unmount } = render(ModuleManager);
+      cleanup.push(unmount);
 
       await waitFor(() => {
         const moduleCards = container.querySelectorAll('.module-card');
@@ -111,7 +124,8 @@ describe('ModuleManager', () => {
     it('handles loading error', async () => {
       mockModuleClient.scanModules.mockRejectedValueOnce(new Error('Failed to scan'));
       
-      const { container } = render(ModuleManager);
+      const { container, unmount } = render(ModuleManager);
+      cleanup.push(unmount);
 
       await waitFor(() => {
         const error = container.querySelector('.error');
@@ -123,7 +137,8 @@ describe('ModuleManager', () => {
     it('shows empty state when no modules', async () => {
       mockModuleClient.listModules.mockResolvedValueOnce([]);
       
-      const { container } = render(ModuleManager);
+      const { container, unmount } = render(ModuleManager);
+      cleanup.push(unmount);
 
       await waitFor(() => {
         const empty = container.querySelector('.empty');
@@ -136,7 +151,8 @@ describe('ModuleManager', () => {
 
   describe('Module Display', () => {
     it('displays correct module type icons', async () => {
-      const { container } = render(ModuleManager);
+      const { container, unmount } = render(ModuleManager);
+      cleanup.push(unmount);
 
       await waitFor(() => {
         const moduleCards = container.querySelectorAll('.module-card');
@@ -150,7 +166,8 @@ describe('ModuleManager', () => {
     });
 
     it('displays module permissions', async () => {
-      const { container } = render(ModuleManager);
+      const { container, unmount } = render(ModuleManager);
+      cleanup.push(unmount);
 
       await waitFor(() => {
         const moduleCards = container.querySelectorAll('.module-card');
@@ -166,7 +183,8 @@ describe('ModuleManager', () => {
     });
 
     it('displays module dependencies', async () => {
-      const { container } = render(ModuleManager);
+      const { container, unmount } = render(ModuleManager);
+      cleanup.push(unmount);
 
       await waitFor(() => {
         const moduleCards = container.querySelectorAll('.module-card');
@@ -181,7 +199,8 @@ describe('ModuleManager', () => {
     });
 
     it('hides permissions section when module has no permissions', async () => {
-      const { container } = render(ModuleManager);
+      const { container, unmount } = render(ModuleManager);
+      cleanup.push(unmount);
 
       await waitFor(() => {
         const moduleCards = container.querySelectorAll('.module-card');
@@ -194,7 +213,8 @@ describe('ModuleManager', () => {
     });
 
     it('hides dependencies section when module has no dependencies', async () => {
-      const { container } = render(ModuleManager);
+      const { container, unmount } = render(ModuleManager);
+      cleanup.push(unmount);
 
       await waitFor(() => {
         const moduleCards = container.querySelectorAll('.module-card');
@@ -209,7 +229,8 @@ describe('ModuleManager', () => {
 
   describe('Module Actions', () => {
     it('toggles module when checkbox changed', async () => {
-      const { container } = render(ModuleManager);
+      const { container, unmount } = render(ModuleManager);
+      cleanup.push(unmount);
 
       await waitFor(() => {
         const moduleCards = container.querySelectorAll('.module-card');
@@ -234,7 +255,8 @@ describe('ModuleManager', () => {
     it('handles toggle error gracefully', async () => {
       mockModuleClient.enableModule.mockRejectedValueOnce(new Error('Failed to toggle'));
       
-      const { container } = render(ModuleManager);
+      const { container, unmount } = render(ModuleManager);
+      cleanup.push(unmount);
 
       await waitFor(() => {
         const moduleCards = container.querySelectorAll('.module-card');
@@ -252,7 +274,8 @@ describe('ModuleManager', () => {
     });
 
     it('refreshes modules when refresh button clicked', async () => {
-      const { container } = render(ModuleManager);
+      const { container, unmount } = render(ModuleManager);
+      cleanup.push(unmount);
 
       await waitFor(() => {
         const moduleCards = container.querySelectorAll('.module-card');
@@ -270,7 +293,8 @@ describe('ModuleManager', () => {
     });
 
     it('disables refresh button while loading', async () => {
-      const { container } = render(ModuleManager);
+      const { container, unmount } = render(ModuleManager);
+      cleanup.push(unmount);
 
       // Initially disabled while loading
       const refreshBtn = container.querySelector('.refresh-button') as HTMLButtonElement;
@@ -285,7 +309,8 @@ describe('ModuleManager', () => {
 
   describe('Module Type Handling', () => {
     it('displays correct module type text', async () => {
-      const { container } = render(ModuleManager);
+      const { container, unmount } = render(ModuleManager);
+      cleanup.push(unmount);
 
       await waitFor(() => {
         const moduleCards = container.querySelectorAll('.module-card');
@@ -301,7 +326,8 @@ describe('ModuleManager', () => {
 
   describe('Permission Icons', () => {
     it('displays correct permission icons', async () => {
-      const { container } = render(ModuleManager);
+      const { container, unmount } = render(ModuleManager);
+      cleanup.push(unmount);
 
       await waitFor(() => {
         const moduleCards = container.querySelectorAll('.module-card');

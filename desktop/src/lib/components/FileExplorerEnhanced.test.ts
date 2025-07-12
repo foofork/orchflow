@@ -3,7 +3,7 @@ import { render, fireEvent, waitFor, screen } from '@testing-library/svelte';
 import FileExplorerEnhanced from './FileExplorerEnhanced.svelte';
 import type { TreeNode } from '$lib/types';
 import { buildTreeNode, buildDirectoryNode, buildFileNode } from '@/test/test-data-builders';
-import { createAsyncMock, createSyncMock } from '@/test/mock-factory';
+import { createAsyncMock, createSyncMock, createTypedMock } from '@/test/mock-factory';
 
 // The FileTree, ContextMenu, and Dialog components are already mocked in setup-mocks.ts
 // But we need to mock FileTree.svelte explicitly since it's not in setup-mocks.ts
@@ -38,6 +38,8 @@ vi.mock('@tauri-apps/api/path', () => ({
 }));
 
 describe('FileExplorerEnhanced', () => {
+  let cleanup: Array<() => void> = [];
+  
   const mockFile = buildFileNode('test.txt', '/path/to/test.txt');
   const mockDirectory = buildDirectoryNode('testDir', '/path/to/testDir', []);
 
@@ -50,14 +52,17 @@ describe('FileExplorerEnhanced', () => {
   });
 
   afterEach(() => {
+    cleanup.forEach(fn => fn());
+    cleanup = [];
     vi.restoreAllMocks();
   });
 
   describe('Rendering', () => {
     it('renders the file explorer with initial state', () => {
-      const { container } = render(FileExplorerEnhanced, {
+      const { container, unmount } = render(FileExplorerEnhanced, {
         props: {}
       });
+      cleanup.push(unmount);
 
       expect(container.querySelector('.file-explorer')).toBeTruthy();
       expect(container.querySelector('.file-explorer-header')).toBeTruthy();
@@ -67,9 +72,10 @@ describe('FileExplorerEnhanced', () => {
     it('shows loading state when loading', async () => {
       mockReadDir.mockImplementation(() => new Promise(() => {})); // Never resolves
       
-      const { container } = render(FileExplorerEnhanced, {
+      const { container, unmount } = render(FileExplorerEnhanced, {
         props: {}
       });
+      cleanup.push(unmount);
 
       await waitFor(() => {
         expect(container.querySelector('.loading-indicator')).toBeTruthy();
@@ -80,9 +86,10 @@ describe('FileExplorerEnhanced', () => {
       const errorMessage = 'Failed to load directory';
       mockReadDir.mockRejectedValue(new Error(errorMessage));
 
-      const { container } = render(FileExplorerEnhanced, {
+      const { container, unmount } = render(FileExplorerEnhanced, {
         props: {}
       });
+      cleanup.push(unmount);
 
       await waitFor(() => {
         expect(container.textContent).toContain(errorMessage);
@@ -92,9 +99,10 @@ describe('FileExplorerEnhanced', () => {
 
   describe('Directory Operations', () => {
     it('loads root directory on mount', async () => {
-      render(FileExplorerEnhanced, {
+      const { unmount } = render(FileExplorerEnhanced, {
         props: {}
       });
+      cleanup.push(unmount);
 
       await waitFor(() => {
         expect(mockReadDir).toHaveBeenCalled();
@@ -106,9 +114,10 @@ describe('FileExplorerEnhanced', () => {
         { name: 'child.txt', path: '/path/to/testDir/child.txt', children: null }
       ]);
 
-      const { component } = render(FileExplorerEnhanced, {
+      const { component, unmount } = render(FileExplorerEnhanced, {
         props: {}
       });
+      cleanup.push(unmount);
 
       // Wait for initial load
       await waitFor(() => {
@@ -130,9 +139,10 @@ describe('FileExplorerEnhanced', () => {
     });
 
     it('refreshes directory contents', async () => {
-      const { getByTitle } = render(FileExplorerEnhanced, {
+      const { getByTitle, unmount } = render(FileExplorerEnhanced, {
         props: {}
       });
+      cleanup.push(unmount);
 
       await waitFor(() => {
         expect(mockReadDir).toHaveBeenCalledTimes(1);
@@ -148,9 +158,10 @@ describe('FileExplorerEnhanced', () => {
 
     it('changes current directory path', async () => {
       const newPath = '/new/path';
-      const { getByPlaceholderText, getByTitle } = render(FileExplorerEnhanced, {
+      const { getByPlaceholderText, getByTitle, unmount } = render(FileExplorerEnhanced, {
         props: {}
       });
+      cleanup.push(unmount);
 
       const pathInput = getByPlaceholderText('Enter path') as HTMLInputElement;
       await fireEvent.input(pathInput, { target: { value: newPath } });
@@ -166,11 +177,12 @@ describe('FileExplorerEnhanced', () => {
 
   describe('File Operations', () => {
     it('opens file when double-clicked', async () => {
-      const { component } = render(FileExplorerEnhanced, {
+      const { component, unmount } = render(FileExplorerEnhanced, {
         props: {}
       });
+      cleanup.push(unmount);
 
-      const openHandler = vi.fn();
+      const openHandler = createTypedMock<[CustomEvent], void>();
       component.$on('open', openHandler);
 
       // TODO: Simulate file double-click through DOM events instead of calling component method
@@ -189,9 +201,10 @@ describe('FileExplorerEnhanced', () => {
 
     it('creates new file', async () => {
       const newFileName = 'newfile.txt';
-      const { getByTitle, getByPlaceholderText, getByText } = render(FileExplorerEnhanced, {
+      const { getByTitle, getByPlaceholderText, getByText, unmount } = render(FileExplorerEnhanced, {
         props: {}
       });
+      cleanup.push(unmount);
 
       // Click new file button
       const newFileButton = getByTitle('New File');
@@ -214,9 +227,10 @@ describe('FileExplorerEnhanced', () => {
 
     it('creates new folder', async () => {
       const newFolderName = 'newfolder';
-      const { getByTitle, getByPlaceholderText, getByText } = render(FileExplorerEnhanced, {
+      const { getByTitle, getByPlaceholderText, getByText, unmount } = render(FileExplorerEnhanced, {
         props: {}
       });
+      cleanup.push(unmount);
 
       // Click new folder button
       const newFolderButton = getByTitle('New Folder');
@@ -239,9 +253,10 @@ describe('FileExplorerEnhanced', () => {
 
     it('renames file', async () => {
       const newName = 'renamed.txt';
-      const { component } = render(FileExplorerEnhanced, {
+      const { component, unmount } = render(FileExplorerEnhanced, {
         props: {}
       });
+      cleanup.push(unmount);
 
       // Set up initial state with a file
       (component as any).$set({
@@ -266,9 +281,10 @@ describe('FileExplorerEnhanced', () => {
     });
 
     it('deletes file with confirmation', async () => {
-      const { component } = render(FileExplorerEnhanced, {
+      const { component, unmount } = render(FileExplorerEnhanced, {
         props: {}
       });
+      cleanup.push(unmount);
 
       // Set up initial state with a file
       (component as any).$set({
@@ -295,9 +311,10 @@ describe('FileExplorerEnhanced', () => {
     });
 
     it('cancels delete when not confirmed', async () => {
-      const { component } = render(FileExplorerEnhanced, {
+      const { component, unmount } = render(FileExplorerEnhanced, {
         props: {}
       });
+      cleanup.push(unmount);
 
       // Mock confirm dialog to return false
       vi.spyOn(window, 'confirm').mockReturnValue(false);
@@ -311,9 +328,10 @@ describe('FileExplorerEnhanced', () => {
 
   describe('Context Menu', () => {
     it('shows context menu on right click', async () => {
-      const { component, container } = render(FileExplorerEnhanced, {
+      const { component, container, unmount } = render(FileExplorerEnhanced, {
         props: {}
       });
+      cleanup.push(unmount);
 
       // Set up initial state with a file
       (component as any).$set({
@@ -337,9 +355,10 @@ describe('FileExplorerEnhanced', () => {
 
   describe('Search Functionality', () => {
     it('filters files based on search query', async () => {
-      const { getByPlaceholderText, component } = render(FileExplorerEnhanced, {
+      const { getByPlaceholderText, component, unmount } = render(FileExplorerEnhanced, {
         props: {}
       });
+      cleanup.push(unmount);
 
       // Set up initial state with files
       const files = [
@@ -365,9 +384,10 @@ describe('FileExplorerEnhanced', () => {
     });
 
     it('clears search when X button clicked', async () => {
-      const { getByPlaceholderText, getByTitle } = render(FileExplorerEnhanced, {
+      const { getByPlaceholderText, getByTitle, unmount } = render(FileExplorerEnhanced, {
         props: {}
       });
+      cleanup.push(unmount);
 
       // Enter search query
       const searchInput = getByPlaceholderText('Search files...') as HTMLInputElement;
@@ -383,11 +403,12 @@ describe('FileExplorerEnhanced', () => {
 
   describe('Keyboard Navigation', () => {
     it('handles keyboard shortcuts', async () => {
-      const { container, component } = render(FileExplorerEnhanced, {
+      const { container, component, unmount } = render(FileExplorerEnhanced, {
         props: {}
       });
+      cleanup.push(unmount);
 
-      const deleteHandler = vi.fn();
+      const deleteHandler = createTypedMock<[], void>();
       vi.spyOn(window, 'confirm').mockReturnValue(true);
 
       // Set up a selected file
@@ -415,9 +436,10 @@ describe('FileExplorerEnhanced', () => {
       const errorMessage = 'Permission denied';
       mockInvoke.mockRejectedValue(new Error(errorMessage));
 
-      const { component, container } = render(FileExplorerEnhanced, {
+      const { component, container, unmount } = render(FileExplorerEnhanced, {
         props: {}
       });
+      cleanup.push(unmount);
 
       // Try to delete a file
       vi.spyOn(window, 'confirm').mockReturnValue(true);

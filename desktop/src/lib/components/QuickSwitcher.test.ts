@@ -1,11 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import QuickSwitcher from './QuickSwitcher.svelte';
 import { mockInvoke } from '../../test/utils';
+import { createTypedMock, createSyncMock, createAsyncMock } from '@/test/mock-factory';
 
 describe('QuickSwitcher', () => {
   let user: ReturnType<typeof userEvent.setup>;
+  let cleanup: Array<() => void> = [];
   
   beforeEach(() => {
     user = userEvent.setup();
@@ -27,8 +29,13 @@ describe('QuickSwitcher', () => {
     });
   });
 
+  afterEach(() => {
+    cleanup.forEach(fn => fn());
+    cleanup.length = 0;
+  });
+
   it('renders when show is true', async () => {
-    const { getByPlaceholderText } = render(QuickSwitcher, {
+    const { getByPlaceholderText, unmount } = render(QuickSwitcher, {
       props: { 
         show: true,
         testMode: true,
@@ -38,6 +45,7 @@ describe('QuickSwitcher', () => {
         ]
       },
     });
+    cleanup.push(unmount);
     
     await waitFor(() => {
       expect(getByPlaceholderText(/Search/i)).toBeInTheDocument();
@@ -45,19 +53,20 @@ describe('QuickSwitcher', () => {
   });
 
   it('does not render when show is false', () => {
-    const { container } = render(QuickSwitcher, {
+    const { container, unmount } = render(QuickSwitcher, {
       props: { 
         show: false,
         testMode: true,
         initialItems: []
       },
     });
+    cleanup.push(unmount);
     
     expect(container.querySelector('.quick-switcher')).not.toBeInTheDocument();
   });
 
   it('closes on Escape', async () => {
-    const { getByPlaceholderText, container } = render(QuickSwitcher, {
+    const { getByPlaceholderText, container, unmount } = render(QuickSwitcher, {
       props: { 
         show: true,
         testMode: true,
@@ -66,6 +75,7 @@ describe('QuickSwitcher', () => {
         ]
       },
     });
+    cleanup.push(unmount);
     
     await waitFor(() => {
       const searchInput = getByPlaceholderText(/Search/i);
@@ -80,7 +90,7 @@ describe('QuickSwitcher', () => {
   });
 
   it('filters items based on search', async () => {
-    const { getByPlaceholderText, container } = render(QuickSwitcher, {
+    const { getByPlaceholderText, container, unmount } = render(QuickSwitcher, {
       props: { 
         show: true,
         testMode: true,
@@ -91,6 +101,7 @@ describe('QuickSwitcher', () => {
         ]
       },
     });
+    cleanup.push(unmount);
     
     await waitFor(() => {
       const searchInput = getByPlaceholderText(/Search/i);
@@ -111,7 +122,7 @@ describe('QuickSwitcher', () => {
   });
 
   it('navigates with keyboard', async () => {
-    const { getByPlaceholderText, container } = render(QuickSwitcher, {
+    const { getByPlaceholderText, container, unmount } = render(QuickSwitcher, {
       props: { 
         show: true,
         testMode: true,
@@ -121,6 +132,7 @@ describe('QuickSwitcher', () => {
         ]
       },
     });
+    cleanup.push(unmount);
     
     await waitFor(() => {
       const searchInput = getByPlaceholderText(/Search/i);
@@ -146,7 +158,7 @@ describe('QuickSwitcher', () => {
     ];
     localStorage.setItem('orchflow_quick_switcher_recent', JSON.stringify(recentItems));
     
-    const { container } = render(QuickSwitcher, {
+    const { container, unmount } = render(QuickSwitcher, {
       props: { 
         show: true,
         testMode: true,
@@ -156,6 +168,7 @@ describe('QuickSwitcher', () => {
         ]
       },
     });
+    cleanup.push(unmount);
     
     await waitFor(() => {
       const items = container.querySelectorAll('.switch-item');
@@ -164,7 +177,7 @@ describe('QuickSwitcher', () => {
   });
 
   it('executes item on Enter', async () => {
-    const { getByPlaceholderText, container } = render(QuickSwitcher, {
+    const { getByPlaceholderText, container, unmount } = render(QuickSwitcher, {
       props: { 
         show: true,
         testMode: true,
@@ -173,6 +186,7 @@ describe('QuickSwitcher', () => {
         ]
       },
     });
+    cleanup.push(unmount);
     
     await waitFor(() => {
       const searchInput = getByPlaceholderText(/Search/i);
@@ -192,7 +206,7 @@ describe('QuickSwitcher', () => {
   });
 
   it('shows different modes', async () => {
-    const { container } = render(QuickSwitcher, {
+    const { container, unmount } = render(QuickSwitcher, {
       props: { 
         show: true,
         mode: 'files',
@@ -202,6 +216,7 @@ describe('QuickSwitcher', () => {
         ]
       },
     });
+    cleanup.push(unmount);
     
     await waitFor(() => {
       // In files mode, should only show file items
@@ -211,7 +226,7 @@ describe('QuickSwitcher', () => {
   });
 
   it('displays item icons', async () => {
-    const { container } = render(QuickSwitcher, {
+    const { container, unmount } = render(QuickSwitcher, {
       props: { 
         show: true,
         testMode: true,
@@ -221,6 +236,7 @@ describe('QuickSwitcher', () => {
         ]
       },
     });
+    cleanup.push(unmount);
     
     await waitFor(() => {
       const icons = container.querySelectorAll('.item-icon');
@@ -229,13 +245,14 @@ describe('QuickSwitcher', () => {
   });
 
   it('shows empty state when no items', async () => {
-    const { getByText } = render(QuickSwitcher, {
+    const { getByText, unmount } = render(QuickSwitcher, {
       props: { 
         show: true,
         testMode: true,
         initialItems: []
       },
     });
+    cleanup.push(unmount);
     
     await waitFor(() => {
       expect(getByText(/No recent items/i)).toBeInTheDocument();

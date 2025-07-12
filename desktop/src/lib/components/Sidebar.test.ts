@@ -9,10 +9,12 @@ import {
   createMockResizeObserver
 } from '../../test/utils/component-test-utils';
 import { createMockContext } from '../../test/utils/test-fixtures';
+import { createTypedMock, createSyncMock, createAsyncMock } from '@/test/mock-factory';
 
 describe('Sidebar', () => {
   let mockProps: any;
   let mockContext: Map<any, any>;
+  let cleanup: Array<() => void> = [];
 
   beforeEach(() => {
     mockProps = {
@@ -23,12 +25,15 @@ describe('Sidebar', () => {
   });
 
   afterEach(() => {
+    cleanup.forEach(fn => fn());
+    cleanup = [];
     vi.clearAllMocks();
   });
 
   describe('Rendering', () => {
     it('should render with default explorer view', () => {
-      const { container } = render(Sidebar, { props: mockProps });
+      const { container, unmount } = render(Sidebar, { props: mockProps });
+      cleanup.push(unmount);
       
       expect(container.querySelector('.sidebar')).toBeTruthy();
       expect(container.querySelector('.sidebar-header h3')).toHaveTextContent('Explorer');
@@ -45,9 +50,10 @@ describe('Sidebar', () => {
       ];
 
       for (const { view, title } of views) {
-        const { container, rerender } = render(Sidebar, { 
+        const { container, rerender, unmount } = render(Sidebar, { 
           props: { ...mockProps, activeView: view } 
         });
+        cleanup.push(unmount);
         
         expect(container.querySelector('.sidebar-header h3')).toHaveTextContent(title);
         
@@ -58,9 +64,10 @@ describe('Sidebar', () => {
     });
 
     it('should show empty state for unknown view', () => {
-      const { container } = render(Sidebar, { 
+      const { container, unmount } = render(Sidebar, { 
         props: { ...mockProps, activeView: 'unknown-view' } 
       });
+      cleanup.push(unmount);
       
       expect(container.querySelector('.empty-state')).toBeTruthy();
       expect(container.querySelector('.empty-state p')).toHaveTextContent(
@@ -71,9 +78,10 @@ describe('Sidebar', () => {
 
     it('should render action buttons based on active view', () => {
       // Explorer view
-      let { container } = render(Sidebar, { 
+      let { container, unmount } = render(Sidebar, { 
         props: { ...mockProps, activeView: 'explorer' } 
       });
+      cleanup.push(unmount);
       
       const explorerActions = container.querySelectorAll('.sidebar-actions .action-btn');
       expect(explorerActions).toHaveLength(3); // New File, New Folder, Refresh
@@ -82,9 +90,10 @@ describe('Sidebar', () => {
       expect(explorerActions[2]).toHaveAttribute('title', 'Refresh');
 
       // Git view
-      ({ container } = render(Sidebar, { 
+      ({ container, unmount } = render(Sidebar, { 
         props: { ...mockProps, activeView: 'git' } 
       }));
+      cleanup.push(unmount);
       
       const gitActions = container.querySelectorAll('.sidebar-actions .action-btn');
       expect(gitActions).toHaveLength(2); // Refresh, Commit
@@ -92,9 +101,10 @@ describe('Sidebar', () => {
       expect(gitActions[1]).toHaveAttribute('title', 'Commit');
 
       // Other views should have no actions
-      ({ container } = render(Sidebar, { 
+      ({ container, unmount } = render(Sidebar, { 
         props: { ...mockProps, activeView: 'search' } 
       }));
+      cleanup.push(unmount);
       
       expect(container.querySelectorAll('.sidebar-actions .action-btn')).toHaveLength(0);
     });
@@ -102,7 +112,8 @@ describe('Sidebar', () => {
 
   describe('Panel Content', () => {
     it('should pass correct props to FileExplorerEnhanced', async () => {
-      const { container } = render(Sidebar, { props: mockProps });
+      const { container, unmount } = render(Sidebar, { props: mockProps });
+      cleanup.push(unmount);
       
       // Wait for component to be mounted
       await waitFor(() => {
@@ -113,9 +124,10 @@ describe('Sidebar', () => {
 
     it('should pass sessionId to DebugPanel', () => {
       const sessionId = 'debug-session-456';
-      render(Sidebar, { 
+      const { unmount } = render(Sidebar, { 
         props: { activeView: 'debug', sessionId } 
       });
+      cleanup.push(unmount);
       
       // The DebugPanel should receive the sessionId prop
       // This would be verified by the DebugPanel's own tests
@@ -124,14 +136,15 @@ describe('Sidebar', () => {
 
   describe('Event Handling', () => {
     it('should dispatch events from action buttons', async () => {
-      const { container, component } = render(Sidebar, { 
+      const { container, component, unmount } = render(Sidebar, { 
         props: { ...mockProps, activeView: 'explorer' } 
       });
+      cleanup.push(unmount);
       
       const eventHandlers = {
-        newFile: vi.fn(),
-        newFolder: vi.fn(),
-        refresh: vi.fn()
+        newFile: createSyncMock<[], void>(),
+        newFolder: createSyncMock<[], void>(),
+        refresh: createSyncMock<[], void>()
       };
 
       component.$on('newFile', eventHandlers.newFile);
@@ -151,13 +164,14 @@ describe('Sidebar', () => {
     });
 
     it('should dispatch git-specific events', async () => {
-      const { container, component } = render(Sidebar, { 
+      const { container, component, unmount } = render(Sidebar, { 
         props: { ...mockProps, activeView: 'git' } 
       });
+      cleanup.push(unmount);
       
       const eventHandlers = {
-        gitRefresh: vi.fn(),
-        gitCommit: vi.fn()
+        gitRefresh: createSyncMock<[], void>(),
+        gitCommit: createSyncMock<[], void>()
       };
 
       component.$on('gitRefresh', eventHandlers.gitRefresh);
@@ -173,12 +187,13 @@ describe('Sidebar', () => {
     });
 
     it('should forward events from child components', async () => {
-      const { component } = render(Sidebar, { 
+      const { component, unmount } = render(Sidebar, { 
         props: { ...mockProps, activeView: 'explorer' } 
       });
+      cleanup.push(unmount);
       
-      const openFileHandler = vi.fn();
-      const shareHandler = vi.fn();
+      const openFileHandler = createSyncMock<[CustomEvent], void>();
+      const shareHandler = createSyncMock<[CustomEvent], void>();
       
       component.$on('openFile', openFileHandler);
       component.$on('share', shareHandler);
@@ -205,7 +220,8 @@ describe('Sidebar', () => {
 
   describe('State Management', () => {
     it('should update title when activeView changes', async () => {
-      const { container, rerender } = render(Sidebar, { props: mockProps });
+      const { container, rerender, unmount } = render(Sidebar, { props: mockProps });
+      cleanup.push(unmount);
       
       expect(container.querySelector('.sidebar-header h3')).toHaveTextContent('Explorer');
       
@@ -217,7 +233,8 @@ describe('Sidebar', () => {
     });
 
     it('should maintain panel state when switching views', async () => {
-      const { rerender, container } = render(Sidebar, { props: mockProps });
+      const { rerender, container, unmount } = render(Sidebar, { props: mockProps });
+      cleanup.push(unmount);
       
       // Start with explorer
       expect(container.querySelector('.sidebar-content')).toBeTruthy();
@@ -234,7 +251,8 @@ describe('Sidebar', () => {
 
   describe('Resize Functionality', () => {
     it('should have correct CSS for resizing', () => {
-      const { container } = render(Sidebar, { props: mockProps });
+      const { container, unmount } = render(Sidebar, { props: mockProps });
+      cleanup.push(unmount);
       
       const sidebar = container.querySelector('.sidebar');
       expect(sidebar).toBeTruthy();
@@ -247,7 +265,8 @@ describe('Sidebar', () => {
       // Set custom CSS property
       document.documentElement.style.setProperty('--sidebar-width', '300px');
       
-      const { container } = render(Sidebar, { props: mockProps });
+      const { container, unmount } = render(Sidebar, { props: mockProps });
+      cleanup.push(unmount);
       
       const sidebar = container.querySelector('.sidebar');
       expect(sidebar).toBeTruthy();
@@ -262,7 +281,8 @@ describe('Sidebar', () => {
 
   describe('Accessibility', () => {
     it('should have proper ARIA attributes', () => {
-      const { container } = render(Sidebar, { props: mockProps });
+      const { container, unmount } = render(Sidebar, { props: mockProps });
+      cleanup.push(unmount);
       
       const sidebar = container.querySelector('.sidebar');
       expect(sidebar).toBeTruthy();
@@ -275,11 +295,12 @@ describe('Sidebar', () => {
     });
 
     it('should support keyboard navigation for action buttons', async () => {
-      const { container, component } = render(Sidebar, { 
+      const { container, component, unmount } = render(Sidebar, { 
         props: { ...mockProps, activeView: 'explorer' } 
       });
+      cleanup.push(unmount);
       
-      const newFileHandler = vi.fn();
+      const newFileHandler = createSyncMock<[CustomEvent], void>();
       component.$on('newFile', newFileHandler);
       
       const firstButton = container.querySelector('.action-btn');
@@ -293,7 +314,8 @@ describe('Sidebar', () => {
 
   describe('Styling', () => {
     it('should apply correct CSS classes', () => {
-      const { container } = render(Sidebar, { props: mockProps });
+      const { container, unmount } = render(Sidebar, { props: mockProps });
+      cleanup.push(unmount);
       
       expect(container.querySelector('.sidebar')).toBeTruthy();
       expect(container.querySelector('.sidebar-header')).toBeTruthy();
@@ -302,9 +324,10 @@ describe('Sidebar', () => {
     });
 
     it('should have hover states for action buttons', async () => {
-      const { container } = render(Sidebar, { 
+      const { container, unmount } = render(Sidebar, { 
         props: { ...mockProps, activeView: 'explorer' } 
       });
+      cleanup.push(unmount);
       
       const button = container.querySelector('.action-btn');
       expect(button).toBeTruthy();
@@ -317,9 +340,10 @@ describe('Sidebar', () => {
   describe('Error Handling', () => {
     it('should handle missing child components gracefully', () => {
       // This test ensures the component doesn't crash with invalid views
-      const { container } = render(Sidebar, { 
+      const { container, unmount } = render(Sidebar, { 
         props: { ...mockProps, activeView: null as any } 
       });
+      cleanup.push(unmount);
       
       expect(container.querySelector('.empty-state')).toBeTruthy();
     });
@@ -327,7 +351,8 @@ describe('Sidebar', () => {
 
   describe('Integration', () => {
     it('should work with all panel types in sequence', async () => {
-      const { rerender, container } = render(Sidebar, { props: mockProps });
+      const { rerender, container, unmount } = render(Sidebar, { props: mockProps });
+      cleanup.push(unmount);
       
       const views = ['explorer', 'search', 'git', 'debug', 'extensions'];
       

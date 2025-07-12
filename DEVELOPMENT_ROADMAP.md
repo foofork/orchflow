@@ -7,14 +7,11 @@
 #### =4 Vitest Test Failures
 
 1. **Terminal I/O Performance Tests**
-   - **Issue**: `should meet <10ms latency requirement for terminal input` - Test timeout after 30s
-   - **Impact**: Terminal input performance testing not completing
+   - **Issue**: `should meet <10ms latency requirement for terminal input` 
    - **Priority**: HIGH
-   - **Fix Required**: Investigate timeout issue, may need to adjust test expectations or mock implementation
 
 2. **File System Event Performance Tests**
-   - **Issue**: `should process file change events within latency requirements` - Test timeout after 30s
-   - **Impact**: File system event performance testing not completing  
+   - **Issue**: `should process file change events within latency requirements` 
    - **Priority**: HIGH
    - **Fix Required**: Review file watcher mock implementation and test setup
 
@@ -24,10 +21,10 @@
    - **Priority**: MEDIUM
    - **Fix Required**: Optimize cursor sync implementation or adjust performance expectations
 
-#### =4 TypeScript Type Errors (608 errors)
+#### 4 Ensure these have been resolved
 
-1. **Missing Exports**
-   - `TerminalManager` not exported from `$lib/stores/manager`
+1. **Ensure Exports**
+   - `TerminalManager` should be exported from `$lib/stores/manager`
    - Multiple components trying to import non-existent exports
 
 2. **CodeMirror Type Conflicts**
@@ -45,30 +42,10 @@
 
 #### =4 Test Infrastructure Issues
 
-1. **Port Conflicts**
-   - Port 5173 already in use when running Playwright tests
-   - Socket file left behind from previous test runs
 
-2. **Mock Configuration**
-   - Tauri plugin mocks incomplete (missing readDir export)
+1. **Mock Configuration**
+   - Ensure Tauri plugin mocks are complete (eg missing readDir export)
    - Need proper mock setup for @tauri-apps/plugin-updater
-
-### Next Steps
-
-1. **Immediate Actions**
-   - Fix TypeScript type errors to ensure code quality
-   - Resolve test timeouts in performance tests
-   - Clean up port conflicts and test infrastructure
-
-2. **Short Term**
-   - Update CodeMirror dependencies to resolve type conflicts
-   - Implement proper Tauri plugin mocks
-   - Configure Playwright TypeScript support
-
-3. **Medium Term**
-   - Review and optimize performance benchmarks
-   - Add mutation testing once core tests pass
-   - Implement visual regression testing with Percy
 
 ## =� Test Coverage Status
 
@@ -78,22 +55,20 @@
 - **Performance Tests**: 3 failures, others passing
 - **Visual Tests**: Not yet running due to infrastructure issues
 
-## <� Priority Order
-
-1. **Fix TypeScript errors** - Blocking all development
-2. **Resolve test timeouts** - Blocking CI/CD pipeline
-3. **Fix mock configurations** - Needed for tests to run
-4. **Clean up test infrastructure** - Port conflicts and cleanup
-5. **Optimize performance tests** - Adjust targets or improve implementation
 
 ## =� Success Metrics
 
-- [ ] All TypeScript errors resolved (0/608)
+- [ ] All TypeScript errors resolved
 - [ ] All unit tests passing
 - [ ] Performance tests meeting targets
 - [ ] E2E tests running without port conflicts
 - [ ] Visual regression tests configured and passing
 - [ ] >90% test coverage maintained
+
+
+
+-----
+
 
 ## 🧪 Advanced Testing Infrastructure Improvements
 

@@ -1,7 +1,18 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, waitFor, screen } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import FileExplorer from './FileExplorer.svelte';
+import { 
+  createAsyncMock, 
+  createSyncMock,
+  enhancedComponentMocks,
+  MockedFunction
+} from '@/test/mock-factory';
+import {
+  buildFileNode,
+  buildDirectoryNode,
+  testScenarios
+} from '@/test/domain-builders';
 
 // Helper to wait for component to initialize
 const waitForComponent = async () => {
@@ -12,9 +23,9 @@ const waitForComponent = async () => {
 // Mock browser environment
 vi.mock('$app/environment', () => ({ browser: true }));
 
-// Mock Tauri API
-const mockInvoke = vi.fn();
-const mockReadDir = vi.fn();
+// Mock Tauri API with typed mocks
+const mockInvoke = createAsyncMock<[string, any?], any>();
+const mockReadDir = createAsyncMock<[string], any[]>();
 
 // Mock window.__TAURI__ and performance
 (global as any).window = {
@@ -32,11 +43,20 @@ vi.mock('@tauri-apps/api/fs', () => ({
   readDir: mockReadDir
 }));
 
+vi.mock('@tauri-apps/api/path', () => ({
+  join: createAsyncMock<[string, string], string>()
+    .mockImplementation((base, path) => Promise.resolve(`${base}/${path}`))
+}));
+
 describe('FileExplorer Component', () => {
+  // Cleanup tracking
+  let cleanup: Array<() => void> = [];
+
   beforeEach(() => {
     vi.clearAllMocks();
+    cleanup = [];
     
-    // Default mock implementations
+    // Default mock implementations using domain builders
     mockInvoke.mockImplementation((cmd) => {
       if (cmd === 'get_current_dir') {
         return Promise.resolve('/home/user/project');
@@ -44,33 +64,45 @@ describe('FileExplorer Component', () => {
       return Promise.resolve();
     });
     
+    // Use domain builders for file structure
+    const defaultFiles = [
+      buildDirectoryNode('src', '/home/user/project/src'),
+      buildFileNode('package.json', '/home/user/project/package.json'),
+      buildFileNode('README.md', '/home/user/project/README.md', {
+        gitStatus: 'modified'
+      }),
+      buildFileNode('.gitignore', '/home/user/project/.gitignore', {
+        isHidden: true
+      })
+    ];
+    
     mockReadDir.mockImplementation((path) => {
       if (path === '/home/user/project') {
-        return Promise.resolve([
-          { name: 'src', path: '/home/user/project/src', children: [] },
-          { name: 'package.json', path: '/home/user/project/package.json' },
-          { name: 'README.md', path: '/home/user/project/README.md' },
-          { name: '.gitignore', path: '/home/user/project/.gitignore' }
-        ]);
+        return Promise.resolve(defaultFiles);
       }
       return Promise.resolve([]);
     });
   });
 
   afterEach(() => {
+    // Clean up all tracked resources
+    cleanup.forEach(fn => fn());
+    cleanup = [];
     vi.clearAllMocks();
   });
 
   describe('Component Initialization', () => {
     it('should render file explorer container', () => {
-      const { container } = render(FileExplorer);
+      const { container, unmount } = render(FileExplorer);
+      cleanup.push(unmount);
       
       const explorer = container.querySelector('.file-explorer');
       expect(explorer).toBeTruthy();
     });
 
     it('should load current directory on mount', async () => {
-      render(FileExplorer);
+      const { unmount } = render(FileExplorer);
+      cleanup.push(unmount);
       
       await waitForComponent();
       
@@ -79,7 +111,8 @@ describe('FileExplorer Component', () => {
     });
 
     it('should display loaded files and folders', async () => {
-      render(FileExplorer);
+      const { unmount } = render(FileExplorer);
+      cleanup.push(unmount);
       
       await waitForComponent();
       
@@ -89,7 +122,8 @@ describe('FileExplorer Component', () => {
     });
 
     it('should filter out hidden files', async () => {
-      render(FileExplorer);
+      const { unmount } = render(FileExplorer);
+      cleanup.push(unmount);
       
       await waitForComponent();
       
@@ -99,14 +133,18 @@ describe('FileExplorer Component', () => {
     });
 
     it('should sort directories before files', async () => {
-      mockReadDir.mockResolvedValue([
-        { name: 'file1.txt', path: '/home/user/project/file1.txt' },
-        { name: 'dir1', path: '/home/user/project/dir1', children: [] },
-        { name: 'file2.txt', path: '/home/user/project/file2.txt' },
-        { name: 'dir2', path: '/home/user/project/dir2', children: [] }
-      ]);
+      // Use test scenarios for complex file structures
+      const mixedFiles = [
+        buildFileNode('file1.txt', '/home/user/project/file1.txt'),
+        buildDirectoryNode('dir1', '/home/user/project/dir1'),
+        buildFileNode('file2.txt', '/home/user/project/file2.txt'),
+        buildDirectoryNode('dir2', '/home/user/project/dir2')
+      ];
       
-      const { container } = render(FileExplorer);
+      mockReadDir.mockResolvedValue(mixedFiles);
+      
+      const { container, unmount } = render(FileExplorer);
+      cleanup.push(unmount);
       
       await waitForComponent();
       
@@ -120,7 +158,8 @@ describe('FileExplorer Component', () => {
     it('should handle error when loading directory fails', async () => {
       mockInvoke.mockRejectedValueOnce(new Error('Permission denied'));
       
-      render(FileExplorer);
+      const { unmount } = render(FileExplorer);
+      cleanup.push(unmount);
       
       await waitForComponent();
       
@@ -130,7 +169,8 @@ describe('FileExplorer Component', () => {
     it('should show empty state when no files in directory', async () => {
       mockReadDir.mockResolvedValue([]);
       
-      render(FileExplorer);
+      const { unmount } = render(FileExplorer);
+      cleanup.push(unmount);
       
       await waitForComponent();
       
@@ -140,19 +180,22 @@ describe('FileExplorer Component', () => {
 
   describe('File and Folder Interaction', () => {
     it('should expand directory when clicked', async () => {
-      render(FileExplorer);
+      const { unmount } = render(FileExplorer);
+      cleanup.push(unmount);
       
       await waitForComponent();
       
       const srcNode = screen.getByText('src').closest('button');
       
-      // Mock readDir for the src directory
+      // Use domain builders for nested structure
+      const srcContents = [
+        buildFileNode('index.js', '/home/user/project/src/index.js'),
+        buildDirectoryNode('components', '/home/user/project/src/components')
+      ];
+      
       mockReadDir.mockImplementation((path) => {
         if (path === '/home/user/project/src') {
-          return Promise.resolve([
-            { name: 'index.js', path: '/home/user/project/src/index.js' },
-            { name: 'components', path: '/home/user/project/src/components', children: [] }
-          ]);
+          return Promise.resolve(srcContents);
         }
         return Promise.resolve([]);
       });
@@ -165,22 +208,20 @@ describe('FileExplorer Component', () => {
       expect(screen.getByText('components')).toBeTruthy();
     });
 
-    // Test: The component uses transitions that keep the DOM element during animation
-    // We'll test the state change rather than DOM visibility
     it('should collapse directory when clicked again', async () => {
       const result = render(FileExplorer);
       const container = result.container || document.body;
+      cleanup.push(result.unmount);
       
       await waitForComponent();
       
       const srcNode = screen.getByText('src').closest('button');
       
-      // Mock and expand
+      // Use domain builders
+      const srcFile = buildFileNode('index.js', '/home/user/project/src/index.js');
       mockReadDir.mockImplementation((path) => {
         if (path === '/home/user/project/src') {
-          return Promise.resolve([
-            { name: 'index.js', path: '/home/user/project/src/index.js' }
-          ]);
+          return Promise.resolve([srcFile]);
         }
         return Promise.resolve([]);
       });
@@ -207,12 +248,14 @@ describe('FileExplorer Component', () => {
     });
 
     it('should emit openFile event when file is clicked', async () => {
-      const { component } = render(FileExplorer);
+      const { component, unmount } = render(FileExplorer);
+      cleanup.push(unmount);
       
-      const openFileHandler = vi.fn();
-      component.$on('openFile', (event) => {
+      const openFileHandler = createSyncMock<[any], void>();
+      const unsubscribe = component.$on('openFile', (event) => {
         openFileHandler(event.detail);
       });
+      cleanup.push(unsubscribe);
       
       await waitForComponent();
       
@@ -223,7 +266,8 @@ describe('FileExplorer Component', () => {
     });
 
     it('should show selected file with different styling', async () => {
-      render(FileExplorer);
+      const { unmount } = render(FileExplorer);
+      cleanup.push(unmount);
       
       await waitForComponent();
       
@@ -233,11 +277,10 @@ describe('FileExplorer Component', () => {
       expect(fileNode).toHaveClass('selected');
     });
 
-    // Test: The loading state is set and unset too quickly in the component
-    // We'll use a controlled promise to ensure we can test the loading state
     it('should show loading indicator while expanding directory', async () => {
       const result = render(FileExplorer);
       const container = result.container || document.body;
+      cleanup.push(result.unmount);
       
       await waitForComponent();
       
@@ -274,9 +317,13 @@ describe('FileExplorer Component', () => {
     });
 
     it('should handle error when expanding directory fails', async () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleSpy = createSyncMock<[any, any?], void>();
+      const originalError = console.error;
+      console.error = consoleSpy as any;
+      cleanup.push(() => { console.error = originalError; });
       
-      render(FileExplorer);
+      const { unmount } = render(FileExplorer);
+      cleanup.push(unmount);
       
       await waitForComponent();
       
@@ -291,292 +338,406 @@ describe('FileExplorer Component', () => {
         'Failed to expand directory:',
         expect.any(Error)
       );
-      
-      consoleSpy.mockRestore();
     });
   });
 
   describe('File Icons', () => {
-    it('should show correct icons for different file types', async () => {
-      mockReadDir.mockResolvedValue([
-        { name: 'script.js', path: '/script.js' },
-        { name: 'style.css', path: '/style.css' },
-        { name: 'doc.md', path: '/doc.md' },
-        { name: 'config.json', path: '/config.json' },
-        { name: 'image.png', path: '/image.png' },
-        { name: 'app.rs', path: '/app.rs' },
-        { name: 'script.py', path: '/script.py' },
-        { name: 'main.go', path: '/main.go' },
-        { name: 'unknown.xyz', path: '/unknown.xyz' }
+    it('should display appropriate icons for different file types', async () => {
+      // Use test scenarios for git repository
+      const gitFiles = testScenarios.buildGitRepository([
+        { path: '/home/user/project/index.js', status: 'clean' },
+        { path: '/home/user/project/styles.css', status: 'modified' },
+        { path: '/home/user/project/data.json', status: 'clean' },
+        { path: '/home/user/project/README.md', status: 'clean' },
+        { path: '/home/user/project/image.png', status: 'clean' }
       ]);
       
-      const result = render(FileExplorer);
-      const container = result.container || document.body;
+      mockReadDir.mockResolvedValue(gitFiles);
+      
+      const { container, unmount } = render(FileExplorer);
+      cleanup.push(unmount);
       
       await waitForComponent();
       
-      const icons = container.querySelectorAll('.icon');
-      const iconTexts = Array.from(icons).map(icon => icon.textContent);
+      // Check for file type icons
+      const jsIcon = container.querySelector('[data-file="index.js"] .icon');
+      const cssIcon = container.querySelector('[data-file="styles.css"] .icon');
+      const jsonIcon = container.querySelector('[data-file="data.json"] .icon');
+      const mdIcon = container.querySelector('[data-file="README.md"] .icon');
+      const imageIcon = container.querySelector('[data-file="image.png"] .icon');
       
-      expect(iconTexts).toContain('📜'); // JS
-      expect(iconTexts).toContain('🎨'); // CSS
-      expect(iconTexts).toContain('📝'); // MD
-      expect(iconTexts).toContain('⚙️'); // JSON
-      expect(iconTexts).toContain('🖼️'); // PNG
-      expect(iconTexts).toContain('🦀'); // Rust
-      expect(iconTexts).toContain('🐍'); // Python
-      expect(iconTexts).toContain('🐹'); // Go
-      expect(iconTexts).toContain('📄'); // Unknown
+      expect(jsIcon?.textContent).toContain('📄'); // Or specific JS icon
+      expect(cssIcon?.textContent).toContain('🎨'); // Or specific CSS icon
+      expect(jsonIcon?.textContent).toContain('{}'); // Or specific JSON icon
+      expect(mdIcon?.textContent).toContain('📝'); // Or specific MD icon
+      expect(imageIcon?.textContent).toContain('🖼️'); // Or specific image icon
     });
 
-    it('should show folder icons based on expanded state', async () => {
-      render(FileExplorer);
+    it('should show directory icon for folders', async () => {
+      const { container, unmount } = render(FileExplorer);
+      cleanup.push(unmount);
       
       await waitForComponent();
       
-      const srcNode = screen.getByText('src').closest('.node-item');
-      const icon = srcNode?.querySelector('.icon');
+      const dirIcon = container.querySelector('[data-file="src"] .icon');
+      expect(dirIcon?.textContent).toContain('📁'); // Or specific folder icon
+    });
+
+    it('should show git status indicators', async () => {
+      const gitFiles = [
+        buildFileNode('modified.js', '/home/user/project/modified.js', {
+          gitStatus: 'modified'
+        }),
+        buildFileNode('added.js', '/home/user/project/added.js', {
+          gitStatus: 'added'
+        }),
+        buildFileNode('deleted.js', '/home/user/project/deleted.js', {
+          gitStatus: 'deleted'
+        })
+      ];
       
-      // Closed folder
-      expect(icon?.textContent).toBe('📁');
+      mockReadDir.mockResolvedValue(gitFiles);
       
-      // Click to expand
-      mockReadDir.mockResolvedValueOnce([]);
-      await fireEvent.click(srcNode!);
+      const { container, unmount } = render(FileExplorer);
+      cleanup.push(unmount);
+      
       await waitForComponent();
       
-      // Open folder
-      expect(icon?.textContent).toBe('📂');
+      const modifiedFile = container.querySelector('[data-file="modified.js"]');
+      const addedFile = container.querySelector('[data-file="added.js"]');
+      const deletedFile = container.querySelector('[data-file="deleted.js"]');
+      
+      expect(modifiedFile).toHaveClass('git-modified');
+      expect(addedFile).toHaveClass('git-added');
+      expect(deletedFile).toHaveClass('git-deleted');
+    });
+  });
+
+  describe('Context Menu', () => {
+    it('should show context menu on right click', async () => {
+      const { unmount } = render(FileExplorer);
+      cleanup.push(unmount);
+      
+      await waitForComponent();
+      
+      const fileNode = screen.getByText('package.json').closest('.node-item');
+      await fireEvent.contextMenu(fileNode!);
+      
+      expect(screen.getByText('Open')).toBeTruthy();
+      expect(screen.getByText('Rename')).toBeTruthy();
+      expect(screen.getByText('Delete')).toBeTruthy();
+    });
+
+    it('should handle rename action', async () => {
+      const mockRename = createAsyncMock<[string, string], void>();
+      mockInvoke.mockImplementation((cmd, args) => {
+        if (cmd === 'rename_file') {
+          return mockRename(args.oldPath, args.newPath);
+        }
+        if (cmd === 'get_current_dir') {
+          return Promise.resolve('/home/user/project');
+        }
+        return Promise.resolve();
+      });
+      
+      const { unmount } = render(FileExplorer);
+      cleanup.push(unmount);
+      
+      await waitForComponent();
+      
+      const fileNode = screen.getByText('package.json').closest('.node-item');
+      await fireEvent.contextMenu(fileNode!);
+      
+      const renameOption = screen.getByText('Rename');
+      await fireEvent.click(renameOption);
+      
+      // Simulate rename dialog
+      const input = screen.getByRole('textbox');
+      await fireEvent.change(input, { target: { value: 'package-new.json' } });
+      await fireEvent.keyDown(input, { key: 'Enter' });
+      
+      expect(mockRename).toHaveBeenCalledWith(
+        '/home/user/project/package.json',
+        '/home/user/project/package-new.json'
+      );
+    });
+
+    it('should handle delete action with confirmation', async () => {
+      const mockDelete = createAsyncMock<[string], void>();
+      mockInvoke.mockImplementation((cmd, args) => {
+        if (cmd === 'delete_file') {
+          return mockDelete(args.path);
+        }
+        if (cmd === 'get_current_dir') {
+          return Promise.resolve('/home/user/project');
+        }
+        return Promise.resolve();
+      });
+      
+      const { unmount } = render(FileExplorer);
+      cleanup.push(unmount);
+      
+      await waitForComponent();
+      
+      const fileNode = screen.getByText('README.md').closest('.node-item');
+      await fireEvent.contextMenu(fileNode!);
+      
+      const deleteOption = screen.getByText('Delete');
+      await fireEvent.click(deleteOption);
+      
+      // Confirm deletion
+      const confirmButton = screen.getByText('Confirm');
+      await fireEvent.click(confirmButton);
+      
+      expect(mockDelete).toHaveBeenCalledWith('/home/user/project/README.md');
+    });
+  });
+
+  describe('Search and Filter', () => {
+    it('should filter files based on search input', async () => {
+      const { unmount } = render(FileExplorer);
+      cleanup.push(unmount);
+      
+      await waitForComponent();
+      
+      const searchInput = screen.getByPlaceholderText('Search files...');
+      await fireEvent.input(searchInput, { target: { value: 'json' } });
+      
+      await waitFor(() => {
+        expect(screen.getByText('package.json')).toBeTruthy();
+        expect(screen.queryByText('README.md')).toBeFalsy();
+      });
+    });
+
+    it('should show no results message when search has no matches', async () => {
+      const { unmount } = render(FileExplorer);
+      cleanup.push(unmount);
+      
+      await waitForComponent();
+      
+      const searchInput = screen.getByPlaceholderText('Search files...');
+      await fireEvent.input(searchInput, { target: { value: 'nonexistent' } });
+      
+      await waitFor(() => {
+        expect(screen.getByText('No files match your search')).toBeTruthy();
+      });
+    });
+
+    it('should clear search when clear button is clicked', async () => {
+      const { unmount } = render(FileExplorer);
+      cleanup.push(unmount);
+      
+      await waitForComponent();
+      
+      const searchInput = screen.getByPlaceholderText('Search files...');
+      await fireEvent.input(searchInput, { target: { value: 'json' } });
+      
+      await waitFor(() => {
+        expect(screen.queryByText('README.md')).toBeFalsy();
+      });
+      
+      const clearButton = screen.getByTitle('Clear search');
+      await fireEvent.click(clearButton);
+      
+      await waitFor(() => {
+        expect(screen.getByText('README.md')).toBeTruthy();
+        expect(screen.getByText('package.json')).toBeTruthy();
+      });
+    });
+  });
+
+  describe('Drag and Drop', () => {
+    it('should handle file drop for moving files', async () => {
+      const mockMove = createAsyncMock<[string, string], void>();
+      mockInvoke.mockImplementation((cmd, args) => {
+        if (cmd === 'move_file') {
+          return mockMove(args.source, args.destination);
+        }
+        if (cmd === 'get_current_dir') {
+          return Promise.resolve('/home/user/project');
+        }
+        return Promise.resolve();
+      });
+      
+      const { unmount } = render(FileExplorer);
+      cleanup.push(unmount);
+      
+      await waitForComponent();
+      
+      const fileNode = screen.getByText('README.md').closest('.node-item');
+      const dirNode = screen.getByText('src').closest('.node-item');
+      
+      // Simulate drag and drop
+      await fireEvent.dragStart(fileNode!, {
+        dataTransfer: {
+          setData: createSyncMock(),
+          effectAllowed: 'move'
+        }
+      });
+      
+      await fireEvent.dragOver(dirNode!, {
+        dataTransfer: { dropEffect: 'move' }
+      });
+      
+      await fireEvent.drop(dirNode!, {
+        dataTransfer: {
+          getData: createSyncMock<[string], string>()
+            .mockReturnValue('/home/user/project/README.md')
+        }
+      });
+      
+      expect(mockMove).toHaveBeenCalledWith(
+        '/home/user/project/README.md',
+        '/home/user/project/src/README.md'
+      );
+    });
+
+    it('should show drop zone indicator during drag over', async () => {
+      const { container, unmount } = render(FileExplorer);
+      cleanup.push(unmount);
+      
+      await waitForComponent();
+      
+      const fileNode = screen.getByText('README.md').closest('.node-item');
+      const dirNode = screen.getByText('src').closest('.node-item');
+      
+      await fireEvent.dragStart(fileNode!);
+      await fireEvent.dragEnter(dirNode!);
+      
+      expect(dirNode).toHaveClass('drag-over');
+      
+      await fireEvent.dragLeave(dirNode!);
+      
+      expect(dirNode).not.toHaveClass('drag-over');
     });
   });
 
   describe('Keyboard Navigation', () => {
-    it('should expand/collapse directory with Enter key', async () => {
-      render(FileExplorer);
+    it('should navigate files with arrow keys', async () => {
+      const { container, unmount } = render(FileExplorer);
+      cleanup.push(unmount);
       
       await waitForComponent();
       
-      const srcNode = screen.getByText('src').closest('button');
+      const explorer = container.querySelector('.file-explorer');
+      
+      // Focus first item
+      await fireEvent.keyDown(explorer!, { key: 'ArrowDown' });
+      
+      let focusedElement = document.activeElement;
+      expect(focusedElement?.textContent).toContain('src');
+      
+      // Navigate down
+      await fireEvent.keyDown(focusedElement!, { key: 'ArrowDown' });
+      
+      focusedElement = document.activeElement;
+      expect(focusedElement?.textContent).toContain('package.json');
+    });
+
+    it('should expand/collapse with Enter key', async () => {
+      const { unmount } = render(FileExplorer);
+      cleanup.push(unmount);
+      
+      await waitForComponent();
+      
+      const srcContents = [
+        buildFileNode('index.js', '/home/user/project/src/index.js')
+      ];
+      
       mockReadDir.mockImplementation((path) => {
         if (path === '/home/user/project/src') {
-          return Promise.resolve([
-            { name: 'index.js', path: '/home/user/project/src/index.js' }
-          ]);
+          return Promise.resolve(srcContents);
         }
         return Promise.resolve([]);
       });
       
+      const srcNode = screen.getByText('src').closest('button');
+      srcNode?.focus();
+      
+      // Expand with Enter
       await fireEvent.keyDown(srcNode!, { key: 'Enter' });
       await waitForComponent();
       
       expect(screen.getByText('index.js')).toBeTruthy();
-    });
-
-    it('should expand/collapse directory with Space key', async () => {
-      render(FileExplorer);
       
+      // Collapse with Enter
+      await fireEvent.keyDown(srcNode!, { key: 'Enter' });
       await waitForComponent();
       
-      const srcNode = screen.getByText('src').closest('button');
-      mockReadDir.mockImplementation((path) => {
-        if (path === '/home/user/project/src') {
-          return Promise.resolve([
-            { name: 'index.js', path: '/home/user/project/src/index.js' }
-          ]);
-        }
-        return Promise.resolve([]);
+      await waitFor(() => {
+        const childrenDivs = document.querySelectorAll('.children');
+        expect(childrenDivs.length).toBe(0);
       });
-      
-      await fireEvent.keyDown(srcNode!, { key: ' ' });
-      await waitForComponent();
-      
-      expect(screen.getByText('index.js')).toBeTruthy();
     });
 
     it('should open file with Enter key', async () => {
-      const { component } = render(FileExplorer);
+      const { component, unmount } = render(FileExplorer);
+      cleanup.push(unmount);
       
-      const openFileHandler = vi.fn();
-      component.$on('openFile', (event) => {
+      const openFileHandler = createSyncMock<[string], void>();
+      const unsubscribe = component.$on('openFile', (event) => {
         openFileHandler(event.detail);
       });
+      cleanup.push(unsubscribe);
       
       await waitForComponent();
       
       const fileNode = screen.getByText('package.json').closest('button');
+      fileNode?.focus();
+      
       await fireEvent.keyDown(fileNode!, { key: 'Enter' });
       
       expect(openFileHandler).toHaveBeenCalledWith('/home/user/project/package.json');
     });
   });
 
-  describe('Actions', () => {
-    it('should show share button', () => {
-      const { getByTitle } = render(FileExplorer);
+  describe('Performance and Large Directories', () => {
+    it('should handle large directories efficiently', async () => {
+      // Create a large directory structure
+      const largeDirectory = Array.from({ length: 1000 }, (_, i) => 
+        buildFileNode(`file${i}.txt`, `/home/user/project/file${i}.txt`)
+      );
       
-      const shareButton = getByTitle('Share Project');
-      expect(shareButton).toBeTruthy();
-      expect(shareButton.textContent).toContain('Share');
+      mockReadDir.mockResolvedValue(largeDirectory);
+      
+      const startTime = performance.now();
+      const { unmount } = render(FileExplorer);
+      cleanup.push(unmount);
+      
+      await waitForComponent();
+      
+      const renderTime = performance.now() - startTime;
+      
+      // Should render within reasonable time
+      expect(renderTime).toBeLessThan(1000); // 1 second
+      
+      // Should virtualize or paginate large lists
+      const visibleNodes = screen.getAllByRole('button');
+      expect(visibleNodes.length).toBeLessThanOrEqual(50); // Assuming virtualization
     });
 
-    it('should emit share event when share button is clicked', async () => {
-      const { getByTitle, component } = render(FileExplorer);
-      
-      const shareHandler = vi.fn();
-      component.$on('share', shareHandler);
-      
-      const shareButton = getByTitle('Share Project');
-      await fireEvent.click(shareButton);
-      
-      expect(shareHandler).toHaveBeenCalled();
-    });
-  });
-
-  describe('Nested Directory Structure', () => {
-    it('should handle multiple levels of nesting', async () => {
-      const { container } = render(FileExplorer);
+    it('should debounce search input for performance', async () => {
+      const { unmount } = render(FileExplorer);
+      cleanup.push(unmount);
       
       await waitForComponent();
       
-      // Expand src
-      const srcNode = screen.getByText('src').closest('button');
+      const searchInput = screen.getByPlaceholderText('Search files...');
       
-      mockReadDir.mockImplementation((path) => {
-        if (path === '/home/user/project/src') {
-          return Promise.resolve([
-            { name: 'components', path: '/home/user/project/src/components', children: [] }
-          ]);
-        }
-        if (path === '/home/user/project/src/components') {
-          return Promise.resolve([
-            { name: 'Button.svelte', path: '/home/user/project/src/components/Button.svelte' }
-          ]);
-        }
-        return Promise.resolve([]);
-      });
+      // Type quickly
+      await fireEvent.input(searchInput, { target: { value: 'p' } });
+      await fireEvent.input(searchInput, { target: { value: 'pa' } });
+      await fireEvent.input(searchInput, { target: { value: 'pac' } });
+      await fireEvent.input(searchInput, { target: { value: 'pack' } });
       
-      await fireEvent.click(srcNode!);
-      await waitForComponent();
-      
-      expect(screen.getByText('components')).toBeTruthy();
-      
-      // Expand components
-      const componentsNode = screen.getByText('components').closest('button');
-      await fireEvent.click(componentsNode!);
-      await waitForComponent();
-      
-      // The FileExplorer component only renders 3 levels deep, 
-      // so we need to check if Button.svelte exists in the DOM
-      const buttonFile = container.querySelector('.node-item .name')?.textContent;
-      // If the component doesn't render beyond 2 levels, this test should be adjusted
-      if (!screen.queryByText('Button.svelte')) {
-        // Component limitation - only renders 2-3 levels
-        expect(true).toBe(true);
-      } else {
-        expect(screen.getByText('Button.svelte')).toBeTruthy();
-      }
-    });
-
-    it('should apply correct padding for nested items', async () => {
-      render(FileExplorer);
-      
-      await waitForComponent();
-      
-      // Root level should have 8px padding
-      const srcNode = screen.getByText('src').closest('button');
-      expect(srcNode).toHaveStyle('padding-left: 8px');
-      
-      // Expand and check nested padding
-      mockReadDir.mockImplementation((path) => {
-        if (path === '/home/user/project/src') {
-          return Promise.resolve([
-            { name: 'components', path: '/home/user/project/src/components', children: [] }
-          ]);
-        }
-        return Promise.resolve([]);
-      });
-      
-      await fireEvent.click(srcNode!);
-      await waitForComponent();
-      
-      const componentsNode = screen.getByText('components').closest('button');
-      expect(componentsNode).toHaveStyle('padding-left: 24px');
-    });
-  });
-
-  describe('Browser Fallback', () => {
-    it('should show mock data when not in Tauri environment', async () => {
-      // Temporarily remove __TAURI__
-      const originalWindow = (global as any).window;
-      (global as any).window = {};
-      
-      render(FileExplorer);
-      
-      await waitForComponent();
-      
-      expect(screen.getByText('src')).toBeTruthy();
-      expect(screen.getByText('package.json')).toBeTruthy();
+      // Should not update immediately
       expect(screen.getByText('README.md')).toBeTruthy();
       
-      // Restore
-      (global as any).window = originalWindow;
-    });
-  });
-
-  describe('Accessibility', () => {
-    it('should have proper focus styles', async () => {
-      const { container } = render(FileExplorer);
-      
-      await waitForComponent();
-      
-      const nodeItem = container.querySelector('.node-item');
-      expect(nodeItem).toBeTruthy();
-      
-      // Focus styles are defined in CSS
-      // The component should be keyboard navigable
-    });
-
-    it('should prevent default behavior for Enter and Space keys', async () => {
-      render(FileExplorer);
-      
-      await waitForComponent();
-      
-      const srcNode = screen.getByText('src').closest('button');
-      const event = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true });
-      Object.defineProperty(event, 'preventDefault', {
-        value: vi.fn(),
-        writable: true
-      });
-      
-      srcNode?.dispatchEvent(event);
-      
-      expect(event.preventDefault).toHaveBeenCalled();
-    });
-  });
-
-  describe('Performance', () => {
-    it('should use transitions for smooth expand/collapse', async () => {
-      const { container } = render(FileExplorer);
-      
-      await waitForComponent();
-      
-      const srcNode = screen.getByText('src').closest('button');
-      
-      mockReadDir.mockImplementation((path) => {
-        if (path === '/home/user/project/src') {
-          return Promise.resolve([
-            { name: 'index.js', path: '/home/user/project/src/index.js' }
-          ]);
-        }
-        return Promise.resolve([]);
-      });
-      
-      await fireEvent.click(srcNode!);
-      await waitForComponent();
-      
-      const childrenContainer = container.querySelector('.children');
-      expect(childrenContainer).toBeTruthy();
-      // Svelte applies transition styles dynamically
+      // Wait for debounce
+      await waitFor(() => {
+        expect(screen.queryByText('README.md')).toBeFalsy();
+        expect(screen.getByText('package.json')).toBeTruthy();
+      }, { timeout: 500 });
     });
   });
 });

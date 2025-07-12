@@ -1,6 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import { tick } from 'svelte';
+import { 
+  createAsyncMock, 
+  createAsyncVoidMock, 
+  createSyncMock, 
+  createTypedMock 
+} from '@/test/mock-factory';
 
 // CodeMirror mocks are handled by setup-codemirror.ts
 // This test file should not define its own mocks as they conflict
@@ -9,6 +15,7 @@ import { tick } from 'svelte';
 import CodeMirrorEditor from './CodeMirrorEditor.svelte';
 
 describe('CodeMirrorEditor Component', () => {
+  let cleanup: Array<() => void> = [];
   let mockEditorView: any;
   let mockEditorState: any;
   let mockEditorViewConstructor: any;
@@ -21,18 +28,18 @@ describe('CodeMirrorEditor Component', () => {
       dom: document.createElement('div'),
       state: {
         doc: {
-          toString: vi.fn(() => 'mock content')
+          toString: createSyncMock<[], string>().mockReturnValue('mock content')
         }
       },
-      dispatch: vi.fn(),
-      destroy: vi.fn(),
-      focus: vi.fn(),
-      setSelection: vi.fn(),
-      hasFocus: vi.fn(() => false),
+      dispatch: createAsyncVoidMock(),
+      destroy: createSyncMock<[], void>(),
+      focus: createSyncMock<[], void>(),
+      setSelection: createSyncMock<[number, number], void>(),
+      hasFocus: createSyncMock<[], boolean>().mockReturnValue(false),
       lineWrapping: [],
-      theme: vi.fn(() => []),
+      theme: createSyncMock<[], any[]>().mockReturnValue([]),
       updateListener: {
-        of: vi.fn(() => [])
+        of: createSyncMock<[], any[]>().mockReturnValue([])
       }
     };
     
@@ -55,19 +62,23 @@ describe('CodeMirrorEditor Component', () => {
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
+    cleanup.forEach(fn => fn());
+    cleanup = [];
+    vi.restoreAllMocks();
   });
 
   describe('Component Initialization', () => {
     it('should render editor container', () => {
-      const { container } = render(CodeMirrorEditor);
+      const { container, unmount } = render(CodeMirrorEditor);
+      cleanup.push(unmount);
       
       const editorContainer = container.querySelector('.codemirror-editor-container');
       expect(editorContainer).toBeTruthy();
     });
 
     it('should initialize with default props', async () => {
-      const { container } = render(CodeMirrorEditor);
+      const { container, unmount } = render(CodeMirrorEditor);
+      cleanup.push(unmount);
       
       await waitFor(() => {
         const editorMount = container.querySelector('.editor-mount');
@@ -76,7 +87,8 @@ describe('CodeMirrorEditor Component', () => {
     });
 
     it('should create EditorView on mount', async () => {
-      render(CodeMirrorEditor);
+      const { unmount } = render(CodeMirrorEditor);
+      cleanup.push(unmount);
       
       await waitFor(() => {
         expect(mockEditorViewConstructor).toHaveBeenCalled();
@@ -84,11 +96,12 @@ describe('CodeMirrorEditor Component', () => {
     });
 
     it('should apply custom height', () => {
-      const { container } = render(CodeMirrorEditor, {
+      const { container, unmount } = render(CodeMirrorEditor, {
         props: {
           height: '600px'
         }
       });
+      cleanup.push(unmount);
       
       const editorContainer = container.querySelector('.codemirror-editor-container');
       expect(editorContainer).toHaveStyle('height: 600px');
@@ -97,11 +110,12 @@ describe('CodeMirrorEditor Component', () => {
     it('should set initial value', async () => {
       const initialValue = 'const hello = "world";';
       
-      render(CodeMirrorEditor, {
+      const { unmount } = render(CodeMirrorEditor, {
         props: {
           value: initialValue
         }
       });
+      cleanup.push(unmount);
       
       await waitFor(() => {
         expect(mockEditorState.create).toHaveBeenCalledWith(
@@ -116,7 +130,7 @@ describe('CodeMirrorEditor Component', () => {
     // We'll test error handling instead since that's more stable
     it('should show error state when editor fails to initialize', () => {
       // Create a custom mock that delays initialization
-      const slowMock = vi.fn();
+      const slowMock = createTypedMock<[], any>();
       let callCount = 0;
       
       mockEditorViewConstructor.mockImplementation(() => {
@@ -129,7 +143,8 @@ describe('CodeMirrorEditor Component', () => {
         return mockEditorView;
       });
       
-      const { container } = render(CodeMirrorEditor);
+      const { container, unmount } = render(CodeMirrorEditor);
+      cleanup.push(unmount);
       
       // Should show error state instead of loading since initialization failed
       const error = container.querySelector('.error');
@@ -141,7 +156,8 @@ describe('CodeMirrorEditor Component', () => {
     });
 
     it('should hide loading state after initialization', async () => {
-      const { container } = render(CodeMirrorEditor);
+      const { container, unmount } = render(CodeMirrorEditor);
+      cleanup.push(unmount);
       
       await waitFor(() => {
         const loading = container.querySelector('.loading');
@@ -154,11 +170,12 @@ describe('CodeMirrorEditor Component', () => {
     it('should load JavaScript language support', async () => {
       const { javascript } = await import('@codemirror/lang-javascript');
       
-      render(CodeMirrorEditor, {
+      const { unmount } = render(CodeMirrorEditor, {
         props: {
           language: 'javascript'
         }
       });
+      cleanup.push(unmount);
       
       await waitFor(() => {
         expect(javascript).toHaveBeenCalledWith();
@@ -168,11 +185,12 @@ describe('CodeMirrorEditor Component', () => {
     it('should load TypeScript language support', async () => {
       const { javascript } = await import('@codemirror/lang-javascript');
       
-      render(CodeMirrorEditor, {
+      const { unmount } = render(CodeMirrorEditor, {
         props: {
           language: 'typescript'
         }
       });
+      cleanup.push(unmount);
       
       await waitFor(() => {
         expect(javascript).toHaveBeenCalledWith({ typescript: true });
@@ -182,11 +200,12 @@ describe('CodeMirrorEditor Component', () => {
     it('should load JSON language support', async () => {
       const { json } = await import('@codemirror/lang-json');
       
-      render(CodeMirrorEditor, {
+      const { unmount } = render(CodeMirrorEditor, {
         props: {
           language: 'json'
         }
       });
+      cleanup.push(unmount);
       
       await waitFor(() => {
         expect(json).toHaveBeenCalled();
@@ -196,11 +215,12 @@ describe('CodeMirrorEditor Component', () => {
     it('should load Python language support', async () => {
       const { python } = await import('@codemirror/lang-python');
       
-      render(CodeMirrorEditor, {
+      const { unmount } = render(CodeMirrorEditor, {
         props: {
           language: 'python'
         }
       });
+      cleanup.push(unmount);
       
       await waitFor(() => {
         expect(python).toHaveBeenCalled();
@@ -210,11 +230,12 @@ describe('CodeMirrorEditor Component', () => {
     it('should load Rust language support', async () => {
       const { rust } = await import('@codemirror/lang-rust');
       
-      render(CodeMirrorEditor, {
+      const { unmount } = render(CodeMirrorEditor, {
         props: {
           language: 'rust'
         }
       });
+      cleanup.push(unmount);
       
       await waitFor(() => {
         expect(rust).toHaveBeenCalled();
@@ -224,11 +245,12 @@ describe('CodeMirrorEditor Component', () => {
     it('should fallback to JavaScript for unknown language', async () => {
       const { javascript } = await import('@codemirror/lang-javascript');
       
-      render(CodeMirrorEditor, {
+      const { unmount } = render(CodeMirrorEditor, {
         props: {
           language: 'unknown'
         }
       });
+      cleanup.push(unmount);
       
       await waitFor(() => {
         expect(javascript).toHaveBeenCalled();
@@ -240,7 +262,8 @@ describe('CodeMirrorEditor Component', () => {
     it('should apply dark theme by default', async () => {
       const { oneDark } = await import('@codemirror/theme-one-dark');
       
-      render(CodeMirrorEditor);
+      const { unmount } = render(CodeMirrorEditor);
+      cleanup.push(unmount);
       
       await waitFor(() => {
         expect(mockEditorState.create).toHaveBeenCalled();
@@ -255,11 +278,12 @@ describe('CodeMirrorEditor Component', () => {
     });
 
     it('should not apply dark theme when theme is light', async () => {
-      render(CodeMirrorEditor, {
+      const { unmount } = render(CodeMirrorEditor, {
         props: {
           theme: 'light'
         }
       });
+      cleanup.push(unmount);
       
       await waitFor(() => {
         expect(mockEditorState.create).toHaveBeenCalledWith(
@@ -273,11 +297,12 @@ describe('CodeMirrorEditor Component', () => {
 
   describe('Editor Configuration', () => {
     it('should set readOnly mode', async () => {
-      render(CodeMirrorEditor, {
+      const { unmount } = render(CodeMirrorEditor, {
         props: {
           readOnly: true
         }
       });
+      cleanup.push(unmount);
       
       await waitFor(() => {
         expect(mockEditorState.create).toHaveBeenCalledWith(
@@ -289,11 +314,12 @@ describe('CodeMirrorEditor Component', () => {
     });
 
     it('should configure line numbers', async () => {
-      render(CodeMirrorEditor, {
+      const { unmount } = render(CodeMirrorEditor, {
         props: {
           lineNumbers: false
         }
       });
+      cleanup.push(unmount);
       
       await waitFor(() => {
         expect(mockEditorState.create).toHaveBeenCalled();
@@ -301,11 +327,12 @@ describe('CodeMirrorEditor Component', () => {
     });
 
     it('should configure word wrap', async () => {
-      render(CodeMirrorEditor, {
+      const { unmount } = render(CodeMirrorEditor, {
         props: {
           wordWrap: false
         }
       });
+      cleanup.push(unmount);
       
       await waitFor(() => {
         expect(mockEditorState.create).toHaveBeenCalled();
@@ -313,11 +340,12 @@ describe('CodeMirrorEditor Component', () => {
     });
 
     it('should apply custom font size', () => {
-      const { container } = render(CodeMirrorEditor, {
+      const { container, unmount } = render(CodeMirrorEditor, {
         props: {
           fontSize: 16
         }
       });
+      cleanup.push(unmount);
       
       // Font size is applied via EditorView.theme, not directly on DOM
       expect(mockEditorViewConstructor.theme).toHaveBeenCalledWith(
@@ -330,9 +358,10 @@ describe('CodeMirrorEditor Component', () => {
 
   describe('Value Updates', () => {
     it('should emit change event when content changes', async () => {
-      const { component } = render(CodeMirrorEditor);
+      const { component, unmount } = render(CodeMirrorEditor);
+      cleanup.push(unmount);
       
-      const changeHandler = vi.fn();
+      const changeHandler = createTypedMock<[any], void>();
       component.$on('change', (event) => {
         changeHandler(event.detail);
       });
@@ -342,18 +371,19 @@ describe('CodeMirrorEditor Component', () => {
       });
       
       // Simulate content change
-      mockEditorView.state.doc.toString.mockReturnValue('new content');
+      (mockEditorView.state.doc.toString as ReturnType<typeof createSyncMock>).mockReturnValue('new content');
       
       // This would normally be triggered by CodeMirror
       // We need to check the component implementation for how changes are detected
     });
 
     it('should update editor when value prop changes', async () => {
-      const { component } = render(CodeMirrorEditor, {
+      const { component, unmount } = render(CodeMirrorEditor, {
         props: {
           value: 'initial'
         }
       });
+      cleanup.push(unmount);
       
       await waitFor(() => {
         expect(mockEditorView).toBeTruthy();
@@ -370,7 +400,8 @@ describe('CodeMirrorEditor Component', () => {
 
   describe('Editor Methods', () => {
     it('should focus editor when focus method is called', async () => {
-      const { component } = render(CodeMirrorEditor);
+      const { component, unmount } = render(CodeMirrorEditor);
+      cleanup.push(unmount);
       
       await waitFor(() => {
         expect(mockEditorView).toBeTruthy();
@@ -384,9 +415,10 @@ describe('CodeMirrorEditor Component', () => {
     });
 
     it('should get current value', async () => {
-      mockEditorView.state.doc.toString.mockReturnValue('current content');
+      (mockEditorView.state.doc.toString as ReturnType<typeof createSyncMock>).mockReturnValue('current content');
       
-      const { component } = render(CodeMirrorEditor);
+      const { component, unmount } = render(CodeMirrorEditor);
+      cleanup.push(unmount);
       
       await waitFor(() => {
         expect(mockEditorView).toBeTruthy();
@@ -400,7 +432,8 @@ describe('CodeMirrorEditor Component', () => {
     });
 
     it('should set selection', async () => {
-      const { component } = render(CodeMirrorEditor);
+      const { component, unmount } = render(CodeMirrorEditor);
+      cleanup.push(unmount);
       
       await waitFor(() => {
         expect(mockEditorView).toBeTruthy();
@@ -419,7 +452,8 @@ describe('CodeMirrorEditor Component', () => {
       const { keymap } = await import('@codemirror/view');
       const { indentWithTab } = await import('@codemirror/commands');
       
-      render(CodeMirrorEditor);
+      const { unmount } = render(CodeMirrorEditor);
+      cleanup.push(unmount);
       
       await waitFor(() => {
         expect(keymap.of).toHaveBeenCalled();
@@ -440,7 +474,8 @@ describe('CodeMirrorEditor Component', () => {
         throw error;
       });
       
-      const { container } = render(CodeMirrorEditor);
+      const { container, unmount } = render(CodeMirrorEditor);
+      cleanup.push(unmount);
       
       await waitFor(() => {
         const errorEl = container.querySelector('.error');
@@ -467,7 +502,8 @@ describe('CodeMirrorEditor Component', () => {
 
   describe('Accessibility', () => {
     it('should have proper ARIA attributes', () => {
-      const { container } = render(CodeMirrorEditor);
+      const { container, unmount } = render(CodeMirrorEditor);
+      cleanup.push(unmount);
       
       const editor = container.querySelector('[role="textbox"]');
       // CodeMirror should set appropriate ARIA attributes
@@ -475,7 +511,8 @@ describe('CodeMirrorEditor Component', () => {
     });
 
     it('should be keyboard navigable', async () => {
-      const { container } = render(CodeMirrorEditor);
+      const { container, unmount } = render(CodeMirrorEditor);
+      cleanup.push(unmount);
       
       await waitFor(() => {
         // Check that EditorView was created with a DOM element

@@ -3,23 +3,28 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import LazyComponent from './LazyComponent.svelte';
 import TestHelpers from './TestHelpers.svelte';
-import { createAsyncMock } from '@/test/mock-factory';
+import { createAsyncMock, createTypedMock } from '@/test/mock-factory';
 
 describe('LazyComponent', () => {
   let consoleErrorSpy: any;
+  let cleanup: Array<() => void> = [];
 
   beforeEach(() => {
     vi.clearAllMocks();
+    cleanup = [];
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
+    cleanup.forEach(fn => fn());
+    cleanup = [];
     consoleErrorSpy.mockRestore();
   });
 
   it('should display loading state initially', () => {
     const loader = createAsyncMock(() => new Promise(() => {})); // Never resolves
-    render(LazyComponent, { props: { loader } });
+    const { unmount } = render(LazyComponent, { props: { loader } });
+    cleanup.push(unmount);
 
     expect(screen.getByText('Loading...')).toBeInTheDocument();
     expect(document.querySelector('.lazy-loading')).toBeInTheDocument();
@@ -27,9 +32,10 @@ describe('LazyComponent', () => {
   });
 
   it('should display custom placeholder text', () => {
-    const loader = vi.fn(() => new Promise(() => {}));
+    const loader = createAsyncMock(() => new Promise(() => {}));
     const placeholder = 'Please wait...';
-    render(LazyComponent, { props: { loader, placeholder } });
+    const { unmount } = render(LazyComponent, { props: { loader, placeholder } });
+    cleanup.push(unmount);
 
     expect(screen.getByText(placeholder)).toBeInTheDocument();
   });
@@ -38,7 +44,8 @@ describe('LazyComponent', () => {
     const loader = createAsyncMock(async () => ({ default: TestHelpers }));
     const testProps = { name: 'Test', value: 42 };
     
-    render(LazyComponent, { props: { loader, props: testProps } });
+    const { unmount } = render(LazyComponent, { props: { loader, props: testProps } });
+    cleanup.push(unmount);
 
     // Initially shows loading
     expect(screen.getByText('Loading...')).toBeInTheDocument();
@@ -59,7 +66,8 @@ describe('LazyComponent', () => {
       throw new Error(errorMessage);
     });
 
-    render(LazyComponent, { props: { loader } });
+    const { unmount } = render(LazyComponent, { props: { loader } });
+    cleanup.push(unmount);
 
     // Initially shows loading
     expect(screen.getByText('Loading...')).toBeInTheDocument();
@@ -84,7 +92,8 @@ describe('LazyComponent', () => {
   it('should handle null/undefined module gracefully', async () => {
     const loader = createAsyncMock(async () => ({ default: null }));
     
-    render(LazyComponent, { props: { loader } });
+    const { unmount } = render(LazyComponent, { props: { loader } });
+    cleanup.push(unmount);
 
     await waitFor(() => {
       expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
@@ -98,7 +107,8 @@ describe('LazyComponent', () => {
   it('should handle immediate resolution', async () => {
     const loader = createAsyncMock(() => Promise.resolve({ default: TestHelpers }));
     
-    render(LazyComponent, { props: { loader, props: { name: 'Quick', value: 100 } } });
+    const { unmount } = render(LazyComponent, { props: { loader, props: { name: 'Quick', value: 100 } } });
+    cleanup.push(unmount);
 
     // Should still show loading initially
     expect(screen.getByText('Loading...')).toBeInTheDocument();
@@ -113,7 +123,8 @@ describe('LazyComponent', () => {
     const loader = createAsyncMock(async () => ({ default: TestHelpers }));
     
     // Don't pass props at all
-    render(LazyComponent, { props: { loader } });
+    const { unmount } = render(LazyComponent, { props: { loader } });
+    cleanup.push(unmount);
 
     await waitFor(() => {
       expect(screen.getByText('Name: , Value: 0')).toBeInTheDocument();
@@ -128,7 +139,8 @@ describe('LazyComponent', () => {
       throw 'String error';
     });
 
-    render(LazyComponent, { props: { loader } });
+    const { unmount } = render(LazyComponent, { props: { loader } });
+    cleanup.push(unmount);
 
     await waitFor(() => {
       expect(screen.getByText('Failed to load component')).toBeInTheDocument();
@@ -146,7 +158,8 @@ describe('LazyComponent', () => {
       throw { message: 'Custom error message' };
     });
 
-    render(LazyComponent, { props: { loader } });
+    const { unmount } = render(LazyComponent, { props: { loader } });
+    cleanup.push(unmount);
 
     await waitFor(() => {
       expect(screen.getByText('Failed to load component')).toBeInTheDocument();
@@ -159,7 +172,8 @@ describe('LazyComponent', () => {
       throw { someOtherProp: 'not a message' };
     });
 
-    render(LazyComponent, { props: { loader } });
+    const { unmount } = render(LazyComponent, { props: { loader } });
+    cleanup.push(unmount);
 
     await waitFor(() => {
       expect(screen.getByText('Failed to load component')).toBeInTheDocument();

@@ -1,25 +1,40 @@
 import { get } from 'svelte/store';
 import { settings } from '$lib/stores/settings';
+import { themeAPI } from '$lib/theme/api';
 
 export function initTheme() {
   // Apply theme from settings on initialization
   const currentSettings = get(settings);
   applyTheme(currentSettings.theme);
   
-  // Subscribe to theme changes
+  // Subscribe to theme changes and sync with ThemeAPI
   settings.subscribe(($settings) => {
     applyTheme($settings.theme);
   });
 }
 
-export function applyTheme(theme: 'dark' | 'light') {
-  document.documentElement.setAttribute('data-theme', theme);
+export function applyTheme(theme: 'dark' | 'light' | 'high-contrast' | 'colorblind-friendly') {
+  // Use the unified ThemeAPI to apply themes
+  themeAPI.applyTheme('orchflow', theme);
 }
 
 export function toggleTheme() {
   const currentSettings = get(settings);
   const newTheme = currentSettings.theme === 'dark' ? 'light' : 'dark';
   settings.update(s => ({ ...s, theme: newTheme }));
+}
+
+// Extended theme switching functions
+export function setTheme(theme: 'dark' | 'light' | 'high-contrast' | 'colorblind-friendly') {
+  settings.update(s => ({ ...s, theme }));
+}
+
+export function getAvailableThemes() {
+  return themeAPI.getThemes();
+}
+
+export function getCurrentThemeInfo() {
+  return themeAPI.getCurrentTheme();
 }
 
 // Keyboard shortcut handler for Cmd-K D

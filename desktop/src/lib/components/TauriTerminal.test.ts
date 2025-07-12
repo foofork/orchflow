@@ -5,6 +5,7 @@ import TauriTerminal from './TauriTerminal.svelte';
 import { browser } from '$app/environment';
 import { tmux } from '$lib/tauri/tmux';
 import { TIMEOUT_CONFIG } from '$lib/utils/timeout';
+import { createTypedMock, createSyncMock, createAsyncMock } from '@/test/mock-factory';
 
 // Mock browser environment
 vi.mock('$app/environment', () => ({
@@ -14,55 +15,55 @@ vi.mock('$app/environment', () => ({
 // Mock tmux
 vi.mock('$lib/tauri/tmux', () => ({
   tmux: {
-    createPane: vi.fn(),
-    killPane: vi.fn(),
-    sendKeys: vi.fn(),
-    resizePane: vi.fn(),
-    capturePane: vi.fn()
+    createPane: createAsyncMock<[string, string?], { id: string }>(),
+    killPane: createAsyncMock<[string], void>(),
+    sendKeys: createAsyncMock<[string, string], void>(),
+    resizePane: createAsyncMock<[string, number, number], void>(),
+    capturePane: createAsyncMock<[string], string>()
   }
 }));
 
 // Create mock instances
 const mockTerminal = {
-  loadAddon: vi.fn(),
-  open: vi.fn(),
-  write: vi.fn(),
-  writeln: vi.fn(),
-  clear: vi.fn(),
-  onData: vi.fn(() => ({ dispose: vi.fn() })),
-  onResize: vi.fn(() => ({ dispose: vi.fn() })),
-  dispose: vi.fn(),
-  resize: vi.fn(),
-  focus: vi.fn(),
-  blur: vi.fn(),
+  loadAddon: createSyncMock<[any], void>(),
+  open: createSyncMock<[HTMLElement], void>(),
+  write: createSyncMock<[string], void>(),
+  writeln: createSyncMock<[string], void>(),
+  clear: createSyncMock<[], void>(),
+  onData: createSyncMock<[Function], { dispose: Function }>(() => ({ dispose: createSyncMock<[], void>() })),
+  onResize: createSyncMock<[Function], { dispose: Function }>(() => ({ dispose: createSyncMock<[], void>() })),
+  dispose: createSyncMock<[], void>(),
+  resize: createSyncMock<[number, number], void>(),
+  focus: createSyncMock<[], void>(),
+  blur: createSyncMock<[], void>(),
   buffer: { active: { type: 'normal' } },
   cols: 80,
   rows: 24
 };
 
 const mockFitAddon = {
-  fit: vi.fn(),
-  proposeDimensions: vi.fn(() => ({ cols: 80, rows: 24 })),
-  activate: vi.fn(),
-  dispose: vi.fn()
+  fit: createSyncMock<[], void>(),
+  proposeDimensions: createSyncMock<[], { cols: number; rows: number }>(() => ({ cols: 80, rows: 24 })),
+  activate: createSyncMock<[any], void>(),
+  dispose: createSyncMock<[], void>()
 };
 
 const mockWebLinksAddon = {
-  activate: vi.fn(),
-  dispose: vi.fn()
+  activate: createSyncMock<[any], void>(),
+  dispose: createSyncMock<[], void>()
 };
 
 // Mock dynamic imports
 vi.doMock('@xterm/xterm', () => ({
-  Terminal: vi.fn(() => mockTerminal)
+  Terminal: createSyncMock<[any?], typeof mockTerminal>(() => mockTerminal)
 }));
 
 vi.doMock('@xterm/addon-fit', () => ({
-  FitAddon: vi.fn(() => mockFitAddon)
+  FitAddon: createSyncMock<[any?], typeof mockFitAddon>(() => mockFitAddon)
 }));
 
 vi.doMock('@xterm/addon-web-links', () => ({
-  WebLinksAddon: vi.fn(() => mockWebLinksAddon)
+  WebLinksAddon: createSyncMock<[any?], typeof mockWebLinksAddon>(() => mockWebLinksAddon)
 }));
 
 vi.doMock('@xterm/xterm/css/xterm.css', () => ({}));
@@ -76,7 +77,10 @@ async function waitForMount() {
 }
 
 describe('TauriTerminal', () => {
+  let cleanup: Array<() => void> = [];
+
   beforeEach(() => {
+    cleanup = [];
     vi.clearAllMocks();
     vi.useFakeTimers();
     
@@ -86,25 +90,28 @@ describe('TauriTerminal', () => {
   });
 
   afterEach(() => {
+    cleanup.forEach(fn => fn());
     vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
   describe('Initialization', () => {
     it('should render terminal container', async () => {
-      const { container } = render(TauriTerminal);
+      const { container, unmount } = render(TauriTerminal);
+      cleanup.push(unmount);
       
       const terminalContainer = container.querySelector('.terminal-container');
       expect(terminalContainer).toBeTruthy();
     });
 
     it('should create pane on mount', async () => {
-      render(TauriTerminal, {
+      const { unmount } = render(TauriTerminal, {
         props: {
           sessionName: 'test-session',
           command: 'bash'
         }
       });
+      cleanup.push(unmount);
       
       await waitForMount();
       
@@ -112,12 +119,13 @@ describe('TauriTerminal', () => {
     });
 
     it('should use existing paneId if provided', async () => {
-      render(TauriTerminal, {
+      const { unmount } = render(TauriTerminal, {
         props: {
           sessionName: 'test-session',
           paneId: 'existing-pane'
         }
       });
+      cleanup.push(unmount);
       
       await waitForMount();
       
@@ -125,7 +133,8 @@ describe('TauriTerminal', () => {
     });
 
     it('should initialize terminal with theme', async () => {
-      render(TauriTerminal);
+      const { unmount } = render(TauriTerminal);
+      cleanup.push(unmount);
       
       await waitForMount();
       
@@ -133,15 +142,20 @@ describe('TauriTerminal', () => {
     });
 
     it('should set up resize observer', async () => {
-      const mockObserve = vi.fn();
-      const MockResizeObserver = vi.fn(() => ({
+      const mockObserve = createSyncMock<[Element], void>();
+      const MockResizeObserver = createSyncMock<[Function], {
+        observe: Function;
+        unobserve: Function;
+        disconnect: Function;
+      }>(() => ({
         observe: mockObserve,
-        unobserve: vi.fn(),
-        disconnect: vi.fn()
+        unobserve: createSyncMock<[Element], void>(),
+        disconnect: createSyncMock<[], void>()
       }));
       global.ResizeObserver = MockResizeObserver as any;
       
-      render(TauriTerminal);
+      const { unmount } = render(TauriTerminal);
+      cleanup.push(unmount);
       
       await waitForMount();
       
@@ -152,12 +166,13 @@ describe('TauriTerminal', () => {
 
   describe('User Input', () => {
     it('should send input to tmux on data event', async () => {
-      render(TauriTerminal, {
+      const { unmount } = render(TauriTerminal, {
         props: {
           sessionName: 'test-session',
           paneId: 'pane-123'
         }
       });
+      cleanup.push(unmount);
       
       await waitForMount();
       
@@ -171,12 +186,13 @@ describe('TauriTerminal', () => {
 
   describe('Content Updates', () => {
     it('should poll for content updates', async () => {
-      render(TauriTerminal, {
+      const { unmount } = render(TauriTerminal, {
         props: {
           sessionName: 'test-session',
           paneId: 'pane-123'
         }
       });
+      cleanup.push(unmount);
       
       await waitForMount();
       
@@ -193,12 +209,13 @@ describe('TauriTerminal', () => {
         .mockResolvedValueOnce('Initial output\n$ ')
         .mockResolvedValueOnce('New output\n$ ');
       
-      render(TauriTerminal, {
+      const { unmount } = render(TauriTerminal, {
         props: {
           sessionName: 'test-session',
           paneId: 'pane-123'
         }
       });
+      cleanup.push(unmount);
       
       await waitForMount();
       
@@ -235,13 +252,15 @@ describe('TauriTerminal', () => {
     });
 
     it('should clear poll interval on unmount', async () => {
-      const clearIntervalSpy = vi.spyOn(global, 'clearInterval');
+      const clearIntervalSpy = createTypedMock<[NodeJS.Timeout], void>();
+      vi.spyOn(global, 'clearInterval').mockImplementation(clearIntervalSpy);
       
       const { unmount } = render(TauriTerminal, {
         props: {
           sessionName: 'test-session'
         }
       });
+      cleanup.push(unmount);
       
       await waitForMount();
       
@@ -253,14 +272,16 @@ describe('TauriTerminal', () => {
 
   describe('Error Handling', () => {
     it('should handle pane creation failure gracefully', async () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleSpy = createTypedMock<[any, ...any[]], void>();
+      vi.spyOn(console, 'error').mockImplementation(consoleSpy);
       (tmux.createPane as any).mockRejectedValue(new Error('Failed to create pane'));
       
-      render(TauriTerminal, {
+      const { unmount } = render(TauriTerminal, {
         props: {
           sessionName: 'test-session'
         }
       });
+      cleanup.push(unmount);
       
       await waitForMount();
       
@@ -271,15 +292,17 @@ describe('TauriTerminal', () => {
     });
 
     it('should handle capture pane failure gracefully', async () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleSpy = createTypedMock<[any, ...any[]], void>();
+      vi.spyOn(console, 'error').mockImplementation(consoleSpy);
       tmux.capturePane.mockRejectedValue(new Error('Failed to capture'));
       
-      render(TauriTerminal, {
+      const { unmount } = render(TauriTerminal, {
         props: {
           sessionName: 'test-session',
           paneId: 'pane-123'
         }
       });
+      cleanup.push(unmount);
       
       await waitForMount();
       

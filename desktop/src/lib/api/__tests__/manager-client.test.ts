@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ManagerClient, type Session, type Pane, type PaneType, type PluginInfo, type CommandHistoryEntry } from '../manager-client';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
+import { createTypedMock, createVoidMock } from '@/test/mock-factory';
 
 // Mocks are already set up in src/test/setup.ts
 
@@ -9,6 +10,7 @@ describe('ManagerClient', () => {
   let client: ManagerClient;
   let mockedInvoke: any;
   let mockedListen: any;
+  let cleanup: Array<() => void> = [];
 
   beforeEach(() => {
     client = new ManagerClient();
@@ -18,6 +20,8 @@ describe('ManagerClient', () => {
   });
 
   afterEach(() => {
+    cleanup.forEach(fn => fn());
+    cleanup.length = 0;
     vi.clearAllMocks();
   });
 
@@ -657,14 +661,14 @@ describe('ManagerClient', () => {
   describe('Event Handling', () => {
     describe('onEvent', () => {
       it('should register event handler', () => {
-        const handler = vi.fn();
+        const handler = createTypedMock<[event: any], void>();
         const unsubscribe = client.onEvent('SessionCreated', handler);
 
         expect(typeof unsubscribe).toBe('function');
       });
 
       it('should unregister event handler', () => {
-        const handler = vi.fn();
+        const handler = createTypedMock<[event: any], void>();
         const unsubscribe = client.onEvent('SessionCreated', handler);
 
         unsubscribe();
@@ -675,8 +679,8 @@ describe('ManagerClient', () => {
       });
 
       it('should handle multiple handlers for same event', () => {
-        const handler1 = vi.fn();
-        const handler2 = vi.fn();
+        const handler1 = createTypedMock<[event: any], void>();
+        const handler2 = createTypedMock<[event: any], void>();
 
         const unsub1 = client.onEvent('SessionCreated', handler1);
         const unsub2 = client.onEvent('SessionCreated', handler2);
@@ -701,11 +705,11 @@ describe('ManagerClient', () => {
           onmessage: null,
           onerror: null,
           onclose: null,
-          close: vi.fn(),
-          send: vi.fn(),
+          close: createVoidMock(),
+          send: createVoidMock<[data: string | ArrayBufferLike | Blob | ArrayBufferView]>(),
         };
 
-        global.WebSocket = vi.fn(() => mockWebSocket) as any;
+        global.WebSocket = createTypedMock<[url: string], WebSocket>(() => mockWebSocket as any);
       });
 
       it('should connect to WebSocket', async () => {
@@ -719,7 +723,7 @@ describe('ManagerClient', () => {
       });
 
       it('should handle WebSocket messages', async () => {
-        const handler = vi.fn();
+        const handler = createTypedMock<[event: any], void>();
         client.onEvent('SessionCreated', handler);
 
         await client.connectWebSocket();
@@ -740,6 +744,7 @@ describe('ManagerClient', () => {
 
       it('should handle WebSocket parse errors', async () => {
         const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+        cleanup.push(() => consoleSpy.mockRestore());
 
         await client.connectWebSocket();
 
@@ -751,12 +756,11 @@ describe('ManagerClient', () => {
           'Failed to parse WebSocket message:',
           expect.any(Error)
         );
-
-        consoleSpy.mockRestore();
       });
 
       it('should handle WebSocket errors', async () => {
         const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+        cleanup.push(() => consoleSpy.mockRestore());
 
         await client.connectWebSocket();
 
@@ -764,12 +768,12 @@ describe('ManagerClient', () => {
         mockWebSocket.onerror(error);
 
         expect(consoleSpy).toHaveBeenCalledWith('WebSocket error:', error);
-
-        consoleSpy.mockRestore();
       });
 
       it('should reconnect on WebSocket close', async () => {
         const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+        cleanup.push(() => consoleSpy.mockRestore());
+        cleanup.push(() => vi.useRealTimers());
         vi.useFakeTimers();
 
         await client.connectWebSocket();
@@ -783,15 +787,12 @@ describe('ManagerClient', () => {
         vi.advanceTimersByTime(5000);
 
         expect(global.WebSocket).toHaveBeenCalledTimes(2);
-
-        consoleSpy.mockRestore();
-        vi.useRealTimers();
       });
     });
 
     describe('dispose', () => {
       it('should clean up resources', () => {
-        const handler = vi.fn();
+        const handler = createTypedMock<[event: any], void>();
         client.onEvent('SessionCreated', handler);
 
         client.dispose();

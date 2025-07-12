@@ -1,10 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import DashboardEnhanced from './DashboardEnhanced.svelte';
 
 // Import the store mocking utilities
 import { buildSession, buildPane } from '../../test/test-data-builders';
+
+// Import mock factory utilities
+import { createTypedMock, createVoidMock } from '@/test/mock-factory';
 
 // Mock the manager store module first
 vi.mock('../stores/manager', async () => {
@@ -22,10 +25,12 @@ const panesStore = panes as unknown as Writable<Map<string, any>>;
 const connectedStore = isConnected as unknown as Writable<boolean>;
 
 describe('DashboardEnhanced Component', () => {
-  const mockOnSelectPane = vi.fn();
+  let cleanup: Array<() => void> = [];
+  const mockOnSelectPane = createTypedMock<[pane: any], void>();
   
   beforeEach(() => {
     vi.clearAllMocks();
+    cleanup = [];
     
     // Reset stores
     sessionsStore.set([]);
@@ -33,19 +38,25 @@ describe('DashboardEnhanced Component', () => {
     connectedStore.set(true);
     mockOnSelectPane.mockClear();
   });
+  
+  afterEach(() => {
+    cleanup.forEach(fn => fn());
+  });
 
   it('should render dashboard with header', () => {
-    const { getByText } = render(DashboardEnhanced, {
+    const { getByText, unmount } = render(DashboardEnhanced, {
       props: { onSelectPane: mockOnSelectPane }
     });
+    cleanup.push(unmount);
     
     expect(getByText('OrchFlow Dashboard')).toBeTruthy();
   });
 
   it('should show connection status', async () => {
-    const { getByText } = render(DashboardEnhanced, {
+    const { getByText, unmount } = render(DashboardEnhanced, {
       props: { onSelectPane: mockOnSelectPane }
     });
+    cleanup.push(unmount);
     
     expect(getByText('● Connected')).toBeTruthy();
     
@@ -70,9 +81,10 @@ describe('DashboardEnhanced Component', () => {
     
     panesStore.set(testPanes);
     
-    const { getByText, container } = render(DashboardEnhanced, {
+    const { getByText, container, unmount } = render(DashboardEnhanced, {
       props: { onSelectPane: mockOnSelectPane }
     });
+    cleanup.push(unmount);
     await tick();
     
     // Should start in card view
@@ -90,9 +102,10 @@ describe('DashboardEnhanced Component', () => {
   });
 
   it('should display system stats', () => {
-    const { getByText } = render(DashboardEnhanced, {
+    const { getByText, unmount } = render(DashboardEnhanced, {
       props: { onSelectPane: mockOnSelectPane }
     });
+    cleanup.push(unmount);
     
     expect(getByText('System CPU')).toBeTruthy();
     expect(getByText('Memory Used')).toBeTruthy();
@@ -102,9 +115,10 @@ describe('DashboardEnhanced Component', () => {
   });
 
   it('should show empty state when no panes exist', () => {
-    const { getByText } = render(DashboardEnhanced, {
+    const { getByText, unmount } = render(DashboardEnhanced, {
       props: { onSelectPane: mockOnSelectPane }
     });
+    cleanup.push(unmount);
     
     expect(getByText('No panes running')).toBeTruthy();
     expect(getByText('Press Ctrl+P to open command palette')).toBeTruthy();
@@ -130,9 +144,10 @@ describe('DashboardEnhanced Component', () => {
     
     panesStore.set(testPanes);
     
-    const { getByText, container } = render(DashboardEnhanced, {
+    const { getByText, container, unmount } = render(DashboardEnhanced, {
       props: { onSelectPane: mockOnSelectPane }
     });
+    cleanup.push(unmount);
     await tick();
     
     expect(getByText('Terminal 1')).toBeTruthy();
@@ -157,9 +172,10 @@ describe('DashboardEnhanced Component', () => {
     
     panesStore.set(testPanes);
     
-    const { getByText, container } = render(DashboardEnhanced, {
+    const { getByText, container, unmount } = render(DashboardEnhanced, {
       props: { onSelectPane: mockOnSelectPane }
     });
+    cleanup.push(unmount);
     await tick();
     
     // Switch to table view
@@ -189,9 +205,10 @@ describe('DashboardEnhanced Component', () => {
     const testPanes = new Map([['pane1', testPane]]);
     panesStore.set(testPanes);
     
-    const { getByText } = render(DashboardEnhanced, {
+    const { getByText, unmount } = render(DashboardEnhanced, {
       props: { onSelectPane: mockOnSelectPane }
     });
+    cleanup.push(unmount);
     await tick();
     
     const attachButton = getByText('Attach');
@@ -221,9 +238,10 @@ describe('DashboardEnhanced Component', () => {
       is_active: true
     }));
     
-    const { getByText } = render(DashboardEnhanced, {
+    const { getByText, unmount } = render(DashboardEnhanced, {
       props: { onSelectPane: mockOnSelectPane }
     });
+    cleanup.push(unmount);
     await tick();
     
     const restartButton = getByText('Restart');
@@ -248,9 +266,10 @@ describe('DashboardEnhanced Component', () => {
     
     panesStore.set(testPanes);
     
-    const { getByText } = render(DashboardEnhanced, {
+    const { getByText, unmount } = render(DashboardEnhanced, {
       props: { onSelectPane: mockOnSelectPane }
     });
+    cleanup.push(unmount);
     await tick();
     
     const killButton = getByText('Kill');
@@ -272,9 +291,10 @@ describe('DashboardEnhanced Component', () => {
     
     panesStore.set(testPanes);
     
-    const { container } = render(DashboardEnhanced, {
+    const { container, unmount } = render(DashboardEnhanced, {
       props: { onSelectPane: mockOnSelectPane }
     });
+    cleanup.push(unmount);
     await tick();
     
     // Wait for metrics collection (happens in onMount)
@@ -313,9 +333,10 @@ describe('DashboardEnhanced Component', () => {
     
     panesStore.set(testPanes);
     
-    const { container } = render(DashboardEnhanced, {
+    const { container, unmount } = render(DashboardEnhanced, {
       props: { onSelectPane: mockOnSelectPane }
     });
+    cleanup.push(unmount);
     await tick();
     
     const statusIcons = container.querySelectorAll('.status-icon');
@@ -338,9 +359,10 @@ describe('DashboardEnhanced Component', () => {
     const testPanes = new Map([['pane1', testPane]]);
     panesStore.set(testPanes);
     
-    const { getByText, getByTitle } = render(DashboardEnhanced, {
+    const { getByText, getByTitle, unmount } = render(DashboardEnhanced, {
       props: { onSelectPane: mockOnSelectPane }
     });
+    cleanup.push(unmount);
     await tick();
     
     // Switch to table view

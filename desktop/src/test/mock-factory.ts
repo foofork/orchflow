@@ -15,7 +15,36 @@ import { vi, type MockedFunction, type Mock } from 'vitest';
 export function createMockFunction<T extends (...args: any[]) => any>(
   implementation?: T
 ): MockedFunction<T> {
-  return vi.fn(implementation) as MockedFunction<T>;
+  const mock = vi.fn(implementation);
+  return mock as MockedFunction<T>;
+}
+
+/**
+ * Create a mock function that can be used with proper TypeScript typing
+ * Handles both sync and async functions with full method support
+ */
+export function createTypedMock<
+  TArgs extends readonly any[] = any[],
+  TReturn = any
+>(
+  implementation?: (...args: TArgs) => TReturn
+): MockedFunction<(...args: TArgs) => TReturn> {
+  const mock = vi.fn(implementation);
+  
+  // Ensure all MockedFunction methods are available and typed
+  return Object.assign(mock, {
+    mockClear: mock.mockClear.bind(mock),
+    mockReset: mock.mockReset.bind(mock),
+    mockRestore: mock.mockRestore?.bind(mock),
+    mockReturnValue: mock.mockReturnValue.bind(mock),
+    mockReturnValueOnce: mock.mockReturnValueOnce.bind(mock),
+    mockResolvedValue: mock.mockResolvedValue?.bind(mock),
+    mockResolvedValueOnce: mock.mockResolvedValueOnce?.bind(mock),
+    mockRejectedValue: mock.mockRejectedValue?.bind(mock),
+    mockRejectedValueOnce: mock.mockRejectedValueOnce?.bind(mock),
+    mockImplementation: mock.mockImplementation.bind(mock),
+    mockImplementationOnce: mock.mockImplementationOnce.bind(mock),
+  }) as MockedFunction<(...args: TArgs) => TReturn>;
 }
 
 /**
@@ -221,10 +250,14 @@ export function createDataTransferMock(
   return {
     effectAllowed: 'none',
     dropEffect: 'none',
-    setData: vi.fn() as MockedFunction<(format: string, data: string) => void>,
-    getData: vi.fn().mockReturnValue('') as MockedFunction<(format: string) => string>,
-    clearData: vi.fn() as MockedFunction<(format?: string) => void>,
-    setDragImage: vi.fn() as MockedFunction<(image: Element, x: number, y: number) => void>,
+    setData: createTypedMock<[format: string, data: string], void>(),
+    getData: (() => {
+      const mock = createTypedMock<[format: string], string>();
+      mock.mockReturnValue('');
+      return mock;
+    })(),
+    clearData: createTypedMock<[format?: string], void>(),
+    setDragImage: createTypedMock<[image: Element, x: number, y: number], void>(),
     types: [],
     files: [] as any,
     items: [] as any,
@@ -246,12 +279,129 @@ export function createEventMock<T extends Event>(
     type: eventType,
     target: null,
     currentTarget: null,
-    preventDefault: vi.fn(),
-    stopPropagation: vi.fn(),
-    stopImmediatePropagation: vi.fn(),
+    preventDefault: createVoidMock(),
+    stopPropagation: createVoidMock(),
+    stopImmediatePropagation: createVoidMock(),
     ...properties
   } as Partial<T>;
 }
+
+/**
+ * Enhanced Store Mocks - Priority 1
+ * Properly typed store mocks that return MockedFunction types
+ */
+export const enhancedStoreMocks = {
+  createTypedWritable: <T>(initialValue: T) => {
+    const store = {
+      subscribe: createTypedMock<[fn: (value: T) => void], () => void>(),
+      set: createTypedMock<[value: T], void>(),
+      update: createTypedMock<[updater: (value: T) => T], void>(),
+    };
+    
+    // Set up default behavior
+    store.subscribe.mockImplementation((fn) => {
+      fn(initialValue);
+      return () => {};
+    });
+    
+    return store;
+  },
+  
+  createTypedReadable: <T>(value: T) => {
+    const store = {
+      subscribe: createTypedMock<[fn: (value: T) => void], () => void>(),
+    };
+    
+    store.subscribe.mockImplementation((fn) => {
+      fn(value);
+      return () => {};
+    });
+    
+    return store;
+  },
+  
+  createTypedDerived: <T>(value: T) => {
+    const store = {
+      subscribe: createTypedMock<[fn: (value: T) => void], () => void>(),
+    };
+    
+    store.subscribe.mockImplementation((fn) => {
+      fn(value);
+      return () => {};
+    });
+    
+    return store;
+  }
+};
+
+/**
+ * Enhanced Component Mocks - Priority 3
+ * Complete Svelte component mock with proper $$ property support
+ */
+export const enhancedComponentMocks = {
+  createSvelteComponentMock: (props = {}) => {
+    return {
+      $set: createTypedMock<[props: any], void>(),
+      $on: createTypedMock<[event: string, handler: Function], () => void>(),
+      $destroy: createTypedMock<[], void>(),
+      $$: {
+        fragment: {
+          c: createTypedMock<[], void>(),
+          m: createTypedMock<[target: HTMLElement, anchor?: Node], void>(),
+          p: createTypedMock<[ctx: any[], dirty: number[]], void>(),
+          d: createTypedMock<[detaching: boolean], void>(),
+        },
+        ctx: [],
+        props,
+        update: createTypedMock<[], void>(),
+        not_equal: (a: any, b: any) => a !== b,
+        bound: {},
+        on_mount: [],
+        on_destroy: [],
+        on_disconnect: [],
+        before_update: [],
+        after_update: [],
+        context: new Map(),
+        callbacks: {},
+        dirty: [],
+        skip_bound: false,
+        root: document.createElement('div'),
+      },
+      element: document.createElement('div'),
+    };
+  }
+};
+
+/**
+ * Enhanced Data Builders - Priority 4
+ * Type-safe test data builders with better inference
+ */
+export const enhancedDataBuilders = {
+  buildTypedData: <T>(template: T, overrides?: Partial<T>): T => {
+    return { ...template, ...overrides };
+  },
+  
+  buildArray: <T>(template: T, count: number, overrideFn?: (index: number) => Partial<T>): T[] => {
+    return Array.from({ length: count }, (_, i) => ({
+      ...template,
+      ...(overrideFn ? overrideFn(i) : {}),
+    }));
+  },
+  
+  buildMockApiResponse: <T>(data: T, success = true) => ({
+    success,
+    data,
+    error: success ? null : 'Mock error',
+    timestamp: Date.now(),
+  }),
+  
+  buildMockEventTarget: (value = '') => ({
+    value,
+    checked: false,
+    type: 'text',
+    name: 'test-input',
+  }),
+};
 
 /**
  * Export commonly used mock types

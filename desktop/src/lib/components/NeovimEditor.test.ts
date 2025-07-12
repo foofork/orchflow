@@ -3,65 +3,74 @@ import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import userEvent from '@testing-library/user-event';
 import NeovimEditor from './NeovimEditor.svelte';
+import { 
+  createTypedMock, 
+  createSyncMock, 
+  createAsyncMock,
+  createVoidMock,
+  createAsyncVoidMock,
+  MockPatterns 
+} from '@/test/mock-factory';
 
 // Mock XTerm
 const mockTerminal = {
-  open: vi.fn(),
-  dispose: vi.fn(),
-  clear: vi.fn(),
-  write: vi.fn(),
-  writeln: vi.fn(),
-  onData: vi.fn(),
-  loadAddon: vi.fn(),
+  open: createVoidMock(),
+  dispose: createVoidMock(),
+  clear: createVoidMock(),
+  write: createVoidMock<[string]>(),
+  writeln: createVoidMock<[string]>(),
+  onData: createTypedMock<[callback: (data: string) => void], void>(),
+  loadAddon: createVoidMock<[addon: any]>(),
   cols: 80,
   rows: 24
 };
 
 const mockFitAddon = {
-  fit: vi.fn()
+  fit: createVoidMock()
 };
 
 vi.mock('@xterm/xterm', () => ({
-  Terminal: vi.fn(() => mockTerminal)
+  Terminal: createTypedMock<[], typeof mockTerminal>(() => mockTerminal)
 }));
 
 vi.mock('@xterm/addon-fit', () => ({
-  FitAddon: vi.fn(() => mockFitAddon)
+  FitAddon: createTypedMock<[], typeof mockFitAddon>(() => mockFitAddon)
 }));
 
 // Mock tmux client
 vi.mock('$lib/tauri/tmux', () => ({
   tmux: {
-    createPane: vi.fn(),
-    sendKeys: vi.fn(),
-    capturePane: vi.fn(),
-    resizePane: vi.fn(),
-    killPane: vi.fn()
+    createPane: createAsyncMock<[session: string, command: string], { id: string }>(),
+    sendKeys: createAsyncVoidMock<[paneId: string, keys: string]>(),
+    capturePane: createAsyncMock<[paneId: string, maxLines: number], string>(),
+    resizePane: createAsyncVoidMock<[paneId: string, cols: number, rows: number]>(),
+    killPane: createAsyncVoidMock<[paneId: string]>()
   }
 }));
 
 // Mock Neovim client
 vi.mock('$lib/tauri/neovim', () => ({
   NeovimClient: {
-    create: vi.fn(() => Promise.resolve({
-      openFile: vi.fn(),
-      save: vi.fn(),
-      getBufferContent: vi.fn(),
-      getMode: vi.fn(),
-      eval: vi.fn(),
-      close: vi.fn()
-    }))
+    create: createAsyncMock<[instanceId: string], {
+      openFile: any;
+      save: any;
+      getBufferContent: any;
+      getMode: any;
+      eval: any;
+      close: any;
+    }>()
   }
 }));
 
 // Mock ResizeObserver
-global.ResizeObserver = vi.fn(() => ({
-  observe: vi.fn(),
-  disconnect: vi.fn(),
-  unobserve: vi.fn()
+global.ResizeObserver = createTypedMock<[callback: ResizeObserverCallback], ResizeObserver>(() => ({
+  observe: createVoidMock<[target: Element]>(),
+  disconnect: createVoidMock(),
+  unobserve: createVoidMock<[target: Element]>()
 }));
 
 describe('NeovimEditor Component', () => {
+  let cleanup: Array<() => void> = [];
   let user: any;
   let mockTmux: any;
   let mockNeovimClient: any;
@@ -87,45 +96,51 @@ describe('NeovimEditor Component', () => {
     
     // Setup the resolved client instance
     mockNeovimClient = {
-      openFile: vi.fn().mockResolvedValue(undefined),
-      save: vi.fn().mockResolvedValue(undefined),
-      getBufferContent: vi.fn().mockResolvedValue('file content'),
-      getMode: vi.fn().mockResolvedValue('n'),
-      eval: vi.fn().mockResolvedValue(null),
-      close: vi.fn().mockResolvedValue(undefined)
+      openFile: createAsyncVoidMock<[filePath: string]>(),
+      save: createAsyncVoidMock(),
+      getBufferContent: createAsyncMock<[], string>('file content'),
+      getMode: createAsyncMock<[], string>('n'),
+      eval: createAsyncMock<[command: string], any>(null),
+      close: createAsyncVoidMock()
     };
     
     MockNeovimClient.create.mockResolvedValue(mockNeovimClient);
   });
 
   afterEach(() => {
+    cleanup.forEach(fn => fn());
+    cleanup = [];
     vi.useRealTimers();
   });
 
   describe('Component Initialization', () => {
     it('should render editor container', () => {
-      const { container } = render(NeovimEditor);
+      const { container, unmount } = render(NeovimEditor);
+      cleanup.push(unmount);
       
       const editorContainer = container.querySelector('.editor-container');
       expect(editorContainer).toBeTruthy();
     });
 
     it('should display default title', () => {
-      const { container } = render(NeovimEditor);
+      const { container, unmount } = render(NeovimEditor);
+      cleanup.push(unmount);
       
       const title = container.querySelector('.editor-title');
       expect(title?.textContent).toBe('Neovim');
     });
 
     it('should display custom title', () => {
-      const { container } = render(NeovimEditor, { props: { title: 'Custom Editor' } });
+      const { container, unmount } = render(NeovimEditor, { props: { title: 'Custom Editor' } });
+      cleanup.push(unmount);
       
       const title = container.querySelector('.editor-title');
       expect(title?.textContent).toBe('Custom Editor');
     });
 
     it('should create terminal instance on mount', async () => {
-      render(NeovimEditor);
+      const { unmount } = render(NeovimEditor);
+      cleanup.push(unmount);
       
       await tick();
       
@@ -135,7 +150,8 @@ describe('NeovimEditor Component', () => {
     });
 
     it('should create Neovim client on mount', async () => {
-      render(NeovimEditor);
+      const { unmount } = render(NeovimEditor);
+      cleanup.push(unmount);
       
       await tick();
       
@@ -143,7 +159,8 @@ describe('NeovimEditor Component', () => {
     });
 
     it('should create tmux pane with Neovim', async () => {
-      render(NeovimEditor);
+      const { unmount } = render(NeovimEditor);
+      cleanup.push(unmount);
       
       await tick();
       
@@ -156,7 +173,8 @@ describe('NeovimEditor Component', () => {
     });
 
     it('should open file if provided', async () => {
-      render(NeovimEditor, { props: { filePath: 'test.js' } });
+      const { unmount } = render(NeovimEditor, { props: { filePath: 'test.js' } });
+      cleanup.push(unmount);
       
       await tick();
       vi.advanceTimersByTime(1100); // Wait for Neovim to start
@@ -167,7 +185,8 @@ describe('NeovimEditor Component', () => {
     });
 
     it('should handle custom session name', async () => {
-      render(NeovimEditor, { props: { sessionName: 'custom-session' } });
+      const { unmount } = render(NeovimEditor, { props: { sessionName: 'custom-session' } });
+      cleanup.push(unmount);
       
       await tick();
       
@@ -182,7 +201,8 @@ describe('NeovimEditor Component', () => {
 
   describe('Terminal Integration', () => {
     it('should send terminal data to tmux pane', async () => {
-      render(NeovimEditor);
+      const { unmount } = render(NeovimEditor);
+      cleanup.push(unmount);
       
       await tick();
       
@@ -198,7 +218,8 @@ describe('NeovimEditor Component', () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       mockTmux.sendKeys.mockRejectedValue(new Error('Send failed'));
       
-      render(NeovimEditor);
+      const { unmount } = render(NeovimEditor);
+      cleanup.push(unmount);
       
       await tick();
       
@@ -209,11 +230,12 @@ describe('NeovimEditor Component', () => {
         expect(consoleSpy).toHaveBeenCalledWith('Failed to send keys:', expect.any(Error));
       });
       
-      consoleSpy.mockRestore();
+      vi.restoreAllMocks();
     });
 
     it('should poll for terminal output', async () => {
-      render(NeovimEditor);
+      const { unmount } = render(NeovimEditor);
+      cleanup.push(unmount);
       
       await tick();
       vi.advanceTimersByTime(200); // Advance past polling interval
@@ -226,7 +248,8 @@ describe('NeovimEditor Component', () => {
     it('should update terminal when content changes', async () => {
       mockTmux.capturePane.mockResolvedValueOnce('first content');
       
-      render(NeovimEditor);
+      const { unmount } = render(NeovimEditor);
+      cleanup.push(unmount);
       
       await tick();
       vi.advanceTimersByTime(100);
@@ -250,7 +273,8 @@ describe('NeovimEditor Component', () => {
     });
 
     it('should handle terminal resize', async () => {
-      const { container } = render(NeovimEditor);
+      const { container, unmount } = render(NeovimEditor);
+      cleanup.push(unmount);
       
       await tick();
       
@@ -271,7 +295,8 @@ describe('NeovimEditor Component', () => {
 
   describe('Editor Actions', () => {
     it('should render save button', () => {
-      const { container } = render(NeovimEditor);
+      const { container, unmount } = render(NeovimEditor);
+      cleanup.push(unmount);
       
       const saveButton = container.querySelector('[title="Save"]');
       expect(saveButton).toBeTruthy();
@@ -279,7 +304,8 @@ describe('NeovimEditor Component', () => {
     });
 
     it('should call save when save button clicked', async () => {
-      const { container } = render(NeovimEditor);
+      const { container, unmount } = render(NeovimEditor);
+      cleanup.push(unmount);
       
       await tick();
       vi.advanceTimersByTime(1100);
@@ -293,7 +319,8 @@ describe('NeovimEditor Component', () => {
     });
 
     it('should expose save method', async () => {
-      const { component } = render(NeovimEditor);
+      const { component, unmount } = render(NeovimEditor);
+      cleanup.push(unmount);
       
       await tick();
       vi.advanceTimersByTime(1100);
@@ -306,7 +333,8 @@ describe('NeovimEditor Component', () => {
     });
 
     it('should expose getBuffer method', async () => {
-      const { component } = render(NeovimEditor);
+      const { component, unmount } = render(NeovimEditor);
+      cleanup.push(unmount);
       
       await tick();
       vi.advanceTimersByTime(1100);
@@ -323,7 +351,8 @@ describe('NeovimEditor Component', () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       MockNeovimClient.create.mockRejectedValue(new Error('Neovim start failed'));
       
-      render(NeovimEditor);
+      const { unmount } = render(NeovimEditor);
+      cleanup.push(unmount);
       
       await tick();
       
@@ -333,14 +362,15 @@ describe('NeovimEditor Component', () => {
         expect(mockTerminal.writeln).toHaveBeenCalledWith('Error: Neovim start failed');
       });
       
-      consoleSpy.mockRestore();
+      vi.restoreAllMocks();
     });
 
     it('should handle tmux pane creation error', async () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       mockTmux.createPane.mockRejectedValue(new Error('Tmux error'));
       
-      render(NeovimEditor);
+      const { unmount } = render(NeovimEditor);
+      cleanup.push(unmount);
       
       await tick();
       
@@ -348,14 +378,15 @@ describe('NeovimEditor Component', () => {
         expect(consoleSpy).toHaveBeenCalledWith('Failed to initialize Neovim:', expect.any(Error));
       });
       
-      consoleSpy.mockRestore();
+      vi.restoreAllMocks();
     });
 
     it('should handle polling errors gracefully', async () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       mockTmux.capturePane.mockRejectedValue(new Error('Capture failed'));
       
-      render(NeovimEditor);
+      const { unmount } = render(NeovimEditor);
+      cleanup.push(unmount);
       
       await tick();
       vi.advanceTimersByTime(200);
@@ -364,14 +395,15 @@ describe('NeovimEditor Component', () => {
         expect(consoleSpy).toHaveBeenCalledWith('Failed to capture pane:', expect.any(Error));
       });
       
-      consoleSpy.mockRestore();
+      vi.restoreAllMocks();
     });
 
     it('should handle resize errors gracefully', async () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       mockTmux.resizePane.mockRejectedValue(new Error('Resize failed'));
       
-      const { container } = render(NeovimEditor);
+      const { container, unmount } = render(NeovimEditor);
+      cleanup.push(unmount);
       
       await tick();
       
@@ -384,7 +416,7 @@ describe('NeovimEditor Component', () => {
         expect(consoleSpy).toHaveBeenCalledWith('Failed to resize pane:', expect.any(Error));
       });
       
-      consoleSpy.mockRestore();
+      vi.restoreAllMocks();
     });
   });
 
@@ -417,7 +449,7 @@ describe('NeovimEditor Component', () => {
         expect(consoleSpy).toHaveBeenCalledWith('Failed to kill pane:', expect.any(Error));
       });
       
-      consoleSpy.mockRestore();
+      vi.restoreAllMocks();
     });
 
     it('should clear intervals on unmount', async () => {
@@ -449,7 +481,8 @@ describe('NeovimEditor Component', () => {
     it('should generate instanceId if not provided', async () => {
       const dateNowSpy = vi.spyOn(Date, 'now').mockReturnValue(12345);
       
-      render(NeovimEditor);
+      const { unmount } = render(NeovimEditor);
+      cleanup.push(unmount);
       
       await tick();
       
@@ -457,11 +490,12 @@ describe('NeovimEditor Component', () => {
         expect(MockNeovimClient.create).toHaveBeenCalledWith('nvim-12345');
       });
       
-      dateNowSpy.mockRestore();
+      vi.restoreAllMocks();
     });
 
     it('should use provided instanceId', async () => {
-      render(NeovimEditor, { props: { instanceId: 'custom-id' } });
+      const { unmount } = render(NeovimEditor, { props: { instanceId: 'custom-id' } });
+      cleanup.push(unmount);
       
       await tick();
       
@@ -471,7 +505,8 @@ describe('NeovimEditor Component', () => {
     });
 
     it('should handle custom session name', async () => {
-      render(NeovimEditor, { props: { sessionName: 'my-session' } });
+      const { unmount } = render(NeovimEditor, { props: { sessionName: 'my-session' } });
+      cleanup.push(unmount);
       
       await tick();
       
@@ -483,7 +518,8 @@ describe('NeovimEditor Component', () => {
 
   describe('Accessibility', () => {
     it('should have proper button titles', () => {
-      const { container } = render(NeovimEditor);
+      const { container, unmount } = render(NeovimEditor);
+      cleanup.push(unmount);
       
       const saveButton = container.querySelector('[title="Save"]');
       expect(saveButton).toBeTruthy();

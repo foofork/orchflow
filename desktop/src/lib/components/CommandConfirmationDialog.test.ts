@@ -5,10 +5,11 @@
 //
 // This file is kept for reference but should be considered deprecated in favor of the split approach.
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import CommandConfirmationDialog from './CommandConfirmationDialog.svelte';
 import { MockSvelteComponent } from '../../test/utils/svelte-component-mock-types';
+import { createTypedMock, createAsyncMock } from '@/test/mock-factory';
 
 // Mock Modal component
 vi.mock('./Modal.svelte', () => {
@@ -92,9 +93,10 @@ vi.mock('svelte/transition', () => ({
 }));
 
 describe('CommandConfirmationDialog', () => {
-  let mockOnConfirm: ReturnType<typeof vi.fn>;
-  let mockOnCancel: ReturnType<typeof vi.fn>;
-  let mockOnBypass: ReturnType<typeof vi.fn>;
+  let cleanup: Array<() => void> = [];
+  let mockOnConfirm: ReturnType<typeof createTypedMock>;
+  let mockOnCancel: ReturnType<typeof createTypedMock>;
+  let mockOnBypass: ReturnType<typeof createTypedMock>;
   
   const mockWarning = {
     riskLevel: 'High' as const,
@@ -109,13 +111,18 @@ describe('CommandConfirmationDialog', () => {
   };
 
   beforeEach(() => {
-    mockOnConfirm = vi.fn();
-    mockOnCancel = vi.fn();
-    mockOnBypass = vi.fn();
+    cleanup = [];
+    mockOnConfirm = createTypedMock<[], void>();
+    mockOnCancel = createTypedMock<[], void>();
+    mockOnBypass = createTypedMock<[], void>();
+  });
+
+  afterEach(() => {
+    cleanup.forEach(fn => fn());
   });
 
   it('renders warning dialog when open', async () => {
-    const { container } = render(CommandConfirmationDialog, {
+    const { container, unmount } = render(CommandConfirmationDialog, {
       props: {
         open: true,
         command: 'rm -rf /',
@@ -123,6 +130,7 @@ describe('CommandConfirmationDialog', () => {
         terminalInfo: mockTerminalInfo
       }
     });
+    cleanup.push(unmount);
 
     // Wait for async rendering
     await waitFor(() => {
@@ -137,7 +145,7 @@ describe('CommandConfirmationDialog', () => {
   });
 
   it('shows risk factors when toggled', async () => {
-    const { container } = render(CommandConfirmationDialog, {
+    const { container, unmount } = render(CommandConfirmationDialog, {
       props: {
         open: true,
         command: 'rm -rf /',
@@ -145,6 +153,7 @@ describe('CommandConfirmationDialog', () => {
         terminalInfo: mockTerminalInfo
       }
     });
+    cleanup.push(unmount);
 
     await waitFor(() => {
       expect(container.querySelector('.confirmation-dialog')).toBeInTheDocument();
@@ -169,7 +178,7 @@ describe('CommandConfirmationDialog', () => {
   });
 
   it('calls onConfirm when proceed clicked', async () => {
-    const { container, component } = render(CommandConfirmationDialog, {
+    const { container, component, unmount } = render(CommandConfirmationDialog, {
       props: {
         open: true,
         command: 'rm -rf /',
@@ -177,8 +186,9 @@ describe('CommandConfirmationDialog', () => {
         terminalInfo: mockTerminalInfo
       }
     });
+    cleanup.push(unmount);
 
-    const confirmHandler = vi.fn();
+    const confirmHandler = createTypedMock<[any], void>();
     component.$on('confirm', confirmHandler);
 
     await waitFor(() => {
@@ -203,7 +213,7 @@ describe('CommandConfirmationDialog', () => {
   });
 
   it('calls onCancel when cancel clicked', async () => {
-    const { container, component } = render(CommandConfirmationDialog, {
+    const { container, component, unmount } = render(CommandConfirmationDialog, {
       props: {
         open: true,
         command: 'rm -rf /',
@@ -211,8 +221,9 @@ describe('CommandConfirmationDialog', () => {
         terminalInfo: mockTerminalInfo
       }
     });
+    cleanup.push(unmount);
 
-    const cancelHandler = vi.fn();
+    const cancelHandler = createTypedMock<[any], void>();
     component.$on('cancel', cancelHandler);
 
     await waitFor(() => {
@@ -238,7 +249,7 @@ describe('CommandConfirmationDialog', () => {
   it('shows bypass option for low/medium risk', async () => {
     const lowRiskWarning = { ...mockWarning, riskLevel: 'Low' as const };
     
-    const { container, component } = render(CommandConfirmationDialog, {
+    const { container, component, unmount } = render(CommandConfirmationDialog, {
       props: {
         open: true,
         command: 'curl http://example.com',
@@ -246,8 +257,9 @@ describe('CommandConfirmationDialog', () => {
         terminalInfo: mockTerminalInfo
       }
     });
+    cleanup.push(unmount);
 
-    const bypassHandler = vi.fn();
+    const bypassHandler = createTypedMock<[any], void>();
     component.$on('bypass', bypassHandler);
 
     await waitFor(() => {
@@ -271,7 +283,7 @@ describe('CommandConfirmationDialog', () => {
   });
 
   it('does not show bypass option for high risk', async () => {
-    const { container } = render(CommandConfirmationDialog, {
+    const { container, unmount } = render(CommandConfirmationDialog, {
       props: {
         open: true,
         command: 'rm -rf /',
@@ -279,6 +291,7 @@ describe('CommandConfirmationDialog', () => {
         terminalInfo: mockTerminalInfo
       }
     });
+    cleanup.push(unmount);
 
     await waitFor(() => {
       expect(container.querySelector('.confirmation-dialog')).toBeInTheDocument();
@@ -289,7 +302,7 @@ describe('CommandConfirmationDialog', () => {
   });
 
   it('handles remember choice checkbox', async () => {
-    const { container, component } = render(CommandConfirmationDialog, {
+    const { container, component, unmount } = render(CommandConfirmationDialog, {
       props: {
         open: true,
         command: 'rm -rf /',
@@ -297,8 +310,9 @@ describe('CommandConfirmationDialog', () => {
         terminalInfo: mockTerminalInfo
       }
     });
+    cleanup.push(unmount);
 
-    const confirmHandler = vi.fn();
+    const confirmHandler = createTypedMock<[any], void>();
     component.$on('confirm', confirmHandler);
 
     await waitFor(() => {
@@ -331,14 +345,14 @@ describe('CommandConfirmationDialog', () => {
 
   it('copies command to clipboard', async () => {
     // Mock clipboard
-    const mockWriteText = vi.fn().mockResolvedValue(undefined);
+    const mockWriteText = createAsyncMock<[string], void>().mockResolvedValue(undefined);
     Object.assign(navigator, {
       clipboard: {
         writeText: mockWriteText
       }
     });
 
-    const { container } = render(CommandConfirmationDialog, {
+    const { container, unmount } = render(CommandConfirmationDialog, {
       props: {
         open: true,
         command: 'rm -rf /',
@@ -346,6 +360,7 @@ describe('CommandConfirmationDialog', () => {
         terminalInfo: mockTerminalInfo
       }
     });
+    cleanup.push(unmount);
 
     await waitFor(() => {
       expect(container.querySelector('.confirmation-dialog')).toBeInTheDocument();
@@ -362,7 +377,7 @@ describe('CommandConfirmationDialog', () => {
   });
 
   it('handles keyboard navigation', async () => {
-    const { container, component } = render(CommandConfirmationDialog, {
+    const { container, component, unmount } = render(CommandConfirmationDialog, {
       props: {
         open: true,
         command: 'rm -rf /',
@@ -370,8 +385,9 @@ describe('CommandConfirmationDialog', () => {
         terminalInfo: mockTerminalInfo
       }
     });
+    cleanup.push(unmount);
 
-    const cancelHandler = vi.fn();
+    const cancelHandler = createTypedMock<[any], void>();
     component.$on('cancel', cancelHandler);
 
     await waitFor(() => {
@@ -417,7 +433,7 @@ describe('CommandConfirmationDialog', () => {
   });
 
   it('displays matched pattern when available', async () => {
-    const { container } = render(CommandConfirmationDialog, {
+    const { container, unmount } = render(CommandConfirmationDialog, {
       props: {
         open: true,
         command: 'rm -rf /',
@@ -425,6 +441,7 @@ describe('CommandConfirmationDialog', () => {
         terminalInfo: mockTerminalInfo
       }
     });
+    cleanup.push(unmount);
 
     await waitFor(() => {
       expect(container.querySelector('.confirmation-dialog')).toBeInTheDocument();
@@ -437,7 +454,7 @@ describe('CommandConfirmationDialog', () => {
   it('handles missing risk factors gracefully', async () => {
     const warningWithoutFactors = { ...mockWarning, riskFactors: [] };
     
-    const { container } = render(CommandConfirmationDialog, {
+    const { container, unmount } = render(CommandConfirmationDialog, {
       props: {
         open: true,
         command: 'rm -rf /',
@@ -445,6 +462,7 @@ describe('CommandConfirmationDialog', () => {
         terminalInfo: mockTerminalInfo
       }
     });
+    cleanup.push(unmount);
 
     await waitFor(() => {
       expect(container.querySelector('.confirmation-dialog')).toBeInTheDocument();
@@ -460,7 +478,7 @@ describe('CommandConfirmationDialog', () => {
       riskFactors: undefined as any 
     };
     
-    const { container } = render(CommandConfirmationDialog, {
+    const { container, unmount } = render(CommandConfirmationDialog, {
       props: {
         open: true,
         command: 'rm -rf /',
@@ -468,6 +486,7 @@ describe('CommandConfirmationDialog', () => {
         terminalInfo: mockTerminalInfo
       }
     });
+    cleanup.push(unmount);
 
     await waitFor(() => {
       expect(container.querySelector('.confirmation-dialog')).toBeInTheDocument();

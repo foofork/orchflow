@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import ShareDialog from './ShareDialog.svelte';
+import { createTypedMock, createAsyncMock } from '@/test/mock-factory';
 
 // Mock Tauri APIs
-const mockInvoke = vi.fn();
-const mockOpen = vi.fn();
+const mockInvoke = createAsyncMock<[string, any?], any>();
+const mockOpen = createAsyncMock<[any], string | string[]>();
 
 vi.mock('@tauri-apps/api/core', () => ({
   invoke: () => mockInvoke()
@@ -15,45 +16,53 @@ vi.mock('@tauri-apps/api/dialog', () => ({
 }));
 
 describe('ShareDialog', () => {
+  let cleanup: Array<() => void> = [];
+
   beforeEach(() => {
     vi.clearAllMocks();
+    cleanup = [];
   });
 
   afterEach(() => {
+    cleanup.forEach(fn => fn());
     vi.restoreAllMocks();
   });
 
   describe('Rendering', () => {
     it('should not render when show is false', () => {
-      const { container } = render(ShareDialog, {
+      const { container, unmount } = render(ShareDialog, {
         props: { show: false }
       });
+      cleanup.push(unmount);
       
       const dialog = container.querySelector('.share-dialog-overlay');
       expect(dialog).toBeFalsy();
     });
 
     it('should render when show is true', () => {
-      const { container } = render(ShareDialog, {
+      const { container, unmount } = render(ShareDialog, {
         props: { show: true }
       });
+      cleanup.push(unmount);
       
       const dialog = container.querySelector('.share-dialog-overlay');
       expect(dialog).toBeTruthy();
     });
 
     it('should render create mode by default', () => {
-      const { getByText } = render(ShareDialog, {
+      const { getByText, unmount } = render(ShareDialog, {
         props: { show: true }
       });
+      cleanup.push(unmount);
       
       expect(getByText('Create Share Package')).toBeTruthy();
     });
 
     it('should render import mode when specified', () => {
-      const { getByText } = render(ShareDialog, {
+      const { getByText, unmount } = render(ShareDialog, {
         props: { show: true, mode: 'import' }
       });
+      cleanup.push(unmount);
       
       expect(getByText('Import Share Package')).toBeTruthy();
     });
@@ -61,9 +70,10 @@ describe('ShareDialog', () => {
 
   describe('Create Mode', () => {
     it('should render create form fields', () => {
-      const { container } = render(ShareDialog, {
+      const { container, unmount } = render(ShareDialog, {
         props: { show: true, mode: 'create' }
       });
+      cleanup.push(unmount);
       
       const nameInput = container.querySelector('input[placeholder*="Package name"]');
       const descriptionTextarea = container.querySelector('textarea[placeholder*="Description"]');
@@ -75,9 +85,10 @@ describe('ShareDialog', () => {
     it('should allow selecting files', async () => {
       mockOpen.mockResolvedValue(['file1.txt', 'file2.js']);
       
-      const { getByText, container } = render(ShareDialog, {
+      const { getByText, container, unmount } = render(ShareDialog, {
         props: { show: true, mode: 'create' }
       });
+      cleanup.push(unmount);
       
       const selectButton = getByText('Add Files');
       await fireEvent.click(selectButton);
@@ -98,9 +109,10 @@ describe('ShareDialog', () => {
     it('should handle single file selection', async () => {
       mockOpen.mockResolvedValue('single-file.txt');
       
-      const { getByText, container } = render(ShareDialog, {
+      const { getByText, container, unmount } = render(ShareDialog, {
         props: { show: true, mode: 'create' }
       });
+      cleanup.push(unmount);
       
       const selectButton = getByText('Add Files');
       await fireEvent.click(selectButton);
@@ -114,9 +126,10 @@ describe('ShareDialog', () => {
     it('should remove files from selection', async () => {
       mockOpen.mockResolvedValue(['file1.txt', 'file2.js']);
       
-      const { getByText, container } = render(ShareDialog, {
+      const { getByText, container, unmount } = render(ShareDialog, {
         props: { show: true, mode: 'create' }
       });
+      cleanup.push(unmount);
       
       const selectButton = getByText('Add Files');
       await fireEvent.click(selectButton);
@@ -140,9 +153,10 @@ describe('ShareDialog', () => {
       mockOpen.mockResolvedValue(['file1.txt']);
       mockInvoke.mockResolvedValue({ success: true, path: '/tmp/package.share' });
       
-      const { getByText, container } = render(ShareDialog, {
+      const { getByText, container, unmount } = render(ShareDialog, {
         props: { show: true, mode: 'create' }
       });
+      cleanup.push(unmount);
       
       // Fill in form
       const nameInput = container.querySelector('input[placeholder*="Package name"]') as HTMLInputElement;
@@ -174,9 +188,10 @@ describe('ShareDialog', () => {
     });
 
     it('should show error when creating without name or files', async () => {
-      const { getByText, container } = render(ShareDialog, {
+      const { getByText, container, unmount } = render(ShareDialog, {
         props: { show: true, mode: 'create' }
       });
+      cleanup.push(unmount);
       
       const createButton = getByText('Create Package');
       await fireEvent.click(createButton);
@@ -191,9 +206,10 @@ describe('ShareDialog', () => {
       mockOpen.mockResolvedValue(['file1.txt']);
       mockInvoke.mockRejectedValue(new Error('Failed to create package'));
       
-      const { getByText, container } = render(ShareDialog, {
+      const { getByText, container, unmount } = render(ShareDialog, {
         props: { show: true, mode: 'create' }
       });
+      cleanup.push(unmount);
       
       // Fill in minimal data
       const nameInput = container.querySelector('input[placeholder*="Package name"]') as HTMLInputElement;
@@ -216,9 +232,10 @@ describe('ShareDialog', () => {
 
   describe('Import Mode', () => {
     it('should render import form fields', () => {
-      const { container } = render(ShareDialog, {
+      const { container, unmount } = render(ShareDialog, {
         props: { show: true, mode: 'import' }
       });
+      cleanup.push(unmount);
       
       const pathInput = container.querySelector('input[placeholder*="package path"]');
       const directoryInput = container.querySelector('input[placeholder*="target directory"]');
@@ -230,9 +247,10 @@ describe('ShareDialog', () => {
     it('should browse for package file', async () => {
       mockOpen.mockResolvedValue('/path/to/package.share');
       
-      const { getByText, container } = render(ShareDialog, {
+      const { getByText, container, unmount } = render(ShareDialog, {
         props: { show: true, mode: 'import' }
       });
+      cleanup.push(unmount);
       
       const browseButton = getByText('Browse');
       await fireEvent.click(browseButton);
@@ -254,9 +272,10 @@ describe('ShareDialog', () => {
     it('should import package with valid data', async () => {
       mockInvoke.mockResolvedValue({ success: true });
       
-      const { getByText, container } = render(ShareDialog, {
+      const { getByText, container, unmount } = render(ShareDialog, {
         props: { show: true, mode: 'import' }
       });
+      cleanup.push(unmount);
       
       // Fill in form
       const pathInput = container.querySelector('input[placeholder*="package path"]') as HTMLInputElement;
@@ -278,9 +297,10 @@ describe('ShareDialog', () => {
     });
 
     it('should show error when importing without path', async () => {
-      const { getByText, container } = render(ShareDialog, {
+      const { getByText, container, unmount } = render(ShareDialog, {
         props: { show: true, mode: 'import' }
       });
+      cleanup.push(unmount);
       
       const importButton = getByText('Import Package');
       await fireEvent.click(importButton);
@@ -307,9 +327,10 @@ describe('ShareDialog', () => {
       ];
       mockInvoke.mockResolvedValue(mockPackages);
       
-      render(ShareDialog, {
+      const { unmount } = render(ShareDialog, {
         props: { show: true }
       });
+      cleanup.push(unmount);
       
       await waitFor(() => {
         expect(mockInvoke).toHaveBeenCalledWith('list_share_packages');
@@ -317,28 +338,31 @@ describe('ShareDialog', () => {
     });
 
     it('should handle recent packages load error', async () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleSpy = createTypedMock<[message: string, error: Error], void>();
+      vi.spyOn(console, 'error').mockImplementation(consoleSpy);
       mockInvoke.mockRejectedValue(new Error('Failed to load'));
       
-      render(ShareDialog, {
+      const { unmount } = render(ShareDialog, {
         props: { show: true }
       });
+      cleanup.push(unmount);
       
       await waitFor(() => {
         expect(consoleSpy).toHaveBeenCalledWith('Failed to load recent packages:', expect.any(Error));
       });
       
-      consoleSpy.mockRestore();
+      vi.restoreAllMocks();
     });
   });
 
   describe('Dialog Behavior', () => {
     it('should close on cancel button', async () => {
-      const { getByText, component } = render(ShareDialog, {
+      const { getByText, component, unmount } = render(ShareDialog, {
         props: { show: true }
       });
+      cleanup.push(unmount);
       
-      const closeHandler = vi.fn();
+      const closeHandler = createTypedMock<() => void>();
       component.$on('close', closeHandler);
       
       const cancelButton = getByText('Cancel');
@@ -348,11 +372,12 @@ describe('ShareDialog', () => {
     });
 
     it('should close on overlay click', async () => {
-      const { container, component } = render(ShareDialog, {
+      const { container, component, unmount } = render(ShareDialog, {
         props: { show: true }
       });
+      cleanup.push(unmount);
       
-      const closeHandler = vi.fn();
+      const closeHandler = createTypedMock<() => void>();
       component.$on('close', closeHandler);
       
       const overlay = container.querySelector('.share-overlay');
@@ -362,11 +387,12 @@ describe('ShareDialog', () => {
     });
 
     it('should not close on dialog content click', async () => {
-      const { container, component } = render(ShareDialog, {
+      const { container, component, unmount } = render(ShareDialog, {
         props: { show: true }
       });
+      cleanup.push(unmount);
       
-      const closeHandler = vi.fn();
+      const closeHandler = createTypedMock<() => void>();
       component.$on('close', closeHandler);
       
       const dialog = container.querySelector('.share-dialog');
@@ -385,9 +411,10 @@ describe('ShareDialog', () => {
       });
       mockInvoke.mockReturnValue(delayedPromise);
       
-      const { getByText, container } = render(ShareDialog, {
+      const { getByText, container, unmount } = render(ShareDialog, {
         props: { show: true, mode: 'create' }
       });
+      cleanup.push(unmount);
       
       // Wait for component to be ready
       await waitFor(() => {

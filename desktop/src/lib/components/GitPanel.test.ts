@@ -2,15 +2,30 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, waitFor, screen } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import GitPanel from './GitPanel.svelte';
+import { 
+  createAsyncMock, 
+  createAsyncVoidMock, 
+  createTypedMock,
+  createSyncMock 
+} from '@/test/mock-factory';
+import { buildGitStatus, buildGitCommit, buildGitOperationResult } from '@/test/domain-builders';
 
 // Mock Tauri API
-const mockInvoke = vi.fn();
+const mockInvoke = createAsyncMock<[string, any?], any>();
 vi.mock('@tauri-apps/api/core', () => ({
   invoke: mockInvoke
 }));
 
+// Mock window alert
+const mockAlert = createSyncMock<[string], void>();
+
+// Mock console methods
+const mockConsoleError = createSyncMock<[...any[]], void>();
+
 describe('GitPanel', () => {
-  const mockGitStatus = {
+  let cleanup: Array<() => void> = [];
+  
+  const mockGitStatus = buildGitStatus({
     branch: 'main',
     upstream: 'origin/main',
     ahead: 2,
@@ -47,24 +62,31 @@ describe('GitPanel', () => {
         staged: false 
       }
     ]
-  };
+  });
 
   beforeEach(() => {
     vi.clearAllMocks();
     // Mock Tauri window object
     (window as any).__TAURI__ = {};
+    // Mock window functions
+    window.alert = mockAlert as any;
+    // Spy on console.error
+    vi.spyOn(console, 'error').mockImplementation(mockConsoleError);
   });
 
   afterEach(() => {
+    cleanup.forEach(fn => fn());
+    cleanup = [];
     vi.restoreAllMocks();
-    vi.useRealTimers(); // Make sure to restore real timers if they were faked
+    vi.useRealTimers();
     // Clean up Tauri mock
     delete (window as any).__TAURI__;
   });
 
   describe('Rendering', () => {
     it('renders when show is true', async () => {
-      const { container } = render(GitPanel, { props: { show: true } });
+      const { container, unmount } = render(GitPanel, { props: { show: true } });
+      cleanup.push(unmount);
       
       expect(container.querySelector('.git-panel')).toBeTruthy();
       expect(container.querySelector('.git-header')).toBeTruthy();
@@ -72,14 +94,16 @@ describe('GitPanel', () => {
     });
 
     it('does not render when show is false', () => {
-      const { container } = render(GitPanel, { props: { show: false } });
+      const { container, unmount } = render(GitPanel, { props: { show: false } });
+      cleanup.push(unmount);
       
       expect(container.querySelector('.git-panel')).toBeFalsy();
     });
 
     it('shows loading state initially in browser mode', async () => {
       delete (window as any).__TAURI__;
-      const { container } = render(GitPanel, { props: { show: true } });
+      const { container, unmount } = render(GitPanel, { props: { show: true } });
+      cleanup.push(unmount);
       
       // Mock data should load
       await waitFor(() => {
@@ -89,7 +113,8 @@ describe('GitPanel', () => {
 
     it('displays git branch information', async () => {
       mockInvoke.mockResolvedValueOnce(mockGitStatus);
-      const { container } = render(GitPanel, { props: { show: true } });
+      const { container, unmount } = render(GitPanel, { props: { show: true } });
+      cleanup.push(unmount);
       
       await waitFor(() => {
         expect(container.textContent).toContain('main');
@@ -99,12 +124,15 @@ describe('GitPanel', () => {
     });
 
     it('displays behind count when behind upstream', async () => {
-      mockInvoke.mockResolvedValueOnce({
-        ...mockGitStatus,
-        ahead: 0,
-        behind: 3
-      });
-      const { container } = render(GitPanel, { props: { show: true } });
+      mockInvoke.mockResolvedValueOnce(
+        buildGitStatus({
+          ...mockGitStatus,
+          ahead: 0,
+          behind: 3
+        })
+      );
+      const { container, unmount } = render(GitPanel, { props: { show: true } });
+      cleanup.push(unmount);
       
       await waitFor(() => {
         expect(container.textContent).toContain('↓3'); // behind
@@ -115,7 +143,8 @@ describe('GitPanel', () => {
   describe('File Lists', () => {
     it('displays staged files', async () => {
       mockInvoke.mockResolvedValueOnce(mockGitStatus);
-      const { container } = render(GitPanel, { props: { show: true } });
+      const { container, unmount } = render(GitPanel, { props: { show: true } });
+      cleanup.push(unmount);
       
       await waitFor(() => {
         expect(container.textContent).toContain('Staged Changes (1)');
@@ -127,7 +156,8 @@ describe('GitPanel', () => {
 
     it('displays unstaged files', async () => {
       mockInvoke.mockResolvedValueOnce(mockGitStatus);
-      const { container } = render(GitPanel, { props: { show: true } });
+      const { container, unmount } = render(GitPanel, { props: { show: true } });
+      cleanup.push(unmount);
       
       await waitFor(() => {
         expect(container.textContent).toContain('Changes (2)');
@@ -138,7 +168,8 @@ describe('GitPanel', () => {
 
     it('displays untracked files', async () => {
       mockInvoke.mockResolvedValueOnce(mockGitStatus);
-      const { container } = render(GitPanel, { props: { show: true } });
+      const { container, unmount } = render(GitPanel, { props: { show: true } });
+      cleanup.push(unmount);
       
       await waitFor(() => {
         expect(container.textContent).toContain('Untracked Files (1)');
@@ -147,13 +178,16 @@ describe('GitPanel', () => {
     });
 
     it('shows empty state messages', async () => {
-      mockInvoke.mockResolvedValueOnce({
-        ...mockGitStatus,
-        staged: [],
-        unstaged: [],
-        untracked: []
-      });
-      const { container } = render(GitPanel, { props: { show: true } });
+      mockInvoke.mockResolvedValueOnce(
+        buildGitStatus({
+          ...mockGitStatus,
+          staged: [],
+          unstaged: [],
+          untracked: []
+        })
+      );
+      const { container, unmount } = render(GitPanel, { props: { show: true } });
+      cleanup.push(unmount);
       
       await waitFor(() => {
         expect(container.textContent).toContain('No staged changes');
@@ -162,16 +196,19 @@ describe('GitPanel', () => {
     });
 
     it('shows correct status icons and colors', async () => {
-      mockInvoke.mockResolvedValueOnce({
-        ...mockGitStatus,
-        unstaged: [
-          { path: 'modified.ts', status: 'modified', staged: false },
-          { path: 'added.ts', status: 'added', staged: false },
-          { path: 'deleted.ts', status: 'deleted', staged: false },
-          { path: 'renamed.ts', status: 'renamed', staged: false }
-        ]
-      });
-      const { container } = render(GitPanel, { props: { show: true } });
+      mockInvoke.mockResolvedValueOnce(
+        buildGitStatus({
+          ...mockGitStatus,
+          unstaged: [
+            { path: 'modified.ts', status: 'modified', staged: false },
+            { path: 'added.ts', status: 'added', staged: false },
+            { path: 'deleted.ts', status: 'deleted', staged: false },
+            { path: 'renamed.ts', status: 'renamed', staged: false }
+          ]
+        })
+      );
+      const { container, unmount } = render(GitPanel, { props: { show: true } });
+      cleanup.push(unmount);
       
       await waitFor(() => {
         const statuses = container.querySelectorAll('.file-status');
@@ -191,7 +228,8 @@ describe('GitPanel', () => {
         .mockResolvedValueOnce(undefined) // git_stage call
         .mockResolvedValueOnce({ ...mockGitStatus, staged: [...mockGitStatus.staged, mockGitStatus.unstaged[0]] }); // Refresh
       
-      const { container } = render(GitPanel, { props: { show: true } });
+      const { container, unmount } = render(GitPanel, { props: { show: true } });
+      cleanup.push(unmount);
       
       await waitFor(() => {
         const stageButtons = container.querySelectorAll('.file-action[title="Stage"]');
@@ -213,7 +251,8 @@ describe('GitPanel', () => {
         .mockResolvedValueOnce(undefined) // git_unstage call
         .mockResolvedValueOnce({ ...mockGitStatus, staged: [] }); // Refresh
       
-      const { container } = render(GitPanel, { props: { show: true } });
+      const { container, unmount } = render(GitPanel, { props: { show: true } });
+      cleanup.push(unmount);
       
       await waitFor(() => {
         const unstageButtons = container.querySelectorAll('.file-action[title="Unstage"]');
@@ -234,7 +273,8 @@ describe('GitPanel', () => {
         .mockResolvedValueOnce(undefined) // git_stage_all call
         .mockResolvedValueOnce({ ...mockGitStatus, unstaged: [] }); // Refresh
       
-      const { container } = render(GitPanel, { props: { show: true } });
+      const { container, unmount } = render(GitPanel, { props: { show: true } });
+      cleanup.push(unmount);
       
       await waitFor(() => {
         expect(container.textContent).toContain('Stage All');
@@ -258,7 +298,8 @@ describe('GitPanel', () => {
         .mockResolvedValueOnce(undefined) // git_unstage_all call
         .mockResolvedValueOnce({ ...mockGitStatus, staged: [] }); // Refresh
       
-      const { container } = render(GitPanel, { props: { show: true } });
+      const { container, unmount } = render(GitPanel, { props: { show: true } });
+      cleanup.push(unmount);
       
       await waitFor(() => {
         const unstageAllBtns = Array.from(container.querySelectorAll('.section-action'))
@@ -290,7 +331,8 @@ index 1234567..abcdefg 100644
         .mockResolvedValueOnce(mockGitStatus)
         .mockResolvedValueOnce(mockDiff); // git_diff
       
-      const { container } = render(GitPanel, { props: { show: true } });
+      const { container, unmount } = render(GitPanel, { props: { show: true } });
+      cleanup.push(unmount);
       
       await waitFor(() => {
         const filePath = container.querySelector('.file-path') as HTMLElement;
@@ -317,7 +359,8 @@ index 1234567..abcdefg 100644
         .mockResolvedValueOnce(mockGitStatus) // Initial load
         .mockResolvedValueOnce('diff content'); // git_diff call
       
-      const { container } = render(GitPanel, { props: { show: true } });
+      const { container, unmount } = render(GitPanel, { props: { show: true } });
+      cleanup.push(unmount);
       
       // Wait for file list to load
       await waitFor(() => {
@@ -359,7 +402,8 @@ index 1234567..abcdefg 100644
         .mockResolvedValueOnce(mockGitStatus) // Initial load
         .mockResolvedValueOnce(mockDiff); // git_diff call
       
-      const { container } = render(GitPanel, { props: { show: true } });
+      const { container, unmount } = render(GitPanel, { props: { show: true } });
+      cleanup.push(unmount);
       
       // Wait for file list to load
       await waitFor(() => {
@@ -395,7 +439,8 @@ index 1234567..abcdefg 100644
         .mockResolvedValueOnce(undefined) // git_commit call
         .mockResolvedValueOnce({ ...mockGitStatus, staged: [] }); // Refresh
       
-      const { container } = render(GitPanel, { props: { show: true } });
+      const { container, unmount } = render(GitPanel, { props: { show: true } });
+      cleanup.push(unmount);
       
       await waitFor(() => {
         const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
@@ -414,10 +459,10 @@ index 1234567..abcdefg 100644
     });
 
     it('prevents commit without message', async () => {
-      window.alert = vi.fn();
       mockInvoke.mockResolvedValueOnce(mockGitStatus);
       
-      const { container } = render(GitPanel, { props: { show: true } });
+      const { container, unmount } = render(GitPanel, { props: { show: true } });
+      cleanup.push(unmount);
       
       await waitFor(() => {
         const commitBtn = container.querySelector('.commit-btn') as HTMLElement;
@@ -427,17 +472,20 @@ index 1234567..abcdefg 100644
       const commitBtn = container.querySelector('.commit-btn') as HTMLElement;
       await fireEvent.click(commitBtn);
       
-      expect(window.alert).toHaveBeenCalledWith('Please enter a commit message');
+      expect(mockAlert).toHaveBeenCalledWith('Please enter a commit message');
       expect(mockInvoke).not.toHaveBeenCalledWith('git_commit', expect.anything());
     });
 
     it('disables commit button when no staged files', async () => {
-      mockInvoke.mockResolvedValueOnce({
-        ...mockGitStatus,
-        staged: []
-      });
+      mockInvoke.mockResolvedValueOnce(
+        buildGitStatus({
+          ...mockGitStatus,
+          staged: []
+        })
+      );
       
-      const { container } = render(GitPanel, { props: { show: true } });
+      const { container, unmount } = render(GitPanel, { props: { show: true } });
+      cleanup.push(unmount);
       
       await waitFor(() => {
         const commitBtn = container.querySelector('.commit-btn') as HTMLButtonElement;
@@ -452,7 +500,8 @@ index 1234567..abcdefg 100644
         .mockResolvedValueOnce(undefined) // git_commit call
         .mockResolvedValueOnce({ ...mockGitStatus, staged: [] }); // Refresh
       
-      const { container } = render(GitPanel, { props: { show: true } });
+      const { container, unmount } = render(GitPanel, { props: { show: true } });
+      cleanup.push(unmount);
       
       await waitFor(() => {
         const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
@@ -478,7 +527,8 @@ index 1234567..abcdefg 100644
         .mockResolvedValueOnce(undefined) // git_commit call
         .mockResolvedValueOnce({ ...mockGitStatus, staged: [] }); // Refresh
       
-      const { container } = render(GitPanel, { props: { show: true } });
+      const { container, unmount } = render(GitPanel, { props: { show: true } });
+      cleanup.push(unmount);
       
       await waitFor(() => {
         const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
@@ -506,7 +556,8 @@ index 1234567..abcdefg 100644
         .mockResolvedValueOnce(undefined) // git_push call
         .mockResolvedValueOnce(mockGitStatus); // Refresh
       
-      const { container } = render(GitPanel, { props: { show: true } });
+      const { container, unmount } = render(GitPanel, { props: { show: true } });
+      cleanup.push(unmount);
       
       await waitFor(() => {
         const pushBtn = container.querySelector('.push-btn');
@@ -529,7 +580,8 @@ index 1234567..abcdefg 100644
         .mockResolvedValueOnce(undefined) // git_pull call
         .mockResolvedValueOnce(mockGitStatus); // Refresh
       
-      const { container } = render(GitPanel, { props: { show: true } });
+      const { container, unmount } = render(GitPanel, { props: { show: true } });
+      cleanup.push(unmount);
       
       await waitFor(() => {
         const pullBtn = container.querySelector('.pull-btn');
@@ -545,14 +597,13 @@ index 1234567..abcdefg 100644
     });
 
     it('shows error alert on push failure', { timeout: 20000 }, async () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      window.alert = vi.fn();
       // Setup fresh mocks
       mockInvoke
         .mockResolvedValueOnce(mockGitStatus) // Initial load
         .mockRejectedValueOnce(new Error('Network error')); // git_push fails
       
-      const { container } = render(GitPanel, { props: { show: true } });
+      const { container, unmount } = render(GitPanel, { props: { show: true } });
+      cleanup.push(unmount);
       
       await waitFor(() => {
         const pushBtn = container.querySelector('.push-btn');
@@ -563,10 +614,8 @@ index 1234567..abcdefg 100644
       await fireEvent.click(pushBtn);
       
       await waitFor(() => {
-        expect(window.alert).toHaveBeenCalledWith('Push failed: Error: Network error');
+        expect(mockAlert).toHaveBeenCalledWith('Push failed: Error: Network error');
       }, { timeout: 10000 });
-      
-      consoleSpy.mockRestore();
     });
   });
 
@@ -574,8 +623,9 @@ index 1234567..abcdefg 100644
     it('closes on overlay click', async () => {
       mockInvoke.mockResolvedValue(mockGitStatus);
       
-      const { container, component } = render(GitPanel, { props: { show: true } });
-      const closeHandler = vi.fn();
+      const { container, component, unmount } = render(GitPanel, { props: { show: true } });
+      cleanup.push(unmount);
+      const closeHandler = createTypedMock<[], void>();
       component.$on('close', closeHandler);
       
       const overlay = container.querySelector('.git-panel-overlay') as HTMLElement;
@@ -589,8 +639,9 @@ index 1234567..abcdefg 100644
     it('does not close on panel click', async () => {
       mockInvoke.mockResolvedValue(mockGitStatus);
       
-      const { container, component } = render(GitPanel, { props: { show: true } });
-      const closeHandler = vi.fn();
+      const { container, component, unmount } = render(GitPanel, { props: { show: true } });
+      cleanup.push(unmount);
+      const closeHandler = createTypedMock<[], void>();
       component.$on('close', closeHandler);
       
       const panel = container.querySelector('.git-panel') as HTMLElement;
@@ -603,8 +654,9 @@ index 1234567..abcdefg 100644
     it('closes on close button click', async () => {
       mockInvoke.mockResolvedValue(mockGitStatus);
       
-      const { container, component } = render(GitPanel, { props: { show: true } });
-      const closeHandler = vi.fn();
+      const { container, component, unmount } = render(GitPanel, { props: { show: true } });
+      cleanup.push(unmount);
+      const closeHandler = createTypedMock<[], void>();
       component.$on('close', closeHandler);
       
       const closeBtn = container.querySelector('.close-btn') as HTMLElement;
@@ -618,8 +670,9 @@ index 1234567..abcdefg 100644
     it('closes on Escape key', async () => {
       mockInvoke.mockResolvedValue(mockGitStatus);
       
-      const { component } = render(GitPanel, { props: { show: true } });
-      const closeHandler = vi.fn();
+      const { component, unmount } = render(GitPanel, { props: { show: true } });
+      cleanup.push(unmount);
+      const closeHandler = createTypedMock<[], void>();
       component.$on('close', closeHandler);
       
       await fireEvent.keyDown(document, { key: 'Escape' });
@@ -634,7 +687,8 @@ index 1234567..abcdefg 100644
         .mockResolvedValueOnce(mockGitStatus) // Initial load
         .mockResolvedValueOnce('diff content'); // git_diff call
       
-      const { container } = render(GitPanel, { props: { show: true } });
+      const { container, unmount } = render(GitPanel, { props: { show: true } });
+      cleanup.push(unmount);
       
       // Wait for file list to load
       await waitFor(() => {
@@ -700,32 +754,31 @@ index 1234567..abcdefg 100644
       unmount();
       
       expect(clearIntervalSpy).toHaveBeenCalled();
+      clearIntervalSpy.mockRestore();
     });
   });
 
   describe('Error Handling', () => {
     it('handles git status error gracefully', async () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       mockInvoke.mockRejectedValueOnce(new Error('Git not found'));
       
-      const { container } = render(GitPanel, { props: { show: true } });
+      const { container, unmount } = render(GitPanel, { props: { show: true } });
+      cleanup.push(unmount);
       
       // Component should still render despite error
       await waitFor(() => {
         const panel = container.querySelector('.git-panel');
         expect(panel).toBeTruthy();
       });
-      
-      consoleSpy.mockRestore();
     });
 
     it('handles diff loading error', async () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       mockInvoke
         .mockResolvedValueOnce(mockGitStatus) // Initial load
         .mockRejectedValueOnce(new Error('Diff error')); // git_diff fails
       
-      const { container } = render(GitPanel, { props: { show: true } });
+      const { container, unmount } = render(GitPanel, { props: { show: true } });
+      cleanup.push(unmount);
       
       // Wait for file list to load
       await waitFor(() => {
@@ -742,12 +795,9 @@ index 1234567..abcdefg 100644
         expect(diffView).toBeTruthy();
         expect(diffView?.textContent).toContain('Failed to load diff');
       });
-      
-      consoleSpy.mockRestore();
     });
 
     it('handles stage error', { timeout: 20000 }, async () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       (window as any).__TAURI__ = {};
       
       // Setup fresh mocks
@@ -755,7 +805,8 @@ index 1234567..abcdefg 100644
         .mockResolvedValueOnce(mockGitStatus) // Initial load
         .mockRejectedValueOnce(new Error('Stage failed')); // git_stage fails
       
-      const { container } = render(GitPanel, { props: { show: true } });
+      const { container, unmount } = render(GitPanel, { props: { show: true } });
+      cleanup.push(unmount);
       
       await waitFor(() => {
         const stageBtn = container.querySelector('.file-action[title="Stage"]');
@@ -767,10 +818,8 @@ index 1234567..abcdefg 100644
       
       await waitFor(() => {
         // Should log error gracefully
-        expect(consoleSpy).toHaveBeenCalledWith('Failed to stage file:', expect.any(Error));
+        expect(mockConsoleError).toHaveBeenCalledWith('Failed to stage file:', expect.any(Error));
       }, { timeout: 10000 });
-      
-      consoleSpy.mockRestore();
     });
   });
 });

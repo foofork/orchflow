@@ -1,9 +1,12 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import CommandConfirmationDialog from './CommandConfirmationDialog.svelte';
+import { createAsyncVoidMock, createTypedMock } from '@/test/mock-factory';
 
 describe('CommandConfirmationDialog Integration Tests', () => {
+  let cleanup: Array<() => void> = [];
+
   const mockWarning = {
     message: 'This command may be dangerous',
     riskLevel: 'High' as const,
@@ -17,18 +20,23 @@ describe('CommandConfirmationDialog Integration Tests', () => {
   };
 
   beforeEach(() => {
+    cleanup = [];
     vi.clearAllMocks();
     // Mock clipboard API
     Object.assign(navigator, {
       clipboard: {
-        writeText: vi.fn()
+        writeText: createAsyncVoidMock<[text: string]>()
       }
     });
   });
 
+  afterEach(() => {
+    cleanup.forEach(fn => fn());
+  });
+
   describe('Full Component Behavior', () => {
     it('renders complete dialog with modal backdrop', async () => {
-      const { container, getByText } = render(CommandConfirmationDialog, {
+      const { container, getByText, unmount } = render(CommandConfirmationDialog, {
         props: {
           open: true,
           command: 'rm -rf /',
@@ -36,6 +44,7 @@ describe('CommandConfirmationDialog Integration Tests', () => {
           terminalInfo: mockTerminalInfo
         }
       });
+      cleanup.push(unmount);
 
       await tick();
 
@@ -50,7 +59,7 @@ describe('CommandConfirmationDialog Integration Tests', () => {
     });
 
     it('displays all risk information correctly', async () => {
-      const { container, getByText } = render(CommandConfirmationDialog, {
+      const { container, getByText, unmount } = render(CommandConfirmationDialog, {
         props: {
           open: true,
           command: 'rm -rf /',
@@ -58,6 +67,7 @@ describe('CommandConfirmationDialog Integration Tests', () => {
           terminalInfo: mockTerminalInfo
         }
       });
+      cleanup.push(unmount);
 
       await tick();
 
@@ -74,7 +84,7 @@ describe('CommandConfirmationDialog Integration Tests', () => {
     });
 
     it('handles risk factor toggle interaction', async () => {
-      const { container, getByText } = render(CommandConfirmationDialog, {
+      const { container, getByText, unmount } = render(CommandConfirmationDialog, {
         props: {
           open: true,
           command: 'rm -rf /',
@@ -82,6 +92,7 @@ describe('CommandConfirmationDialog Integration Tests', () => {
           terminalInfo: mockTerminalInfo
         }
       });
+      cleanup.push(unmount);
 
       await tick();
 
@@ -101,7 +112,7 @@ describe('CommandConfirmationDialog Integration Tests', () => {
     });
 
     it('handles clipboard copy functionality', async () => {
-      const { container } = render(CommandConfirmationDialog, {
+      const { container, unmount } = render(CommandConfirmationDialog, {
         props: {
           open: true,
           command: 'rm -rf /',
@@ -109,6 +120,7 @@ describe('CommandConfirmationDialog Integration Tests', () => {
           terminalInfo: mockTerminalInfo
         }
       });
+      cleanup.push(unmount);
 
       await tick();
 
@@ -119,8 +131,8 @@ describe('CommandConfirmationDialog Integration Tests', () => {
     });
 
     it('handles confirm action with remember choice', async () => {
-      const mockConfirm = vi.fn();
-      const { container, getByText, component } = render(CommandConfirmationDialog, {
+      const mockConfirm = createTypedMock<[event: CustomEvent], void>();
+      const { container, getByText, component, unmount } = render(CommandConfirmationDialog, {
         props: {
           open: true,
           command: 'rm -rf /',
@@ -128,6 +140,7 @@ describe('CommandConfirmationDialog Integration Tests', () => {
           terminalInfo: mockTerminalInfo
         }
       });
+      cleanup.push(unmount);
 
       component.$on('confirm', mockConfirm);
       await tick();
@@ -152,7 +165,7 @@ describe('CommandConfirmationDialog Integration Tests', () => {
 
     it('shows bypass button only for Low and Medium risk', async () => {
       // Test Medium risk - should show bypass
-      const { container, rerender } = render(CommandConfirmationDialog, {
+      const { container, rerender, unmount } = render(CommandConfirmationDialog, {
         props: {
           open: true,
           command: 'chmod 755 file',
@@ -160,6 +173,7 @@ describe('CommandConfirmationDialog Integration Tests', () => {
           terminalInfo: mockTerminalInfo
         }
       });
+      cleanup.push(unmount);
 
       await tick();
       expect(container.querySelector('[title*="bypass"]')).toBeInTheDocument();
@@ -185,7 +199,7 @@ describe('CommandConfirmationDialog Integration Tests', () => {
       ];
 
       for (const { level, bgClass, borderClass } of riskLevels) {
-        const { container } = render(CommandConfirmationDialog, {
+        const { container, unmount } = render(CommandConfirmationDialog, {
           props: {
             open: true,
             command: 'test command',
@@ -193,6 +207,7 @@ describe('CommandConfirmationDialog Integration Tests', () => {
             terminalInfo: mockTerminalInfo
           }
         });
+        cleanup.push(unmount);
 
         await tick();
         
@@ -203,10 +218,10 @@ describe('CommandConfirmationDialog Integration Tests', () => {
     });
 
     it('closes dialog on cancel', async () => {
-      const mockCancel = vi.fn();
+      const mockCancel = createTypedMock<[], void>();
       let isOpen = true;
       
-      const { getByText, component, rerender } = render(CommandConfirmationDialog, {
+      const { getByText, component, rerender, unmount } = render(CommandConfirmationDialog, {
         props: {
           open: isOpen,
           command: 'rm -rf /',
@@ -214,6 +229,7 @@ describe('CommandConfirmationDialog Integration Tests', () => {
           terminalInfo: mockTerminalInfo
         }
       });
+      cleanup.push(unmount);
 
       component.$on('cancel', () => {
         mockCancel();
@@ -242,8 +258,8 @@ describe('CommandConfirmationDialog Integration Tests', () => {
     });
 
     it('handles bypass action correctly', async () => {
-      const mockBypass = vi.fn();
-      const { container, component } = render(CommandConfirmationDialog, {
+      const mockBypass = createTypedMock<[event: CustomEvent], void>();
+      const { container, component, unmount } = render(CommandConfirmationDialog, {
         props: {
           open: true,
           command: 'chmod 755 file',
@@ -251,6 +267,7 @@ describe('CommandConfirmationDialog Integration Tests', () => {
           terminalInfo: mockTerminalInfo
         }
       });
+      cleanup.push(unmount);
 
       component.$on('bypass', mockBypass);
       await tick();
@@ -268,7 +285,7 @@ describe('CommandConfirmationDialog Integration Tests', () => {
 
     it('handles edge cases gracefully', async () => {
       // Missing risk factors
-      const { container: container1 } = render(CommandConfirmationDialog, {
+      const { container: container1, unmount: unmount1 } = render(CommandConfirmationDialog, {
         props: {
           open: true,
           command: 'test',
@@ -280,12 +297,13 @@ describe('CommandConfirmationDialog Integration Tests', () => {
           terminalInfo: mockTerminalInfo
         }
       });
+      cleanup.push(unmount1);
 
       await tick();
       expect(container1.querySelector('.toggle-details')).not.toBeInTheDocument();
 
       // Missing matched pattern
-      const { container: container2 } = render(CommandConfirmationDialog, {
+      const { container: container2, unmount: unmount2 } = render(CommandConfirmationDialog, {
         props: {
           open: true,
           command: 'test',
@@ -298,6 +316,7 @@ describe('CommandConfirmationDialog Integration Tests', () => {
           terminalInfo: mockTerminalInfo
         }
       });
+      cleanup.push(unmount2);
 
       await tick();
       expect(container2.querySelector('.matched-pattern')).not.toBeInTheDocument();
@@ -306,7 +325,7 @@ describe('CommandConfirmationDialog Integration Tests', () => {
 
   describe('Accessibility', () => {
     it('has proper ARIA labels and keyboard navigation', async () => {
-      const { container } = render(CommandConfirmationDialog, {
+      const { container, unmount } = render(CommandConfirmationDialog, {
         props: {
           open: true,
           command: 'rm -rf /',
@@ -314,6 +333,7 @@ describe('CommandConfirmationDialog Integration Tests', () => {
           terminalInfo: mockTerminalInfo
         }
       });
+      cleanup.push(unmount);
 
       await tick();
 

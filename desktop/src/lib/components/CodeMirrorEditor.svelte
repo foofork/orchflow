@@ -7,21 +7,21 @@
   import { python } from '@codemirror/lang-python';
   import { rust } from '@codemirror/lang-rust';
   import { yaml } from '@codemirror/lang-yaml';
-  import { oneDark } from '@codemirror/theme-one-dark';
   import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
   import { searchKeymap, highlightSelectionMatches } from '@codemirror/search';
   import { autocompletion, completionKeymap, closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
   import { bracketMatching, indentOnInput, syntaxHighlighting, defaultHighlightStyle, foldGutter } from '@codemirror/language';
   import { lintKeymap } from '@codemirror/lint';
+  import { createCodeMirrorTheme } from '$lib/theme/codemirror-theme';
+  import { onThemeChange } from '$lib/theme/api';
   
   export let value = '';
   export let language = 'json';
-  export let theme = 'dark';
   export let readOnly = false;
   export let lineNumbers = true;
   export let wordWrap = true;
-  export let fontSize = 14;
   export let height = '400px';
+  export let variant: 'default' | 'compact' | 'comfortable' = 'default';
   
   const dispatch = createEventDispatcher();
   
@@ -29,6 +29,7 @@
   let view: EditorView | null = null;
   let loading = true;
   let error: string | null = null;
+  let themeUnsubscribe: (() => void) | null = null;
   
   // Compartments for reactive configurations
   const readOnlyCompartment = new Compartment();
@@ -52,7 +53,7 @@
   
   onMount(async () => {
     try {
-      // Create CodeMirror instance
+      // Create CodeMirror instance with unified theme
       const basicExtensions = [
         lineNumbers ? lineNumbersExt() : [],
         highlightActiveLineGutter(),
@@ -82,17 +83,20 @@
         ])
       ];
 
+      // Create theme based on design tokens
+      const orchflowTheme = createCodeMirrorTheme({
+        variant,
+        showLineNumbers: lineNumbers,
+        highlightActiveLine: true
+      });
+
       const startState = EditorState.create({
         doc: value,
         extensions: [
           ...basicExtensions,
           languageCompartment.of(getLanguageSupport(language)),
-          themeCompartment.of(theme === 'dark' ? oneDark : []),
+          themeCompartment.of(orchflowTheme),
           lineWrappingCompartment.of(wordWrap ? EditorView.lineWrapping : []),
-          EditorView.theme({
-            '&': { fontSize: fontSize + 'px' },
-            '.cm-content': { fontFamily: 'Fira Code, monospace' },
-          }),
           readOnlyCompartment.of(EditorState.readOnly.of(readOnly)),
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {
@@ -109,6 +113,20 @@
         parent: containerEl,
       });
       
+      // Watch for theme changes and update editor
+      themeUnsubscribe = onThemeChange(() => {
+        if (view) {
+          const newTheme = createCodeMirrorTheme({
+            variant,
+            showLineNumbers: lineNumbers,
+            highlightActiveLine: true
+          });
+          view.dispatch({
+            effects: themeCompartment.reconfigure(newTheme)
+          });
+        }
+      });
+      
       loading = false;
       dispatch('ready', { editor: view });
       
@@ -120,6 +138,9 @@
   });
   
   onDestroy(() => {
+    if (themeUnsubscribe) {
+      themeUnsubscribe();
+    }
     if (view) {
       view.destroy();
     }
@@ -213,10 +234,10 @@
   .codemirror-editor-container {
     position: relative;
     width: 100%;
-    border: 1px solid var(--color-border, #45475a);
-    border-radius: 4px;
+    border: 1px solid var(--editor-border);
+    border-radius: var(--radius-sm);
     overflow: hidden;
-    background: var(--color-bg-secondary, #1e1e2e);
+    background: var(--editor-bg);
   }
   
   .editor-mount {
@@ -226,6 +247,7 @@
   
   .editor-mount.loading {
     opacity: 0;
+    transition: opacity var(--duration-normal) var(--ease-out);
   }
   
   .loading, .error {
@@ -234,17 +256,19 @@
     left: 50%;
     transform: translate(-50%, -50%);
     text-align: center;
-    color: var(--color-text-secondary, #bac2de);
+    color: var(--fg-secondary);
+    font-family: var(--font-family);
+    font-size: var(--font-body-sm);
   }
   
   .spinner {
     width: 40px;
     height: 40px;
-    margin: 0 auto 16px;
-    border: 3px solid var(--color-border, #45475a);
-    border-top-color: var(--color-primary, #89b4fa);
+    margin: 0 auto var(--space-lg);
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
     border-radius: 50%;
-    animation: spin 1s linear infinite;
+    animation: spin var(--duration-slow) linear infinite;
   }
   
   @keyframes spin {
@@ -252,15 +276,18 @@
   }
   
   .error {
-    color: var(--color-error, #f38ba8);
+    color: var(--error);
   }
   
-  /* CodeMirror specific styling */
+  /* CodeMirror specific styling is handled by the theme system */
   :global(.cm-editor) {
     height: 100%;
+    font-family: var(--font-mono);
+    font-size: var(--font-body);
   }
   
   :global(.cm-focused) {
-    outline: none;
+    outline: var(--state-focus-outline);
+    outline-offset: var(--state-focus-outline-offset);
   }
 </style>

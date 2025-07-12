@@ -1,6 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render } from '@testing-library/svelte';
 import { createSvelteComponentMock } from '../../test/setup-mocks';
+import { createTypedMock } from '@/test/mock-factory';
 import CommandConfirmationDialog from './CommandConfirmationDialog.svelte';
 
 // Mock child components with proper Svelte component interface
@@ -13,6 +14,12 @@ vi.mock('./Icon.svelte', () => ({
 }));
 
 describe('CommandConfirmationDialog Unit Tests', () => {
+  let cleanup: Array<() => void> = [];
+
+  afterEach(() => {
+    cleanup.forEach(fn => fn());
+    cleanup = [];
+  });
   const mockWarning = {
     message: 'This command may be dangerous',
     riskLevel: 'High' as const,
@@ -27,7 +34,7 @@ describe('CommandConfirmationDialog Unit Tests', () => {
 
   describe('Component Initialization', () => {
     it('renders without errors with required props', () => {
-      const { component } = render(CommandConfirmationDialog, {
+      const { component, unmount } = render(CommandConfirmationDialog, {
         props: {
           open: true,
           command: 'rm -rf /',
@@ -35,12 +42,13 @@ describe('CommandConfirmationDialog Unit Tests', () => {
           terminalInfo: mockTerminalInfo
         }
       });
+      cleanup.push(unmount);
 
       expect(component).toBeTruthy();
     });
 
     it('renders in closed state', () => {
-      const { component } = render(CommandConfirmationDialog, {
+      const { component, unmount } = render(CommandConfirmationDialog, {
         props: {
           open: false,
           command: 'test',
@@ -48,6 +56,7 @@ describe('CommandConfirmationDialog Unit Tests', () => {
           terminalInfo: mockTerminalInfo
         }
       });
+      cleanup.push(unmount);
 
       expect(component).toBeTruthy();
     });
@@ -55,8 +64,8 @@ describe('CommandConfirmationDialog Unit Tests', () => {
 
   describe('Event Handler Registration', () => {
     it('allows registering confirm event handler', () => {
-      const mockConfirm = vi.fn();
-      const { component } = render(CommandConfirmationDialog, {
+      const mockConfirm = createTypedMock<[CustomEvent], void>();
+      const { component, unmount } = render(CommandConfirmationDialog, {
         props: {
           open: true,
           command: 'rm -rf /',
@@ -64,13 +73,14 @@ describe('CommandConfirmationDialog Unit Tests', () => {
           terminalInfo: mockTerminalInfo
         }
       });
+      cleanup.push(unmount);
 
       expect(() => component.$on('confirm', mockConfirm)).not.toThrow();
     });
 
     it('allows registering cancel event handler', () => {
-      const mockCancel = vi.fn();
-      const { component } = render(CommandConfirmationDialog, {
+      const mockCancel = createTypedMock<[CustomEvent], void>();
+      const { component, unmount } = render(CommandConfirmationDialog, {
         props: {
           open: true,
           command: 'rm -rf /',
@@ -78,13 +88,14 @@ describe('CommandConfirmationDialog Unit Tests', () => {
           terminalInfo: mockTerminalInfo
         }
       });
+      cleanup.push(unmount);
 
       expect(() => component.$on('cancel', mockCancel)).not.toThrow();
     });
 
     it('allows registering bypass event handler', () => {
-      const mockBypass = vi.fn();
-      const { component } = render(CommandConfirmationDialog, {
+      const mockBypass = createTypedMock<[CustomEvent], void>();
+      const { component, unmount } = render(CommandConfirmationDialog, {
         props: {
           open: true,
           command: 'chmod 755 file',
@@ -92,6 +103,7 @@ describe('CommandConfirmationDialog Unit Tests', () => {
           terminalInfo: mockTerminalInfo
         }
       });
+      cleanup.push(unmount);
 
       expect(() => component.$on('bypass', mockBypass)).not.toThrow();
     });
@@ -102,7 +114,7 @@ describe('CommandConfirmationDialog Unit Tests', () => {
       const riskLevels = ['Low', 'Medium', 'High', 'Critical'] as const;
       
       riskLevels.forEach(level => {
-        const { component } = render(CommandConfirmationDialog, {
+        const { component, unmount } = render(CommandConfirmationDialog, {
           props: {
             open: true,
             command: 'test',
@@ -110,13 +122,14 @@ describe('CommandConfirmationDialog Unit Tests', () => {
             terminalInfo: mockTerminalInfo
           }
         });
+        cleanup.push(unmount);
         
         expect(component).toBeTruthy();
       });
     });
 
     it('handles missing optional warning properties', () => {
-      const { component } = render(CommandConfirmationDialog, {
+      const { component, unmount } = render(CommandConfirmationDialog, {
         props: {
           open: true,
           command: 'test',
@@ -128,12 +141,13 @@ describe('CommandConfirmationDialog Unit Tests', () => {
           terminalInfo: mockTerminalInfo
         }
       });
+      cleanup.push(unmount);
 
       expect(component).toBeTruthy();
     });
 
     it('handles empty risk factors array', () => {
-      const { component } = render(CommandConfirmationDialog, {
+      const { component, unmount } = render(CommandConfirmationDialog, {
         props: {
           open: true,
           command: 'test',
@@ -144,12 +158,13 @@ describe('CommandConfirmationDialog Unit Tests', () => {
           terminalInfo: mockTerminalInfo
         }
       });
+      cleanup.push(unmount);
 
       expect(component).toBeTruthy();
     });
 
     it('handles missing matched pattern', () => {
-      const { component } = render(CommandConfirmationDialog, {
+      const { component, unmount } = render(CommandConfirmationDialog, {
         props: {
           open: true,
           command: 'test',
@@ -162,6 +177,7 @@ describe('CommandConfirmationDialog Unit Tests', () => {
           terminalInfo: mockTerminalInfo
         }
       });
+      cleanup.push(unmount);
 
       expect(component).toBeTruthy();
     });
@@ -169,7 +185,7 @@ describe('CommandConfirmationDialog Unit Tests', () => {
 
   describe('Prop Updates', () => {
     it('allows updating open state', () => {
-      const { component } = render(CommandConfirmationDialog, {
+      const { component, unmount } = render(CommandConfirmationDialog, {
         props: {
           open: false,
           command: 'test',
@@ -177,12 +193,13 @@ describe('CommandConfirmationDialog Unit Tests', () => {
           terminalInfo: mockTerminalInfo
         }
       });
+      cleanup.push(unmount);
 
       expect(() => component.$set({ open: true })).not.toThrow();
     });
 
     it('allows updating command', () => {
-      const { component } = render(CommandConfirmationDialog, {
+      const { component, unmount } = render(CommandConfirmationDialog, {
         props: {
           open: true,
           command: 'initial command',
@@ -190,12 +207,13 @@ describe('CommandConfirmationDialog Unit Tests', () => {
           terminalInfo: mockTerminalInfo
         }
       });
+      cleanup.push(unmount);
 
       expect(() => component.$set({ command: 'updated command' })).not.toThrow();
     });
 
     it('allows updating warning', () => {
-      const { component } = render(CommandConfirmationDialog, {
+      const { component, unmount } = render(CommandConfirmationDialog, {
         props: {
           open: true,
           command: 'test',
@@ -203,6 +221,7 @@ describe('CommandConfirmationDialog Unit Tests', () => {
           terminalInfo: mockTerminalInfo
         }
       });
+      cleanup.push(unmount);
 
       const updatedWarning = {
         ...mockWarning,

@@ -1,45 +1,56 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import Dialog from './Dialog.svelte';
+import { createTypedMock, createSyncMock, createAsyncMock } from '@/test/mock-factory';
 
 describe('Dialog', () => {
   let user: ReturnType<typeof userEvent.setup>;
+  let cleanup: Array<() => void> = [];
   
   beforeEach(() => {
     user = userEvent.setup();
+    cleanup = [];
+  });
+
+  afterEach(() => {
+    cleanup.forEach(fn => fn());
   });
 
   it('renders dialog when show is true', () => {
-    const { getByTestId } = render(Dialog, {
+    const { getByTestId, unmount } = render(Dialog, {
       props: { show: true, title: 'Test Dialog', testMode: true },
       target: document.body
     });
+    cleanup.push(unmount);
     
     expect(getByTestId('dialog')).toBeInTheDocument();
     expect(getByTestId('dialog-content')).toBeInTheDocument();
   });
 
   it('does not render dialog when show is false', () => {
-    const { queryByTestId } = render(Dialog, {
+    const { queryByTestId, unmount } = render(Dialog, {
       props: { show: false, title: 'Test Dialog', testMode: true }, target: document.body
     });
+    cleanup.push(unmount);
     
     expect(queryByTestId('dialog')).not.toBeInTheDocument();
   });
 
   it('displays title when provided', () => {
-    const { getByText } = render(Dialog, {
+    const { getByText, unmount } = render(Dialog, {
       props: { show: true, title: 'Test Dialog', testMode: true }, target: document.body
     });
+    cleanup.push(unmount);
     
     expect(getByText('Test Dialog')).toBeInTheDocument();
   });
 
   it('renders content slot', () => {
-    const { getByTestId } = render(Dialog, {
+    const { getByTestId, unmount } = render(Dialog, {
       props: { show: true, testMode: true }, target: document.body
     });
+    cleanup.push(unmount);
     
     // Add content to the dialog manually to test slot functionality
     const dialogContent = getByTestId('dialog-content');
@@ -50,9 +61,10 @@ describe('Dialog', () => {
   });
 
   it('renders actions slot when provided', () => {
-    const { getByTestId } = render(Dialog, {
+    const { getByTestId, unmount } = render(Dialog, {
       props: { show: true, testMode: true }, target: document.body
     });
+    cleanup.push(unmount);
     
     // Check if actions slot exists - first let's see if it exists by default
     const dialog = getByTestId('dialog-content');
@@ -62,17 +74,19 @@ describe('Dialog', () => {
   });
 
   it('does not render actions container when no actions slot', () => {
-    const { queryByTestId } = render(Dialog, {
+    const { queryByTestId, unmount } = render(Dialog, {
       props: { show: true, testMode: true }, target: document.body
     });
+    cleanup.push(unmount);
     
     expect(queryByTestId('dialog-actions')).not.toBeInTheDocument();
   });
 
   it('dispatches close event when close button is clicked', async () => {
-    const { getByTestId, component } = render(Dialog, {
+    const { getByTestId, component, unmount } = render(Dialog, {
       props: { show: true, title: 'Test Dialog', testMode: true }, target: document.body
     });
+    cleanup.push(unmount);
     
     let closeEvent = false;
     component.$on('close', () => {
@@ -86,9 +100,10 @@ describe('Dialog', () => {
   });
 
   it('dispatches close event when Escape key is pressed', async () => {
-    const { getByTestId, component } = render(Dialog, {
+    const { getByTestId, component, unmount } = render(Dialog, {
       props: { show: true, title: 'Test Dialog', testMode: true }, target: document.body
     });
+    cleanup.push(unmount);
     
     let closeEvent = false;
     component.$on('close', () => {
@@ -102,9 +117,10 @@ describe('Dialog', () => {
   });
 
   it('does not close on Escape when closeOnEscape is false', async () => {
-    const { getByTestId, component } = render(Dialog, {
+    const { getByTestId, component, unmount } = render(Dialog, {
       props: { show: true, title: 'Test Dialog', testMode: true, closeOnEscape: false }, target: document.body
     });
+    cleanup.push(unmount);
     
     let closeEvent = false;
     component.$on('close', () => {
@@ -118,9 +134,10 @@ describe('Dialog', () => {
   });
 
   it('dispatches close event when backdrop is clicked', async () => {
-    const { getByTestId, component } = render(Dialog, {
+    const { getByTestId, component, unmount } = render(Dialog, {
       props: { show: true, title: 'Test Dialog', testMode: true }, target: document.body
     });
+    cleanup.push(unmount);
     
     let closeEvent = false;
     component.$on('close', () => {
@@ -134,10 +151,11 @@ describe('Dialog', () => {
   });
 
   it('does not close on backdrop click when closeOnBackdrop is false', async () => {
-    const { getByTestId, component } = render(Dialog, {
+    const { getByTestId, component, unmount } = render(Dialog, {
       props: { show: true, title: 'Test Dialog', testMode: true, closeOnBackdrop: false },
       target: document.body
     });
+    cleanup.push(unmount);
     
     let closeEvent = false;
     component.$on('close', () => {
@@ -151,9 +169,10 @@ describe('Dialog', () => {
   });
 
   it('applies custom width and height', () => {
-    const { getByTestId } = render(Dialog, {
+    const { getByTestId, unmount } = render(Dialog, {
       props: { show: true, width: '600px', height: '400px', testMode: true }, target: document.body
     });
+    cleanup.push(unmount);
     
     const dialog = getByTestId('dialog');
     expect(dialog).toHaveStyle('width: 600px');
@@ -161,7 +180,7 @@ describe('Dialog', () => {
   });
 
   it('has proper ARIA attributes', () => {
-    const { getByTestId } = render(Dialog, {
+    const { getByTestId, unmount } = render(Dialog, {
       props: { 
         show: true, 
         title: 'Test Dialog', 
@@ -170,6 +189,7 @@ describe('Dialog', () => {
       },
       target: document.body
     });
+    cleanup.push(unmount);
     
     const dialog = getByTestId('dialog');
     expect(dialog).toHaveAttribute('role', 'dialog');
@@ -179,7 +199,7 @@ describe('Dialog', () => {
   });
 
   it('uses aria-label when no title provided', () => {
-    const { getByTestId } = render(Dialog, {
+    const { getByTestId, unmount } = render(Dialog, {
       props: { 
         show: true, 
         testMode: true,
@@ -187,13 +207,14 @@ describe('Dialog', () => {
       },
       target: document.body
     });
+    cleanup.push(unmount);
     
     const dialog = getByTestId('dialog');
     expect(dialog).toHaveAttribute('aria-label', 'Custom dialog label');
   });
 
   it('has focus trap for keyboard navigation', async () => {
-    const { getByTestId } = render(Dialog, {
+    const { getByTestId, unmount } = render(Dialog, {
       props: { 
         show: true, 
         testMode: true,
@@ -201,6 +222,7 @@ describe('Dialog', () => {
       },
       target: document.body
     });
+    cleanup.push(unmount);
     
     // Add some focusable elements to the dialog content
     const dialogContent = getByTestId('dialog-content');
@@ -222,7 +244,7 @@ describe('Dialog', () => {
   });
 
   it('handles shift+tab for reverse focus trap', async () => {
-    const { getByTestId } = render(Dialog, {
+    const { getByTestId, unmount } = render(Dialog, {
       props: { 
         show: true, 
         testMode: true,
@@ -230,6 +252,7 @@ describe('Dialog', () => {
       },
       target: document.body
     });
+    cleanup.push(unmount);
     
     // Add a focusable element to the dialog content
     const dialogContent = getByTestId('dialog-content');
@@ -249,7 +272,7 @@ describe('Dialog', () => {
   });
 
   it('focuses close button when no focusable elements in content', async () => {
-    const { getByTestId } = render(Dialog, {
+    const { getByTestId, unmount } = render(Dialog, {
       props: { 
         show: true, 
         testMode: true,
@@ -257,6 +280,7 @@ describe('Dialog', () => {
       },
       target: document.body
     });
+    cleanup.push(unmount);
     
     // Only the close button should be focusable
     const closeButton = getByTestId('dialog-close');

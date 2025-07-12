@@ -1,15 +1,17 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, fireEvent, waitFor } from '@testing-library/svelte';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { render, fireEvent, waitFor, cleanup } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import CommandPalette from './CommandPalette.svelte';
 import { mockInvoke } from '../../test/utils';
+import { createAsyncMock, createTypedMock, createSyncMock } from '@/test/mock-factory';
+import { buildCommandPaletteItem } from '../../test/test-data-builders';
 
 describe('CommandPalette', () => {
   let user: ReturnType<typeof userEvent.setup>;
+  let cleanup: Array<() => void> = [];
   
   beforeEach(() => {
     user = userEvent.setup();
-    vi.clearAllMocks();
     localStorage.clear();
     
     // Set up default mock responses
@@ -18,10 +20,18 @@ describe('CommandPalette', () => {
     });
   });
 
+  afterEach(() => {
+    cleanup.forEach(fn => fn());
+    cleanup = [];
+    vi.clearAllMocks();
+    localStorage.clear();
+  });
+
   it('renders when show is true', async () => {
-    const { container } = render(CommandPalette, {
+    const { container, unmount } = render(CommandPalette, {
       props: { show: true, testMode: true },
     });
+    cleanup.push(unmount);
     
     await waitFor(() => {
       const modalContent = container.querySelector('.command-palette');
@@ -30,18 +40,20 @@ describe('CommandPalette', () => {
   });
 
   it('does not render when show is false', () => {
-    const { container } = render(CommandPalette, {
+    const { container, unmount } = render(CommandPalette, {
       props: { show: false, testMode: true },
     });
+    cleanup.push(unmount);
     
     const modalContent = container.querySelector('.command-palette');
     expect(modalContent).not.toBeInTheDocument();
   });
 
   it('has search input when visible', async () => {
-    const { getByPlaceholderText } = render(CommandPalette, {
+    const { getByPlaceholderText, unmount } = render(CommandPalette, {
       props: { show: true, testMode: true },
     });
+    cleanup.push(unmount);
     
     await waitFor(() => {
       expect(getByPlaceholderText('Type a command or search...')).toBeInTheDocument();
@@ -49,9 +61,10 @@ describe('CommandPalette', () => {
   });
 
   it('shows commands list', async () => {
-    const { container } = render(CommandPalette, {
+    const { container, unmount } = render(CommandPalette, {
       props: { show: true, testMode: true },
     });
+    cleanup.push(unmount);
     
     await waitFor(() => {
       const commandsList = container.querySelector('.command-list');
@@ -63,9 +76,10 @@ describe('CommandPalette', () => {
   });
 
   it('filters commands based on search', async () => {
-    const { getByPlaceholderText, container } = render(CommandPalette, {
+    const { getByPlaceholderText, container, unmount } = render(CommandPalette, {
       props: { show: true, testMode: true },
     });
+    cleanup.push(unmount);
     
     await waitFor(() => {
       const searchInput = getByPlaceholderText('Type a command or search...');
@@ -97,9 +111,13 @@ describe('CommandPalette', () => {
   });
 
   it('closes when Escape is pressed', async () => {
-    const { getByPlaceholderText, container } = render(CommandPalette, {
+    const mockClose = createAsyncMock<[], void>();
+    const { getByPlaceholderText, component, unmount } = render(CommandPalette, {
       props: { show: true, testMode: true },
     });
+    cleanup.push(unmount);
+    
+    component.$on('close', mockClose);
     
     await waitFor(() => {
       expect(getByPlaceholderText('Type a command or search...')).toBeInTheDocument();
@@ -109,13 +127,14 @@ describe('CommandPalette', () => {
     await fireEvent.keyDown(searchInput, { key: 'Escape' });
     
     // Check that close event was dispatched
-    expect(container.querySelector('.command-palette')).toBeInTheDocument(); // Still rendered until parent updates show prop
+    expect(mockClose).toHaveBeenCalled();
   });
 
   it('navigates with arrow keys', async () => {
-    const { getByPlaceholderText, container } = render(CommandPalette, {
+    const { getByPlaceholderText, container, unmount } = render(CommandPalette, {
       props: { show: true, testMode: true },
     });
+    cleanup.push(unmount);
     
     await waitFor(() => {
       expect(getByPlaceholderText('Type a command or search...')).toBeInTheDocument();
@@ -133,9 +152,22 @@ describe('CommandPalette', () => {
   });
 
   it('executes command on Enter', async () => {
-    const { getByPlaceholderText, container } = render(CommandPalette, {
+    const mockAction = createAsyncMock<[], void>();
+    const mockClose = createAsyncMock<[], void>();
+    
+    // Create a custom command with our mock action
+    const testCommand = buildCommandPaletteItem({
+      id: 'test-command',
+      label: 'Test Command',
+      action: mockAction,
+    });
+    
+    const { getByPlaceholderText, component, unmount } = render(CommandPalette, {
       props: { show: true, testMode: true },
     });
+    cleanup.push(unmount);
+    
+    component.$on('close', mockClose);
     
     await waitFor(() => {
       expect(getByPlaceholderText('Type a command or search...')).toBeInTheDocument();
@@ -149,9 +181,11 @@ describe('CommandPalette', () => {
     // Execute it
     await fireEvent.keyDown(searchInput, { key: 'Enter' });
     
-    // Command palette should still be open (unless command closes it)
-    // In this case, let's just verify no error occurred
-    expect(searchInput).toBeInTheDocument();
+    // Wait for any async operations
+    await waitFor(() => {
+      // Command palette should close after execution
+      expect(mockClose).toHaveBeenCalled();
+    });
   });
 
   it('filters git commands when git is not available', async () => {
@@ -159,9 +193,10 @@ describe('CommandPalette', () => {
       has_git_integration: false,
     });
     
-    const { container } = render(CommandPalette, {
+    const { container, unmount } = render(CommandPalette, {
       props: { show: true, testMode: false }, // Need testMode false to test git integration
     });
+    cleanup.push(unmount);
     
     // Wait for the git integration check to complete
     await waitFor(() => {
@@ -172,9 +207,10 @@ describe('CommandPalette', () => {
   });
 
   it('stores recent commands', async () => {
-    const { getByPlaceholderText, container } = render(CommandPalette, {
+    const { getByPlaceholderText, unmount } = render(CommandPalette, {
       props: { show: true, testMode: false }, // Need testMode false to test localStorage
     });
+    cleanup.push(unmount);
     
     await waitFor(() => {
       expect(getByPlaceholderText('Type a command or search...')).toBeInTheDocument();
@@ -186,18 +222,96 @@ describe('CommandPalette', () => {
     await fireEvent.keyDown(searchInput, { key: 'Enter' });
     
     // Check localStorage was updated
-    const stored = localStorage.getItem('orchflow_recent_commands');
-    expect(stored).toBeTruthy();
+    await waitFor(() => {
+      const stored = localStorage.getItem('orchflow_recent_commands');
+      expect(stored).toBeTruthy();
+    });
   });
 
   it('shows categories', async () => {
-    const { container } = render(CommandPalette, {
+    const { container, unmount } = render(CommandPalette, {
       props: { show: true, testMode: true },
     });
+    cleanup.push(unmount);
     
     await waitFor(() => {
       const categories = container.querySelectorAll('.command-category');
       expect(categories.length).toBeGreaterThan(0);
+    });
+  });
+
+  it('handles git integration when available', async () => {
+    mockInvoke({
+      has_git_integration: true,
+    });
+    
+    const { container, unmount } = render(CommandPalette, {
+      props: { show: true, testMode: false },
+    });
+    cleanup.push(unmount);
+    
+    // Wait for git integration check and commands to load
+    await waitFor(() => {
+      const gitCommands = Array.from(container.querySelectorAll('.command-item'))
+        .filter(el => el.textContent?.includes('Git:'));
+      expect(gitCommands.length).toBeGreaterThan(0);
+    }, { timeout: 3000 });
+  });
+
+  it('handles search with no results', async () => {
+    const { getByPlaceholderText, container, unmount } = render(CommandPalette, {
+      props: { show: true, testMode: true },
+    });
+    cleanup.push(unmount);
+    
+    await waitFor(() => {
+      expect(getByPlaceholderText('Type a command or search...')).toBeInTheDocument();
+    });
+    
+    const searchInput = getByPlaceholderText('Type a command or search...');
+    
+    // Type in search that won't match anything
+    await user.type(searchInput, 'xyznonexistentcommand');
+    
+    await waitFor(() => {
+      const commands = container.querySelectorAll('.command-item');
+      expect(commands.length).toBe(0);
+    });
+  });
+
+  it('maintains focus on search input', async () => {
+    const { getByPlaceholderText, unmount } = render(CommandPalette, {
+      props: { show: true, testMode: true },
+    });
+    cleanup.push(unmount);
+    
+    await waitFor(() => {
+      const searchInput = getByPlaceholderText('Type a command or search...');
+      expect(searchInput).toBeInTheDocument();
+      expect(document.activeElement).toBe(searchInput);
+    });
+  });
+
+  it('clears search on close and reopen', async () => {
+    const { getByPlaceholderText, rerender, unmount } = render(CommandPalette, {
+      props: { show: true, testMode: true },
+    });
+    cleanup.push(unmount);
+    
+    await waitFor(() => {
+      expect(getByPlaceholderText('Type a command or search...')).toBeInTheDocument();
+    });
+    
+    const searchInput = getByPlaceholderText('Type a command or search...');
+    await user.type(searchInput, 'test search');
+    
+    // Close and reopen
+    await rerender({ show: false, testMode: true });
+    await rerender({ show: true, testMode: true });
+    
+    await waitFor(() => {
+      const newSearchInput = getByPlaceholderText('Type a command or search...');
+      expect(newSearchInput).toHaveValue('');
     });
   });
 });

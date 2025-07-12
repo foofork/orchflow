@@ -1,23 +1,53 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, screen, waitFor } from '@testing-library/svelte';
 import { 
-  renderWithContext, 
-  simulateDragAndDrop,
-  simulateKeyboard,
-  waitForElement,
-  simulateMouse 
-} from '../../test/utils/component-test-utils';
-import { createDataTransferMock } from '../../test/mock-factory';
+  createTypedMock,
+  createSyncMock,
+  createAsyncMock
+} from '@/test/mock-factory';
 import TabBar from './TabBar.svelte';
 
+// Helper to create DataTransfer mock
+function createDataTransferMock(overrides?: Partial<DataTransfer>): DataTransfer {
+  const mockSetData = createSyncMock<[string, string], void>();
+  const mockGetData = createSyncMock<[string], string>();
+  
+  return {
+    dropEffect: 'none',
+    effectAllowed: 'none',
+    files: [] as any,
+    items: [] as any,
+    types: [],
+    clearData: createSyncMock<[string?], void>(),
+    getData: mockGetData,
+    setData: mockSetData,
+    setDragImage: createSyncMock<[Element, number, number], void>(),
+    ...overrides
+  } as unknown as DataTransfer;
+}
+
+// Helper to simulate drag and drop
+async function simulateDragAndDrop(
+  source: Element,
+  target: Element,
+  dataTransfer: DataTransfer
+): Promise<void> {
+  await fireEvent.dragStart(source, { dataTransfer });
+  await fireEvent.dragOver(target, { dataTransfer });
+  await fireEvent.drop(target, { dataTransfer });
+  await fireEvent.dragEnd(source);
+}
+
 describe('TabBar', () => {
-  let container: HTMLElement;
+  let cleanup: Array<() => void> = [];
   
   beforeEach(() => {
-    container = document.body;
+    vi.clearAllMocks();
   });
   
   afterEach(() => {
+    cleanup.forEach(fn => fn());
+    cleanup = [];
     vi.clearAllMocks();
   });
 
@@ -29,7 +59,8 @@ describe('TabBar', () => {
 
   describe('Rendering', () => {
     it('should render tabs with correct icons and titles', () => {
-      render(TabBar, { props: { tabs: mockTabs, activeTabId: 'tab1' } });
+      const { unmount } = render(TabBar, { props: { tabs: mockTabs, activeTabId: 'tab1' } });
+      cleanup.push(unmount);
       
       // Check each tab is rendered
       expect(screen.getByText('Terminal 1')).toBeInTheDocument();
@@ -43,13 +74,15 @@ describe('TabBar', () => {
     });
 
     it('should render empty message when no tabs', () => {
-      render(TabBar, { props: { tabs: [], activeTabId: null } });
+      const { unmount } = render(TabBar, { props: { tabs: [], activeTabId: null } });
+      cleanup.push(unmount);
       
       expect(screen.getByText('No open tabs')).toBeInTheDocument();
     });
 
     it('should apply active class to selected tab', () => {
-      const { container } = render(TabBar, { props: { tabs: mockTabs, activeTabId: 'tab2' } });
+      const { container, unmount } = render(TabBar, { props: { tabs: mockTabs, activeTabId: 'tab2' } });
+      cleanup.push(unmount);
       
       const tabs = container.querySelectorAll('.tab');
       expect(tabs[0]).not.toHaveClass('active');
@@ -65,7 +98,8 @@ describe('TabBar', () => {
         { id: 'unknown1', title: 'Unknown', type: 'unknown' as const, paneId: 'pane4' }
       ];
       
-      render(TabBar, { props: { tabs: specialTabs, activeTabId: null } });
+      const { unmount } = render(TabBar, { props: { tabs: specialTabs, activeTabId: null } });
+      cleanup.push(unmount);
       
       expect(screen.getByText('🧪')).toBeInTheDocument(); // test icon
       expect(screen.getByText('⚙️')).toBeInTheDocument(); // settings icon
@@ -81,7 +115,8 @@ describe('TabBar', () => {
         paneId: 'pane1'
       }];
       
-      const { container } = render(TabBar, { props: { tabs: longTitleTab, activeTabId: null } });
+      const { container, unmount } = render(TabBar, { props: { tabs: longTitleTab, activeTabId: null } });
+      cleanup.push(unmount);
       
       const tabTitle = container.querySelector('.tab-title');
       expect(tabTitle).toHaveClass('tab-title');
@@ -93,9 +128,10 @@ describe('TabBar', () => {
 
   describe('Tab Selection', () => {
     it('should select tab on click', async () => {
-      const { component, container } = render(TabBar, { 
+      const { component, container, unmount } = render(TabBar, { 
         props: { tabs: mockTabs, activeTabId: 'tab1' } 
       });
+      cleanup.push(unmount);
       
       const secondTab = container.querySelectorAll('.tab')[1];
       await fireEvent.click(secondTab);
@@ -104,9 +140,10 @@ describe('TabBar', () => {
     });
 
     it('should update active tab when prop changes', async () => {
-      const { component, container, rerender } = render(TabBar, { 
+      const { component, container, rerender, unmount } = render(TabBar, { 
         props: { tabs: mockTabs, activeTabId: 'tab1' } 
       });
+      cleanup.push(unmount);
       
       expect(container.querySelector('.tab.active .tab-title')?.textContent).toBe('Terminal 1');
       
@@ -116,11 +153,12 @@ describe('TabBar', () => {
     });
 
     it('should maintain selection when tabs array changes', async () => {
-      const { component, rerender } = render(TabBar, { 
+      const { component, rerender, unmount } = render(TabBar, { 
         props: { tabs: mockTabs, activeTabId: 'tab2' } 
       });
+      cleanup.push(unmount);
       
-      const newTabs = [...mockTabs, { id: 'tab4', title: 'New Tab', type: 'file', paneId: 'pane4' }];
+      const newTabs = [...mockTabs, { id: 'tab4', title: 'New Tab', type: 'file' as const, paneId: 'pane4' }];
       await rerender({ tabs: newTabs, activeTabId: 'tab2' });
       
       expect(component.activeTabId).toBe('tab2');
@@ -129,9 +167,10 @@ describe('TabBar', () => {
 
   describe('Close Button', () => {
     it('should have close button that shows on hover', async () => {
-      const { container } = render(TabBar, { 
+      const { container, unmount } = render(TabBar, { 
         props: { tabs: mockTabs, activeTabId: 'tab1' } 
       });
+      cleanup.push(unmount);
       
       const firstTab = container.querySelector('.tab');
       const closeButton = firstTab!.querySelector('.tab-close');
@@ -148,11 +187,12 @@ describe('TabBar', () => {
     });
 
     it('should dispatch closeTab event on close button click', async () => {
-      const { component, container } = render(TabBar, { 
+      const { component, container, unmount } = render(TabBar, { 
         props: { tabs: mockTabs, activeTabId: 'tab1' } 
       });
+      cleanup.push(unmount);
       
-      const closeHandler = vi.fn();
+      const closeHandler = createTypedMock<[any], void>();
       component.$on('closeTab', closeHandler);
       
       const firstCloseButton = container.querySelector('.tab-close');
@@ -166,9 +206,10 @@ describe('TabBar', () => {
     });
 
     it('should prevent tab selection when clicking close button', async () => {
-      const { component, container } = render(TabBar, { 
+      const { component, container, unmount } = render(TabBar, { 
         props: { tabs: mockTabs, activeTabId: 'tab1' } 
       });
+      cleanup.push(unmount);
       
       const secondTab = container.querySelectorAll('.tab')[1];
       const closeButton = secondTab.querySelector('.tab-close');
@@ -180,11 +221,12 @@ describe('TabBar', () => {
     });
 
     it('should handle close button keyboard navigation', async () => {
-      const { component, container } = render(TabBar, { 
+      const { component, container, unmount } = render(TabBar, { 
         props: { tabs: mockTabs, activeTabId: 'tab1' } 
       });
+      cleanup.push(unmount);
       
-      const closeHandler = vi.fn();
+      const closeHandler = createTypedMock<[any], void>();
       component.$on('closeTab', closeHandler);
       
       const closeButton = container.querySelector('.tab-close');
@@ -202,18 +244,20 @@ describe('TabBar', () => {
 
   describe('Drag and Drop', () => {
     it('should allow dragging tabs', async () => {
-      const { container } = render(TabBar, { 
+      const { container, unmount } = render(TabBar, { 
         props: { tabs: mockTabs, activeTabId: 'tab1' } 
       });
+      cleanup.push(unmount);
       
       const firstTab = container.querySelector('.tab');
       expect(firstTab).toHaveAttribute('draggable', 'true');
     });
 
     it('should reorder tabs on drag and drop', async () => {
-      const { component, container } = render(TabBar, { 
+      const { component, container, unmount } = render(TabBar, { 
         props: { tabs: [...mockTabs], activeTabId: 'tab1' } 
       });
+      cleanup.push(unmount);
       
       const tabs = container.querySelectorAll('.tab');
       const firstTab = tabs[0];
@@ -221,7 +265,7 @@ describe('TabBar', () => {
       
       // Mock DataTransfer
       const mockDataTransfer = createDataTransferMock({
-        getData: vi.fn().mockReturnValue('tab1')
+        getData: createSyncMock<[string], string>().mockReturnValue('tab1')
       });
       
       await simulateDragAndDrop(firstTab!, thirdTab!, mockDataTransfer);
@@ -233,15 +277,16 @@ describe('TabBar', () => {
     });
 
     it('should not reorder when dropping on same tab', async () => {
-      const { component, container } = render(TabBar, { 
+      const { component, container, unmount } = render(TabBar, { 
         props: { tabs: [...mockTabs], activeTabId: 'tab1' } 
       });
+      cleanup.push(unmount);
       
       const firstTab = container.querySelector('.tab');
       const initialOrder = component.tabs.map((t: any) => t.id);
       
       const mockDataTransfer = createDataTransferMock({
-        getData: vi.fn().mockReturnValue('tab1')
+        getData: createSyncMock<[string], string>().mockReturnValue('tab1')
       });
       
       await simulateDragAndDrop(firstTab!, firstTab!, mockDataTransfer);
@@ -251,15 +296,16 @@ describe('TabBar', () => {
     });
 
     it('should handle invalid drag data gracefully', async () => {
-      const { component, container } = render(TabBar, { 
+      const { component, container, unmount } = render(TabBar, { 
         props: { tabs: [...mockTabs], activeTabId: 'tab1' } 
       });
+      cleanup.push(unmount);
       
       const firstTab = container.querySelector('.tab');
       const initialOrder = component.tabs.map((t: any) => t.id);
       
       const mockDataTransfer = createDataTransferMock({
-        getData: vi.fn().mockReturnValue('invalid-tab-id')
+        getData: createSyncMock<[string], string>().mockReturnValue('invalid-tab-id')
       });
       
       await simulateDragAndDrop(firstTab!, firstTab!, mockDataTransfer);
@@ -269,9 +315,10 @@ describe('TabBar', () => {
     });
 
     it('should set correct drag effect', async () => {
-      const { container } = render(TabBar, { 
+      const { container, unmount } = render(TabBar, { 
         props: { tabs: mockTabs, activeTabId: 'tab1' } 
       });
+      cleanup.push(unmount);
       
       const firstTab = container.querySelector('.tab');
       const mockDataTransfer = createDataTransferMock({
@@ -292,13 +339,14 @@ describe('TabBar', () => {
       const manyTabs = Array.from({ length: 20 }, (_, i) => ({
         id: `tab${i}`,
         title: `Tab ${i + 1}`,
-        type: 'file',
+        type: 'file' as const,
         paneId: `pane${i}`
       }));
       
-      const { container } = render(TabBar, { 
+      const { container, unmount } = render(TabBar, { 
         props: { tabs: manyTabs, activeTabId: 'tab0' } 
       });
+      cleanup.push(unmount);
       
       const tabBar = container.querySelector('.tab-bar');
       // Verify tab bar has correct class for scrolling
@@ -312,16 +360,17 @@ describe('TabBar', () => {
       const manyTabs = Array.from({ length: 20 }, (_, i) => ({
         id: `tab${i}`,
         title: `Tab ${i + 1}`,
-        type: 'file',
+        type: 'file' as const,
         paneId: `pane${i}`
       }));
       
-      const { container, rerender } = render(TabBar, { 
+      const { container, rerender, unmount } = render(TabBar, { 
         props: { tabs: manyTabs, activeTabId: 'tab0' } 
       });
+      cleanup.push(unmount);
       
       const tabBar = container.querySelector('.tab-bar');
-      const scrollIntoViewMock = vi.fn();
+      const scrollIntoViewMock = createSyncMock<[ScrollIntoViewOptions?], void>();
       
       // Mock scrollIntoView on the active tab
       Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
@@ -339,9 +388,10 @@ describe('TabBar', () => {
 
   describe('Keyboard Navigation', () => {
     it('should handle Tab key navigation between tabs', async () => {
-      const { container } = render(TabBar, { 
+      const { container, unmount } = render(TabBar, { 
         props: { tabs: mockTabs, activeTabId: 'tab1' } 
       });
+      cleanup.push(unmount);
       
       const tabs = container.querySelectorAll('.tab');
       
@@ -359,9 +409,10 @@ describe('TabBar', () => {
     });
 
     it('should activate tab on Enter key', async () => {
-      const { component, container } = render(TabBar, { 
+      const { component, container, unmount } = render(TabBar, { 
         props: { tabs: mockTabs, activeTabId: 'tab1' } 
       });
+      cleanup.push(unmount);
       
       const secondTab = container.querySelectorAll('.tab')[1];
       (secondTab as HTMLElement).focus();
@@ -372,9 +423,10 @@ describe('TabBar', () => {
     });
 
     it('should activate tab on Space key', async () => {
-      const { component, container } = render(TabBar, { 
+      const { component, container, unmount } = render(TabBar, { 
         props: { tabs: mockTabs, activeTabId: 'tab1' } 
       });
+      cleanup.push(unmount);
       
       const thirdTab = container.querySelectorAll('.tab')[2];
       (thirdTab as HTMLElement).focus();
@@ -385,9 +437,10 @@ describe('TabBar', () => {
     });
 
     it('should handle arrow key navigation', async () => {
-      const { component, container } = render(TabBar, { 
+      const { component, container, unmount } = render(TabBar, { 
         props: { tabs: mockTabs, activeTabId: 'tab1' } 
       });
+      cleanup.push(unmount);
       
       const tabs = container.querySelectorAll('.tab');
       (tabs[0] as HTMLElement).focus();
@@ -403,9 +456,10 @@ describe('TabBar', () => {
 
   describe('Accessibility', () => {
     it('should have proper ARIA attributes', () => {
-      const { container } = render(TabBar, { 
+      const { container, unmount } = render(TabBar, { 
         props: { tabs: mockTabs, activeTabId: 'tab2' } 
       });
+      cleanup.push(unmount);
       
       const tabBar = container.querySelector('.tab-bar');
       expect(tabBar).toHaveAttribute('role', 'tablist');
@@ -419,9 +473,10 @@ describe('TabBar', () => {
     });
 
     it('should have accessible close button', () => {
-      const { container } = render(TabBar, { 
+      const { container, unmount } = render(TabBar, { 
         props: { tabs: mockTabs, activeTabId: 'tab1' } 
       });
+      cleanup.push(unmount);
       
       const closeButtons = container.querySelectorAll('.tab-close');
       closeButtons.forEach(button => {
@@ -431,9 +486,10 @@ describe('TabBar', () => {
     });
 
     it('should announce tab changes to screen readers', async () => {
-      const { container } = render(TabBar, { 
+      const { container, unmount } = render(TabBar, { 
         props: { tabs: mockTabs, activeTabId: 'tab1' } 
       });
+      cleanup.push(unmount);
       
       const secondTab = container.querySelectorAll('.tab')[1];
       
@@ -452,27 +508,30 @@ describe('TabBar', () => {
 
   describe('Edge Cases', () => {
     it('should handle empty tabs array', () => {
-      const { container } = render(TabBar, { 
+      const { container, unmount } = render(TabBar, { 
         props: { tabs: [], activeTabId: null } 
       });
+      cleanup.push(unmount);
       
       expect(container.querySelector('.empty-message')).toBeInTheDocument();
       expect(container.querySelectorAll('.tab')).toHaveLength(0);
     });
 
     it('should handle activeTabId not in tabs array', () => {
-      const { container } = render(TabBar, { 
+      const { container, unmount } = render(TabBar, { 
         props: { tabs: mockTabs, activeTabId: 'non-existent' } 
       });
+      cleanup.push(unmount);
       
       const activeTabs = container.querySelectorAll('.tab.active');
       expect(activeTabs).toHaveLength(0);
     });
 
     it('should handle rapid tab switching', async () => {
-      const { component, container } = render(TabBar, { 
+      const { component, container, unmount } = render(TabBar, { 
         props: { tabs: mockTabs, activeTabId: 'tab1' } 
       });
+      cleanup.push(unmount);
       
       const tabs = container.querySelectorAll('.tab');
       
@@ -487,14 +546,15 @@ describe('TabBar', () => {
 
     it('should handle tabs with missing properties', () => {
       const incompleteTabs = [
-        { id: 'tab1', title: 'Tab 1', type: 'file' }, // missing paneId
-        { id: 'tab2', title: '', type: 'terminal', paneId: 'pane2' }, // empty title
-        { id: 'tab3', title: 'Tab 3', type: '', paneId: 'pane3' } // empty type
-      ];
+        { id: 'tab1', title: 'Tab 1', type: 'file' as const }, // missing paneId
+        { id: 'tab2', title: '', type: 'terminal' as const, paneId: 'pane2' }, // empty title
+        { id: 'tab3', title: 'Tab 3', type: '' as any, paneId: 'pane3' } // empty type
+      ] as any[];
       
-      const { container } = render(TabBar, { 
+      const { container, unmount } = render(TabBar, { 
         props: { tabs: incompleteTabs, activeTabId: 'tab1' } 
       });
+      cleanup.push(unmount);
       
       expect(container.querySelectorAll('.tab')).toHaveLength(3);
       expect(screen.getByText('📋')).toBeInTheDocument(); // default icon for empty type
@@ -503,9 +563,10 @@ describe('TabBar', () => {
 
   describe('Performance', () => {
     it('should efficiently update when tabs change', async () => {
-      const { rerender } = render(TabBar, { 
+      const { rerender, unmount } = render(TabBar, { 
         props: { tabs: mockTabs, activeTabId: 'tab1' } 
       });
+      cleanup.push(unmount);
       
       const updateStartTime = performance.now();
       
@@ -513,7 +574,7 @@ describe('TabBar', () => {
       const manyTabs = Array.from({ length: 100 }, (_, i) => ({
         id: `tab${i}`,
         title: `Tab ${i + 1}`,
-        type: 'file',
+        type: 'file' as const,
         paneId: `pane${i}`
       }));
       
@@ -527,9 +588,10 @@ describe('TabBar', () => {
     });
 
     it('should not re-render unnecessarily', async () => {
-      const { component, rerender } = render(TabBar, { 
+      const { component, rerender, unmount } = render(TabBar, { 
         props: { tabs: mockTabs, activeTabId: 'tab1' } 
       });
+      cleanup.push(unmount);
       
       const initialTabs = component.tabs;
       

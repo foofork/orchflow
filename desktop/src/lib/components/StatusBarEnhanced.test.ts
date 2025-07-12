@@ -1,19 +1,27 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
+import { createTypedMock } from '@/test/mock-factory';
 import StatusBarEnhanced from './StatusBarEnhanced.svelte';
 
 describe('StatusBarEnhanced', () => {
   let user: ReturnType<typeof userEvent.setup>;
+  let cleanup: Array<() => void> = [];
   
   beforeEach(() => {
     user = userEvent.setup();
+    cleanup = [];
+  });
+
+  afterEach(() => {
+    cleanup.forEach(fn => fn());
   });
 
   it('renders status bar with default items', () => {
-    const { container } = render(StatusBarEnhanced, {
+    const { container, unmount } = render(StatusBarEnhanced, {
       props: { testMode: true }
     });
+    cleanup.push(unmount);
     
     const statusBar = container.querySelector('.status-bar');
     expect(statusBar).toBeInTheDocument();
@@ -21,38 +29,41 @@ describe('StatusBarEnhanced', () => {
   });
 
   it('applies light theme when specified', () => {
-    const { container } = render(StatusBarEnhanced, {
+    const { container, unmount } = render(StatusBarEnhanced, {
       props: { testMode: true, theme: 'light' }
     });
+    cleanup.push(unmount);
     
     const statusBar = container.querySelector('.status-bar');
     expect(statusBar).toHaveClass('bg-gray-100');
   });
 
   it('displays cursor position', () => {
-    const { getByText } = render(StatusBarEnhanced, {
+    const { getByText, unmount } = render(StatusBarEnhanced, {
       props: { 
         testMode: true,
         currentFile: { path: '/test/file.ts', line: 10, column: 5 }
       }
     });
+    cleanup.push(unmount);
     
     expect(getByText('Ln 10, Col 5')).toBeInTheDocument();
   });
 
   it('displays file information when provided', () => {
-    const { getByText } = render(StatusBarEnhanced, {
+    const { getByText, unmount } = render(StatusBarEnhanced, {
       props: { 
         testMode: true,
         currentFile: { path: '/test/file.ts', line: 1, column: 1 }
       }
     });
+    cleanup.push(unmount);
     
     expect(getByText('📄 file.ts')).toBeInTheDocument();
   });
 
   it('displays git information when provided', () => {
-    const { getByText } = render(StatusBarEnhanced, {
+    const { getByText, unmount } = render(StatusBarEnhanced, {
       props: { 
         testMode: true,
         showGitStatus: true,
@@ -66,12 +77,13 @@ describe('StatusBarEnhanced', () => {
         }
       }
     });
+    cleanup.push(unmount);
     
     expect(getByText('🌿 main (↑2 ↓1) [3M 1S 2U]')).toBeInTheDocument();
   });
 
   it('displays system metrics when provided', () => {
-    const { getByText } = render(StatusBarEnhanced, {
+    const { getByText, unmount } = render(StatusBarEnhanced, {
       props: { 
         testMode: true,
         showSystemMetrics: true,
@@ -82,57 +94,62 @@ describe('StatusBarEnhanced', () => {
         }
       }
     });
+    cleanup.push(unmount);
     
     expect(getByText('CPU: 46%')).toBeInTheDocument();
     expect(getByText('Mem: 60%')).toBeInTheDocument();
   });
 
   it('displays encoding information', () => {
-    const { getByText } = render(StatusBarEnhanced, {
+    const { getByText, unmount } = render(StatusBarEnhanced, {
       props: { 
         testMode: true,
         encoding: 'UTF-8'
       }
     });
+    cleanup.push(unmount);
     
     expect(getByText('UTF-8')).toBeInTheDocument();
   });
 
   it('displays language information', () => {
-    const { getByText } = render(StatusBarEnhanced, {
+    const { getByText, unmount } = render(StatusBarEnhanced, {
       props: { 
         testMode: true,
         language: 'TypeScript'
       }
     });
+    cleanup.push(unmount);
     
     expect(getByText('TypeScript')).toBeInTheDocument();
   });
 
   it('displays running processes count', () => {
-    const { getByText } = render(StatusBarEnhanced, {
+    const { getByText, unmount } = render(StatusBarEnhanced, {
       props: { 
         testMode: true,
         runningProcesses: 3
       }
     });
+    cleanup.push(unmount);
     
     expect(getByText('3 running')).toBeInTheDocument();
   });
 
   it('displays active plugins count', () => {
-    const { getByText } = render(StatusBarEnhanced, {
+    const { getByText, unmount } = render(StatusBarEnhanced, {
       props: { 
         testMode: true,
         activePlugins: 5
       }
     });
+    cleanup.push(unmount);
     
     expect(getByText('5 plugins')).toBeInTheDocument();
   });
 
   it('displays notification count', () => {
-    const { getByText } = render(StatusBarEnhanced, {
+    const { getByText, unmount } = render(StatusBarEnhanced, {
       props: { 
         testMode: true,
         showNotifications: true,
@@ -142,12 +159,13 @@ describe('StatusBarEnhanced', () => {
         ]
       }
     });
+    cleanup.push(unmount);
     
     expect(getByText('🔔 2')).toBeInTheDocument();
   });
 
   it('displays background tasks with progress', () => {
-    const { getByText } = render(StatusBarEnhanced, {
+    const { getByText, unmount } = render(StatusBarEnhanced, {
       props: { 
         testMode: true,
         backgroundTasks: [
@@ -156,21 +174,23 @@ describe('StatusBarEnhanced', () => {
         ]
       }
     });
+    cleanup.push(unmount);
     
     expect(getByText('Building project 75%')).toBeInTheDocument();
     expect(getByText('Running tests 50%')).toBeInTheDocument();
   });
 
   it('displays clock in test mode', () => {
-    const { getByText } = render(StatusBarEnhanced, {
+    const { getByText, unmount } = render(StatusBarEnhanced, {
       props: { testMode: true }
     });
+    cleanup.push(unmount);
     
     expect(getByText('12:34')).toBeInTheDocument();
   });
 
   it('handles custom items', () => {
-    const { getByText } = render(StatusBarEnhanced, {
+    const { getByText, unmount } = render(StatusBarEnhanced, {
       props: { 
         testMode: true,
         customItems: [
@@ -179,18 +199,20 @@ describe('StatusBarEnhanced', () => {
         ]
       }
     });
+    cleanup.push(unmount);
     
     expect(getByText('Custom Item 1')).toBeInTheDocument();
     expect(getByText('Custom Item 2')).toBeInTheDocument();
   });
 
   it('handles item clicks', async () => {
-    const { getByText, component } = render(StatusBarEnhanced, {
+    const { getByText, component, unmount } = render(StatusBarEnhanced, {
       props: { 
         testMode: true,
         currentFile: { path: '/test/file.ts', line: 1, column: 1 }
       }
     });
+    cleanup.push(unmount);
     
     let actionEvent = null;
     component.$on('action', (event) => {
@@ -204,7 +226,7 @@ describe('StatusBarEnhanced', () => {
   });
 
   it('handles git status click', async () => {
-    const { getByText, component } = render(StatusBarEnhanced, {
+    const { getByText, component, unmount } = render(StatusBarEnhanced, {
       props: { 
         testMode: true,
         showGitStatus: true,
@@ -213,6 +235,7 @@ describe('StatusBarEnhanced', () => {
         }
       }
     });
+    cleanup.push(unmount);
     
     let actionEvent = null;
     component.$on('action', (event) => {
@@ -226,12 +249,13 @@ describe('StatusBarEnhanced', () => {
   });
 
   it('handles file click', async () => {
-    const { getByText, component } = render(StatusBarEnhanced, {
+    const { getByText, component, unmount } = render(StatusBarEnhanced, {
       props: { 
         testMode: true,
         currentFile: { path: '/test/file.ts', line: 1, column: 1 }
       }
     });
+    cleanup.push(unmount);
     
     let actionEvent = null;
     component.$on('action', (event) => {
@@ -248,73 +272,79 @@ describe('StatusBarEnhanced', () => {
   });
 
   it('displays problems when present', () => {
-    const { getByText } = render(StatusBarEnhanced, {
+    const { getByText, unmount } = render(StatusBarEnhanced, {
       props: { 
         testMode: true,
         // We need to simulate errors and warnings through the reactive system
         // This would normally be set through event listeners
       }
     });
+    cleanup.push(unmount);
     
     // Test structure is correct - actual error/warning counts would be set through events
     expect(getByText('Ln 1, Col 1')).toBeInTheDocument();
   });
 
   it('shows running indicator when processes are active', () => {
-    const { getByText } = render(StatusBarEnhanced, {
+    const { getByText, unmount } = render(StatusBarEnhanced, {
       props: { 
         testMode: true,
         runningProcesses: 1
       }
     });
+    cleanup.push(unmount);
     
     expect(getByText('1 running')).toBeInTheDocument();
   });
 
   it('hides git status when disabled', () => {
-    const { queryByText } = render(StatusBarEnhanced, {
+    const { queryByText, unmount } = render(StatusBarEnhanced, {
       props: { 
         testMode: true,
         showGitStatus: false,
         initialGitInfo: { branch: 'main' }
       }
     });
+    cleanup.push(unmount);
     
     expect(queryByText('🌿 main')).not.toBeInTheDocument();
   });
 
   it('hides system metrics when disabled', () => {
-    const { queryByText } = render(StatusBarEnhanced, {
+    const { queryByText, unmount } = render(StatusBarEnhanced, {
       props: { 
         testMode: true,
         showSystemMetrics: false,
         initialSystemMetrics: { cpu: 50, memory: 60 }
       }
     });
+    cleanup.push(unmount);
     
     expect(queryByText('CPU: 50%')).not.toBeInTheDocument();
     expect(queryByText('Mem: 60%')).not.toBeInTheDocument();
   });
 
   it('hides notifications when disabled', () => {
-    const { queryByText } = render(StatusBarEnhanced, {
+    const { queryByText, unmount } = render(StatusBarEnhanced, {
       props: { 
         testMode: true,
         showNotifications: false,
         notifications: [{ id: '1', type: 'info', message: 'Test' }]
       }
     });
+    cleanup.push(unmount);
     
     expect(queryByText('🔔 1')).not.toBeInTheDocument();
   });
 
   it('shows tooltip on hover', async () => {
-    const { getByText } = render(StatusBarEnhanced, {
+    const { getByText, unmount } = render(StatusBarEnhanced, {
       props: { 
         testMode: true,
         currentFile: { path: '/test/file.ts', line: 1, column: 1 }
       }
     });
+    cleanup.push(unmount);
     
     const fileItem = getByText('📄 file.ts');
     const fileButton = fileItem.closest('button');
@@ -322,8 +352,8 @@ describe('StatusBarEnhanced', () => {
   });
 
   it('handles custom item click callbacks', async () => {
-    const clickCallback = vi.fn();
-    const { getByText } = render(StatusBarEnhanced, {
+    const clickCallback = createTypedMock<[], void>();
+    const { getByText, unmount } = render(StatusBarEnhanced, {
       props: { 
         testMode: true,
         customItems: [
@@ -331,6 +361,7 @@ describe('StatusBarEnhanced', () => {
         ]
       }
     });
+    cleanup.push(unmount);
     
     const customItem = getByText('Custom');
     await fireEvent.click(customItem);
@@ -339,12 +370,13 @@ describe('StatusBarEnhanced', () => {
   });
 
   it('updates when props change', async () => {
-    const { getByText, component } = render(StatusBarEnhanced, {
+    const { getByText, component, unmount } = render(StatusBarEnhanced, {
       props: { 
         testMode: true,
         currentFile: { path: '/test/file1.ts', line: 1, column: 1 }
       }
     });
+    cleanup.push(unmount);
     
     expect(getByText('📄 file1.ts')).toBeInTheDocument();
     

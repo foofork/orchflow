@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import type { Session, Pane, PluginInfo } from '$lib/api/manager-client';
 import type { 
   SystemMetrics, 
@@ -249,26 +250,103 @@ export function buildModuleInfo(overrides?: Partial<ModuleInfo>): ModuleInfo {
 
 // Settings builder
 export interface Settings {
-  theme: 'light' | 'dark';
+  theme: 'dark' | 'light';
   fontSize: number;
-  fontFamily: string;
   tabSize: number;
   wordWrap: boolean;
-  lineNumbers: boolean;
+  minimap: boolean;
   autoSave: boolean;
   autoFormat: boolean;
+  terminal: {
+    fontSize: number;
+    fontFamily: string;
+    cursorBlink: boolean;
+  };
+  editor: {
+    vim: boolean;
+    lineNumbers: boolean;
+    rulers: number[];
+  };
 }
 
-export function buildSettings(overrides?: Partial<Settings>): Settings {
-  return {
+// Deep merge helper for settings
+function deepMergeSettings(target: Settings, overrides?: DeepPartial<Settings>): Settings {
+  if (!overrides) return target;
+  
+  const result = { ...target };
+  
+  // Handle terminal overrides
+  if (overrides.terminal) {
+    result.terminal = {
+      ...target.terminal,
+      ...overrides.terminal,
+    };
+  }
+  
+  // Handle editor overrides
+  if (overrides.editor) {
+    result.editor = {
+      ...target.editor,
+      ...overrides.editor,
+    };
+  }
+  
+  // Handle top-level properties
+  const { terminal, editor, ...topLevel } = overrides;
+  Object.assign(result, topLevel);
+  
+  return result;
+}
+
+// Helper type for deep partial
+type DeepPartial<T> = {
+  [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
+};
+
+export function buildSettings(overrides?: DeepPartial<Settings>): Settings {
+  const defaultSettings: Settings = {
     theme: 'dark',
     fontSize: 14,
-    fontFamily: 'monospace',
     tabSize: 2,
     wordWrap: false,
-    lineNumbers: true,
-    autoSave: true,
+    minimap: true,
+    autoSave: false,
     autoFormat: false,
+    terminal: {
+      fontSize: 14,
+      fontFamily: 'monospace',
+      cursorBlink: true,
+    },
+    editor: {
+      vim: false,
+      lineNumbers: true,
+      rulers: [80, 120],
+    },
+  };
+  
+  return deepMergeSettings(defaultSettings, overrides);
+}
+
+// Command Palette Item builder
+export interface CommandPaletteItem {
+  id: string;
+  label: string;
+  icon?: string;
+  category?: string;
+  shortcut?: string;
+  action: () => void | Promise<void>;
+  keywords?: string[];
+}
+
+export function buildCommandPaletteItem(overrides?: Partial<CommandPaletteItem>): CommandPaletteItem {
+  return {
+    id: 'test-command',
+    label: 'Test Command',
+    icon: '📄',
+    category: 'File',
+    shortcut: 'Ctrl+T',
+    action: vi.fn(),
+    keywords: ['test', 'command'],
     ...overrides,
   };
 }

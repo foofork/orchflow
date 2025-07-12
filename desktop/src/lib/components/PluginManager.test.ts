@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import { writable, derived } from 'svelte/store';
+import { createTypedMock, createAsyncMock } from '@/test/mock-factory';
 import PluginManager from './PluginManager.svelte';
 
 // Create mock plugin info
@@ -27,10 +28,10 @@ vi.mock('$lib/stores/manager', () => {
   const mockLoadedPluginsStore = derived(mockPluginsStore, ($plugins: any[]) => $plugins.filter((p: any) => p.loaded));
   
   const mockManager = {
-    refreshPlugins: vi.fn().mockResolvedValue(undefined),
-    loadPlugin: vi.fn().mockResolvedValue(undefined),
-    unloadPlugin: vi.fn().mockResolvedValue(undefined),
-    subscribe: vi.fn()
+    refreshPlugins: createAsyncMock<[], void>(undefined),
+    loadPlugin: createAsyncMock<[string], void>(undefined),
+    unloadPlugin: createAsyncMock<[string], void>(undefined),
+    subscribe: createTypedMock<[fn: (value: any) => void], () => void>()
   };
   
   return {
@@ -43,11 +44,13 @@ vi.mock('$lib/stores/manager', () => {
 // Mock the manager client
 vi.mock('$lib/api/manager-client', () => ({
   managerClient: {
-    getPluginMetadata: vi.fn().mockResolvedValue({})
+    getPluginMetadata: createAsyncMock<[string], Record<string, any>>({})
   }
 }));
 
 describe('PluginManager', () => {
+  let cleanup: Array<() => void> = [];
+  
   const mockPlugins = [
     createMockPlugin({
       id: 'git-integration',
@@ -76,23 +79,28 @@ describe('PluginManager', () => {
   });
 
   afterEach(() => {
+    cleanup.forEach(fn => fn());
+    cleanup = [];
     vi.restoreAllMocks();
   });
 
   describe('Basic Rendering', () => {
     it('should render plugin manager without errors', () => {
-      const { container } = render(PluginManager);
+      const { container, unmount } = render(PluginManager);
+      cleanup.push(unmount);
       expect(container).toBeTruthy();
     });
 
     it('should render refresh button', () => {
-      const { getByText } = render(PluginManager);
+      const { getByText, unmount } = render(PluginManager);
+      cleanup.push(unmount);
       const refreshButton = getByText('Refresh');
       expect(refreshButton).toBeTruthy();
     });
 
     it('should handle refresh button click with proper mock', async () => {
-      const { getByText } = render(PluginManager);
+      const { getByText, unmount } = render(PluginManager);
+      cleanup.push(unmount);
       const refreshButton = getByText('Refresh');
       
       if (refreshButton) {
@@ -104,7 +112,8 @@ describe('PluginManager', () => {
     });
 
     it('should render plugin manager header', () => {
-      const { getByText } = render(PluginManager);
+      const { getByText, unmount } = render(PluginManager);
+      cleanup.push(unmount);
       expect(getByText('Plugin Manager')).toBeTruthy();
     });
   });

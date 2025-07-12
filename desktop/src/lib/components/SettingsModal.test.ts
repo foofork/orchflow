@@ -1,15 +1,16 @@
 import { render, fireEvent, screen, waitFor } from '@testing-library/svelte';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import SettingsModal from './SettingsModal.svelte';
 import { settings } from '$lib/stores/settings';
 import { get } from 'svelte/store';
+import { createTypedMock, createSyncMock } from '@/test/mock-factory';
 
 // Mock the settings store
 vi.mock('$lib/stores/settings', () => ({
   settings: {
-    subscribe: vi.fn(),
-    set: vi.fn(),
-    update: vi.fn()
+    subscribe: createSyncMock<[(value: any) => void], () => void>(),
+    set: createSyncMock<[value: any], void>(),
+    update: createSyncMock<[(value: any) => any], void>()
   }
 }));
 
@@ -22,19 +23,20 @@ vi.mock('$app/environment', () => ({
 global.window = Object.create(window);
 Object.defineProperty(window, '__TAURI__', {
   value: {
-    invoke: vi.fn()
+    invoke: createTypedMock<[string, any?], Promise<any>>()
   },
   writable: true
 });
 
 // Mock dynamic import for Tauri
 vi.mock('@tauri-apps/api/core', () => ({
-  invoke: vi.fn()
+  invoke: createTypedMock<[string, any?], Promise<any>>()
 }));
 
 describe('SettingsModal', () => {
   let mockSettings: any;
   let onCloseMock: () => void;
+  let cleanup: Array<() => void> = [];
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -94,39 +96,47 @@ describe('SettingsModal', () => {
       return () => {};
     });
 
-    onCloseMock = vi.fn();
+    onCloseMock = createSyncMock<[], void>();
+  });
+
+  afterEach(() => {
+    cleanup.forEach(fn => fn());
+    cleanup = [];
   });
 
   describe('Component Rendering', () => {
     it('should render when isOpen is true', () => {
-      render(SettingsModal, { 
+      const { unmount } = render(SettingsModal, { 
         props: { 
           isOpen: true, 
           onClose: onCloseMock 
         } 
       });
+      cleanup.push(unmount);
 
       expect(screen.getByText('⚙️ Settings')).toBeInTheDocument();
     });
 
     it('should not render when isOpen is false', () => {
-      const { container } = render(SettingsModal, { 
+      const { container, unmount } = render(SettingsModal, { 
         props: { 
           isOpen: false, 
           onClose: onCloseMock 
         } 
       });
+      cleanup.push(unmount);
 
       expect(container.querySelector('.settings-modal')).not.toBeInTheDocument();
     });
 
     it('should render all tab sections', () => {
-      render(SettingsModal, { 
+      const { unmount } = render(SettingsModal, { 
         props: { 
           isOpen: true, 
           onClose: onCloseMock 
         } 
       });
+      cleanup.push(unmount);
 
       // Check nav items instead of just text to avoid duplicates
       const navContainer = screen.getByRole('navigation');
@@ -144,24 +154,26 @@ describe('SettingsModal', () => {
 
   describe('Tab Navigation', () => {
     it('should show appearance tab by default', () => {
-      render(SettingsModal, { 
+      const { unmount } = render(SettingsModal, { 
         props: { 
           isOpen: true, 
           onClose: onCloseMock 
         } 
       });
+      cleanup.push(unmount);
 
       // Check that appearance section heading is visible
       expect(screen.getByRole('heading', { name: 'Appearance' })).toBeInTheDocument();
     });
 
     it('should switch tabs when clicked', async () => {
-      render(SettingsModal, { 
+      const { unmount } = render(SettingsModal, { 
         props: { 
           isOpen: true, 
           onClose: onCloseMock 
         } 
       });
+      cleanup.push(unmount);
 
       // Click on Editor tab
       const editorTab = screen.getByRole('button', { name: /📝 Editor/i });
@@ -173,12 +185,13 @@ describe('SettingsModal', () => {
     });
 
     it('should filter tabs based on search query', async () => {
-      render(SettingsModal, { 
+      const { unmount } = render(SettingsModal, { 
         props: { 
           isOpen: true, 
           onClose: onCloseMock 
         } 
       });
+      cleanup.push(unmount);
 
       const searchInput = screen.getByPlaceholderText('Search settings...');
       await fireEvent.input(searchInput, { target: { value: 'terminal' } });
@@ -195,12 +208,13 @@ describe('SettingsModal', () => {
 
   describe('Form Field Interactions', () => {
     it('should update theme setting', async () => {
-      render(SettingsModal, { 
+      const { unmount } = render(SettingsModal, { 
         props: { 
           isOpen: true, 
           onClose: onCloseMock 
         } 
       });
+      cleanup.push(unmount);
 
       const lightThemeButton = screen.getByRole('button', { name: /Light/i });
       await fireEvent.click(lightThemeButton);
@@ -210,12 +224,13 @@ describe('SettingsModal', () => {
     });
 
     it('should update font size with range slider', async () => {
-      render(SettingsModal, { 
+      const { unmount } = render(SettingsModal, { 
         props: { 
           isOpen: true, 
           onClose: onCloseMock 
         } 
       });
+      cleanup.push(unmount);
 
       const fontSizeSlider = screen.getByLabelText('Font Size');
       await fireEvent.input(fontSizeSlider, { target: { value: '16' } });
@@ -225,12 +240,13 @@ describe('SettingsModal', () => {
     });
 
     it('should toggle checkbox settings', async () => {
-      render(SettingsModal, { 
+      const { unmount } = render(SettingsModal, { 
         props: { 
           isOpen: true, 
           onClose: onCloseMock 
         } 
       });
+      cleanup.push(unmount);
 
       const compactModeCheckbox = screen.getByLabelText('Compact Mode');
       expect(compactModeCheckbox).not.toBeChecked();
@@ -240,12 +256,13 @@ describe('SettingsModal', () => {
     });
 
     it('should update text input fields', async () => {
-      render(SettingsModal, { 
+      const { unmount } = render(SettingsModal, { 
         props: { 
           isOpen: true, 
           onClose: onCloseMock 
         } 
       });
+      cleanup.push(unmount);
 
       // Switch to terminal tab
       const terminalTab = screen.getByRole('button', { name: /💻 Terminal/i });
@@ -258,12 +275,13 @@ describe('SettingsModal', () => {
     });
 
     it('should update select dropdown values', async () => {
-      render(SettingsModal, { 
+      const { unmount } = render(SettingsModal, { 
         props: { 
           isOpen: true, 
           onClose: onCloseMock 
         } 
       });
+      cleanup.push(unmount);
 
       const fontFamilySelect = screen.getByLabelText('Font Family');
       await fireEvent.change(fontFamilySelect, { target: { value: 'Fira Code' } });
@@ -274,12 +292,13 @@ describe('SettingsModal', () => {
 
   describe('Save/Cancel Functionality', () => {
     it('should show unsaved changes indicator when settings are modified', async () => {
-      render(SettingsModal, { 
+      const { unmount } = render(SettingsModal, { 
         props: { 
           isOpen: true, 
           onClose: onCloseMock 
         } 
       });
+      cleanup.push(unmount);
 
       // Initially no changes
       expect(screen.queryByText('● Unsaved changes')).not.toBeInTheDocument();
@@ -293,12 +312,13 @@ describe('SettingsModal', () => {
     });
 
     it('should enable save button only when there are changes', async () => {
-      render(SettingsModal, { 
+      const { unmount } = render(SettingsModal, { 
         props: { 
           isOpen: true, 
           onClose: onCloseMock 
         } 
       });
+      cleanup.push(unmount);
 
       const saveButton = screen.getByRole('button', { name: 'Save Changes' });
       
@@ -316,12 +336,13 @@ describe('SettingsModal', () => {
     it('should save settings when save button is clicked', async () => {
       const { invoke } = await import('@tauri-apps/api/core');
       
-      render(SettingsModal, { 
+      const { unmount } = render(SettingsModal, { 
         props: { 
           isOpen: true, 
           onClose: onCloseMock 
         } 
       });
+      cleanup.push(unmount);
 
       // Make a change
       const compactModeCheckbox = screen.getByLabelText('Compact Mode');
@@ -344,12 +365,13 @@ describe('SettingsModal', () => {
     });
 
     it('should reset changes when reset button is clicked', async () => {
-      render(SettingsModal, { 
+      const { unmount } = render(SettingsModal, { 
         props: { 
           isOpen: true, 
           onClose: onCloseMock 
         } 
       });
+      cleanup.push(unmount);
 
       // Make a change
       const fontSizeSlider = screen.getByLabelText('Font Size');
@@ -367,12 +389,13 @@ describe('SettingsModal', () => {
     });
 
     it('should close modal when close button is clicked', async () => {
-      render(SettingsModal, { 
+      const { unmount } = render(SettingsModal, { 
         props: { 
           isOpen: true, 
           onClose: onCloseMock 
         } 
       });
+      cleanup.push(unmount);
 
       const closeButton = screen.getByLabelText('Close settings');
       await fireEvent.click(closeButton);
@@ -381,12 +404,13 @@ describe('SettingsModal', () => {
     });
 
     it('should close modal when overlay is clicked', async () => {
-      render(SettingsModal, { 
+      const { unmount } = render(SettingsModal, { 
         props: { 
           isOpen: true, 
           onClose: onCloseMock 
         } 
       });
+      cleanup.push(unmount);
 
       const overlay = screen.getByRole('dialog');
       await fireEvent.click(overlay);
@@ -395,12 +419,13 @@ describe('SettingsModal', () => {
     });
 
     it('should not close modal when modal content is clicked', async () => {
-      render(SettingsModal, { 
+      const { unmount } = render(SettingsModal, { 
         props: { 
           isOpen: true, 
           onClose: onCloseMock 
         } 
       });
+      cleanup.push(unmount);
 
       const modalContent = screen.getByRole('document');
       await fireEvent.click(modalContent);
@@ -411,12 +436,13 @@ describe('SettingsModal', () => {
 
   describe('Keyboard Shortcuts', () => {
     it('should close modal on Escape key', async () => {
-      render(SettingsModal, { 
+      const { unmount } = render(SettingsModal, { 
         props: { 
           isOpen: true, 
           onClose: onCloseMock 
         } 
       });
+      cleanup.push(unmount);
 
       await fireEvent.keyDown(window, { key: 'Escape' });
 
@@ -426,12 +452,13 @@ describe('SettingsModal', () => {
     it('should save settings on Ctrl+S', async () => {
       const { invoke } = await import('@tauri-apps/api/core');
       
-      render(SettingsModal, { 
+      const { unmount } = render(SettingsModal, { 
         props: { 
           isOpen: true, 
           onClose: onCloseMock 
         } 
       });
+      cleanup.push(unmount);
 
       // Make a change first
       const compactModeCheckbox = screen.getByLabelText('Compact Mode');
@@ -447,24 +474,26 @@ describe('SettingsModal', () => {
 
   describe('Import/Export', () => {
     it('should have export button', async () => {
-      render(SettingsModal, { 
+      const { unmount } = render(SettingsModal, { 
         props: { 
           isOpen: true, 
           onClose: onCloseMock 
         } 
       });
+      cleanup.push(unmount);
 
       const exportButton = screen.getByTitle('Export Settings');
       expect(exportButton).toBeInTheDocument();
     });
 
     it('should have import button', async () => {
-      render(SettingsModal, { 
+      const { unmount } = render(SettingsModal, { 
         props: { 
           isOpen: true, 
           onClose: onCloseMock 
         } 
       });
+      cleanup.push(unmount);
 
       const importLabel = screen.getByTitle('Import Settings');
       expect(importLabel).toBeInTheDocument();
@@ -474,12 +503,13 @@ describe('SettingsModal', () => {
 
   describe('Validation', () => {
     it('should validate numeric inputs', async () => {
-      render(SettingsModal, { 
+      const { unmount } = render(SettingsModal, { 
         props: { 
           isOpen: true, 
           onClose: onCloseMock 
         } 
       });
+      cleanup.push(unmount);
 
       // Switch to editor tab
       const editorTab = screen.getByRole('button', { name: /📝 Editor/i });
@@ -493,12 +523,13 @@ describe('SettingsModal', () => {
     });
 
     it('should show conditional fields based on other settings', async () => {
-      render(SettingsModal, { 
+      const { unmount } = render(SettingsModal, { 
         props: { 
           isOpen: true, 
           onClose: onCloseMock 
         } 
       });
+      cleanup.push(unmount);
 
       // Switch to editor tab
       const editorTab = screen.getByRole('button', { name: /📝 Editor/i });

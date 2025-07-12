@@ -1,20 +1,28 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
+import { createTypedMock } from '@/test/mock-factory';
 import ContextMenu from './ContextMenu.svelte';
 
 describe('ContextMenu', () => {
   let user: ReturnType<typeof userEvent.setup>;
+  let cleanup: Array<() => void> = [];
   
   beforeEach(() => {
     user = userEvent.setup();
+    cleanup = [];
+  });
+
+  afterEach(() => {
+    cleanup.forEach(fn => fn());
   });
 
   it('renders context menu at specified position', () => {
-    const { getByTestId } = render(ContextMenu, {
+    const { getByTestId, unmount } = render(ContextMenu, {
       props: { x: 100, y: 200, testMode: true },
       target: document.body
     });
+    cleanup.push(unmount);
     
     const menu = getByTestId('context-menu');
     expect(menu).toBeInTheDocument();
@@ -22,10 +30,11 @@ describe('ContextMenu', () => {
   });
 
   it('renders menu items from slot', () => {
-    const { getByTestId } = render(ContextMenu, {
+    const { getByTestId, unmount } = render(ContextMenu, {
       props: { x: 100, y: 200, testMode: true },
       target: document.body
     });
+    cleanup.push(unmount);
     
     // Create menu items manually and append to the menu
     const menu = getByTestId('context-menu');
@@ -42,7 +51,7 @@ describe('ContextMenu', () => {
   });
 
   it('has proper ARIA attributes', () => {
-    const { getByTestId } = render(ContextMenu, {
+    const { getByTestId, unmount } = render(ContextMenu, {
       props: { 
         x: 100, 
         y: 200, 
@@ -51,6 +60,7 @@ describe('ContextMenu', () => {
       },
       target: document.body
     });
+    cleanup.push(unmount);
     
     const menu = getByTestId('context-menu');
     expect(menu).toHaveAttribute('role', 'menu');
@@ -59,9 +69,10 @@ describe('ContextMenu', () => {
   });
 
   it('closes on Escape key', async () => {
-    const { getByTestId, component } = render(ContextMenu, {
+    const { getByTestId, component, unmount } = render(ContextMenu, {
       props: { x: 100, y: 200, testMode: true }, target: document.body
     });
+    cleanup.push(unmount);
     
     let closeEvent = false;
     component.$on('close', () => {
@@ -78,9 +89,10 @@ describe('ContextMenu', () => {
   });
 
   it('does not close on Escape when closeOnEscape is false', async () => {
-    const { getByTestId, component } = render(ContextMenu, {
+    const { getByTestId, component, unmount } = render(ContextMenu, {
       props: { x: 100, y: 200, testMode: true, closeOnEscape: false }, target: document.body
     });
+    cleanup.push(unmount);
     
     let closeEvent = false;
     component.$on('close', () => {
@@ -94,9 +106,10 @@ describe('ContextMenu', () => {
   });
 
   it('closes on outside click', async () => {
-    const { component } = render(ContextMenu, {
+    const { component, unmount } = render(ContextMenu, {
       props: { x: 100, y: 200, testMode: true }, target: document.body
     });
+    cleanup.push(unmount);
     
     let closeEvent = false;
     component.$on('close', () => {
@@ -111,9 +124,10 @@ describe('ContextMenu', () => {
   });
 
   it('does not close on outside click when closeOnOutsideClick is false', async () => {
-    const { component } = render(ContextMenu, {
+    const { component, unmount } = render(ContextMenu, {
       props: { x: 100, y: 200, testMode: true, closeOnOutsideClick: false }, target: document.body
     });
+    cleanup.push(unmount);
     
     let closeEvent = false;
     component.$on('close', () => {
@@ -127,10 +141,11 @@ describe('ContextMenu', () => {
   });
 
   it('handles keyboard navigation with arrow keys', async () => {
-    const { getByTestId } = render(ContextMenu, {
+    const { getByTestId, unmount } = render(ContextMenu, {
       props: { x: 100, y: 200, testMode: true },
       target: document.body
     });
+    cleanup.push(unmount);
     
     const menu = getByTestId('context-menu');
     
@@ -191,13 +206,18 @@ describe('ContextMenu', () => {
 
   it('adjusts position when menu would go off screen', () => {
     // Mock window dimensions
+    const stubInnerWidth = createTypedMock<[], number>();
+    const stubInnerHeight = createTypedMock<[], number>();
+    stubInnerWidth.mockReturnValue(800);
+    stubInnerHeight.mockReturnValue(600);
     vi.stubGlobal('innerWidth', 800);
     vi.stubGlobal('innerHeight', 600);
     
-    const { getByTestId } = render(ContextMenu, {
+    const { getByTestId, unmount } = render(ContextMenu, {
       props: { x: 750, y: 550, testMode: true }, // Position that would go off screen
       target: document.body
     });
+    cleanup.push(unmount);
     
     const menu = getByTestId('context-menu');
     expect(menu).toBeInTheDocument();
@@ -207,7 +227,7 @@ describe('ContextMenu', () => {
   });
 
   it('uses custom aria label', () => {
-    const { getByTestId } = render(ContextMenu, {
+    const { getByTestId, unmount } = render(ContextMenu, {
       props: { 
         x: 100, 
         y: 200, 
@@ -215,6 +235,7 @@ describe('ContextMenu', () => {
         ariaLabel: 'Custom context menu'
       }
     });
+    cleanup.push(unmount);
     
     const menu = getByTestId('context-menu');
     expect(menu).toHaveAttribute('aria-label', 'Custom context menu');
