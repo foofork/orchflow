@@ -5,19 +5,30 @@ import { get, writable } from 'svelte/store';
 // Mock PluginStatusBar component
 vi.mock('./PluginStatusBar.svelte');
 
-// Mock the stores
+// Mock the stores with proper typing
 vi.mock('$lib/stores/manager', () => {
   const { writable } = require('svelte/store');
   return {
     manager: writable(null),
     activeSession: writable(null),
     activePane: writable(null),
-    panes: writable(new Map())
+    panes: writable(new Map()),
+    sessions: writable([]),
+    plugins: writable([]),
+    isConnected: writable(false),
+    terminalOutputs: writable(new Map()),
+    loadedPlugins: writable(new Set())
   };
 });
 
 import StatusBar from './StatusBar.svelte';
 import { manager, activeSession, activePane, panes } from '$lib/stores/manager';
+import type { Writable } from 'svelte/store';
+
+// Cast the stores to Writable for testing (they're mocked as Writable)
+const activeSessionStore = activeSession as unknown as Writable<any>;
+const activePaneStore = activePane as unknown as Writable<any>;
+const panesStore = panes as unknown as Writable<Map<string, any>>;
 
 describe('StatusBar', () => {
   let clockInterval: NodeJS.Timeout;
@@ -32,9 +43,9 @@ describe('StatusBar', () => {
     vi.clearAllTimers();
     vi.useRealTimers();
     // Reset stores
-    activeSession.set(null);
-    activePane.set(null);
-    panes.set(new Map());
+    activeSessionStore.set(null);
+    activePaneStore.set(null);
+    panesStore.set(new Map());
   });
 
   describe('Rendering', () => {
@@ -52,7 +63,7 @@ describe('StatusBar', () => {
     it('renders session name when activeSession is set', async () => {
       render(StatusBar, { props: { sessionId: 'test-session' } });
       
-      activeSession.set({ id: 'test-session', name: 'My Project' });
+      activeSessionStore.set({ id: 'test-session', name: 'My Project' });
       
       await waitFor(() => {
         expect(screen.getByText('My Project')).toBeInTheDocument();
@@ -63,7 +74,7 @@ describe('StatusBar', () => {
     it('renders active pane title when activePane is set', async () => {
       render(StatusBar, { props: { sessionId: 'test-session' } });
       
-      activePane.set({ id: 'pane-1', title: 'main.ts', pane_type: 'Editor' });
+      activePaneStore.set({ id: 'pane-1', title: 'main.ts', pane_type: 'Editor' });
       
       await waitFor(() => {
         expect(screen.getByText('main.ts')).toBeInTheDocument();
@@ -79,7 +90,7 @@ describe('StatusBar', () => {
         ['pane-2', { id: 'pane-2', pane_type: 'Terminal', title: 'Terminal 2' }],
         ['pane-3', { id: 'pane-3', pane_type: 'Editor', title: 'main.ts' }]
       ]);
-      panes.set(panesMap);
+      panesStore.set(panesMap);
       
       await waitFor(() => {
         expect(screen.getByText('2 terminals')).toBeInTheDocument();
@@ -93,7 +104,7 @@ describe('StatusBar', () => {
       const panesMap = new Map([
         ['pane-1', { id: 'pane-1', pane_type: 'Terminal', title: 'Terminal 1' }]
       ]);
-      panes.set(panesMap);
+      panesStore.set(panesMap);
       
       await waitFor(() => {
         expect(screen.getByText('1 terminal')).toBeInTheDocument();
@@ -191,7 +202,7 @@ describe('StatusBar', () => {
     it('handles long session names with text overflow', async () => {
       render(StatusBar, { props: { sessionId: 'test-session' } });
       
-      activeSession.set({ 
+      activeSessionStore.set({ 
         id: 'test-session', 
         name: 'This is a very long session name that should be truncated' 
       });
@@ -207,14 +218,14 @@ describe('StatusBar', () => {
       render(StatusBar, { props: { sessionId: 'test-session' } });
       
       // Set all possible status items
-      activeSession.set({ id: 'test-session', name: 'My Project' });
-      activePane.set({ id: 'pane-1', title: 'main.ts', pane_type: 'Editor' });
+      activeSessionStore.set({ id: 'test-session', name: 'My Project' });
+      activePaneStore.set({ id: 'pane-1', title: 'main.ts', pane_type: 'Editor' });
       
       const panesMap = new Map([
         ['pane-1', { id: 'pane-1', pane_type: 'Terminal', title: 'Terminal 1' }],
         ['pane-2', { id: 'pane-2', pane_type: 'Terminal', title: 'Terminal 2' }]
       ]);
-      panes.set(panesMap);
+      panesStore.set(panesMap);
       
       await waitFor(() => {
         expect(screen.getByText('My Project')).toBeInTheDocument();
@@ -240,12 +251,12 @@ describe('StatusBar', () => {
       
       expect(screen.queryByText('Project A')).not.toBeInTheDocument();
       
-      activeSession.set({ id: 'test-session', name: 'Project A' });
+      activeSessionStore.set({ id: 'test-session', name: 'Project A' });
       await waitFor(() => {
         expect(screen.getByText('Project A')).toBeInTheDocument();
       });
       
-      activeSession.set({ id: 'test-session', name: 'Project B' });
+      activeSessionStore.set({ id: 'test-session', name: 'Project B' });
       await waitFor(() => {
         expect(screen.queryByText('Project A')).not.toBeInTheDocument();
         expect(screen.getByText('Project B')).toBeInTheDocument();
@@ -255,12 +266,12 @@ describe('StatusBar', () => {
     it('updates when activePane changes', async () => {
       render(StatusBar, { props: { sessionId: 'test-session' } });
       
-      activePane.set({ id: 'pane-1', title: 'file1.ts', pane_type: 'Editor' });
+      activePaneStore.set({ id: 'pane-1', title: 'file1.ts', pane_type: 'Editor' });
       await waitFor(() => {
         expect(screen.getByText('file1.ts')).toBeInTheDocument();
       });
       
-      activePane.set({ id: 'pane-2', title: 'file2.ts', pane_type: 'Editor' });
+      activePaneStore.set({ id: 'pane-2', title: 'file2.ts', pane_type: 'Editor' });
       await waitFor(() => {
         expect(screen.queryByText('file1.ts')).not.toBeInTheDocument();
         expect(screen.getByText('file2.ts')).toBeInTheDocument();
@@ -271,11 +282,11 @@ describe('StatusBar', () => {
       render(StatusBar, { props: { sessionId: 'test-session' } });
       
       // Start with no terminals
-      panes.set(new Map());
+      panesStore.set(new Map());
       expect(screen.queryByText(/terminal/)).not.toBeInTheDocument();
       
       // Add one terminal
-      panes.set(new Map([
+      panesStore.set(new Map([
         ['pane-1', { id: 'pane-1', pane_type: 'Terminal', title: 'Terminal 1' }]
       ]));
       await waitFor(() => {
@@ -283,7 +294,7 @@ describe('StatusBar', () => {
       });
       
       // Add another terminal
-      panes.set(new Map([
+      panesStore.set(new Map([
         ['pane-1', { id: 'pane-1', pane_type: 'Terminal', title: 'Terminal 1' }],
         ['pane-2', { id: 'pane-2', pane_type: 'Terminal', title: 'Terminal 2' }]
       ]));
@@ -298,7 +309,7 @@ describe('StatusBar', () => {
       render(StatusBar, { props: { sessionId: 'test-session' } });
       
       // Set pane with empty title
-      activePane.set({ id: 'pane-1', title: '', pane_type: 'Editor' });
+      activePaneStore.set({ id: 'pane-1', title: '', pane_type: 'Editor' });
       
       // Wait for update
       await waitFor(() => {
@@ -313,9 +324,9 @@ describe('StatusBar', () => {
     it('handles null/undefined store values', async () => {
       render(StatusBar, { props: { sessionId: 'test-session' } });
       
-      activeSession.set(null);
-      activePane.set(null);
-      panes.set(new Map());
+      activeSessionStore.set(null);
+      activePaneStore.set(null);
+      panesStore.set(new Map());
       
       // Should not crash and still show clock
       expect(screen.getByText('🕐')).toBeInTheDocument();

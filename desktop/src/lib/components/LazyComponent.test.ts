@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import LazyComponent from './LazyComponent.svelte';
 import TestHelpers from './TestHelpers.svelte';
+import { createAsyncMock } from '@/test/mock-factory';
 
 describe('LazyComponent', () => {
   let consoleErrorSpy: any;
@@ -17,7 +18,7 @@ describe('LazyComponent', () => {
   });
 
   it('should display loading state initially', () => {
-    const loader = vi.fn(() => new Promise(() => {})); // Never resolves
+    const loader = createAsyncMock(() => new Promise(() => {})); // Never resolves
     render(LazyComponent, { props: { loader } });
 
     expect(screen.getByText('Loading...')).toBeInTheDocument();
@@ -34,7 +35,7 @@ describe('LazyComponent', () => {
   });
 
   it('should load and display the component successfully', async () => {
-    const loader = vi.fn(async () => ({ default: TestHelpers }));
+    const loader = createAsyncMock(async () => ({ default: TestHelpers }));
     const testProps = { name: 'Test', value: 42 };
     
     render(LazyComponent, { props: { loader, props: testProps } });
@@ -54,7 +55,7 @@ describe('LazyComponent', () => {
 
   it('should handle loading errors gracefully', async () => {
     const errorMessage = 'Failed to import module';
-    const loader = vi.fn(async () => {
+    const loader = createAsyncMock(async () => {
       throw new Error(errorMessage);
     });
 
@@ -81,7 +82,7 @@ describe('LazyComponent', () => {
   });
 
   it('should handle null/undefined module gracefully', async () => {
-    const loader = vi.fn(async () => ({ default: null }));
+    const loader = createAsyncMock(async () => ({ default: null }));
     
     render(LazyComponent, { props: { loader } });
 
@@ -95,7 +96,7 @@ describe('LazyComponent', () => {
   });
 
   it('should handle immediate resolution', async () => {
-    const loader = vi.fn(() => Promise.resolve({ default: TestHelpers }));
+    const loader = createAsyncMock(() => Promise.resolve({ default: TestHelpers }));
     
     render(LazyComponent, { props: { loader, props: { name: 'Quick', value: 100 } } });
 
@@ -109,7 +110,7 @@ describe('LazyComponent', () => {
   });
 
   it('should work with empty props object by default', async () => {
-    const loader = vi.fn(async () => ({ default: TestHelpers }));
+    const loader = createAsyncMock(async () => ({ default: TestHelpers }));
     
     // Don't pass props at all
     render(LazyComponent, { props: { loader } });
@@ -123,7 +124,7 @@ describe('LazyComponent', () => {
   });
 
   it('should handle loader rejection with non-Error objects', async () => {
-    const loader = vi.fn(async () => {
+    const loader = createAsyncMock(async () => {
       throw 'String error';
     });
 
@@ -141,7 +142,7 @@ describe('LazyComponent', () => {
   });
 
   it('should use error message for non-Error objects', async () => {
-    const loader = vi.fn(async () => {
+    const loader = createAsyncMock(async () => {
       throw { message: 'Custom error message' };
     });
 
@@ -154,7 +155,7 @@ describe('LazyComponent', () => {
   });
 
   it('should display placeholder when thrown error is not an Error instance without message', async () => {
-    const loader = vi.fn(async () => {
+    const loader = createAsyncMock(async () => {
       throw { someOtherProp: 'not a message' };
     });
 

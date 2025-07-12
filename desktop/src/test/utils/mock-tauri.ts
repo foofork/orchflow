@@ -528,13 +528,17 @@ export function createMockInvoke() {
     handlers.set(command, handler);
   };
 
+  // Store the original mock methods to avoid circular reference
+  const originalMockClear = vi.mocked(mockInvoke).mockClear;
+  const originalMockReset = vi.mocked(mockInvoke).mockReset;
+
   mockInvoke.mockClear = () => {
-    vi.mocked(mockInvoke).mockClear();
+    originalMockClear();
   };
 
   mockInvoke.mockReset = () => {
     handlers.clear();
-    vi.mocked(mockInvoke).mockReset();
+    originalMockReset();
   };
 
   return mockInvoke;

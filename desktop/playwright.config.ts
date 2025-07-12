@@ -1,9 +1,75 @@
 import { defineConfig, devices } from '@playwright/test';
-import percySnapshot from '@percy/playwright';
+import { chromium } from '@playwright/test';
+import net from 'net';
+
+// Helper function to find available port
+async function findAvailablePort(startPort: number = 5174): Promise<number> {
+  const maxPort = 5200;
+  
+  for (let port = startPort; port <= maxPort; port++) {
+    if (await isPortAvailable(port)) {
+      return port;
+    }
+  }
+  throw new Error(`No available ports found between ${startPort} and ${maxPort}`);
+}
+
+function isPortAvailable(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+    
+    server.once('error', () => {
+      resolve(false);
+    });
+    
+    server.once('listening', () => {
+      server.close();
+      resolve(true);
+    });
+    
+    server.listen(port);
+  });
+}
+
+// Function to clean up leftover processes and socket files
+async function cleanup() {
+  try {
+    // Kill any leftover vite processes
+    const { exec } = await import('child_process');
+    const { promisify } = await import('util');
+    const execAsync = promisify(exec);
+    
+    try {
+      await execAsync('pkill -f "vite.*dev" || true');
+      await execAsync('pkill -f "npm.*dev" || true');
+      console.log('✅ Cleaned up any leftover dev processes');
+    } catch (error) {
+      // Ignore errors - processes might not exist
+    }
+    
+    // Clean up potential socket files
+    try {
+      await execAsync('find /tmp -name "*vite*" -delete 2>/dev/null || true');
+      console.log('✅ Cleaned up socket files');
+    } catch (error) {
+      // Ignore errors
+    }
+    
+    // Wait a moment for cleanup
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  } catch (error) {
+    console.warn('⚠️ Cleanup warning:', error.message);
+  }
+}
 
 /**
+ * Playwright Test Configuration
  * See https://playwright.dev/docs/test-configuration.
  */
+// Get available port (default fallback)
+const DEFAULT_PORT = parseInt(process.env.PLAYWRIGHT_PORT || process.env.PORT || '5174');
+const baseURL = process.env.PLAYWRIGHT_BASE_URL || `http://localhost:${DEFAULT_PORT}`;
+
 export default defineConfig({
   testDir: './tests/visual',
   /* Run tests in files in parallel */
@@ -16,10 +82,13 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: 'html',
+  /* Global setup and teardown */
+  globalSetup: './tests/setup/global.setup.ts',
+  globalTeardown: './tests/setup/global.teardown.ts',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5173',
+    baseURL,
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
@@ -29,6 +98,10 @@ export default defineConfig({
 
     /* Video on first retry */
     video: 'on-first-retry',
+    
+    /* Increase timeout for slow operations */
+    actionTimeout: 30000,
+    navigationTimeout: 30000,
   },
 
   /* Configure projects for major browsers */
@@ -71,9 +144,15 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
+    command: 'npm run dev:test',
+    url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
+    stderr: 'pipe',
+    stdout: 'pipe',
+    env: {
+      ...process.env,
+      PORT: DEFAULT_PORT.toString(),
+    },
   },
 });

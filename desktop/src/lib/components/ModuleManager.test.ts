@@ -3,14 +3,12 @@ import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import ModuleManager from './ModuleManager.svelte';
 
 // Mock moduleClient
-const mockModuleClient = {
-  scanModules: vi.fn(),
-  listModules: vi.fn(),
-  enableModule: vi.fn()
-};
-
 vi.mock('$lib/tauri/modules', () => ({
-  moduleClient: mockModuleClient
+  moduleClient: {
+    scanModules: vi.fn(),
+    listModules: vi.fn(),
+    enableModule: vi.fn()
+  }
 }));
 
 describe('ModuleManager', () => {
@@ -44,8 +42,16 @@ describe('ModuleManager', () => {
     }
   ];
 
-  beforeEach(() => {
+  let mockModuleClient: {
+    scanModules: any;
+    listModules: any;
+    enableModule: any;
+  };
+
+  beforeEach(async () => {
     vi.clearAllMocks();
+    const { moduleClient } = await import('$lib/tauri/modules');
+    mockModuleClient = moduleClient as any;
     mockModuleClient.scanModules.mockResolvedValue(undefined);
     mockModuleClient.listModules.mockResolvedValue(mockModules);
     mockModuleClient.enableModule.mockResolvedValue(undefined);
@@ -155,8 +161,8 @@ describe('ModuleManager', () => {
       const firstModule = container.querySelector('.module-card');
       const permissions = firstModule?.querySelectorAll('.permission');
       expect(permissions?.length).toBe(2);
-      expect(permissions?.[0].title).toBe('editor');
-      expect(permissions?.[1].title).toBe('terminal');
+      expect((permissions?.[0] as HTMLElement).title).toBe('editor');
+      expect((permissions?.[1] as HTMLElement).title).toBe('terminal');
     });
 
     it('displays module dependencies', async () => {
@@ -306,9 +312,9 @@ describe('ModuleManager', () => {
       const aiModule = container.querySelectorAll('.module-card')[2];
       const permissions = aiModule.querySelectorAll('.permission');
       
-      expect(permissions[0].textContent).toBe('📁'); // file_system
-      expect(permissions[1].textContent).toBe('🌐'); // network
-      expect(permissions[2].textContent).toBe('⚙️'); // process
+      expect(permissions[0].textContent?.trim()).toBe('📁'); // file_system
+      expect(permissions[1].textContent?.trim()).toBe('🌐'); // network
+      expect(permissions[2].textContent?.trim()).toBe('⚙️'); // process
     });
   });
 });

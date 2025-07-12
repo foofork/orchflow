@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, waitFor, screen } from '@testing-library/svelte';
 import FileExplorerEnhanced from './FileExplorerEnhanced.svelte';
 import type { TreeNode } from '$lib/types';
+import { buildTreeNode, buildDirectoryNode, buildFileNode } from '@/test/test-data-builders';
+import { createAsyncMock, createSyncMock } from '@/test/mock-factory';
 
 // The FileTree, ContextMenu, and Dialog components are already mocked in setup-mocks.ts
 // But we need to mock FileTree.svelte explicitly since it's not in setup-mocks.ts
@@ -16,10 +18,10 @@ vi.mock('./ContextMenu.svelte', () => ({
 }));
 
 // Mock Tauri API
-const mockInvoke = vi.fn();
-const mockReadDir = vi.fn();
-const mockJoin = vi.fn();
-const mockDirname = vi.fn();
+const mockInvoke = createAsyncMock();
+const mockReadDir = createAsyncMock();
+const mockJoin = createSyncMock();
+const mockDirname = createSyncMock();
 
 // Mock the imports as functions that return the mocked values
 vi.mock('@tauri-apps/api/core', () => ({
@@ -36,18 +38,8 @@ vi.mock('@tauri-apps/api/path', () => ({
 }));
 
 describe('FileExplorerEnhanced', () => {
-  const mockFile: TreeNode = {
-    name: 'test.txt',
-    path: '/path/to/test.txt',
-    isDirectory: false
-  };
-
-  const mockDirectory: TreeNode = {
-    name: 'testDir',
-    path: '/path/to/testDir',
-    isDirectory: true,
-    children: []
-  };
+  const mockFile = buildFileNode('test.txt', '/path/to/test.txt');
+  const mockDirectory = buildDirectoryNode('testDir', '/path/to/testDir', []);
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -254,11 +246,8 @@ describe('FileExplorerEnhanced', () => {
       // Set up initial state with a file
       component.$set({
         tree: [{
-          name: 'root',
-          path: '/',
-          isDirectory: true,
-          expanded: true,
-          children: [mockFile]
+          ...buildDirectoryNode('root', '/', [mockFile]),
+          expanded: true
         }]
       });
 
@@ -284,11 +273,8 @@ describe('FileExplorerEnhanced', () => {
       // Set up initial state with a file
       component.$set({
         tree: [{
-          name: 'root',
-          path: '/',
-          isDirectory: true,
-          expanded: true,
-          children: [mockFile]
+          ...buildDirectoryNode('root', '/', [mockFile]),
+          expanded: true
         }]
       });
 
@@ -332,11 +318,8 @@ describe('FileExplorerEnhanced', () => {
       // Set up initial state with a file
       component.$set({
         tree: [{
-          name: 'root',
-          path: '/',
-          isDirectory: true,
-          expanded: true,
-          children: [mockFile]
+          ...buildDirectoryNode('root', '/', [mockFile]),
+          expanded: true
         }]
       });
 
@@ -360,18 +343,15 @@ describe('FileExplorerEnhanced', () => {
 
       // Set up initial state with files
       const files = [
-        { ...mockFile, name: 'test1.txt' },
-        { ...mockFile, name: 'test2.txt' },
-        { ...mockFile, name: 'other.txt' }
+        buildFileNode('test1.txt', '/path/to/test1.txt'),
+        buildFileNode('test2.txt', '/path/to/test2.txt'),
+        buildFileNode('other.txt', '/path/to/other.txt')
       ];
 
       component.$set({
         tree: [{
-          name: 'root',
-          path: '/',
-          isDirectory: true,
-          expanded: true,
-          children: files
+          ...buildDirectoryNode('root', '/', files),
+          expanded: true
         }]
       });
 
@@ -413,11 +393,8 @@ describe('FileExplorerEnhanced', () => {
       // Set up a selected file
       component.$set({ 
         tree: [{
-          name: 'root',
-          path: '/',
-          isDirectory: true,
-          expanded: true,
-          children: [mockFile]
+          ...buildDirectoryNode('root', '/', [mockFile]),
+          expanded: true
         }],
         selectedPath: mockFile.path
       });

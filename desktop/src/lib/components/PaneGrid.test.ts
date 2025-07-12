@@ -2,49 +2,95 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import userEvent from '@testing-library/user-event';
-import { mockInvoke } from '../../test/utils';
+import { createMockInvoke } from '../../test/utils/mock-tauri';
 
 // Mock TauriTerminal component - must be hoisted before PaneGrid import
 vi.mock('./TauriTerminal.svelte', () => {
-  return {
-    default: class MockTauriTerminal {
-      constructor(options: any) {
-        this.$$ = {
-          fragment: null,
-          ctx: [],
-          props: options.props || {},
-          update: vi.fn(),
-          not_equal: vi.fn(),
-          bound: {},
-          on_mount: [],
-          on_destroy: [],
-          on_disconnect: [],
-          before_update: [],
-          after_update: [],
-          context: new Map(),
-          callbacks: {},
-          dirty: [],
-          skip_bound: false,
-          root: options.target || null
-        };
-        this.$destroy = vi.fn();
-        this.$on = vi.fn();
-        this.$set = vi.fn();
+  // Create a proper Svelte component mock constructor
+  function MockTauriTerminal(options: any) {
+    // Mock terminal instance
+    const mockTerminal = {
+      dispose: vi.fn(),
+      clear: vi.fn(),
+      write: vi.fn(),
+      writeln: vi.fn(),
+      onData: vi.fn()
+    };
+
+    // Initialize component instance
+    const component = {
+      $destroy: vi.fn(),
+      $on: vi.fn(),
+      $set: vi.fn(),
+      // Mock internal properties that might be accessed during cleanup
+      terminal: mockTerminal,
+      fitAddon: {
+        dispose: vi.fn(),
+        fit: vi.fn(),
+        proposeDimensions: vi.fn(() => ({ cols: 80, rows: 24 }))
+      },
+      resizeObserver: {
+        disconnect: vi.fn(),
+        observe: vi.fn(),
+        unobserve: vi.fn()
+      },
+      pollInterval: null,
+      $$: {
+        fragment: null,
+        ctx: [],
+        props: options?.props || {},
+        update: vi.fn(),
+        not_equal: vi.fn(),
+        bound: {},
+        on_mount: [],
+        on_destroy: [],
+        on_disconnect: [],
+        before_update: [],
+        after_update: [],
+        context: new Map(),
+        callbacks: {},
+        dirty: [],
+        skip_bound: false,
+        root: options?.target || null
       }
-      $destroy() {}
-      $on() {}
-      $set() {}
-    }
+    };
+    
+    // Return the component instance
+    return component;
+  }
+  
+  // Add Svelte component static properties
+  MockTauriTerminal.$$ = {
+    fragment: null,
+    ctx: [],
+    props: {},
+    update: vi.fn(),
+    not_equal: vi.fn(),
+    bound: {},
+    on_mount: [],
+    on_destroy: [],
+    on_disconnect: [],
+    before_update: [],
+    after_update: [],
+    context: new Map(),
+    callbacks: {},
+    dirty: [],
+    skip_bound: false,
+    root: null
+  };
+  
+  return {
+    default: MockTauriTerminal
   };
 });
 
 // Mock layout client
 vi.mock('$lib/tauri/layout', () => ({
   layoutClient: {
-    getLayout: vi.fn(),
-    createLayout: vi.fn(),
-    splitPane: vi.fn(),
-    closePane: vi.fn()
+    getLayout: vi.fn().mockResolvedValue(undefined),
+    createLayout: vi.fn().mockResolvedValue(undefined),
+    splitPane: vi.fn().mockResolvedValue(undefined),
+    closePane: vi.fn().mockResolvedValue(undefined)
   }
 }));
 
@@ -57,6 +103,7 @@ describe('PaneGrid Component', () => {
   let mockCreateLayout: any;
   let mockSplitPane: any;
   let mockClosePane: any;
+  let mockInvoke: any;
 
   beforeEach(async () => {
     user = userEvent.setup();
@@ -93,12 +140,11 @@ describe('PaneGrid Component', () => {
     mockClosePane.mockResolvedValue(undefined);
 
     // Setup Tauri mock
-    mockInvoke({
-      get_layout: mockLayout,
-      create_layout: mockLayout,
-      split_pane: ['pane-1', 'pane-3'],
-      close_pane: true
-    });
+    mockInvoke = createMockInvoke();
+    mockInvoke.mockImplementation('get_layout', () => Promise.resolve(mockLayout));
+    mockInvoke.mockImplementation('create_layout', () => Promise.resolve(mockLayout));
+    mockInvoke.mockImplementation('split_pane', () => Promise.resolve(['pane-1', 'pane-3']));
+    mockInvoke.mockImplementation('close_pane', () => Promise.resolve(true));
   });
 
   afterEach(() => {

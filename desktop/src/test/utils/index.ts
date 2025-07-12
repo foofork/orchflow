@@ -20,6 +20,9 @@ export * from './test-fixtures';
 // Canvas utilities (existing)
 export * from './canvas';
 
+// Mock factory utilities
+export * from './mock-factory';
+
 // Re-export commonly used testing functions
 export { render, fireEvent, screen, waitFor, within } from '@testing-library/svelte';
 export { vi, expect, describe, it, test, beforeEach, afterEach } from 'vitest';

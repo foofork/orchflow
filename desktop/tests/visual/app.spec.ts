@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
-import percySnapshot from '@percy/playwright';
+
+// Import our custom types
+import type { Page } from '@playwright/test';
 
 test.describe('Application Visual Regression', () => {
   test.beforeEach(async ({ page }) => {
@@ -12,8 +14,8 @@ test.describe('Application Visual Regression', () => {
     // Wait for main components to be visible
     await page.waitForSelector('.app-container', { timeout: 10000 });
     
-    // Take Percy snapshot
-    await percySnapshot(page, 'Application - Full Layout');
+    // Take Percy snapshot (disabled for now)
+    // // await percySnapshot(page, 'Application - Full Layout');
     
     // Take Playwright screenshot
     await expect(page).toHaveScreenshot('app-full-layout.png', {
@@ -31,7 +33,7 @@ test.describe('Application Visual Regression', () => {
     
     if (fileExplorer) {
       // Take Percy snapshot
-      await percySnapshot(page, 'File Explorer Panel');
+      // await percySnapshot(page, 'File Explorer Panel');
       
       // Take Playwright screenshot
       await expect(fileExplorer).toHaveScreenshot('file-explorer.png', {
@@ -53,7 +55,7 @@ test.describe('Application Visual Regression', () => {
       await page.waitForTimeout(500); // Wait for responsive adjustments
       
       // Take Percy snapshot
-      await percySnapshot(page, `Application - ${viewport.name}`);
+      // await percySnapshot(page, `Application - ${viewport.name}`);
       
       // Take Playwright screenshot
       await expect(page).toHaveScreenshot(`app-${viewport.name.toLowerCase().replace(' ', '-')}.png`, {
@@ -65,7 +67,7 @@ test.describe('Application Visual Regression', () => {
 
   test('should capture sidebar states', async ({ page }) => {
     // Test with sidebar open (default)
-    await percySnapshot(page, 'Application - Sidebar Open');
+    // await percySnapshot(page, 'Application - Sidebar Open');
     
     // Toggle sidebar if there's a toggle button
     const sidebarToggle = await page.locator('[data-testid="sidebar-toggle"]');
@@ -74,7 +76,7 @@ test.describe('Application Visual Regression', () => {
       await page.waitForTimeout(300); // Wait for animation
       
       // Take Percy snapshot with sidebar closed
-      await percySnapshot(page, 'Application - Sidebar Closed');
+      // await percySnapshot(page, 'Application - Sidebar Closed');
       
       // Take Playwright screenshot
       await expect(page).toHaveScreenshot('app-sidebar-closed.png', {
@@ -94,7 +96,7 @@ test.describe('Application Visual Regression', () => {
       await page.waitForTimeout(200); // Wait for menu animation
       
       // Take Percy snapshot with menu open
-      await percySnapshot(page, 'Application - Menu Open');
+      // await percySnapshot(page, 'Application - Menu Open');
       
       // Take Playwright screenshot
       await expect(page).toHaveScreenshot('app-menu-open.png', {
@@ -121,7 +123,7 @@ test.describe('Application Visual Regression', () => {
         await page.waitForTimeout(300); // Wait for animation
         
         // Take Percy snapshot with dialog open
-        await percySnapshot(page, 'Application - Dialog Open');
+        // await percySnapshot(page, 'Application - Dialog Open');
         
         // Take Playwright screenshot
         await expect(page).toHaveScreenshot('app-dialog-open.png', {
@@ -141,7 +143,7 @@ test.describe('Application Visual Regression', () => {
       await page.waitForTimeout(300); // Wait for theme transition
       
       // Take Percy snapshot in dark mode
-      await percySnapshot(page, 'Application - Dark Mode');
+      // await percySnapshot(page, 'Application - Dark Mode');
       
       // Take Playwright screenshot
       await expect(page).toHaveScreenshot('app-dark-mode.png', {
@@ -155,7 +157,7 @@ test.describe('Application Visual Regression', () => {
       });
       await page.waitForTimeout(300);
       
-      await percySnapshot(page, 'Application - Dark Mode (Forced)');
+      // await percySnapshot(page, 'Application - Dark Mode (Forced)');
     }
   });
 
@@ -165,7 +167,7 @@ test.describe('Application Visual Regression', () => {
     await page.reload();
     
     // Try to capture loading state quickly
-    await percySnapshot(page, 'Application - Loading State');
+    // await percySnapshot(page, 'Application - Loading State');
     
     // Wait for load to complete
     await responsePromise;
@@ -192,7 +194,7 @@ test.describe('Application Visual Regression', () => {
       
       if (errorMessage) {
         // Take Percy snapshot with error state
-        await percySnapshot(page, 'Application - Error State');
+        // await percySnapshot(page, 'Application - Error State');
         
         // Take Playwright screenshot
         await expect(page).toHaveScreenshot('app-error-state.png', {

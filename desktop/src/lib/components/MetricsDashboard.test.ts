@@ -9,35 +9,39 @@ import {
   startMetricsPolling, 
   stopMetricsPolling 
 } from '$lib/services/metrics';
+import { buildSystemMetrics, buildProcessMetrics } from '$lib/../test/test-data-builders';
 
 // Mock the metrics service
 vi.mock('$lib/services/metrics', () => {
   const { writable, readable } = require('svelte/store');
   
   const mockMetrics = {
-    cpu: { usage: 45.5, temperature: 65, cores: 8 },
-    memory: { total: 16000000000, used: 8000000000, available: 8000000000, percent: 50 },
+    timestamp: Date.now(),
+    cpu: { usage: 45.5, temperature: 65, cores: 8, frequency: 2400 },
+    memory: { total: 16000000000, used: 8000000000, available: 8000000000, free: 8000000000, percent: 50 },
     disk: { total: 500000000000, used: 250000000000, free: 250000000000, percent: 50 },
-    network: { bytesReceived: 1000000, bytesSent: 500000 },
-    system: { uptime: 3600, platform: 'darwin', version: '13.0.0' },
-    uptime: 3600,
-    loadAverage: [1.5, 1.2, 1.0],
+    network: { bytesReceived: 1000000, bytesSent: 500000, packetsReceived: 0, packetsSent: 0 },
     processes: [
-      { name: 'node', pid: 1234, cpu: 25.5, memory: 512000000 },
-      { name: 'chrome', pid: 5678, cpu: 15.2, memory: 1024000000 }
-    ]
+      { name: 'node', pid: 1234, cpu: 25.5, memory: 512000000, status: 'running' },
+      { name: 'chrome', pid: 5678, cpu: 15.2, memory: 1024000000, status: 'running' }
+    ],
+    uptime: 3600,
+    loadAverage: [1.5, 1.2, 0.9]
   };
   
   const currentMetricsStore = writable(mockMetrics);
-  const metricsHistoryStore = writable([mockMetrics, { ...mockMetrics, cpu: { usage: 50, temperature: 68, cores: 8 } }]);
+  const metricsHistoryStore = writable([mockMetrics, { 
+    ...mockMetrics, 
+    cpu: { usage: 50, temperature: 68, cores: 8, frequency: 2400 } 
+  }]);
   const isPollingStore = writable(false);
   
   return {
     currentMetrics: currentMetricsStore,
     metricsHistory: metricsHistoryStore,
     isPolling: isPollingStore,
-    startMetricsPolling: vi.fn(),
-    stopMetricsPolling: vi.fn(),
+    startMetricsPolling: vi.fn().mockResolvedValue(undefined),
+    stopMetricsPolling: vi.fn().mockResolvedValue(undefined),
     formatBytes: vi.fn((bytes: number) => `${(bytes / 1000000000).toFixed(1)} GB`),
     formatUptime: vi.fn((seconds: number) => {
       const hours = Math.floor(seconds / 3600);
@@ -99,12 +103,24 @@ HTMLCanvasElement.prototype.getContext = vi.fn(() => mockContext) as any;
 
 // Mock requestAnimationFrame
 let animationFrameId = 0;
+const activeTimeouts = new Set<NodeJS.Timeout>();
+
 const mockRequestAnimationFrame = vi.fn((callback) => {
   animationFrameId++;
-  const timeoutId = setTimeout(() => callback(animationFrameId), 16);
+  const timeoutId = setTimeout(() => {
+    activeTimeouts.delete(timeoutId);
+    callback(animationFrameId);
+  }, 16);
+  activeTimeouts.add(timeoutId);
   return animationFrameId;
 });
-const mockCancelAnimationFrame = vi.fn();
+
+const mockCancelAnimationFrame = vi.fn((id) => {
+  // In a real scenario, we would map frame IDs to timeouts
+  // For testing, we'll just clear all active timeouts
+  activeTimeouts.forEach(timeout => clearTimeout(timeout));
+  activeTimeouts.clear();
+});
 
 global.requestAnimationFrame = mockRequestAnimationFrame as any;
 global.cancelAnimationFrame = mockCancelAnimationFrame as any;
@@ -117,6 +133,9 @@ describe('MetricsDashboard', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    // Clean up any remaining timeouts
+    activeTimeouts.forEach(timeout => clearTimeout(timeout));
+    activeTimeouts.clear();
   });
 
   describe('Rendering', () => {
@@ -254,12 +273,12 @@ describe('MetricsDashboard', () => {
     });
 
     it('should draw charts with sufficient history', async () => {
-      const mockHistory = Array(5).fill(null).map((_, i) => ({
-        cpu: { usage: 45 + i * 5, temperature: 65, cores: 8 },
-        memory: { total: 16000000000, used: 8000000000, available: 8000000000, percent: 50 },
+      const mockHistory = Array(5).fill(null).map((_, i) => buildSystemMetrics({
+        cpu: { usage: 45 + i * 5, temperature: 65, cores: 8, frequency: 2400 },
+        memory: { total: 16000000000, used: 8000000000, available: 8000000000, free: 8000000000, percent: 50 },
         disk: { total: 500000000000, used: 250000000000, free: 250000000000, percent: 50 },
-        network: { bytesReceived: 1000000 * (i + 1), bytesSent: 500000 * (i + 1) },
-        system: { uptime: 3600, platform: 'darwin', version: '13.0.0' }
+        network: { bytesReceived: 1000000 * (i + 1), bytesSent: 500000 * (i + 1), packetsReceived: 0, packetsSent: 0 },
+        uptime: 3600
       }));
       
       metricsHistory.set(mockHistory);
@@ -308,10 +327,10 @@ describe('MetricsDashboard', () => {
     });
 
     it('should apply warning color for high usage', () => {
-      currentMetrics.update(m => ({
+      currentMetrics.update(m => m ? ({
         ...m,
-        cpu: { usage: 85, temperature: 80, cores: 8 }
-      }));
+        cpu: { usage: 85, temperature: 80, cores: 8, frequency: 2400 }
+      }) : null);
       
       const { container } = render(MetricsDashboard);
       
@@ -324,10 +343,10 @@ describe('MetricsDashboard', () => {
     });
 
     it('should apply danger color for critical usage', () => {
-      currentMetrics.update(m => ({
+      currentMetrics.update(m => m ? ({
         ...m,
-        cpu: { usage: 95, temperature: 90, cores: 8 }
-      }));
+        cpu: { usage: 95, temperature: 90, cores: 8, frequency: 2400 }
+      }) : null);
       
       const { container } = render(MetricsDashboard);
       
@@ -355,11 +374,11 @@ describe('MetricsDashboard', () => {
     });
 
     it('should handle zero values', () => {
-      currentMetrics.update(m => ({
+      currentMetrics.update(m => m ? ({
         ...m,
-        cpu: { usage: 0, temperature: 0, cores: 8 },
+        cpu: { usage: 0, temperature: 0, cores: 8, frequency: 2400 },
         memory: { ...m.memory, percent: 0 }
-      }));
+      }) : null);
       
       const { container } = render(MetricsDashboard);
       

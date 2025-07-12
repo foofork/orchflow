@@ -409,3 +409,42 @@ export async function waitForStoreUpdate<T>(
     });
   });
 }
+
+/**
+ * Create a writable store that can be used in place of derived stores for testing
+ * This is the main function to use when you need to mock a derived store
+ */
+export function createMockWritableForDerived<T>(initialValue: T): Writable<T> {
+  return createMockWritable(initialValue);
+}
+
+/**
+ * Create mock manager stores that behave like writable stores for testing
+ * even though the real stores are derived (readonly)
+ */
+export function createMockManagerStores() {
+  return {
+    sessions: createMockWritableForDerived([]),
+    panes: createMockWritableForDerived(new Map()),
+    activeSession: createMockWritableForDerived(undefined),
+    activePane: createMockWritableForDerived(undefined),
+    plugins: createMockWritableForDerived([]),
+    isConnected: createMockWritableForDerived(false),
+    terminalOutputs: createMockWritableForDerived(new Map()),
+    loadedPlugins: createMockWritableForDerived(new Set()),
+    manager: {
+      createTerminal: vi.fn().mockResolvedValue({}),
+      createSession: vi.fn().mockResolvedValue({}),
+      refreshSessions: vi.fn().mockResolvedValue(undefined),
+      refreshPlugins: vi.fn().mockResolvedValue(undefined),
+      searchProject: vi.fn().mockResolvedValue([]),
+      listDirectory: vi.fn().mockResolvedValue([]),
+      sendInput: vi.fn().mockResolvedValue(undefined),
+      execute: vi.fn().mockResolvedValue(undefined),
+      closePane: vi.fn().mockResolvedValue(undefined),
+      focusPane: vi.fn().mockResolvedValue(undefined),
+      getPaneOutput: vi.fn().mockResolvedValue(''),
+      subscribe: vi.fn(),
+    }
+  };
+}

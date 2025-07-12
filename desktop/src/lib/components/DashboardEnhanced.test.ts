@@ -3,46 +3,23 @@ import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import DashboardEnhanced from './DashboardEnhanced.svelte';
 
-// Mock the manager store module
-vi.mock('../stores/manager', () => {
-  const { writable } = require('svelte/store');
-  const mockSessions = writable([]);
-  const mockPanes = writable(new Map());
-  const mockIsConnected = writable(true);
-  
-  return {
-    manager: {
-      subscribe: vi.fn(),
-      createSession: vi.fn(),
-      createTerminal: vi.fn(),
-      closePane: vi.fn(),
-      focusPane: vi.fn()
-    },
-    sessions: {
-      subscribe: mockSessions.subscribe,
-      set: mockSessions.set,
-      update: mockSessions.update
-    },
-    panes: {
-      subscribe: mockPanes.subscribe,
-      set: mockPanes.set,
-      update: mockPanes.update
-    },
-    isConnected: {
-      subscribe: mockIsConnected.subscribe,
-      set: mockIsConnected.set,
-      update: mockIsConnected.update
-    }
-  };
+// Import the store mocking utilities
+import { buildSession, buildPane } from '../../test/test-data-builders';
+
+// Mock the manager store module first
+vi.mock('../stores/manager', async () => {
+  const { createMockManagerStores } = await import('../../test/utils/mock-stores');
+  return createMockManagerStores();
 });
 
-// Import mocked stores after mocking
-import { manager, sessions as sessionsStore, panes as panesStore, isConnected as connectedStore } from '../stores/manager';
+// Import mocked stores after mocking and cast them to Writable for testing
+import { manager, sessions, panes, isConnected } from '../stores/manager';
+import type { Writable } from 'svelte/store';
 
-// Type assertions for the mocked stores
-const writableSessionsStore = sessionsStore as any;
-const writablePanesStore = panesStore as any;
-const writableConnectedStore = connectedStore as any;
+// Cast the stores to Writable for testing (they're mocked as Writable)
+const sessionsStore = sessions as unknown as Writable<any[]>;
+const panesStore = panes as unknown as Writable<Map<string, any>>;
+const connectedStore = isConnected as unknown as Writable<boolean>;
 
 describe('DashboardEnhanced Component', () => {
   const mockOnSelectPane = vi.fn();
@@ -51,9 +28,9 @@ describe('DashboardEnhanced Component', () => {
     vi.clearAllMocks();
     
     // Reset stores
-    writableSessionsStore.set([]);
-    writablePanesStore.set(new Map());
-    writableConnectedStore.set(true);
+    sessionsStore.set([]);
+    panesStore.set(new Map());
+    connectedStore.set(true);
     mockOnSelectPane.mockClear();
   });
 
@@ -82,16 +59,16 @@ describe('DashboardEnhanced Component', () => {
   it('should toggle between card and table view', async () => {
     // Need panes to see the grid/table views
     const testPanes = new Map([
-      ['pane1', {
+      ['pane1', buildPane({
         id: 'pane1',
         session_id: 'session1',
         pane_type: 'Terminal',
         title: 'Terminal 1',
         is_active: true
-      }]
+      })]
     ]);
     
-    writablePanesStore.set(testPanes);
+    panesStore.set(testPanes);
     
     const { getByText, container } = render(DashboardEnhanced, {
       props: { onSelectPane: mockOnSelectPane }
@@ -135,23 +112,23 @@ describe('DashboardEnhanced Component', () => {
 
   it('should display panes in card view', async () => {
     const testPanes = new Map([
-      ['pane1', {
+      ['pane1', buildPane({
         id: 'pane1',
         session_id: 'session1',
         pane_type: 'Terminal',
         title: 'Terminal 1',
         is_active: true
-      }],
-      ['pane2', {
+      })],
+      ['pane2', buildPane({
         id: 'pane2',
         session_id: 'session1',
         pane_type: 'Editor',
         title: 'main.js',
         is_active: false
-      }]
+      })]
     ]);
     
-    writablePanesStore.set(testPanes);
+    panesStore.set(testPanes);
     
     const { getByText, container } = render(DashboardEnhanced, {
       props: { onSelectPane: mockOnSelectPane }
@@ -169,16 +146,16 @@ describe('DashboardEnhanced Component', () => {
 
   it('should display panes in table view', async () => {
     const testPanes = new Map([
-      ['pane1', {
+      ['pane1', buildPane({
         id: 'pane1',
         session_id: 'session1',
         pane_type: 'Terminal',
         title: 'Terminal 1',
         is_active: true
-      }]
+      })]
     ]);
     
-    writablePanesStore.set(testPanes);
+    panesStore.set(testPanes);
     
     const { getByText, container } = render(DashboardEnhanced, {
       props: { onSelectPane: mockOnSelectPane }
@@ -201,16 +178,16 @@ describe('DashboardEnhanced Component', () => {
   });
 
   it('should handle attach pane action', async () => {
-    const testPane = {
+    const testPane = buildPane({
       id: 'pane1',
       session_id: 'session1',
       pane_type: 'Terminal',
       title: 'Terminal 1',
       is_active: true
-    };
+    });
     
     const testPanes = new Map([['pane1', testPane]]);
-    writablePanesStore.set(testPanes);
+    panesStore.set(testPanes);
     
     const { getByText } = render(DashboardEnhanced, {
       props: { onSelectPane: mockOnSelectPane }
@@ -225,24 +202,24 @@ describe('DashboardEnhanced Component', () => {
   });
 
   it('should handle restart pane action', async () => {
-    const testPane = {
+    const testPane = buildPane({
       id: 'pane1',
       session_id: 'session1',
       pane_type: 'Terminal',
       title: 'Terminal 1',
       is_active: true
-    };
+    });
     
     const testPanes = new Map([['pane1', testPane]]);
-    writablePanesStore.set(testPanes);
+    panesStore.set(testPanes);
     
-    vi.mocked(manager.createTerminal).mockResolvedValue({
+    vi.mocked(manager.createTerminal).mockResolvedValue(buildPane({
       id: 'new-pane',
       session_id: 'session1',
       pane_type: 'Terminal',
       title: 'Terminal 1',
       is_active: true
-    });
+    }));
     
     const { getByText } = render(DashboardEnhanced, {
       props: { onSelectPane: mockOnSelectPane }
@@ -254,22 +231,22 @@ describe('DashboardEnhanced Component', () => {
     
     await waitFor(() => {
       expect(manager.closePane).toHaveBeenCalledWith('pane1');
-      expect(manager.createTerminal).toHaveBeenCalledWith('session1', 'Terminal 1');
+      expect(manager.createTerminal).toHaveBeenCalledWith('session1', { name: 'Terminal 1' });
     });
   });
 
   it('should handle kill pane action', async () => {
     const testPanes = new Map([
-      ['pane1', {
+      ['pane1', buildPane({
         id: 'pane1',
         session_id: 'session1',
         pane_type: 'Terminal',
         title: 'Terminal 1',
         is_active: true
-      }]
+      })]
     ]);
     
-    writablePanesStore.set(testPanes);
+    panesStore.set(testPanes);
     
     const { getByText } = render(DashboardEnhanced, {
       props: { onSelectPane: mockOnSelectPane }
@@ -284,16 +261,16 @@ describe('DashboardEnhanced Component', () => {
 
   it('should display metrics for panes', async () => {
     const testPanes = new Map([
-      ['pane1', {
+      ['pane1', buildPane({
         id: 'pane1',
         session_id: 'session1',
         pane_type: 'Terminal',
         title: 'Terminal 1',
         is_active: true
-      }]
+      })]
     ]);
     
-    writablePanesStore.set(testPanes);
+    panesStore.set(testPanes);
     
     const { container } = render(DashboardEnhanced, {
       props: { onSelectPane: mockOnSelectPane }
@@ -314,27 +291,27 @@ describe('DashboardEnhanced Component', () => {
 
   it('should show correct icons for pane types', async () => {
     const testPanes = new Map([
-      ['pane1', {
+      ['pane1', buildPane({
         id: 'pane1',
         session_id: 'session1',
         pane_type: 'Terminal',
         title: 'Terminal'
-      }],
-      ['pane2', {
+      })],
+      ['pane2', buildPane({
         id: 'pane2',
         session_id: 'session1',
         pane_type: 'Editor',
         title: 'Editor'
-      }],
-      ['pane3', {
+      })],
+      ['pane3', buildPane({
         id: 'pane3',
         session_id: 'session1',
-        pane_type: 'FileTree',
+        pane_type: 'FileExplorer',
         title: 'Files'
-      }]
+      })]
     ]);
     
-    writablePanesStore.set(testPanes);
+    panesStore.set(testPanes);
     
     const { container } = render(DashboardEnhanced, {
       props: { onSelectPane: mockOnSelectPane }
@@ -350,16 +327,16 @@ describe('DashboardEnhanced Component', () => {
   });
 
   it('should handle attach action in table view', async () => {
-    const testPane = {
+    const testPane = buildPane({
       id: 'pane1',
       session_id: 'session1',
       pane_type: 'Terminal',
       title: 'Terminal 1',
       is_active: true
-    };
+    });
     
     const testPanes = new Map([['pane1', testPane]]);
-    writablePanesStore.set(testPanes);
+    panesStore.set(testPanes);
     
     const { getByText, getByTitle } = render(DashboardEnhanced, {
       props: { onSelectPane: mockOnSelectPane }

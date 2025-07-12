@@ -1,12 +1,49 @@
-import { vi } from 'vitest';
+import { vi, type MockedFunction } from 'vitest';
 
 /**
  * Enhanced Svelte component mocking to fix 'block.c is not a function' errors
  * This provides proper Svelte component structure for testing
  */
 
+// Svelte component type definition
+interface MockedSvelteComponent {
+  $set: MockedFunction<(props: any) => void>;
+  $on: MockedFunction<(event: string, handler: Function) => () => void>;
+  $destroy: MockedFunction<() => void>;
+  $$: {
+    fragment: {
+      c: MockedFunction<() => void>;
+      m: MockedFunction<(target: HTMLElement, anchor?: Node) => void>;
+      p: MockedFunction<(ctx: any[], dirty: number[]) => void>;
+      d: MockedFunction<(detaching: boolean) => void>;
+    };
+    ctx: any[];
+    props: Record<string, any>;
+    update: MockedFunction<() => void>;
+    not_equal: (a: any, b: any) => boolean;
+    bound: Record<string, any>;
+    on_mount: Function[];
+    on_destroy: Function[];
+    on_disconnect: Function[];
+    before_update: Function[];
+    after_update: Function[];
+    context: Map<any, any>;
+    callbacks: Record<string, Function[]>;
+    dirty: number[];
+    skip_bound: boolean;
+    root: HTMLElement;
+  };
+  element: HTMLElement;
+  _mockTriggerEvent: (event: string, detail?: any) => void;
+  _mockGetProps: () => Record<string, any>;
+  _mockSetVisible: (visible: boolean) => void;
+}
+
 // Helper function to create proper Svelte component mocks
-function createSvelteComponentMock(componentName: string, defaultProps = {}) {
+function createSvelteComponentMock(
+  componentName: string, 
+  defaultProps: Record<string, any> = {}
+): MockedFunction<(options: any) => MockedSvelteComponent> {
   return vi.fn().mockImplementation((options: any) => {
     const { target, props = {}, anchor, intro } = options;
     const mergedProps = { ...defaultProps, ...props };
@@ -39,9 +76,9 @@ function createSvelteComponentMock(componentName: string, defaultProps = {}) {
     }
     
     // Create proper Svelte component interface
-    const component = {
+    const component: MockedSvelteComponent = {
       // Standard Svelte component methods
-      $set: vi.fn((newProps: any) => {
+      $set: vi.fn<[any], void>((newProps: any) => {
         Object.assign(mergedProps, newProps);
         // Update DOM based on props
         if (newProps.show !== undefined || newProps.open !== undefined) {
@@ -53,12 +90,12 @@ function createSvelteComponentMock(componentName: string, defaultProps = {}) {
         }
       }),
       
-      $on: vi.fn((event: string, handler: Function) => {
+      $on: vi.fn<[string, Function], () => void>((event: string, handler: Function) => {
         element.addEventListener(event, handler as EventListener);
         return () => element.removeEventListener(event, handler as EventListener);
       }),
       
-      $destroy: vi.fn(() => {
+      $destroy: vi.fn<[], void>(() => {
         if (element.parentNode) {
           element.parentNode.removeChild(element);
         }
@@ -75,7 +112,7 @@ function createSvelteComponentMock(componentName: string, defaultProps = {}) {
         ctx: [],
         props: mergedProps,
         update: vi.fn(),
-        not_equal: vi.fn(),
+        not_equal: (a: any, b: any) => a !== b,
         bound: {},
         on_mount: [],
         on_destroy: [],

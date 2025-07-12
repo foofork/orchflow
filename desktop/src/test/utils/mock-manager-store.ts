@@ -1,6 +1,7 @@
 import { writable, derived, type Writable, type Readable } from 'svelte/store';
 import { vi } from 'vitest';
 import type { Session, Pane, PluginInfo } from '$lib/api/manager-client';
+import { createAsyncMock } from '../mock-factory';
 
 interface ManagerState {
   sessions: Session[];
@@ -28,30 +29,30 @@ export function createMockManagerStore() {
 
   // Create mock functions
   const mockFunctions = {
-    init: vi.fn(),
-    cleanup: vi.fn(),
-    createSession: vi.fn(),
-    deleteSession: vi.fn(),
-    createTerminal: vi.fn(),
-    closePane: vi.fn(),
-    sendInput: vi.fn(),
-    sendKeys: vi.fn(),
-    focusPane: vi.fn(),
+    init: createAsyncMock(),
+    cleanup: createAsyncMock(),
+    createSession: createAsyncMock(),
+    deleteSession: createAsyncMock(),
+    createTerminal: createAsyncMock(),
+    closePane: createAsyncMock(),
+    sendInput: createAsyncMock(),
+    sendKeys: createAsyncMock(),
+    focusPane: createAsyncMock(),
     setActiveSession: vi.fn(),
-    loadPlugin: vi.fn(),
-    unloadPlugin: vi.fn(),
-    persistState: vi.fn(),
-    readFile: vi.fn(),
-    saveFile: vi.fn(),
-    listDirectory: vi.fn(),
-    watchFile: vi.fn(),
-    unwatchFile: vi.fn(),
-    searchProject: vi.fn(),
-    searchFiles: vi.fn(),
-    resizePane: vi.fn(),
-    refreshSessions: vi.fn(),
-    refreshPanes: vi.fn(),
-    refreshPlugins: vi.fn(),
+    loadPlugin: createAsyncMock(),
+    unloadPlugin: createAsyncMock(),
+    persistState: createAsyncMock(),
+    readFile: createAsyncMock(),
+    saveFile: createAsyncMock(),
+    listDirectory: createAsyncMock(),
+    watchFile: createAsyncMock(),
+    unwatchFile: createAsyncMock(),
+    searchProject: createAsyncMock(),
+    searchFiles: createAsyncMock(),
+    resizePane: createAsyncMock(),
+    refreshSessions: createAsyncMock(),
+    refreshPanes: createAsyncMock(),
+    refreshPlugins: createAsyncMock(),
   };
 
   // Create the manager object with both store methods and custom methods

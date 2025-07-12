@@ -21,9 +21,9 @@ describe('TabBar', () => {
   });
 
   const mockTabs = [
-    { id: 'tab1', title: 'Terminal 1', type: 'terminal', paneId: 'pane1' },
-    { id: 'tab2', title: 'File 1', type: 'file', paneId: 'pane2' },
-    { id: 'tab3', title: 'Dashboard', type: 'dashboard', paneId: 'pane3' }
+    { id: 'tab1', title: 'Terminal 1', type: 'terminal' as const, paneId: 'pane1' },
+    { id: 'tab2', title: 'File 1', type: 'file' as const, paneId: 'pane2' },
+    { id: 'tab3', title: 'Dashboard', type: 'dashboard' as const, paneId: 'pane3' }
   ];
 
   describe('Rendering', () => {
@@ -58,10 +58,10 @@ describe('TabBar', () => {
 
     it('should render correct icon for different tab types', () => {
       const specialTabs = [
-        { id: 'test1', title: 'Test', type: 'test', paneId: 'pane1' },
-        { id: 'settings1', title: 'Settings', type: 'settings', paneId: 'pane2' },
-        { id: 'plugins1', title: 'Plugins', type: 'plugins', paneId: 'pane3' },
-        { id: 'unknown1', title: 'Unknown', type: 'unknown', paneId: 'pane4' }
+        { id: 'test1', title: 'Test', type: 'test' as const, paneId: 'pane1' },
+        { id: 'settings1', title: 'Settings', type: 'settings' as const, paneId: 'pane2' },
+        { id: 'plugins1', title: 'Plugins', type: 'plugins' as const, paneId: 'pane3' },
+        { id: 'unknown1', title: 'Unknown', type: 'unknown' as const, paneId: 'pane4' }
       ];
       
       render(TabBar, { props: { tabs: specialTabs, activeTabId: null } });
@@ -76,7 +76,7 @@ describe('TabBar', () => {
       const longTitleTab = [{
         id: 'long1',
         title: 'This is a very long tab title that should be truncated with ellipsis',
-        type: 'file',
+        type: 'file' as const,
         paneId: 'pane1'
       }];
       

@@ -94,3 +94,47 @@
 - [ ] E2E tests running without port conflicts
 - [ ] Visual regression tests configured and passing
 - [ ] >90% test coverage maintained
+
+## 🧪 Advanced Testing Infrastructure Improvements
+
+### Mock Factory Enhancement
+- [ ] Add auto-mocking capabilities to mock-factory.ts
+- [ ] Create Svelte component mock factory with proper $$ support
+- [ ] Implement store mock factory with auto-sync functionality
+- [ ] Export proper TypeScript types for all mock utilities
+
+### Mock Registry Implementation
+- [ ] Create central MockRegistry class for all mocks
+- [ ] Add reset and snapshot functionality
+- [ ] Implement mock decorators for cleaner test syntax
+- [ ] Document mock registry patterns
+
+### Testing Pyramid Rebalancing
+- [ ] Audit current unit tests for integration test candidates
+- [ ] Create integration tests for Tauri API interactions
+- [ ] Add critical user journey e2e tests (5-10 flows)
+- [ ] Move appropriate unit tests to integration tests (target: 35% integration)
+
+### Test Organization & Consistency
+- [ ] Create test-preset.ts with all common imports
+- [ ] Standardize all tests to use mock-factory pattern
+- [ ] Create test fixtures for common scenarios
+- [ ] Add component-test-utils.ts for standardized rendering
+
+### TypeScript & Import Fixes
+- [ ] Ensure @/test path alias works in all test files
+- [ ] Fix mock type exports in mock-factory.ts
+- [ ] Update all test imports to use path aliases
+- [ ] Create proper type declarations for test globals
+
+### Quality & Documentation
+- [ ] Enable mutation testing (Stryker) in CI pipeline
+- [ ] Create comprehensive testing guide in docs/
+- [ ] Add test complexity analysis tools
+- [ ] Implement test coverage gates (min 80% for new code)
+
+### Performance & Monitoring
+- [ ] Fix performance test timeouts (Terminal I/O, File System)
+- [ ] Adjust cursor sync performance expectations
+- [ ] Add performance regression detection
+- [ ] Create performance testing dashboard

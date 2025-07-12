@@ -9,10 +9,11 @@ export default defineConfig({
     noExternal: ['@xterm/xterm', '@xterm/addon-fit', '@xterm/addon-web-links', '@xterm/addon-search']
   },
   
-  // Tauri expects a fixed port
+  // Server configuration with fallback ports
   server: {
-    port: 5173,
-    strictPort: true
+    port: parseInt(process.env.PORT || '5173'),
+    strictPort: false, // Allow fallback to other ports
+    host: process.env.HOST || 'localhost'
   },
   
   // Env prefix for Tauri
