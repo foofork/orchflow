@@ -63,11 +63,11 @@ vi.mock('$lib/tauri/neovim', () => ({
 }));
 
 // Mock ResizeObserver
-global.ResizeObserver = createTypedMock<(callback: ResizeObserverCallback) => ResizeObserver>(() => ({
-  observe: createVoidMock<[target: Element]>(),
-  disconnect: createVoidMock(),
-  unobserve: createVoidMock<[target: Element]>()
-}));
+global.ResizeObserver = vi.fn().mockImplementation((callback: ResizeObserverCallback) => ({
+  observe: vi.fn(),
+  disconnect: vi.fn(),
+  unobserve: vi.fn()
+})) as any;
 
 describe('NeovimEditor Component', () => {
   let cleanup: Array<() => void> = [];

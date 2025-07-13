@@ -158,7 +158,7 @@ impl TestResultsManager {
 
     pub async fn list_test_suites(
         &self,
-        session_id: &str,
+        _session_id: &str,
     ) -> Result<Vec<TestSuite>, OrchflowError> {
         let prefix = "test_suite:";
         let all_values = self.store.list_with_prefix(prefix).await.map_err(|e| {
@@ -267,7 +267,7 @@ impl TestResultsManager {
     // Analytics and Reporting
     pub async fn get_test_run_summaries(
         &self,
-        session_id: &str,
+        _session_id: &str,
     ) -> Result<Vec<TestRunSummary>, OrchflowError> {
         let suites = self.list_test_suites(session_id).await?;
         let mut summaries = Vec::new();
@@ -303,14 +303,14 @@ impl TestResultsManager {
 
     pub async fn get_test_failure_trends(
         &self,
-        session_id: &str,
+        _session_id: &str,
     ) -> Result<Vec<TestFailureTrend>, OrchflowError> {
         // Implementation would analyze test results to identify patterns
         // For now, return empty vector
         Ok(Vec::new())
     }
 
-    pub async fn delete_test_data(&self, session_id: &str) -> Result<(), OrchflowError> {
+    pub async fn delete_test_data(&self, _session_id: &str) -> Result<(), OrchflowError> {
         // This would delete all test data for a session
         // Implementation would require listing and deleting all related keys
         Ok(())

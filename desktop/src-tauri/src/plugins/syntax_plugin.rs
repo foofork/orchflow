@@ -64,7 +64,7 @@ impl SyntaxPlugin {
         let mut highlight_configs = HashMap::new();
 
         // Register languages - use the LANGUAGE constants
-        unsafe {
+        {
             languages.insert("rust".to_string(), tree_sitter_rust::LANGUAGE.into());
             languages.insert(
                 "typescript".to_string(),
@@ -126,7 +126,7 @@ impl SyntaxPlugin {
 
         // Rust highlighting configuration
         if let Ok(rust_config) = HighlightConfiguration::new(
-            unsafe { tree_sitter_rust::LANGUAGE.into() },
+            tree_sitter_rust::LANGUAGE.into(),
             tree_sitter_rust::HIGHLIGHTS_QUERY,
             "", // injections query - empty for now
             "", // locals query - empty for now
@@ -477,8 +477,8 @@ impl Plugin for SyntaxPlugin {
             }
 
             "syntax.getFoldingRanges" => {
-                let code = params["code"].as_str().ok_or("Missing code parameter")?;
-                let language = params["language"]
+                let _code = params["code"].as_str().ok_or("Missing code parameter")?;
+                let _language = params["language"]
                     .as_str()
                     .ok_or("Missing language parameter")?;
 

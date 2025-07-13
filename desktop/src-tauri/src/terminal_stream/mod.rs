@@ -12,11 +12,10 @@ pub mod pty_manager;
 mod simple_tests;
 pub mod state;
 
-pub use ipc_handler::{IpcHandler, TerminalEvent};
 pub use ipc_trait::{IpcChannel, TauriIpcChannel};
-pub use protocol::{ControlMessage, CreateTerminalOptions, TerminalInput, TerminalMetadata};
+pub use protocol::{ControlMessage, TerminalInput, TerminalMetadata};
 pub use pty_manager::{PtyHandle, PtyManager};
-pub use state::{TerminalMode, TerminalState};
+pub use state::TerminalState;
 
 use std::sync::Arc;
 use tokio::sync::RwLock;

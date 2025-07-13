@@ -17,9 +17,9 @@ import {
   buildTerminalTheme,
   buildTerminalOutput,
   createMockTerminal
-} from '../test/domain-builders';
-import { createMockManagerStores } from '../test/store-mocks';
-import { buildPane, buildSession } from '../test/test-data-builders';
+} from '../../test/domain-builders';
+import { createMockManagerStores } from '../../test/store-mocks';
+import { buildPane, buildSession } from '../../test/test-data-builders';
 
 // Mock browser environment
 vi.mock('$app/environment', () => ({ browser: true }));
@@ -40,12 +40,11 @@ let mockWebLinksAddon: {
   dispose?: MockedFunction<() => void>;
 };
 
-// Create manager mocks before module imports
-const managerStores = createMockManagerStores();
-
 // Mock manager store with enhanced patterns
 vi.mock('$lib/stores/manager', () => {
-  return managerStores;
+  // Use a factory function to avoid hoisting issues
+  const { createMockManagerStores } = require('../../test/store-mocks');
+  return createMockManagerStores();
 });
 
 // Mock xterm and addons with enhanced patterns

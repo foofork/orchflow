@@ -17,12 +17,12 @@ pub async fn create_streaming_terminal(
     shell: Option<String>,
     rows: u16,
     cols: u16,
-    cwd: Option<String>,
-    env: Option<std::collections::HashMap<String, String>>,
+    _cwd: Option<String>,
+    _env: Option<std::collections::HashMap<String, String>>,
     manager: State<'_, Arc<TerminalStreamManager>>,
 ) -> Result<TerminalMetadata> {
     // Create terminal with PTY
-    let pty_handle = manager
+    let _pty_handle = manager
         .create_terminal(terminal_id.clone(), shell.clone(), rows, cols)
         .await?;
 
@@ -192,10 +192,10 @@ pub async fn clear_terminal_scrollback(
 /// Search streaming terminal output
 #[tauri::command]
 pub async fn search_streaming_terminal_output(
-    terminal_id: String,
-    pattern: String,
-    case_sensitive: bool,
-    manager: State<'_, Arc<TerminalStreamManager>>,
+    _terminal_id: String,
+    _pattern: String,
+    _case_sensitive: bool,
+    _manager: State<'_, Arc<TerminalStreamManager>>,
 ) -> Result<Vec<Value>> {
     // TODO: Implement scrollback search
     // This will require adding search functionality to the terminal state

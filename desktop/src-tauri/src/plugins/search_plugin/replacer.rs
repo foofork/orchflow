@@ -79,7 +79,7 @@ impl TextReplacer {
         replacement: &str,
     ) -> (String, usize) {
         let mut count = 0;
-        let new_content = regex.replace_all(content, |caps: &regex::Captures| {
+        let new_content = regex.replace_all(content, |_caps: &regex::Captures| {
             count += 1;
             replacement
         });

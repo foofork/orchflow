@@ -207,7 +207,7 @@ pub fn parse_cargo_test_output(output: &str) -> Vec<ParsedTestResult> {
     let mut results = Vec::new();
 
     let test_regex = Regex::new(r"test\s+([\w:]+)\s+\.\.\.\s+(ok|FAILED|ignored)").unwrap();
-    let duration_regex = Regex::new(r"test result:.*?finished in (\d+\.\d+)s").unwrap();
+    let _duration_regex = Regex::new(r"test result:.*?finished in (\d+\.\d+)s").unwrap();
 
     for cap in test_regex.captures_iter(output) {
         let status = match &cap[2] {

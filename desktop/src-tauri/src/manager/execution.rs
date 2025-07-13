@@ -60,7 +60,7 @@ pub async fn process_action(manager: &Manager, action: Action) -> Result<Value, 
 
         Action::RenamePane { pane_id, name } => {
             // Update pane name in state manager
-            let pane = manager
+            let _pane = manager
                 .state_manager
                 .get_pane(&pane_id)
                 .await

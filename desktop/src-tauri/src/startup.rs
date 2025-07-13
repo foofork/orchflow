@@ -103,7 +103,7 @@ pub async fn initialize_app(app: &AppHandle) -> Result<StartupMetrics, Box<dyn s
     });
 
     let tx3 = tx.clone();
-    let manager_clone = manager.clone();
+    let _manager_clone = manager.clone();
     tokio::spawn(async move {
         let start = Instant::now();
         // Manager is already initialized above
@@ -242,7 +242,7 @@ async fn check_tmux_binary() -> Result<(), String> {
 
 /// Preload critical resources in background
 pub fn preload_resources(app: &AppHandle) {
-    let handle = app.clone();
+    let _handle = app.clone();
 
     tokio::spawn(async move {
         // Preload common module manifests

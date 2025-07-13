@@ -233,12 +233,12 @@ impl Plugin for TestRunnerPlugin {
                 }
             }
 
-            Event::CommandCompleted { pane_id, exit_code } => {
+            Event::CommandCompleted { pane_id, exit_code: _ } => {
                 if Some(pane_id) == self.test_pane_id.as_ref() && self.is_running {
                     self.is_running = false;
 
                     // Emit test results
-                    if let Some(ctx) = &self.context {
+                    if let Some(_ctx) = &self.context {
                         let stats = self.get_test_stats();
                         println!("Test run completed: {:?}", stats);
                     }

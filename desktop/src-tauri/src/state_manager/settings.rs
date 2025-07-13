@@ -34,7 +34,7 @@ impl SettingsManager {
     }
 
     /// Get all settings with a prefix
-    pub async fn get_settings_with_prefix(&self, prefix: &str) -> Result<Vec<(String, String)>> {
+    pub async fn get_settings_with_prefix(&self, _prefix: &str) -> Result<Vec<(String, String)>> {
         // This would require extending SimpleStateStore to support prefix queries
         // For now, return empty - this is a future enhancement
         Ok(Vec::new())

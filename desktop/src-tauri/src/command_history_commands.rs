@@ -65,7 +65,7 @@ pub async fn get_command_suggestions(
     manager: State<'_, Manager>,
     prefix: String,
     pane_id: Option<String>,
-    working_dir: Option<String>,
+    _working_dir: Option<String>,
     limit: Option<usize>,
 ) -> Result<Vec<String>> {
     manager

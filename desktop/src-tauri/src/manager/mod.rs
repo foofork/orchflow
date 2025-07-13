@@ -29,7 +29,7 @@ use crate::state_manager::{StateEvent, StateManager};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
-use tauri::{AppHandle, Manager as TauriManager};
+use tauri::AppHandle;
 use tokio::sync::{broadcast, mpsc, RwLock};
 
 // ===== The Manager =====

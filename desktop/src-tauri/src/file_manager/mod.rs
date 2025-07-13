@@ -11,7 +11,7 @@ pub mod types;
 pub mod utils;
 
 // Re-export commonly used types
-pub use git::{BranchInfo, FileGitStatus, GitStatus};
+pub use git::{BranchInfo, FileGitStatus};
 pub use types::{FileEntry, FileEntryType, FileNode, FileOperation, FileOperationResult};
 
 use crate::error::Result;
@@ -66,7 +66,7 @@ impl FileManager {
     /// Initialize the file manager (load gitignore patterns, etc.)
     pub async fn init(&mut self) -> Result<()> {
         // If we have git integration, use it for gitignore patterns
-        if let Some(ref git) = self.git_integration {
+        if let Some(ref _git) = self.git_integration {
             // Git integration already loaded patterns
         } else {
             // Fall back to simple pattern loading

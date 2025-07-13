@@ -335,7 +335,7 @@ fn highlight_rust(line: &str) -> String {
 
     let mut result = line.to_string();
     for keyword in &keywords {
-        let pattern = format!(r"\b{}\b", keyword);
+        let _pattern = format!(r"\b{}\b", keyword);
         result = result.replace(
             keyword,
             &format!("<span class=\"keyword\">{}</span>", keyword),

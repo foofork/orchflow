@@ -251,7 +251,7 @@ fn get_disk_usage() -> Result<(u64, u64, u64), Box<dyn std::error::Error>> {
 
         // Use statvfs on Linux
         let path = std::path::Path::new("/");
-        if let Ok(metadata) = fs::metadata(path) {
+        if let Ok(_metadata) = fs::metadata(path) {
             // Try to read from /proc/mounts or use df command
             use std::process::Command;
 

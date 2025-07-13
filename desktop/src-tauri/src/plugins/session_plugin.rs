@@ -208,7 +208,7 @@ impl SessionPlugin {
 
     /// Take a snapshot of current session
     async fn snapshot_session(&mut self, session_id: &str) -> Result<(), String> {
-        if let Some(ctx) = &self.context {
+        if let Some(_ctx) = &self.context {
             // Get session info (would need to implement in orchestrator)
             let snapshot = SessionSnapshot {
                 session: SessionState {
@@ -372,8 +372,8 @@ impl Plugin for SessionPlugin {
             }
 
             "session.restore" => {
-                let session_id = params["session_id"].as_str().ok_or("Missing session_id")?;
-                let snapshot_time = params["timestamp"].as_str();
+                let _session_id = params["session_id"].as_str().ok_or("Missing session_id")?;
+                let _snapshot_time = params["timestamp"].as_str();
 
                 // In a real implementation, would restore the session state
                 Ok(json!({

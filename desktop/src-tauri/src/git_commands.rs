@@ -7,7 +7,7 @@ use crate::manager::Manager;
 use git2::{Repository, Signature, StatusOptions};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Command;
 use tauri::State;
 
@@ -82,7 +82,7 @@ pub async fn git_status(manager: State<'_, Manager>) -> Result<GitStatusResult> 
 
 /// Get diff for a specific file
 #[tauri::command]
-pub async fn git_diff(path: String, staged: bool, manager: State<'_, Manager>) -> Result<String> {
+pub async fn git_diff(_path: String, staged: bool, manager: State<'_, Manager>) -> Result<String> {
     let project_root = manager
         .file_manager
         .as_ref()

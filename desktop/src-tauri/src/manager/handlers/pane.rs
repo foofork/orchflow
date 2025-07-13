@@ -9,8 +9,8 @@ pub async fn create_pane(
     session_id: String,
     pane_type: PaneType,
     command: Option<String>,
-    shell_type: Option<ShellType>,
-    name: Option<String>,
+    _shell_type: Option<ShellType>,
+    _name: Option<String>,
 ) -> Result<Value, String> {
     // Determine the command to run
     let final_command = match pane_type {
@@ -52,7 +52,7 @@ pub async fn create_pane(
     };
 
     // Store in state manager - create_pane takes session_id, pane_type, and backend_id
-    let pane_state = manager
+    let _pane_state = manager
         .state_manager
         .create_pane(session_id.clone(), state_pane_type, Some(pane_id.clone()))
         .await

@@ -38,7 +38,7 @@ pub async fn split_layout_pane(
     app_handle: tauri::AppHandle,
 ) -> Result<(String, String), String> {
     // Get the layout and perform split
-    let (child1_id, child2_id, tmux_pane_id) = {
+    let (child1_id, child2_id, _tmux_pane_id) = {
         let mut layouts = state.layouts.lock().unwrap();
         let layout = layouts
             .get_mut(&session_id)

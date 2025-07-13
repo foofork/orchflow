@@ -491,7 +491,7 @@
 										<input
 											type="checkbox"
 											bind:checked={localSettings.editor.insertSpaces}
-											on:change={(e) => updateSetting('editor', 'insertSpaces', e.target.checked)}
+											on:change={(e) => updateSetting('editor', 'insertSpaces', (e.target as HTMLInputElement).checked)}
 										/>
 										Insert Spaces (instead of tabs)
 									</label>
@@ -502,7 +502,7 @@
 										<input
 											type="checkbox"
 											bind:checked={localSettings.editor.wordWrap}
-											on:change={(e) => updateSetting('editor', 'wordWrap', e.target.checked)}
+											on:change={(e) => updateSetting('editor', 'wordWrap', (e.target as HTMLInputElement).checked)}
 										/>
 										Word Wrap
 									</label>
@@ -513,7 +513,7 @@
 										<input
 											type="checkbox"
 											bind:checked={localSettings.editor.lineNumbers}
-											on:change={(e) => updateSetting('editor', 'lineNumbers', e.target.checked)}
+											on:change={(e) => updateSetting('editor', 'lineNumbers', (e.target as HTMLInputElement).checked)}
 										/>
 										Show Line Numbers
 									</label>
@@ -524,7 +524,7 @@
 										<input
 											type="checkbox"
 											bind:checked={localSettings.editor.minimap}
-											on:change={(e) => updateSetting('editor', 'minimap', e.target.checked)}
+											on:change={(e) => updateSetting('editor', 'minimap', (e.target as HTMLInputElement).checked)}
 										/>
 										Show Minimap
 									</label>
@@ -535,7 +535,7 @@
 										<input
 											type="checkbox"
 											bind:checked={localSettings.editor.autoSave}
-											on:change={(e) => updateSetting('editor', 'autoSave', e.target.checked)}
+											on:change={(e) => updateSetting('editor', 'autoSave', (e.target as HTMLInputElement).checked)}
 										/>
 										Auto Save
 									</label>
@@ -627,7 +627,7 @@
 										<input
 											type="checkbox"
 											bind:checked={localSettings.terminal.closeOnExit}
-											on:change={(e) => updateSetting('terminal', 'closeOnExit', e.target.checked)}
+											on:change={(e) => updateSetting('terminal', 'closeOnExit', (e.target as HTMLInputElement).checked)}
 										/>
 										Close terminal when shell exits
 									</label>
@@ -642,7 +642,7 @@
 										<input
 											type="checkbox"
 											bind:checked={localSettings.git.autoFetch}
-											on:change={(e) => updateSetting('git', 'autoFetch', e.target.checked)}
+											on:change={(e) => updateSetting('git', 'autoFetch', (e.target as HTMLInputElement).checked)}
 										/>
 										Auto Fetch
 									</label>
@@ -678,7 +678,7 @@
 										<input
 											type="checkbox"
 											bind:checked={localSettings.git.showUntracked}
-											on:change={(e) => updateSetting('git', 'showUntracked', e.target.checked)}
+											on:change={(e) => updateSetting('git', 'showUntracked', (e.target as HTMLInputElement).checked)}
 										/>
 										Show Untracked Files
 									</label>
@@ -689,7 +689,7 @@
 										<input
 											type="checkbox"
 											bind:checked={localSettings.git.signCommits}
-											on:change={(e) => updateSetting('git', 'signCommits', e.target.checked)}
+											on:change={(e) => updateSetting('git', 'signCommits', (e.target as HTMLInputElement).checked)}
 										/>
 										Sign Commits
 									</label>
@@ -716,7 +716,7 @@
 										<input
 											type="checkbox"
 											bind:checked={localSettings.performance.enableVirtualization}
-											on:change={(e) => updateSetting('performance', 'enableVirtualization', e.target.checked)}
+											on:change={(e) => updateSetting('performance', 'enableVirtualization', (e.target as HTMLInputElement).checked)}
 										/>
 										Enable UI Virtualization
 									</label>
@@ -727,7 +727,7 @@
 										<input
 											type="checkbox"
 											bind:checked={localSettings.performance.metricsPolling}
-											on:change={(e) => updateSetting('performance', 'metricsPolling', e.target.checked)}
+											on:change={(e) => updateSetting('performance', 'metricsPolling', (e.target as HTMLInputElement).checked)}
 										/>
 										Enable Metrics Polling
 									</label>

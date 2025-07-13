@@ -27,7 +27,7 @@ pub async fn create_file(
 }
 
 pub async fn open_file(manager: &Manager, path: &str) -> Result<Value, String> {
-    let file_manager = manager
+    let _file_manager = manager
         .file_manager
         .as_ref()
         .ok_or_else(|| "File manager not initialized".to_string())?;

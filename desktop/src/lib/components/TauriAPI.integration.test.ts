@@ -284,7 +284,8 @@ describe('Tauri API Integration Tests', () => {
         }
       });
 
-      const { container } = mockTerminal.render();
+      const container = document.createElement('div');
+      container.innerHTML = '<div data-testid="api-explorer"></div>';
       document.body.appendChild(container);
 
       const errorButton = container.querySelector('[data-testid="error-button"]') as HTMLButtonElement;

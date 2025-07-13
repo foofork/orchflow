@@ -197,7 +197,7 @@ impl LspHandlers {
     }
 
     /// Forward an LSP request to the appropriate language server
-    async fn forward_lsp_request(&mut self, method: &str, params: Value) -> Result<Value, String> {
+    async fn forward_lsp_request(&mut self, _method: &str, params: Value) -> Result<Value, String> {
         // Extract URI from params to determine which server to use
         let uri = params
             .get("textDocument")
@@ -212,7 +212,7 @@ impl LspHandlers {
             .get(&path)
             .ok_or("No language server associated with file")?;
 
-        let server = self
+        let _server = self
             .server_manager
             .get_server(language)
             .ok_or("Language server not running")?;

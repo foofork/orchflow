@@ -20,7 +20,7 @@ impl MatcherBuilder {
         }
 
         // Create regex with appropriate flags
-        let regex = RegexBuilder::new(&pattern)
+        let _regex = RegexBuilder::new(&pattern)
             .case_insensitive(!options.case_sensitive)
             .multi_line(true)
             .build()

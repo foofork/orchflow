@@ -152,7 +152,7 @@ pub async fn split_unified_layout_pane(
         .map_err(|e| e.to_string())?;
 
     // Get the tmux pane ID from the first child (which inherited the original pane)
-    let backend_pane_id = layout
+    let _backend_pane_id = layout
         .panes
         .get(&child1_id)
         .and_then(|p| p.pane_id.as_ref())

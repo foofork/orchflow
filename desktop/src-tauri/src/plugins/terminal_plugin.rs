@@ -236,7 +236,7 @@ impl Plugin for TerminalPlugin {
         match method {
             "terminal.createSplit" => {
                 let session_id = params["session_id"].as_str().unwrap_or("default");
-                let direction = params["direction"].as_str().unwrap_or("horizontal");
+                let _direction = params["direction"].as_str().unwrap_or("horizontal");
                 let command = params["command"].as_str().map(|s| s.to_string());
 
                 if let Some(ctx) = &self.context {

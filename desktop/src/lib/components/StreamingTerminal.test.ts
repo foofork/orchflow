@@ -35,7 +35,7 @@ describe('StreamingTerminal', () => {
     resizeObserverInstances = [];
     
     // Setup ResizeObserver mock
-    global.ResizeObserver = createTypedMock<(callback: ResizeObserverCallback) => ResizeObserver>().mockImplementation((callback) => {
+    global.ResizeObserver = vi.fn().mockImplementation((callback: ResizeObserverCallback) => {
       const instance = {
         observe: createVoidMock(),
         unobserve: createVoidMock(),

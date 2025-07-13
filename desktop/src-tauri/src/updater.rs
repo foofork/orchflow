@@ -1,7 +1,6 @@
 use serde::Serialize;
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter, Manager, Runtime};
-use tauri_plugin_updater::UpdaterExt;
 use tokio::sync::Mutex;
 
 #[derive(Debug, Clone, Serialize)]

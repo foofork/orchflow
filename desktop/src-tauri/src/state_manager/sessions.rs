@@ -107,7 +107,7 @@ impl SessionManager {
             sessions.get(session_id).cloned()
         };
 
-        let session = session.ok_or_else(|| OrchflowError::session_not_found(session_id))?;
+        let _session = session.ok_or_else(|| OrchflowError::session_not_found(session_id))?;
 
         // Remove from memory
         {
