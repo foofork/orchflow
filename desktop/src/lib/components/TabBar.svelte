@@ -17,7 +17,7 @@
     activeTabId = tabId;
   }
   
-  function closeTab(tabId: string, event: MouseEvent) {
+  function closeTab(tabId: string, event: MouseEvent | KeyboardEvent) {
     event.stopPropagation();
     dispatch('closeTab', { tabId });
   }

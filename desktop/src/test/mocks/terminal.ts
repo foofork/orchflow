@@ -16,7 +16,7 @@ export class MockTerminal implements Partial<XTerminal> {
   rows: number;
   cols: number;
   element: HTMLElement;
-  buffer: { active: { type: string } };
+  buffer: any; // Mock buffer - type incompatibility is expected for test mocks
   
   private _data: string[] = [];
   private _onDataHandlers: Array<(data: string) => void> = [];

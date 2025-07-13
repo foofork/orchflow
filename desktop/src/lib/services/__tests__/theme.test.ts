@@ -103,7 +103,17 @@ describe('Theme Service', () => {
 
   describe('toggleTheme', () => {
     it('should toggle from dark to light', () => {
-      const mockSettings = { theme: 'dark' as const };
+      const mockSettings = { 
+        theme: 'dark' as const,
+        fontSize: 14,
+        tabSize: 2,
+        wordWrap: false,
+        minimap: true,
+        autoSave: true,
+        autoFormat: false,
+        terminal: { fontSize: 12, fontFamily: 'monospace', cursorBlink: true },
+        editor: { vim: false, lineNumbers: true, rulers: [80, 120] }
+      };
       vi.mocked(get).mockReturnValue(mockSettings);
       
       toggleTheme();
@@ -115,7 +125,17 @@ describe('Theme Service', () => {
     });
 
     it('should toggle from light to dark', () => {
-      const mockSettings = { theme: 'light' as const };
+      const mockSettings = { 
+        theme: 'light' as const,
+        fontSize: 14,
+        tabSize: 2,
+        wordWrap: false,
+        minimap: true,
+        autoSave: true,
+        autoFormat: false,
+        terminal: { fontSize: 12, fontFamily: 'monospace', cursorBlink: true },
+        editor: { vim: false, lineNumbers: true, rulers: [80, 120] }
+      };
       vi.mocked(get).mockReturnValue(mockSettings);
       
       toggleTheme();

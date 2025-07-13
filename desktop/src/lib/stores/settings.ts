@@ -1,7 +1,7 @@
 import { writable } from 'svelte/store';
 
 export interface Settings {
-  theme: 'dark' | 'light';
+  theme: 'dark' | 'light' | 'high-contrast' | 'colorblind-friendly';
   fontSize: number;
   tabSize: number;
   wordWrap: boolean;

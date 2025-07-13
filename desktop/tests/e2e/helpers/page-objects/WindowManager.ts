@@ -115,7 +115,11 @@ export class WindowManager extends BasePage {
    */
   async getCurrentWindow(): Promise<Window> {
     // Return the first window (main window)
-    return this.windows.values().next().value;
+    const firstWindow = this.windows.values().next().value;
+    if (!firstWindow) {
+      throw new Error('No windows available');
+    }
+    return firstWindow;
   }
 
   /**

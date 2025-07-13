@@ -25,13 +25,13 @@ const mockManagerClient = {
   loadPlugin: createAsyncVoidMock(),
   unloadPlugin: createAsyncVoidMock(),
   persistState: createAsyncVoidMock(),
-  readFile: createAsyncMock<string>(),
+  readFile: createAsyncMock<[path: string], string>(),
   saveFile: createAsyncVoidMock(),
-  listDirectory: createAsyncMock<any[]>(),
+  listDirectory: createAsyncMock<[path: string], any[]>(),
   watchFile: createAsyncVoidMock(),
   unwatchFile: createAsyncVoidMock(),
-  searchProject: createAsyncMock<any[]>(),
-  getCommandHistory: createAsyncMock<any[]>(),
+  searchProject: createAsyncMock<[query: string, options?: any], any[]>(),
+  getCommandHistory: createAsyncMock<[paneId?: string, limit?: number], any[]>(),
   dispose: createAsyncVoidMock(),
 };
 

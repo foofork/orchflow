@@ -10,7 +10,7 @@
 
 	interface SettingsState {
 		appearance: {
-			theme: 'dark' | 'light' | 'auto';
+			theme: 'dark' | 'light' | 'high-contrast' | 'colorblind-friendly';
 			fontSize: number;
 			fontFamily: string;
 			accentColor: string;
@@ -80,7 +80,8 @@
 	const themes = [
 		{ id: 'dark', label: 'Dark', preview: '#1e1e1e' },
 		{ id: 'light', label: 'Light', preview: '#ffffff' },
-		{ id: 'auto', label: 'Auto', preview: 'linear-gradient(45deg, #1e1e1e 50%, #ffffff 50%)' }
+		{ id: 'high-contrast', label: 'High Contrast', preview: '#000000' },
+		{ id: 'colorblind-friendly', label: 'Colorblind Friendly', preview: '#2e3440' }
 	];
 
 	const accentColors = [
@@ -119,52 +120,52 @@
 			appearance: {
 				theme: $settings.theme || 'dark',
 				fontSize: $settings.fontSize || 14,
-				fontFamily: $settings.fontFamily || 'JetBrains Mono',
-				accentColor: $settings.accentColor || '#007acc',
-				compactMode: $settings.compactMode || false,
-				animations: $settings.animations ?? true
+				fontFamily: ($settings as any).fontFamily || 'JetBrains Mono',
+				accentColor: ($settings as any).accentColor || '#007acc',
+				compactMode: ($settings as any).compactMode || false,
+				animations: ($settings as any).animations ?? true
 			},
 			editor: {
 				tabSize: $settings.tabSize || 2,
-				insertSpaces: $settings.insertSpaces ?? true,
+				insertSpaces: ($settings as any).insertSpaces ?? true,
 				wordWrap: $settings.wordWrap || false,
-				lineNumbers: $settings.lineNumbers ?? true,
+				lineNumbers: ($settings as any).lineNumbers ?? true,
 				minimap: $settings.minimap ?? true,
-				bracketMatching: $settings.bracketMatching ?? true,
+				bracketMatching: ($settings as any).bracketMatching ?? true,
 				autoSave: $settings.autoSave ?? true,
-				autoSaveDelay: $settings.autoSaveDelay || 1000
+				autoSaveDelay: ($settings as any).autoSaveDelay || 1000
 			},
 			terminal: {
-				shell: $settings.shell || '/bin/zsh',
-				fontSize: $settings.terminalFontSize || 14,
-				fontFamily: $settings.terminalFontFamily || 'JetBrains Mono',
-				scrollback: $settings.scrollback || 1000,
-				closeOnExit: $settings.closeOnExit ?? true,
-				bellStyle: $settings.bellStyle || 'none'
+				shell: ($settings as any).shell || '/bin/zsh',
+				fontSize: ($settings as any).terminalFontSize || 14,
+				fontFamily: ($settings as any).terminalFontFamily || 'JetBrains Mono',
+				scrollback: ($settings as any).scrollback || 1000,
+				closeOnExit: ($settings as any).closeOnExit ?? true,
+				bellStyle: ($settings as any).bellStyle || 'none'
 			},
 			ai: {
-				provider: $settings.aiProvider || 'openai',
-				apiKey: $settings.aiApiKey || '',
-				model: $settings.aiModel || 'gpt-4',
-				temperature: $settings.aiTemperature || 0.7,
-				maxTokens: $settings.aiMaxTokens || 2048,
-				enableInlineCompletion: $settings.enableInlineCompletion ?? true,
-				enableCodeSuggestions: $settings.enableCodeSuggestions ?? true
+				provider: ($settings as any).aiProvider || 'openai',
+				apiKey: ($settings as any).aiApiKey || '',
+				model: ($settings as any).aiModel || 'gpt-4',
+				temperature: ($settings as any).aiTemperature || 0.7,
+				maxTokens: ($settings as any).aiMaxTokens || 2048,
+				enableInlineCompletion: ($settings as any).enableInlineCompletion ?? true,
+				enableCodeSuggestions: ($settings as any).enableCodeSuggestions ?? true
 			},
 			git: {
-				autoFetch: $settings.gitAutoFetch ?? true,
-				fetchInterval: $settings.gitFetchInterval || 300,
-				showUntracked: $settings.gitShowUntracked ?? true,
-				defaultBranch: $settings.gitDefaultBranch || 'main',
-				signCommits: $settings.gitSignCommits ?? false
+				autoFetch: ($settings as any).gitAutoFetch ?? true,
+				fetchInterval: ($settings as any).gitFetchInterval || 300,
+				showUntracked: ($settings as any).gitShowUntracked ?? true,
+				defaultBranch: ($settings as any).gitDefaultBranch || 'main',
+				signCommits: ($settings as any).gitSignCommits ?? false
 			},
 			performance: {
-				maxTabs: $settings.maxTabs || 20,
-				enableVirtualization: $settings.enableVirtualization ?? true,
-				metricsPolling: $settings.metricsPolling ?? true,
-				logLevel: $settings.logLevel || 'info'
+				maxTabs: ($settings as any).maxTabs || 20,
+				enableVirtualization: ($settings as any).enableVirtualization ?? true,
+				metricsPolling: ($settings as any).metricsPolling ?? true,
+				logLevel: ($settings as any).logLevel || 'info'
 			},
-			shortcuts: $settings.shortcuts || {
+			shortcuts: ($settings as any).shortcuts || {
 				'command_palette': 'Ctrl+K',
 				'quick_open': 'Ctrl+P',
 				'toggle_sidebar': 'Ctrl+B',
@@ -270,7 +271,7 @@
 			}
 
 			// Update the store
-			settings.set(flatSettings);
+			settings.set(flatSettings as any);
 			hasChanges = false;
 			
 			// Apply theme immediately
@@ -430,7 +431,7 @@
 										min="10"
 										max="24"
 										bind:value={localSettings.appearance.fontSize}
-										on:input={(e) => updateSetting('appearance', 'fontSize', parseInt(e.target.value))}
+										on:input={(e) => updateSetting('appearance', 'fontSize', parseInt((e.target as HTMLInputElement).value))}
 									/>
 									<span class="range-value">{localSettings.appearance.fontSize}px</span>
 								</div>
@@ -440,7 +441,7 @@
 									<select
 										id="font-family"
 										bind:value={localSettings.appearance.fontFamily}
-										on:change={(e) => updateSetting('appearance', 'fontFamily', e.target.value)}
+										on:change={(e) => updateSetting('appearance', 'fontFamily', (e.target as HTMLInputElement).value)}
 									>
 										{#each fontFamilies as font}
 											<option value={font}>{font}</option>
@@ -551,7 +552,7 @@
 											max="5000"
 											step="100"
 											bind:value={localSettings.editor.autoSaveDelay}
-											on:input={(e) => updateSetting('editor', 'autoSaveDelay', +e.target.value)}
+											on:input={(e) => updateSetting('editor', 'autoSaveDelay', +(e.target as HTMLInputElement).value)}
 										/>
 									</div>
 								{/if}
@@ -566,7 +567,7 @@
 										id="shell"
 										type="text"
 										bind:value={localSettings.terminal.shell}
-										on:input={(e) => updateSetting('terminal', 'shell', e.target.value)}
+										on:input={(e) => updateSetting('terminal', 'shell', (e.target as HTMLInputElement).value)}
 									/>
 								</div>
 
@@ -578,7 +579,7 @@
 										min="8"
 										max="24"
 										bind:value={localSettings.terminal.fontSize}
-										on:input={(e) => updateSetting('terminal', 'fontSize', parseInt(e.target.value))}
+										on:input={(e) => updateSetting('terminal', 'fontSize', parseInt((e.target as HTMLInputElement).value))}
 									/>
 									<span class="range-value">{localSettings.terminal.fontSize}px</span>
 								</div>
@@ -588,7 +589,7 @@
 									<select
 										id="terminal-font-family"
 										bind:value={localSettings.terminal.fontFamily}
-										on:change={(e) => updateSetting('terminal', 'fontFamily', e.target.value)}
+										on:change={(e) => updateSetting('terminal', 'fontFamily', (e.target as HTMLInputElement).value)}
 									>
 										{#each fontFamilies as font}
 											<option value={font}>{font}</option>
@@ -605,7 +606,7 @@
 										max="10000"
 										step="100"
 										bind:value={localSettings.terminal.scrollback}
-										on:input={(e) => updateSetting('terminal', 'scrollback', +e.target.value)}
+										on:input={(e) => updateSetting('terminal', 'scrollback', +(e.target as HTMLInputElement).value)}
 									/>
 								</div>
 
@@ -614,7 +615,7 @@
 									<select
 										id="bell-style"
 										bind:value={localSettings.terminal.bellStyle}
-										on:change={(e) => updateSetting('terminal', 'bellStyle', e.target.value)}
+										on:change={(e) => updateSetting('terminal', 'bellStyle', (e.target as HTMLInputElement).value)}
 									>
 										<option value="none">None</option>
 										<option value="visual">Visual</option>
@@ -658,7 +659,7 @@
 											max="3600"
 											step="60"
 											bind:value={localSettings.git.fetchInterval}
-											on:input={(e) => updateSetting('git', 'fetchInterval', +e.target.value)}
+											on:input={(e) => updateSetting('git', 'fetchInterval', +(e.target as HTMLInputElement).value)}
 										/>
 									</div>
 								{/if}
@@ -669,7 +670,7 @@
 										id="default-branch"
 										type="text"
 										bind:value={localSettings.git.defaultBranch}
-										on:input={(e) => updateSetting('git', 'defaultBranch', e.target.value)}
+										on:input={(e) => updateSetting('git', 'defaultBranch', (e.target as HTMLInputElement).value)}
 									/>
 								</div>
 
@@ -707,7 +708,7 @@
 										min="5"
 										max="50"
 										bind:value={localSettings.performance.maxTabs}
-										on:input={(e) => updateSetting('performance', 'maxTabs', +e.target.value)}
+										on:input={(e) => updateSetting('performance', 'maxTabs', +(e.target as HTMLInputElement).value)}
 									/>
 								</div>
 
@@ -738,7 +739,7 @@
 									<select
 										id="log-level"
 										bind:value={localSettings.performance.logLevel}
-										on:change={(e) => updateSetting('performance', 'logLevel', e.target.value)}
+										on:change={(e) => updateSetting('performance', 'logLevel', (e.target as HTMLInputElement).value)}
 									>
 										<option value="error">Error</option>
 										<option value="warn">Warning</option>
@@ -760,7 +761,7 @@
 											id="shortcut-{action}"
 											type="text"
 											value={shortcut}
-											on:input={(e) => updateShortcut(action, e.target.value)}
+											on:input={(e) => updateShortcut(action, (e.target as HTMLInputElement).value)}
 											placeholder="Enter shortcut..."
 										/>
 									</div>

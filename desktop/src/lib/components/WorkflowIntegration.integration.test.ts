@@ -36,7 +36,7 @@ describe('Cross-Component Workflow Integration Tests', () => {
 
   describe('Dashboard + Terminal + FileExplorer Integration', () => {
     it('should coordinate project creation through multiple components', async () => {
-      const mockWorkspace = createMock.component('integrated-workspace', {
+      const mockWorkspace = {
         render: () => {
           const container = document.createElement('div');
           container.innerHTML = `
@@ -74,8 +74,8 @@ describe('Cross-Component Workflow Integration Tests', () => {
           
           // Dashboard functionality
           newProjectBtn?.addEventListener('click', () => {
-            projectNameInput.style.display = 'block';
-            createProjectBtn.style.display = 'block';
+            (projectNameInput as HTMLElement).style.display = 'block';
+            (createProjectBtn as HTMLElement).style.display = 'block';
           });
           
           createProjectBtn?.addEventListener('click', async () => {
@@ -142,7 +142,7 @@ describe('Cross-Component Workflow Integration Tests', () => {
           
           return { container };
         }
-      });
+      };
 
       const { container } = mockWorkspace.render();
       document.body.appendChild(container);
@@ -195,7 +195,7 @@ describe('Cross-Component Workflow Integration Tests', () => {
 
   describe('Search + Replace + Git Integration', () => {
     it('should coordinate code changes with version control', async () => {
-      const mockGitWorkflow = createMock.component('git-workflow', {
+      const mockGitWorkflow = {
         render: () => {
           const container = document.createElement('div');
           container.innerHTML = `
@@ -326,7 +326,7 @@ describe('Cross-Component Workflow Integration Tests', () => {
           
           return { container };
         }
-      });
+      };
 
       const { container } = mockGitWorkflow.render();
       document.body.appendChild(container);
@@ -389,7 +389,7 @@ describe('Cross-Component Workflow Integration Tests', () => {
 
   describe('Flow Execution + Terminal + File Operations Integration', () => {
     it('should execute complex automation flows with multiple components', async () => {
-      const mockFlowExecution = createMock.component('flow-execution', {
+      const mockFlowExecution = {
         render: () => {
           const container = document.createElement('div');
           container.innerHTML = `
@@ -586,7 +586,7 @@ describe('Cross-Component Workflow Integration Tests', () => {
 
           return { container };
         }
-      });
+      };
 
       const { container } = mockFlowExecution.render();
       document.body.appendChild(container);

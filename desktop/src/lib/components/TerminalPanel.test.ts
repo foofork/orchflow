@@ -13,12 +13,9 @@ import { buildTerminalConfig, buildTerminalOutput } from '@/test/domain-builders
 import { invoke } from '@tauri-apps/api/core';
 import { mockSvelteEvents } from '@/test/svelte5-event-helper';
 
-// Create typed mocks for Tauri API
-const mockInvoke = createAsyncMock<[string, any?], any>();
-
-// Mock Tauri invoke
+// Mock Tauri invoke using factory function to avoid hoisting issues
 vi.mock('@tauri-apps/api/core', () => ({
-  invoke: mockInvoke
+  invoke: vi.fn()
 }));
 
 // Mock localStorage
@@ -38,7 +35,7 @@ describe('TerminalPanel Component', () => {
   let user: ReturnType<typeof userEvent.setup>;
   let cleanup: Array<() => void> = [];
 
-  beforeEach(() => {
+  beforeEach(async () => {
     user = userEvent.setup();
     vi.clearAllMocks();
     
@@ -68,7 +65,8 @@ describe('TerminalPanel Component', () => {
     });
 
     // Setup default mock responses
-    mockInvoke.mockImplementation(async (cmd: string, args?: any) => {
+    const { invoke } = await import('@tauri-apps/api/core');
+    vi.mocked(invoke).mockImplementation(async (cmd: string, args?: any) => {
       const responses: Record<string, any> = {
         create_streaming_terminal: { 
           terminalId: 'term-3',
@@ -655,7 +653,8 @@ describe('TerminalPanel Component', () => {
   describe('Error Handling', () => {
     it('should handle terminal creation error gracefully', async () => {
       // Setup error mock for this specific test
-      mockInvoke.mockRejectedValueOnce(new Error('Terminal creation failed'));
+      const { invoke } = await import('@tauri-apps/api/core');
+      vi.mocked(invoke).mockRejectedValueOnce(new Error('Terminal creation failed'));
       
       const { container, component } = renderTerminalPanel({
         terminals: [],
@@ -676,7 +675,8 @@ describe('TerminalPanel Component', () => {
 
     it('should handle broadcast command error gracefully', async () => {
       // Setup error mock for broadcast
-      mockInvoke.mockImplementation(async (cmd: string) => {
+      const { invoke } = await import('@tauri-apps/api/core');
+      vi.mocked(invoke).mockImplementation(async (cmd: string) => {
         if (cmd === 'broadcast_terminal_input') {
           throw new Error('Broadcast failed');
         }

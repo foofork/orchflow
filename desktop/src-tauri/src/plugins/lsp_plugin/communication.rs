@@ -1,5 +1,6 @@
 // LSP communication channels and message handling
 
+use super::types::DiagnosticsMap;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -11,6 +12,7 @@ pub struct LspCommunication {
     pub stdin_tx: mpsc::Sender<String>,
     pub request_id_counter: Arc<Mutex<i64>>,
     pub pending_requests: Arc<Mutex<HashMap<i64, mpsc::Sender<Result<Value, String>>>>>,
+    pub diagnostics_map: Option<DiagnosticsMap>,
 }
 
 impl LspCommunication {
@@ -20,6 +22,17 @@ impl LspCommunication {
             stdin_tx,
             request_id_counter: Arc::new(Mutex::new(0i64)),
             pending_requests: Arc::new(Mutex::new(HashMap::new())),
+            diagnostics_map: None,
+        }
+    }
+
+    pub fn with_diagnostics(diagnostics_map: DiagnosticsMap) -> Self {
+        let (stdin_tx, _) = mpsc::channel(100);
+        Self {
+            stdin_tx,
+            request_id_counter: Arc::new(Mutex::new(0i64)),
+            pending_requests: Arc::new(Mutex::new(HashMap::new())),
+            diagnostics_map: Some(diagnostics_map),
         }
     }
 
@@ -185,7 +198,11 @@ impl LspCommunication {
         match method {
             "textDocument/publishDiagnostics" => {
                 // Handle diagnostics
-                println!("Received diagnostics: {}", params);
+                if let Some(diagnostics_map) = &self.diagnostics_map {
+                    self.handle_publish_diagnostics(params, diagnostics_map).await?;
+                } else {
+                    println!("Received diagnostics: {}", params);
+                }
             }
             "window/logMessage" => {
                 // Handle log messages

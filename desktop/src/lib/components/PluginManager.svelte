@@ -193,7 +193,7 @@
         <button 
           class="action-button"
           class:danger={selectedPlugin.loaded}
-          on:click={() => togglePlugin(selectedPlugin)}
+          on:click={() => selectedPlugin && togglePlugin(selectedPlugin)}
         >
           {selectedPlugin.loaded ? 'Disable Plugin' : 'Enable Plugin'}
         </button>

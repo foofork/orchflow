@@ -56,7 +56,7 @@ impl CommandHistory {
         if entry.command.len() > MAX_COMMAND_LENGTH {
             return Err(OrchflowError::ValidationError {
                 field: "command".to_string(),
-                reason: format!("Command too long (max {} chars)", MAX_COMMAND_LENGTH),
+                reason: format!("Command too long (max {MAX_COMMAND_LENGTH} chars)"),
             });
         }
 
@@ -81,6 +81,43 @@ impl CommandHistory {
         // Update stats cache
         self.update_stats_cache().await?;
 
+        // Check total history size and prune if necessary
+        self.enforce_history_size_limit().await?;
+
+        Ok(())
+    }
+
+    /// Enforce the maximum history size by removing oldest entries
+    async fn enforce_history_size_limit(&self) -> Result<()> {
+        let keys = self.store
+            .keys_with_prefix("command:")
+            .await
+            .map_err(|e| OrchflowError::DatabaseError {
+                operation: "keys_with_prefix".to_string(),
+                reason: e.to_string(),
+            })?;
+
+        if keys.len() > MAX_HISTORY_SIZE {
+            // Get all entries to sort by timestamp
+            let mut entries = Vec::new();
+            for key in &keys {
+                if let Ok(Some(data)) = self.store.get(key).await {
+                    if let Ok(entry) = serde_json::from_str::<CommandEntry>(&data) {
+                        entries.push((key.clone(), entry.timestamp));
+                    }
+                }
+            }
+
+            // Sort by timestamp (oldest first)
+            entries.sort_by_key(|(_, timestamp)| *timestamp);
+
+            // Delete oldest entries to stay within limit
+            let entries_to_delete = entries.len() - MAX_HISTORY_SIZE;
+            for (key, _) in entries.iter().take(entries_to_delete) {
+                let _ = self.store.delete(key).await;
+            }
+        }
+
         Ok(())
     }
 
@@ -98,8 +135,8 @@ impl CommandHistory {
             .iter()
             .filter(|entry| {
                 let matches_query = entry.command.contains(query);
-                let matches_pane = pane_id.map_or(true, |id| entry.pane_id == id);
-                let matches_session = session_id.map_or(true, |id| entry.session_id == id);
+                let matches_pane = pane_id.is_none_or(|id| entry.pane_id == id);
+                let matches_session = session_id.is_none_or(|id| entry.session_id == id);
                 matches_query && matches_pane && matches_session
             })
             .take(limit)
@@ -249,11 +286,11 @@ impl SimpleStateStore {
     ) -> std::result::Result<(), String> {
         let key = format!("command_history:{}", entry.id);
         let data = serde_json::to_string(&entry)
-            .map_err(|e| format!("Failed to serialize command entry: {}", e))?;
+            .map_err(|e| format!("Failed to serialize command entry: {e}"))?;
 
         self.set(&key, &data)
             .await
-            .map_err(|e| format!("Failed to save command history: {}", e))?;
+            .map_err(|e| format!("Failed to save command history: {e}"))?;
 
         Ok(())
     }
@@ -269,7 +306,7 @@ impl SimpleStateStore {
         let keys = self
             .keys_with_prefix("command_history:")
             .await
-            .map_err(|e| format!("Failed to get command history keys: {}", e))?;
+            .map_err(|e| format!("Failed to get command history keys: {e}"))?;
 
         let mut results = Vec::new();
         let mut count = 0;
@@ -280,18 +317,16 @@ impl SimpleStateStore {
                 break;
             }
 
-            if let Ok(data) = self.get(&key).await {
-                if let Some(data) = data {
-                    if let Ok(entry) = serde_json::from_str::<CommandEntry>(&data) {
-                        // Filter by query, pane_id, and session_id
-                        let matches_query = entry.command.contains(query);
-                        let matches_pane = pane_id.map_or(true, |id| entry.pane_id == id);
-                        let matches_session = session_id.map_or(true, |id| entry.session_id == id);
+            if let Ok(Some(data)) = self.get(&key).await {
+                if let Ok(entry) = serde_json::from_str::<CommandEntry>(&data) {
+                    // Filter by query, pane_id, and session_id
+                    let matches_query = entry.command.contains(query);
+                    let matches_pane = pane_id.is_none_or(|id| entry.pane_id == id);
+                    let matches_session = session_id.is_none_or(|id| entry.session_id == id);
 
-                        if matches_query && matches_pane && matches_session {
-                            results.push(entry);
-                            count += 1;
-                        }
+                    if matches_query && matches_pane && matches_session {
+                        results.push(entry);
+                        count += 1;
                     }
                 }
             }
@@ -311,7 +346,7 @@ impl SimpleStateStore {
         let keys = self
             .keys_with_prefix("command_history:")
             .await
-            .map_err(|e| format!("Failed to get command history keys: {}", e))?;
+            .map_err(|e| format!("Failed to get command history keys: {e}"))?;
 
         let mut command_data: std::collections::HashMap<
             String,
@@ -320,23 +355,21 @@ impl SimpleStateStore {
 
         // Collect data for each command
         for key in keys {
-            if let Ok(data) = self.get(&key).await {
-                if let Some(data) = data {
-                    if let Ok(entry) = serde_json::from_str::<CommandEntry>(&data) {
-                        let (frequency, last_used, durations, successes) = command_data
-                            .entry(entry.command.clone())
-                            .or_insert((0, entry.timestamp, Vec::new(), 0));
+            if let Ok(Some(data)) = self.get(&key).await {
+                if let Ok(entry) = serde_json::from_str::<CommandEntry>(&data) {
+                    let (frequency, last_used, durations, successes) = command_data
+                        .entry(entry.command.clone())
+                        .or_insert((0, entry.timestamp, Vec::new(), 0));
 
-                        *frequency += 1;
-                        if entry.timestamp > *last_used {
-                            *last_used = entry.timestamp;
-                        }
-                        if let Some(duration) = entry.duration_ms {
-                            durations.push(duration);
-                        }
-                        if entry.exit_code == Some(0) {
-                            *successes += 1;
-                        }
+                    *frequency += 1;
+                    if entry.timestamp > *last_used {
+                        *last_used = entry.timestamp;
+                    }
+                    if let Some(duration) = entry.duration_ms {
+                        durations.push(duration);
+                    }
+                    if entry.exit_code == Some(0) {
+                        *successes += 1;
                     }
                 }
             }
@@ -381,18 +414,16 @@ impl SimpleStateStore {
         let keys = self
             .keys_with_prefix("command_history:")
             .await
-            .map_err(|e| format!("Failed to get command history keys: {}", e))?;
+            .map_err(|e| format!("Failed to get command history keys: {e}"))?;
 
         let mut deleted_count = 0;
 
         for key in keys {
-            if let Ok(data) = self.get(&key).await {
-                if let Some(data) = data {
-                    if let Ok(entry) = serde_json::from_str::<CommandEntry>(&data) {
-                        if entry.timestamp < cutoff {
-                            if self.delete(&key).await.is_ok() {
-                                deleted_count += 1;
-                            }
+            if let Ok(Some(data)) = self.get(&key).await {
+                if let Ok(entry) = serde_json::from_str::<CommandEntry>(&data) {
+                    if entry.timestamp < cutoff {
+                        if self.delete(&key).await.is_ok() {
+                            deleted_count += 1;
                         }
                     }
                 }
@@ -411,21 +442,19 @@ impl SimpleStateStore {
         let keys = self
             .keys_with_prefix("command_history:")
             .await
-            .map_err(|e| format!("Failed to get command history keys: {}", e))?;
+            .map_err(|e| format!("Failed to get command history keys: {e}"))?;
 
         let mut results = Vec::new();
 
         for key in keys {
-            if let Ok(data) = self.get(&key).await {
-                if let Some(data) = data {
-                    if let Ok(entry) = serde_json::from_str::<CommandEntry>(&data) {
-                        // Filter by pane_id and session_id if provided
-                        let matches_pane = pane_id.map_or(true, |id| entry.pane_id == id);
-                        let matches_session = session_id.map_or(true, |id| entry.session_id == id);
+            if let Ok(Some(data)) = self.get(&key).await {
+                if let Ok(entry) = serde_json::from_str::<CommandEntry>(&data) {
+                    // Filter by pane_id and session_id if provided
+                    let matches_pane = pane_id.is_none_or(|id| entry.pane_id == id);
+                    let matches_session = session_id.is_none_or(|id| entry.session_id == id);
 
-                        if matches_pane && matches_session {
-                            results.push(entry);
-                        }
+                    if matches_pane && matches_session {
+                        results.push(entry);
                     }
                 }
             }

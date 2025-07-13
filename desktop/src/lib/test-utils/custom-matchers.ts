@@ -1,5 +1,12 @@
-import { expect } from 'vitest'
-import type { MatcherFunction } from 'expect'
+import { expect, vi } from 'vitest'
+
+// Define MatcherFunction type locally since it's not exported from vitest
+interface MatcherFunction<Args extends any[] = []> {
+  (this: any, received: any, ...args: Args): {
+    pass: boolean;
+    message: () => string;
+  };
+}
 
 // Extend the matchers interface
 interface CustomMatchers<R = unknown> {
@@ -202,7 +209,7 @@ const matchers: Record<keyof CustomMatchers, MatcherFunction<any>> = {
     }
 
     // Get timestamps from mock (this assumes we're tracking them)
-    const timestamps = received.mock.timestamps || []
+    const timestamps = (received.mock as any).timestamps || []
     if (timestamps.length < 2) {
       return {
         pass: false,
@@ -229,11 +236,11 @@ expect.extend(matchers)
 
 // Helper function to add timestamp tracking to mocks
 export const trackMockTimestamps = (mockFn: any) => {
-  mockFn.mock.timestamps = []
+  (mockFn.mock as any).timestamps = []
   const originalImplementation = mockFn.getMockImplementation()
   
   mockFn.mockImplementation((...args: any[]) => {
-    mockFn.mock.timestamps.push(Date.now())
+    (mockFn.mock as any).timestamps.push(Date.now())
     return originalImplementation?.(...args)
   })
   

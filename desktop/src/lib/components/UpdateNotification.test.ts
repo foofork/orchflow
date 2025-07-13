@@ -6,11 +6,11 @@ import UpdateNotification from './UpdateNotification.svelte';
 // Cleanup array for proper test cleanup
 let cleanup: Array<() => void> = [];
 
-// Mock Tauri APIs
-const mockInvoke = createAsyncMock<[cmd: string, args?: any], any>();
-const mockListen = createAsyncMock<[event: string, handler: Function], () => void>();
+// Mock the Tauri modules using factory functions to avoid hoisting issues
+// Create mock functions
+const mockInvoke = vi.fn().mockResolvedValue('1.0.0');
+const mockListen = vi.fn().mockResolvedValue(() => {});
 
-// Mock the Tauri modules
 vi.mock('@tauri-apps/api/core', () => ({
   invoke: mockInvoke
 }));
@@ -22,10 +22,6 @@ vi.mock('@tauri-apps/api/event', () => ({
 describe('UpdateNotification', () => {
   beforeEach(() => {
     cleanup = [];
-    
-    // Setup default mock behaviors
-    mockInvoke.mockResolvedValue('1.0.0'); // Default version
-    mockListen.mockResolvedValue(() => {}); // Default unlisten function
   });
 
   afterEach(() => {
@@ -54,8 +50,10 @@ describe('UpdateNotification', () => {
     const { unmount } = render(UpdateNotification);
     cleanup.push(unmount);
     
+    const { invoke } = await import('@tauri-apps/api/core');
+    
     await waitFor(() => {
-      expect(mockInvoke).toHaveBeenCalledWith('get_current_version');
+      expect(vi.mocked(invoke)).toHaveBeenCalledWith('get_current_version');
     });
   });
 
@@ -63,11 +61,13 @@ describe('UpdateNotification', () => {
     const { unmount } = render(UpdateNotification);
     cleanup.push(unmount);
     
+    const { listen } = await import('@tauri-apps/api/event');
+    
     await waitFor(() => {
-      expect(mockListen).toHaveBeenCalledWith('update-available', expect.any(Function));
-      expect(mockListen).toHaveBeenCalledWith('update-progress', expect.any(Function));
-      expect(mockListen).toHaveBeenCalledWith('update-downloaded', expect.any(Function));
-      expect(mockListen).toHaveBeenCalledWith('update-error', expect.any(Function));
+      expect(vi.mocked(listen)).toHaveBeenCalledWith('update-available', expect.any(Function));
+      expect(vi.mocked(listen)).toHaveBeenCalledWith('update-progress', expect.any(Function));
+      expect(vi.mocked(listen)).toHaveBeenCalledWith('update-downloaded', expect.any(Function));
+      expect(vi.mocked(listen)).toHaveBeenCalledWith('update-error', expect.any(Function));
     });
   });
 
@@ -75,15 +75,18 @@ describe('UpdateNotification', () => {
     const { unmount } = render(UpdateNotification);
     cleanup.push(unmount);
     
+    const { invoke } = await import('@tauri-apps/api/core');
+    
     await waitFor(() => {
-      expect(mockInvoke).toHaveBeenCalledWith('check_for_update');
+      expect(vi.mocked(invoke)).toHaveBeenCalledWith('check_for_update');
     });
   });
 
   it('should show notification when update is available', async () => {
     let updateAvailableHandler: Function = () => {};
     
-    mockListen.mockImplementation((event: string, handler: Function) => {
+    const { listen } = await import('@tauri-apps/api/event');
+    vi.mocked(listen).mockImplementation((event: string, handler: Function) => {
       if (event === 'update-available') {
         updateAvailableHandler = handler;
       }
@@ -95,7 +98,7 @@ describe('UpdateNotification', () => {
     
     // Wait for component to mount and setup listeners
     await waitFor(() => {
-      expect(mockListen).toHaveBeenCalledWith('update-available', expect.any(Function));
+      expect(vi.mocked(listen)).toHaveBeenCalledWith('update-available', expect.any(Function));
     });
     
     // Simulate update available event
@@ -274,7 +277,7 @@ describe('UpdateNotification', () => {
 
   it('should handle download errors', async () => {
     let updateAvailableHandler: Function = () => {};
-    let errorHandler: Function;
+    let errorHandler: Function = () => {};
     
     mockListen.mockImplementation((event: string, handler: Function) => {
       if (event === 'update-available') {

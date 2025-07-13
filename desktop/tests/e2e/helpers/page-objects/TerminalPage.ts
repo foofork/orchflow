@@ -190,8 +190,8 @@ export class TerminalPage extends BasePage {
    * Resize split panel
    */
   async resizeSplitPanel(terminal1: string, terminal2: string, percentage: number) {
-    const splitter = await this.page.locator('[data-testid="split-divider"]')
-      .locator('near', { locator: this.page.locator(`[data-terminal-id="${terminal1}"]`) });
+    // Find the splitter divider between terminals
+    const splitter = await this.page.locator('[data-testid="split-divider"]').first();
     
     const box = await splitter.boundingBox();
     if (!box) return;

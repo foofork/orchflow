@@ -11,6 +11,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 // But that would be circular for this specific test file
 import {
   createAsyncMock,
+  createAsyncVoidMock,
   createSyncMock,
   createMockObject,
   createTypedMock,
@@ -91,10 +92,10 @@ describe('Mock Factory Examples', () => {
   describe('Service Mocks', () => {
     it('should create a complete mock service object', async () => {
       // Create a mock service with all methods
-      const mockUserService = createMockObject<UserService>({
-        getUser: createAsyncMock({ id: '123', name: 'John' }),
-        updateUser: MockPatterns.asyncSuccess(),
-        deleteUser: createAsyncMock(true)
+      const mockUserService = createMockObject({
+        getUser: createAsyncMock<[id: string], { id: string; name: string }>({ id: '123', name: 'John' }),
+        updateUser: createAsyncVoidMock<[id: string, data: any]>(),
+        deleteUser: createAsyncMock<[id: string], boolean>(true)
       });
       
       // All methods are properly typed MockedFunction instances

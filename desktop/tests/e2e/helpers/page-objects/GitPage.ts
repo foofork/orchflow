@@ -109,9 +109,9 @@ export class GitPage extends BasePage {
     const untracked = await this.getAllElements(`${this.changedList} [data-testid="file-item"][data-status="untracked"]`);
 
     return {
-      staged: await Promise.all(staged.map(el => el.getAttribute('data-file') || '')),
-      modified: await Promise.all(modified.map(el => el.getAttribute('data-file') || '')),
-      untracked: await Promise.all(untracked.map(el => el.getAttribute('data-file') || ''))
+      staged: (await Promise.all(staged.map(async el => el.getAttribute('data-file')))).filter((file): file is string => file !== null),
+      modified: (await Promise.all(modified.map(async el => el.getAttribute('data-file')))).filter((file): file is string => file !== null),
+      untracked: (await Promise.all(untracked.map(async el => el.getAttribute('data-file')))).filter((file): file is string => file !== null)
     };
   }
 
@@ -233,10 +233,10 @@ export class GitPage extends BasePage {
     await this.clickElement(this.branchSelector);
     const branches = await this.getAllElements('[data-testid="branch-item"]');
     const names = await Promise.all(
-      branches.map(b => b.getAttribute('data-branch') || '')
+      branches.map(async b => b.getAttribute('data-branch'))
     );
     await this.pressKey('Escape'); // Close dropdown
-    return names.filter(n => n);
+    return names.filter((n): n is string => n !== null);
   }
 
   /**
@@ -271,9 +271,10 @@ export class GitPage extends BasePage {
    */
   async getConflictedFiles(): Promise<string[]> {
     const conflicts = await this.getAllElements('[data-testid="conflict-file"]');
-    return await Promise.all(
-      conflicts.map(c => c.getAttribute('data-file') || '')
+    const fileNames = await Promise.all(
+      conflicts.map(async c => c.getAttribute('data-file'))
     );
+    return fileNames.filter((name): name is string => name !== null);
   }
 
   /**
@@ -437,9 +438,9 @@ export class GitPage extends BasePage {
     await this.waitForElement('[data-testid="commit-details"]');
     
     const files = await this.getAllElements('[data-testid="commit-file"]');
-    const fileNames = await Promise.all(
-      files.map(f => f.getAttribute('data-file') || '')
-    );
+    const fileNames = (await Promise.all(
+      files.map(async f => f.getAttribute('data-file'))
+    )).filter((name): name is string => name !== null);
     
     return {
       hash,
@@ -494,10 +495,10 @@ export class GitPage extends BasePage {
     await this.clickElement('[data-testid="tags-button"]');
     const tags = await this.getAllElements('[data-testid="tag-item"]');
     const names = await Promise.all(
-      tags.map(t => t.getAttribute('data-tag') || '')
+      tags.map(async t => t.getAttribute('data-tag'))
     );
     await this.pressKey('Escape'); // Close dropdown
-    return names;
+    return names.filter((name): name is string => name !== null);
   }
 
   /**

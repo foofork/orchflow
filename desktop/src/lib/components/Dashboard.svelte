@@ -216,7 +216,7 @@
                   <div class="metric">
                     <span class="label">CPU</span>
                     <span class="value">{paneMetrics.get(pane.id)?.cpu || 0}%</span>
-                    {#if metricsHistory.get(pane.id)?.cpu && metricsHistory.get(pane.id)?.cpu.length > 1}
+                    {#if metricsHistory.get(pane.id)?.cpu && metricsHistory.get(pane.id)?.cpu?.length && metricsHistory.get(pane.id)!.cpu.length > 1}
                       <svg class="sparkline" viewBox="0 0 100 30">
                         <polyline
                           points={getSparklinePoints(metricsHistory.get(pane.id)?.cpu || [])}
@@ -231,7 +231,7 @@
                   <div class="metric">
                     <span class="label">Memory</span>
                     <span class="value">{formatBytes(paneMetrics.get(pane.id)?.memory || 0)}</span>
-                    {#if metricsHistory.get(pane.id)?.memory && metricsHistory.get(pane.id)?.memory.length > 1}
+                    {#if metricsHistory.get(pane.id)?.memory && metricsHistory.get(pane.id)?.memory?.length && metricsHistory.get(pane.id)!.memory.length > 1}
                       <svg class="sparkline" viewBox="0 0 100 30">
                         <polyline
                           points={getSparklinePoints(metricsHistory.get(pane.id)?.memory || [])}

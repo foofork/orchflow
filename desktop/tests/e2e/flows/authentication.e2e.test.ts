@@ -230,10 +230,9 @@ describe('Authentication Flow', () => {
       await authPage.clickLoginButton();
 
       // Assert - Script should be escaped, not executed
-      const hasAlert = await authPage.page.evaluate(() => {
-        return window.alert.called || false;
-      });
-      expect(hasAlert).toBe(false);
+      // We can verify XSS protection by checking that the script content appears as text
+      const pageContent = await authPage.page.content();
+      expect(pageContent).toContain('&lt;script&gt;'); // Script should be escaped
     });
 
     test('should implement CSRF protection', async () => {

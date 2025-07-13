@@ -13,11 +13,12 @@ export async function checkAccessibility(
     reporter?: string;
   }
 ): Promise<axe.AxeResults> {
-  const results = await axe.run(container, {
-    rules: options?.rules,
-    runOnly: options?.runOnly,
-    reporter: options?.reporter as any,
-  });
+  const axeOptions: axe.RunOptions = {};
+  if (options?.rules) axeOptions.rules = options.rules;
+  if (options?.runOnly) axeOptions.runOnly = options.runOnly as any;
+  if (options?.reporter) axeOptions.reporter = options.reporter as any;
+  
+  const results = await axe.run(container, axeOptions);
 
   if (results.violations.length > 0) {
     const violations = results.violations.map((v: any) => ({

@@ -1,7 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render } from '@testing-library/svelte';
 import TerminalPanel from './TerminalPanel.svelte';
-import type { Terminal } from '$lib/types';
+// Use local Terminal interface that matches the component
+interface Terminal {
+  id: string;
+  title: string;
+  cwd: string;
+  shell?: string;
+  isActive: boolean;
+  processId?: number;
+  isRunning: boolean;
+}
 import { createVoidMock } from '@/test/mock-factory';
 
 /**
@@ -15,21 +24,19 @@ describe('TerminalPanel - Unit Tests', () => {
       id: 'term-1',
       title: 'Terminal 1',
       cwd: '/home/user',
+      shell: '/bin/bash',
       isActive: true,
-      processName: 'bash',
       processId: 1234,
       isRunning: true,
-      shell: '/bin/bash',
     },
     {
       id: 'term-2', 
       title: 'Terminal 2',
-      cwd: '/home/user/project',
+      cwd: '/home/user/projects',
+      shell: '/bin/zsh',
       isActive: false,
-      processName: 'node',
       processId: 5678,
       isRunning: true,
-      shell: '/bin/zsh',
     },
   ];
 

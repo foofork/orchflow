@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render } from '@testing-library/svelte/vitest';
+import { render } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import Dialog from '../Dialog.svelte';
 

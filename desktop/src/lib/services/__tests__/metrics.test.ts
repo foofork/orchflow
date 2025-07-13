@@ -26,7 +26,8 @@ vi.mock('$app/environment', () => ({
 
 // Mock fetch
 global.fetch = createAsyncMock<[input: RequestInfo | URL, init?: RequestInit], Response>();
-global.WebSocket = createTypedMock<[url: string | URL, protocols?: string | string[]], WebSocket>() as any;
+const mockWebSocketConstructor = createTypedMock<(url: string | URL, protocols?: string | string[]) => WebSocket>();
+global.WebSocket = mockWebSocketConstructor as any;
 
 describe('Metrics Service', () => {
   let cleanup: Array<() => void> = [];
@@ -60,7 +61,7 @@ describe('Metrics Service', () => {
       onclose: null
     };
     
-    getMocked(global.WebSocket).mockImplementation(() => mockWebSocket);
+    mockWebSocketConstructor.mockImplementation(() => mockWebSocket);
   });
 
   afterEach(() => {

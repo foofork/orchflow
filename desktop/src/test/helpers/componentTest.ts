@@ -28,10 +28,10 @@ interface TerminalMocks {
  * Professional component test helper
  * Provides consistent setup for different types of components
  */
-export function renderComponent<T extends ComponentType>(
+export async function renderComponent<T extends ComponentType>(
   Component: T,
   options: ComponentTestOptions = {}
-): RenderResult & { updateProps: (props: Partial<any>) => Promise<void> } {
+): Promise<RenderResult<any> & { updateProps: (props: Partial<any>) => Promise<void> }> {
   const { props = {}, mocks = {} } = options;
   
   // Setup mocks if needed
@@ -42,8 +42,8 @@ export function renderComponent<T extends ComponentType>(
   
   if (mocks.terminal) {
     // Terminal-specific setup
-    vi.mock('@xterm/xterm', () => ({
-      Terminal: (await import('../mocks/terminal') as TerminalMocks).MockTerminal,
+    vi.mock('@xterm/xterm', async () => ({
+      Terminal: ((await import('../mocks/terminal')) as TerminalMocks).MockTerminal,
     }));
   }
   

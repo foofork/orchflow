@@ -265,7 +265,7 @@ export class ComponentTestFlow<T extends Record<string, any>> {
   }
 
   getAllElements(selector: string): NodeListOf<Element> {
-    return this.container?.querySelectorAll(selector) || new NodeList();
+    return this.container?.querySelectorAll(selector) || document.createElement('div').querySelectorAll('*');
   }
 
   // Common test scenarios

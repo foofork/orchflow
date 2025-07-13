@@ -620,7 +620,7 @@ describe('Terminal Component', () => {
       });
       
       expect(mockResizeObserverInstance).toBeTruthy();
-      const resizeCallback = mockResizeObserverInstance.callback;
+      const resizeCallback = mockResizeObserverInstance?.callback;
       
       // Clear previous calls
       mockFitAddon.fit.mockClear();
@@ -631,7 +631,7 @@ describe('Terminal Component', () => {
       mockFitAddon.proposeDimensions.mockReturnValueOnce(newDimensions);
       
       // Trigger resize
-      resizeCallback([], mockResizeObserverInstance as any);
+      resizeCallback?.([], mockResizeObserverInstance as any);
       
       expect(mockFitAddon.fit).toHaveBeenCalled();
       expect(mockManager.execute).toHaveBeenCalledWith({
@@ -661,13 +661,13 @@ describe('Terminal Component', () => {
       mockFitAddon.proposeDimensions.mockReturnValueOnce(null);
       
       expect(mockResizeObserverInstance).toBeTruthy();
-      const resizeCallback = mockResizeObserverInstance.callback;
+      const resizeCallback = mockResizeObserverInstance?.callback;
       
       // Clear previous calls
       mockManager.execute.mockClear();
       
       // Trigger resize
-      resizeCallback([], mockResizeObserverInstance as any);
+      resizeCallback?.([], mockResizeObserverInstance as any);
       
       expect(mockFitAddon.fit).toHaveBeenCalled();
       expect(mockManager.execute).not.toHaveBeenCalled();
@@ -691,7 +691,7 @@ describe('Terminal Component', () => {
       
       unmount();
       
-      expect(mockResizeObserverInstance.disconnect).toHaveBeenCalled();
+      expect(mockResizeObserverInstance?.disconnect).toHaveBeenCalled();
     });
   });
 
@@ -897,7 +897,7 @@ describe('Terminal Component', () => {
         expect(mockResizeObserverInstance).toBeTruthy();
       });
       
-      const resizeCallback = mockResizeObserverInstance.callback;
+      const resizeCallback = mockResizeObserverInstance?.callback;
       
       // Clear calls
       mockFitAddon.fit.mockClear();
@@ -906,7 +906,7 @@ describe('Terminal Component', () => {
       // Trigger multiple rapid resizes
       for (let i = 0; i < 5; i++) {
         mockFitAddon.proposeDimensions.mockReturnValueOnce({ cols: 80 + i, rows: 24 + i });
-        resizeCallback([], mockResizeObserverInstance as any);
+        resizeCallback?.([], mockResizeObserverInstance as any);
       }
       
       // Should call fit for each resize

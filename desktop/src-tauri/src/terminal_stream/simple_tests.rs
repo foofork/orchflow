@@ -166,13 +166,13 @@ mod terminal_event_tests {
     fn test_terminal_event_creation() {
         let event = TerminalEvent::Output {
             terminal_id: "test".to_string(),
-            data: base64::encode(&[72, 101, 108, 108, 111]), // "Hello" in base64
+            data: base64::engine::general_purpose::STANDARD.encode(&[72, 101, 108, 108, 111]), // "Hello" in base64
         };
 
         match event {
             TerminalEvent::Output { terminal_id, data } => {
                 assert_eq!(terminal_id, "test");
-                let decoded = base64::decode(&data).unwrap();
+                let decoded = base64::engine::general_purpose::STANDARD.decode(&data).unwrap();
                 assert_eq!(String::from_utf8(decoded).unwrap(), "Hello");
             }
             _ => panic!("Wrong event type"),

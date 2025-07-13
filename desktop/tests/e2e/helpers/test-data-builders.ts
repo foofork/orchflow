@@ -152,7 +152,7 @@ export class UserBuilder {
     email: `test_${Date.now()}@example.com`,
     password: 'TestPassword123!',
     role: 'user',
-    settings: {}
+    settings: {} as Record<string, any>
   };
   
   withUsername(username: string): UserBuilder {

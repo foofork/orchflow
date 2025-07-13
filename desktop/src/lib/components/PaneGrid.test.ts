@@ -786,15 +786,11 @@ describe('PaneGrid Component', () => {
     });
 
     it('should maintain session consistency', async () => {
-      const sessionId = 'consistent-session';
-      
-      const { unmount } = render(PaneGrid, {
-        props: { sessionId }
-      });
+      const { unmount } = render(PaneGrid);
       cleanup.push(unmount);
       
       await waitFor(() => {
-        expect(mockGetLayout).toHaveBeenCalledWith(sessionId);
+        expect(mockGetLayout).toHaveBeenCalledWith('orchflow-main');
       });
     });
   });

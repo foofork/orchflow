@@ -28,7 +28,7 @@
   export let activeTerminalId: string | null = null;
   export let terminalGroups: string[] = [];
   export let quickCommands: Array<{ label: string; command: string }> = [];
-  export let supportedLayouts: string[] = ['single', 'split', 'grid'];
+  export let supportedLayouts: Array<'single' | 'split-horizontal' | 'split-vertical' | 'grid'> = ['single', 'split-horizontal', 'split-vertical', 'grid'];
   export let onTerminalCreate: (() => void) | undefined = undefined;
   export let onTerminalClose: ((id: string) => void) | undefined = undefined;
   export let onTabSwitch: ((id: string) => void) | undefined = undefined;
@@ -70,6 +70,7 @@
   let contextMenuPosition = { x: 0, y: 0 };
   let draggedTerminalId: string | null = null;
   let draggedOverId: string | null = null;
+  let globalClickCleanup: (() => void) | undefined;
   
   onMount(async () => {
     // Load available shells
@@ -95,7 +96,7 @@
     };
     document.addEventListener('click', handleGlobalClick);
     
-    return () => {
+    globalClickCleanup = () => {
       document.removeEventListener('click', handleGlobalClick);
     };
   });
@@ -370,6 +371,12 @@
     renamingTerminalId = null;
     renameValue = '';
   }
+  
+  onDestroy(() => {
+    if (globalClickCleanup) {
+      globalClickCleanup();
+    }
+  });
 </script>
 
 <div class="terminal-panel" on:keydown={handleTerminalKey}>
@@ -659,8 +666,10 @@
         >
           {#if layoutOption === 'single'}
             ⬜ Single
-          {:else if layoutOption === 'split'}
-            ⏸ Split
+          {:else if layoutOption === 'split-horizontal'}
+            ⏸ Split Horizontal
+          {:else if layoutOption === 'split-vertical'}
+            ⏸ Split Vertical
           {:else if layoutOption === 'grid'}
             ⊞ Grid
           {:else}
@@ -680,7 +689,9 @@
       <button
         class="menu-item"
         on:click={() => {
-          startRename(contextMenuTerminalId, $terminalsStore.find(t => t.id === contextMenuTerminalId)?.title || '');
+          if (contextMenuTerminalId) {
+            startRename(contextMenuTerminalId, $terminalsStore.find(t => t.id === contextMenuTerminalId)?.title || '');
+          }
           showContextMenu = false;
         }}
       >

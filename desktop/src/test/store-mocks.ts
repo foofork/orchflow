@@ -12,7 +12,7 @@ interface Session {
 interface Pane {
   id: string;
   session_id: string;
-  pane_type: string;
+  pane_type: 'Terminal' | 'Editor' | 'FileExplorer' | 'Output' | { Custom: string };
   title: string;
   rows: number;
   cols: number;
@@ -150,6 +150,19 @@ export function createMockReadable<T>(value: T) {
 
 // Helper to create properly typed mock manager
 export interface MockManager {
+  init: MockedFunction<() => Promise<void>>;
+  deleteSession: MockedFunction<(sessionId: string) => Promise<void>>;
+  sendKeys: MockedFunction<(paneId: string, keys: string) => Promise<void>>;
+  setActiveSession: MockedFunction<(sessionId: string) => Promise<void>>;
+  loadPlugin: MockedFunction<(pluginId: string) => Promise<void>>;
+  unloadPlugin: MockedFunction<(pluginId: string) => Promise<void>>;
+  persistState: MockedFunction<() => Promise<void>>;
+  readFile: MockedFunction<(path: string) => Promise<string>>;
+  saveFile: MockedFunction<(path: string, content: string) => Promise<void>>;
+  watchFile: MockedFunction<(path: string) => Promise<void>>;
+  unwatchFile: MockedFunction<(path: string) => Promise<void>>;
+  getCommandHistory: MockedFunction<(paneId?: string, limit?: number) => Promise<any[]>>;
+  refreshPanes: MockedFunction<(sessionId: string) => Promise<void>>;
   createTerminal: MockedFunction<(sessionId?: string, options?: { command?: string; shellType?: string; name?: string; }) => Promise<Pane>>;
   createSession: MockedFunction<(name: string) => Promise<Session>>;
   refreshSessions: MockedFunction<() => Promise<void>>;
@@ -157,11 +170,12 @@ export interface MockManager {
   searchProject: MockedFunction<(query: string, options?: any) => Promise<any>>;
   listDirectory: MockedFunction<(path: string) => Promise<any>>;
   sendInput: MockedFunction<(paneId: string, input: string) => Promise<void>>;
-  execute: MockedFunction<(paneId: string, command: string) => Promise<void>>;
   closePane: MockedFunction<(paneId: string) => Promise<void>>;
   focusPane: MockedFunction<(paneId: string) => Promise<void>>;
-  getPaneOutput: MockedFunction<(paneId: string) => Promise<string>>;
+  destroy: MockedFunction<() => void>;
   subscribe: MockedFunction<(fn: (value: any) => void) => () => void>;
+  execute: MockedFunction<(command: any) => Promise<any>>;
+  getPaneOutput: MockedFunction<(paneId: string, limit?: number) => Promise<string>>;
 }
 
 // Helper to create properly typed mock stores for manager
@@ -177,6 +191,20 @@ export function createMockManagerStores() {
   const mockLoadedPlugins = createMockDerivedAsWritable<Set<string>>(new Set());
   
   const mockManager: MockManager = {
+    init: createAsyncVoidMock<[]>(),
+    deleteSession: createAsyncVoidMock<[sessionId: string]>(),
+    sendKeys: createAsyncVoidMock<[paneId: string, keys: string]>(),
+    setActiveSession: createAsyncVoidMock<[sessionId: string]>(),
+    loadPlugin: createAsyncVoidMock<[pluginId: string]>(),
+    unloadPlugin: createAsyncVoidMock<[pluginId: string]>(),
+    persistState: createAsyncVoidMock<[]>(),
+    readFile: createAsyncMock<[path: string], string>(),
+    saveFile: createAsyncVoidMock<[path: string, content: string]>(),
+    watchFile: createAsyncVoidMock<[path: string]>(),
+    unwatchFile: createAsyncVoidMock<[path: string]>(),
+    getCommandHistory: createAsyncMock<[paneId?: string, limit?: number], any[]>(),
+    refreshPanes: createAsyncVoidMock<[sessionId: string]>(),
+    destroy: vi.fn() as unknown as MockedFunction<() => void>,
     createTerminal: createAsyncMock<[sessionId?: string, options?: { command?: string; shellType?: string; name?: string; }], Pane>(),
     createSession: createAsyncMock<[name: string], Session>(),
     refreshSessions: createAsyncVoidMock<[]>(),
@@ -184,11 +212,11 @@ export function createMockManagerStores() {
     searchProject: createAsyncMock<[query: string, options?: any], any>(),
     listDirectory: createAsyncMock<[path: string], any>(),
     sendInput: createAsyncVoidMock<[paneId: string, input: string]>(),
-    execute: createAsyncVoidMock<[paneId: string, command: string]>(),
     closePane: createAsyncVoidMock<[paneId: string]>(),
     focusPane: createAsyncVoidMock<[paneId: string]>(),
-    getPaneOutput: createAsyncMock<[paneId: string], string>(),
     subscribe: vi.fn().mockImplementation((fn) => () => {}) as unknown as MockedFunction<(fn: (value: any) => void) => () => void>,
+    execute: createAsyncMock<[command: any], any>(),
+    getPaneOutput: createAsyncMock<[paneId: string, limit?: number], string>(),
   };
   
   return {

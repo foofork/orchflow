@@ -15,6 +15,7 @@
   let tooltipPlugin: PluginStatus | null = null;
   let tooltipElement: HTMLElement;
   let pluginClient: ManagerClient;
+  let unsubscribers: (() => void)[] = [];
   
   // Subscribe to plugin events
   onMount(async () => {
@@ -24,7 +25,7 @@
     // Subscribe to plugin events
     await pluginClient.subscribe(['plugin_loaded', 'plugin_unloaded', 'plugin_event']);
     
-    const unsubscribers = [
+    unsubscribers = [
       pluginClient.onEvent('PluginLoaded', (event) => {
         if (event.type === 'PluginLoaded') {
           loadPluginStatuses();
@@ -43,10 +44,6 @@
         }
       })
     ];
-    
-    return () => {
-      unsubscribers.forEach(unsub => unsub());
-    };
   });
   
   async function loadPluginStatuses() {
@@ -106,6 +103,10 @@
     // Could open plugin manager with this plugin selected
     // Or execute a default plugin action
   }
+  
+  onDestroy(() => {
+    unsubscribers.forEach(unsub => unsub());
+  });
 </script>
 
 <div class="plugin-status-bar">

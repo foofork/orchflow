@@ -3,7 +3,7 @@ import { SvelteComponent } from 'svelte';
 // Create a proper Svelte component mock
 export class MockContextMenu extends SvelteComponent {
   constructor(options: any) {
-    super();
+    super(options);
     // Initialize with default props
     this.$$prop_def = {
       x: 0,

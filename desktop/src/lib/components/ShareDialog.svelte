@@ -132,7 +132,12 @@
       });
       
       if (result.success && result.url) {
-        success = { ...success, url: result.url };
+        success = { 
+          success: true,
+          path: success?.path, 
+          url: result.url,
+          error: success?.error
+        };
       }
     } catch (err) {
       console.error('Upload failed:', err);

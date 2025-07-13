@@ -50,7 +50,7 @@ export interface PerformanceReport {
 }
 
 export class PerformanceMonitor {
-  private page: Page;
+  page: Page;
   private cdpSession: CDPSession | null = null;
   private metrics: PerformanceMetric[] = [];
   private memorySnapshots: MemoryInfo[] = [];
@@ -285,7 +285,8 @@ export class PerformanceMonitor {
           new PerformanceObserver((list) => {
             const entries = list.getEntries();
             if (entries.length > 0) {
-              vitals.fid = entries[0].processingStart - entries[0].startTime;
+              const firstInput = entries[0] as any; // PerformanceEventTiming
+              vitals.fid = firstInput.processingStart - firstInput.startTime;
             }
           }).observe({ entryTypes: ['first-input'] });
           
@@ -389,7 +390,7 @@ export class PerformanceMonitor {
       network: this.networkSnapshots,
       summary: {
         averageFPS: this.getAverageFPS(),
-        memoryLeaks: this.checkMemoryLeak(),
+        memoryLeaks: await this.checkMemoryLeak(),
         cpuSpikes: this.detectCPUSpikes(),
         slowRequests: this.getSlowRequests(),
         totalJank: this.getTotalJank()

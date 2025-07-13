@@ -123,7 +123,7 @@
         } catch (err) {
           console.error('Failed to capture pane:', err);
           // Exponential backoff on repeated failures
-          if (err.message?.includes('timed out')) {
+          if ((err as Error).message?.includes('timed out')) {
             clearInterval(pollInterval);
             const backoffMs = exponentialBackoff(connectionRetries - 1, TIMEOUT_CONFIG.TERMINAL_POLL, 5000);
             setTimeout(() => {

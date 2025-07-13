@@ -330,7 +330,7 @@ export { greet, multiply };`;
       // Wait for search results
       await page.waitForSelector('[data-testid="search-results"]');
       const searchResults = page.locator('[data-testid="search-result-item"]');
-      await expect(searchResults).toHaveCountGreaterThan(0);
+      await expect(searchResults).toHaveCount(1); // Expecting at least 1 result
 
       // Step 3: Navigate to search result
       await searchResults.first().click();
@@ -358,7 +358,7 @@ export { greet, multiply };`;
 
       await page.waitForSelector('[data-testid="search-results"]');
       const welcomeResults = page.locator('[data-testid="search-result-item"]');
-      await expect(welcomeResults).toHaveCountGreaterThan(0);
+      await expect(welcomeResults).toHaveCount(1); // Expecting at least 1 result
 
       // Step 7: Verify no 'greet' instances remain
       await page.fill('[data-testid="search-input"]', 'greet');
@@ -374,7 +374,7 @@ export { greet, multiply };`;
 
       await page.waitForSelector('[data-testid="search-results"]');
       const regexResults = page.locator('[data-testid="search-result-item"]');
-      await expect(regexResults).toHaveCountGreaterThan(0);
+      await expect(regexResults).toHaveCount(1); // Expecting at least 1 result
     });
   });
 

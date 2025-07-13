@@ -80,14 +80,14 @@ class PerformanceProfiler {
 }
 
 // Mock Tauri API for performance testing
-const mockTauriInvoke = createAsyncMock<(cmd: string, args?: any) => Promise<any>>();
+const mockTauriInvoke = createAsyncMock<[cmd: string, args?: any], any>();
 vi.mock('@tauri-apps/api/core', () => ({
   invoke: mockTauriInvoke
 }));
 
 vi.mock('@tauri-apps/api/event', () => ({
-  listen: createAsyncMock<() => Promise<void>>(),
-  emit: createAsyncMock<() => Promise<void>>()
+  listen: createAsyncMock<[event: string, handler: Function], () => void>(),
+  emit: createAsyncMock<[event: string, payload?: any], void>()
 }));
 
 describe('Terminal I/O Performance Tests', () => {

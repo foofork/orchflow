@@ -1,6 +1,7 @@
 import { render, type RenderResult } from '@testing-library/svelte'
 import { writable } from 'svelte/store'
-import type { ComponentType } from 'svelte'
+import type { ComponentType, SvelteComponent } from 'svelte'
+import { vi } from 'vitest'
 
 // Mock stores that components commonly use
 export const mockStores = () => {
@@ -41,12 +42,12 @@ export const mockStores = () => {
 
 // Helper to render components with common providers
 export const renderWithProviders = (
-  component: ComponentType,
+  component: any,
   options: {
     props?: Record<string, any>
     stores?: Record<string, any>
   } = {}
-): RenderResult => {
+): RenderResult<any> => {
   const stores = options.stores || mockStores()
 
   // Set up context that components expect

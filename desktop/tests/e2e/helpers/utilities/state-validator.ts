@@ -236,7 +236,7 @@ export class StateValidator {
     });
   }
 
-  async compareSnapshots(snapshot1: StateSnapshot, snapshot2: StateSnapshot): {
+  async compareSnapshots(snapshot1: StateSnapshot, snapshot2: StateSnapshot): Promise<{
     identical: boolean;
     differences: Array<{
       type: string;
@@ -244,7 +244,7 @@ export class StateValidator {
       value1: any;
       value2: any;
     }>;
-  } {
+  }> {
     const differences: Array<{
       type: string;
       path: string;

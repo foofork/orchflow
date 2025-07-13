@@ -32,15 +32,42 @@ impl OutputBuffer {
         }
     }
 
+    /// Create with default max chunk size
+    pub fn with_default_size() -> Self {
+        Self::new(MAX_CHUNK_SIZE)
+    }
+
     /// Add data to buffer
     pub fn push(&mut self, data: &[u8]) -> Option<Bytes> {
-        self.buffer.extend_from_slice(data);
-
-        // Check if we should flush
-        if self.should_flush() {
-            Some(self.flush())
+        // If data is larger than max chunk size, split it
+        if data.len() > MAX_CHUNK_SIZE {
+            let mut result = Vec::new();
+            for chunk in data.chunks(MAX_CHUNK_SIZE) {
+                self.buffer.extend_from_slice(chunk);
+                if self.should_flush() {
+                    result.push(self.flush());
+                }
+            }
+            if result.is_empty() {
+                None
+            } else {
+                // Concatenate all chunks
+                let total_len = result.iter().map(|b| b.len()).sum();
+                let mut combined = Vec::with_capacity(total_len);
+                for bytes in result {
+                    combined.extend_from_slice(&bytes);
+                }
+                Some(Bytes::from(combined))
+            }
         } else {
-            None
+            self.buffer.extend_from_slice(data);
+
+            // Check if we should flush
+            if self.should_flush() {
+                Some(self.flush())
+            } else {
+                None
+            }
         }
     }
 
@@ -90,6 +117,11 @@ impl ScrollbackBuffer {
             total_size: Arc::new(RwLock::new(0)),
             max_total_size: 10 * 1024 * 1024, // 10MB default
         }
+    }
+
+    /// Create with default scrollback size
+    pub fn with_default_size() -> Self {
+        Self::new(DEFAULT_MAX_SCROLLBACK)
     }
 
     /// Add output to scrollback
@@ -266,5 +298,111 @@ impl RingBuffer {
         self.head = 0;
         self.tail = 0;
         self.size = 0;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_output_buffer_respects_chunk_size() {
+        let mut buffer = OutputBuffer::new(100);
+        
+        // Add data smaller than limit
+        let small_data = vec![b'a'; 50];
+        assert!(buffer.push(&small_data).is_none());
+        
+        // Add more data to exceed limit
+        let more_data = vec![b'b'; 60];
+        let flushed = buffer.push(&more_data);
+        assert!(flushed.is_some());
+        assert_eq!(flushed.unwrap().len(), 110);
+    }
+
+    #[test]
+    fn test_output_buffer_splits_large_chunks() {
+        let mut buffer = OutputBuffer::with_default_size();
+        
+        // Add data larger than MAX_CHUNK_SIZE
+        let large_data = vec![b'x'; MAX_CHUNK_SIZE * 2 + 1000];
+        let result = buffer.push(&large_data);
+        
+        // Should have flushed data
+        assert!(result.is_some());
+        
+        // Buffer should still have remaining data
+        assert!(buffer.buffer.len() > 0);
+        assert!(buffer.buffer.len() < MAX_CHUNK_SIZE);
+    }
+
+    #[tokio::test]
+    async fn test_scrollback_buffer_enforces_line_limit() {
+        let buffer = ScrollbackBuffer::new(10);
+        
+        // Add more lines than the limit
+        for i in 0..20 {
+            let line = format!("Line {}\n", i);
+            buffer.add_output(line.as_bytes()).await;
+        }
+        
+        // Should only have 10 lines
+        let lines = buffer.get_lines(0, 100).await;
+        assert_eq!(lines.len(), 10);
+        
+        // Should have kept the newest lines
+        let first_line = String::from_utf8(lines[0].content.to_vec()).unwrap();
+        assert!(first_line.contains("Line 10"));
+    }
+
+    #[tokio::test]
+    async fn test_scrollback_buffer_enforces_size_limit() {
+        let buffer = ScrollbackBuffer::new(1000);
+        
+        // Add lines that exceed total size limit
+        let large_line = vec![b'x'; 1024 * 1024]; // 1MB line
+        for _ in 0..15 {
+            buffer.add_output(&large_line).await;
+            buffer.add_output(b"\n").await;
+        }
+        
+        // Total size should be under 10MB
+        let total_size = *buffer.total_size.read().await;
+        assert!(total_size <= buffer.max_total_size);
+        
+        // Should have fewer lines due to size constraint
+        let lines = buffer.get_lines(0, 1000).await;
+        assert!(lines.len() < 15);
+    }
+
+    #[tokio::test]
+    async fn test_scrollback_default_size() {
+        let buffer = ScrollbackBuffer::with_default_size();
+        
+        // Add DEFAULT_MAX_SCROLLBACK + 100 lines
+        for i in 0..(DEFAULT_MAX_SCROLLBACK + 100) {
+            let line = format!("Line {}\n", i);
+            buffer.add_output(line.as_bytes()).await;
+        }
+        
+        // Should be limited to DEFAULT_MAX_SCROLLBACK
+        let lines = buffer.get_lines(0, DEFAULT_MAX_SCROLLBACK + 200).await;
+        assert_eq!(lines.len(), DEFAULT_MAX_SCROLLBACK);
+    }
+
+    #[test]
+    fn test_ring_buffer_wrap_around() {
+        let mut ring = RingBuffer::new(10);
+        
+        // Fill buffer
+        ring.write(b"0123456789");
+        assert_eq!(ring.read_all(), b"0123456789");
+        
+        // Write more to wrap around
+        ring.write(b"ABCDE");
+        let data = ring.read_all();
+        assert_eq!(data.len(), 10);
+        assert_eq!(&data[0..5], b"56789");
+        assert_eq!(&data[5..10], b"ABCDE");
     }
 }

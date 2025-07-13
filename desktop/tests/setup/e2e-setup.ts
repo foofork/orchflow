@@ -8,6 +8,24 @@ import { PortManager } from '../../scripts/port-manager.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
+// Global type declarations
+declare global {
+  var E2E_CONFIG: {
+    headless: boolean;
+    slowMo: number;
+    video: boolean;
+    trace: boolean;
+    screenshots: boolean;
+    defaultTimeout: number;
+    baseUrl: string;
+  };
+  var testHelpers: {
+    waitFor(condition: () => boolean | Promise<boolean>, options?: { timeout?: number; interval?: number; message?: string }): Promise<void>;
+    createTestId(): string;
+    getTestArtifactDir(testName: string): string;
+  };
+}
+
 // Global test configuration
 globalThis.E2E_CONFIG = {
   headless: process.env.CI === 'true',
@@ -123,7 +141,7 @@ beforeEach(async ({ task }) => {
 
 // Cleanup after each test
 afterEach(async ({ task }) => {
-  const duration = Date.now() - task.result?.startTime || 0;
+  const duration = Date.now() - (task.result?.startTime || Date.now());
   const status = task.result?.state || 'unknown';
   
   console.log(`\n📊 Test completed: ${task.name}`);
@@ -141,10 +159,10 @@ afterEach(async ({ task }) => {
     metadata.duration = duration;
     metadata.status = status;
     
-    if (task.result?.errors) {
+    if (task.result?.errors && Array.isArray(task.result.errors)) {
       metadata.errors = {
-        message: task.result.errors.message,
-        stack: task.result.errors.stack
+        message: task.result.errors[0]?.message || 'Unknown error',
+        stack: task.result.errors[0]?.stack || 'No stack trace'
       };
     }
     

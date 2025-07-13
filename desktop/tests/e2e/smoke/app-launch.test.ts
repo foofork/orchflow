@@ -3,7 +3,7 @@
  * Validates that the application launches successfully and core components are accessible
  */
 
-import { test, describe } from 'vitest';
+import { test, describe, beforeEach, afterEach } from 'vitest';
 import { expect } from '@playwright/test';
 import { TestContext, withTestContext } from '../helpers/test-context';
 import { WaitStrategies } from '../helpers/utils/wait-strategies';
@@ -21,10 +21,11 @@ describe('App Launch Smoke Tests', () => {
   
   afterEach(async () => {
     // Capture state on failure
-    if (expect.getState().currentTestName && 
-        expect.getState().assertionCalls > 0 &&
-        expect.getState().numPassingAsserts !== expect.getState().assertionCalls) {
-      await context.captureState(expect.getState().currentTestName);
+    const state = expect.getState() as any;
+    if (state?.currentTestName && 
+        state?.assertionCalls > 0 &&
+        state?.numPassingAsserts !== state?.assertionCalls) {
+      await context.captureState(state.currentTestName);
     }
     
     await context.teardown();

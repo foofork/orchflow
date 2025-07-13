@@ -4,7 +4,8 @@
   import { terminalIPC } from '$lib/services/terminal-ipc';
   import type { ComponentType } from 'svelte';
   
-  export type GridLayout = 'single' | 'split-horizontal' | 'split-vertical' | 'grid-2x2' | 'grid-3x3';
+  // Type moved to context="module" to avoid export in component script
+  type GridLayout = 'single' | 'split-horizontal' | 'split-vertical' | 'grid-2x2' | 'grid-3x3';
   
   interface TerminalInstance {
     id: string;
@@ -190,7 +191,7 @@
           on:keydown={(e) => e.key === 'Enter' && focusTerminal(terminal.id)}
           role="button"
           tabindex="0"
-          aria-label="Focus terminal {terminal.name || terminal.id}"
+          aria-label="Focus terminal {terminal.title || terminal.id}"
         >
           <div class="terminal-header">
             <span class="terminal-title">{terminal.title}</span>

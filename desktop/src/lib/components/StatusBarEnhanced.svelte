@@ -4,6 +4,7 @@
   import { invoke } from '@tauri-apps/api/core';
   import type { UnlistenFn } from '@tauri-apps/api/event';
   import { listen } from '@tauri-apps/api/event';
+  import type { SystemMetrics } from '$lib/types';
   
   const dispatch = createEventDispatcher();
   
@@ -55,7 +56,7 @@
   
   // State
   let gitInfo = writable<GitInfo>({});
-  let systemMetrics = writable<SystemMetrics>({});
+  let systemMetrics = writable<SystemMetrics | null>(null);
   let notificationsList = writable<string[]>([]);
   let activeFile = writable<string>(currentFile?.path || '');
   let cursorPosition = writable<{ line: number; column: number }>({ 
@@ -241,11 +242,11 @@
       });
       
       // System metrics
-      if (showSystemMetrics) {
+      if (showSystemMetrics && $metrics) {
         if ($metrics.cpu !== undefined) {
           items.push({
             id: 'cpu',
-            text: `CPU: ${$metrics.cpu.toFixed(0)}%`,
+            text: `CPU: ${($metrics.cpu.usage || 0).toFixed(0)}%`,
             tooltip: 'CPU usage',
             onClick: () => dispatch('action', { type: 'showSystemMonitor' })
           });
@@ -254,7 +255,7 @@
         if ($metrics.memory !== undefined) {
           items.push({
             id: 'memory',
-            text: `Mem: ${$metrics.memory.toFixed(0)}%`,
+            text: `Mem: ${($metrics.memory.percent || 0).toFixed(0)}%`,
             tooltip: 'Memory usage',
             onClick: () => dispatch('action', { type: 'showSystemMonitor' })
           });
@@ -320,9 +321,14 @@
       const metrics = await invoke('get_system_metrics');
       if (metrics && typeof metrics === 'object') {
         systemMetrics.set({
-          cpu: (metrics as any).cpu_usage,
-          memory: (metrics as any).memory_usage,
-          disk: (metrics as any).disk_usage
+          timestamp: Date.now(),
+          cpu: { usage: (metrics as any).cpu_usage || 0, frequency: 0, cores: 1 },
+          memory: { total: 0, used: 0, free: 0, available: 0, percent: (metrics as any).memory_usage || 0 },
+          disk: { total: 0, used: 0, free: 0, percent: (metrics as any).disk_usage || 0 },
+          network: { bytesReceived: 0, bytesSent: 0, packetsReceived: 0, packetsSent: 0 },
+          processes: [],
+          uptime: 0,
+          loadAverage: [0, 0, 0]
         });
       }
     } catch (err) {

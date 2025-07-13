@@ -35,7 +35,7 @@ export function renderWithContext<T extends SvelteComponent>(
 
   return {
     ...result,
-    component: result.component as T
+    component: result.component as any
   };
 }
 

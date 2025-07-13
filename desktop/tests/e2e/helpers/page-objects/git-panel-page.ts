@@ -2,19 +2,19 @@ import type { Page, Locator } from '@playwright/test';
 import { expect } from '@playwright/test';
 
 export class GitPanelPage {
-  private page: Page;
-  private gitPanel: Locator;
-  private changedFiles: Locator;
-  private stagedFiles: Locator;
-  private commitMessage: Locator;
-  private commitButton: Locator;
-  private branchSelector: Locator;
-  private pullButton: Locator;
-  private pushButton: Locator;
-  private syncButton: Locator;
-  private historyTab: Locator;
-  private changesTab: Locator;
-  private branchesTab: Locator;
+  page: Page;
+  gitPanel: Locator;
+  changedFiles: Locator;
+  stagedFiles: Locator;
+  commitMessage: Locator;
+  commitButton: Locator;
+  branchSelector: Locator;
+  pullButton: Locator;
+  pushButton: Locator;
+  syncButton: Locator;
+  historyTab: Locator;
+  changesTab: Locator;
+  branchesTab: Locator;
 
   constructor(page: Page) {
     this.page = page;

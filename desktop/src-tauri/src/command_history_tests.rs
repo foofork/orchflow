@@ -15,12 +15,16 @@ mod tests {
     }
 
     fn create_test_entry(command: &str) -> CommandEntry {
+        create_test_entry_with_timestamp(command, Utc::now())
+    }
+
+    fn create_test_entry_with_timestamp(command: &str, timestamp: chrono::DateTime<Utc>) -> CommandEntry {
         CommandEntry {
             id: uuid::Uuid::new_v4().to_string(),
             pane_id: "test-pane".to_string(),
             session_id: "test-session".to_string(),
             command: command.to_string(),
-            timestamp: Utc::now(),
+            timestamp,
             working_dir: Some("/test/dir".to_string()),
             exit_code: Some(0),
             duration_ms: Some(100),
@@ -296,5 +300,62 @@ mod tests {
         // Verify most recent commands are kept
         assert!(cache.iter().any(|e| e.command == "command 1099"));
         assert!(!cache.iter().any(|e| e.command == "command 0"));
+    }
+
+    #[tokio::test]
+    async fn test_history_size_limit_enforcement() {
+        use crate::command_history::MAX_HISTORY_SIZE;
+        let (history, _temp) = create_test_history();
+        
+        // Add more entries than MAX_HISTORY_SIZE
+        let entries_to_add = MAX_HISTORY_SIZE + 100;
+        let mut oldest_timestamp = Utc::now() - chrono::Duration::days(365);
+        
+        for i in 0..entries_to_add {
+            let timestamp = oldest_timestamp + chrono::Duration::seconds(i as i64);
+            let entry = create_test_entry_with_timestamp(&format!("command_{}", i), timestamp);
+            history.add_command(entry).await.unwrap();
+        }
+        
+        // Get all entries
+        let all_entries = history.get_all_command_history(None, None).await.unwrap();
+        
+        // Should be limited to MAX_HISTORY_SIZE
+        assert_eq!(all_entries.len(), MAX_HISTORY_SIZE);
+        
+        // Verify that the oldest entries were removed
+        let commands: Vec<String> = all_entries.iter().map(|e| e.command.clone()).collect();
+        assert!(!commands.contains(&"command_0".to_string()));
+        assert!(!commands.contains(&"command_99".to_string()));
+        assert!(commands.contains(&format!("command_{}", entries_to_add - 1)));
+    }
+
+    #[tokio::test]
+    async fn test_history_size_limit_preserves_newest() {
+        use crate::command_history::MAX_HISTORY_SIZE;
+        let (history, _temp) = create_test_history();
+        
+        // Fill history to exactly MAX_HISTORY_SIZE
+        let base_time = Utc::now() - chrono::Duration::hours(24);
+        for i in 0..MAX_HISTORY_SIZE {
+            let timestamp = base_time + chrono::Duration::seconds(i as i64);
+            let entry = create_test_entry_with_timestamp(&format!("old_command_{}", i), timestamp);
+            history.add_command(entry).await.unwrap();
+        }
+        
+        // Add one more recent entry
+        let new_entry = create_test_entry("newest_command");
+        history.add_command(new_entry).await.unwrap();
+        
+        // Get all entries
+        let all_entries = history.get_all_command_history(None, None).await.unwrap();
+        
+        // Should still be MAX_HISTORY_SIZE
+        assert_eq!(all_entries.len(), MAX_HISTORY_SIZE);
+        
+        // Newest entry should be present, oldest should be gone
+        let commands: Vec<String> = all_entries.iter().map(|e| e.command.clone()).collect();
+        assert!(commands.contains(&"newest_command".to_string()));
+        assert!(!commands.contains(&"old_command_0".to_string()));
     }
 }

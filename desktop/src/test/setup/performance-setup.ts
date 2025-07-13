@@ -8,7 +8,7 @@ import { performance } from 'perf_hooks';
 
 // Performance measurement utilities
 export class PerformanceMeasurement {
-  private startTime: number;
+  private startTime: number = 0;
   private measurements: Map<string, number[]> = new Map();
   
   start(): void {
@@ -47,7 +47,7 @@ export class PerformanceMeasurement {
 
 // Memory measurement utilities
 export class MemoryMeasurement {
-  private initialMemory: NodeJS.MemoryUsage;
+  private initialMemory: NodeJS.MemoryUsage = process.memoryUsage();
   
   start(): void {
     // Force garbage collection if available
@@ -108,23 +108,25 @@ export const memory = new MemoryMeasurement();
 export const regression = new RegressionDetector();
 
 // Load baselines from previous runs
-try {
-  const fs = await import('fs');
-  const path = await import('path');
-  const baselinesPath = path.join(process.cwd(), 'test-results', 'performance-baselines.json');
-  
-  if (fs.existsSync(baselinesPath)) {
-    const baselines = JSON.parse(fs.readFileSync(baselinesPath, 'utf-8'));
-    Object.entries(baselines).forEach(([key, value]) => {
-      regression.setBaseline(key, value as number);
-    });
+(async () => {
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    const baselinesPath = path.join(process.cwd(), 'test-results', 'performance-baselines.json');
+    
+    if (fs.existsSync(baselinesPath)) {
+      const baselines = JSON.parse(fs.readFileSync(baselinesPath, 'utf-8'));
+      Object.entries(baselines).forEach(([key, value]) => {
+        regression.setBaseline(key, value as number);
+      });
+    }
+  } catch (error) {
+    console.warn('Could not load performance baselines:', error);
   }
-} catch (error) {
-  console.warn('Could not load performance baselines:', error);
-}
+})();
 
 // Save baselines after all tests
-export function saveBaselines(): void {
+export async function saveBaselines(): Promise<void> {
   try {
     const fs = await import('fs');
     const path = await import('path');

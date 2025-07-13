@@ -3,14 +3,14 @@ import { expect } from '@playwright/test';
 import * as path from 'path';
 
 export class FileExplorerPage {
-  private page: Page;
-  private explorerContainer: Locator;
-  private fileTree: Locator;
-  private fileItems: Locator;
-  private folderItems: Locator;
-  private contextMenu: Locator;
-  private searchInput: Locator;
-  private breadcrumb: Locator;
+  page: Page;
+  explorerContainer: Locator;
+  fileTree: Locator;
+  fileItems: Locator;
+  folderItems: Locator;
+  contextMenu: Locator;
+  searchInput: Locator;
+  breadcrumb: Locator;
 
   constructor(page: Page) {
     this.page = page;

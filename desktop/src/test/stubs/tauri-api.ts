@@ -24,7 +24,6 @@ export const event = {
   emit,
   listen,
   once,
-  invoke, // Add invoke to event module
 };
 
 // Export window module

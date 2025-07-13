@@ -5,7 +5,6 @@ mod state_manager_tests {
     use crate::state_manager::{PaneType, StateManager};
     use std::sync::Arc;
     use tempfile::NamedTempFile;
-    use tokio;
 
     fn create_test_state_manager() -> StateManager {
         let temp_file = NamedTempFile::new().unwrap();

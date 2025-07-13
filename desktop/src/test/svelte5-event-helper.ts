@@ -15,7 +15,7 @@ export interface SvelteComponentWithEvents<T = any> {
 
 /**
  * Mock $on method for Svelte 5 components in tests
- * This is a temporary solution until we fully migrate to Svelte 5 patterns
+ * This captures events by setting up event listeners on the component's DOM element
  */
 export function mockSvelteEvents<T = any>(component: T | undefined | null): SvelteComponentWithEvents<T> {
   // Handle undefined or null component
@@ -28,12 +28,29 @@ export function mockSvelteEvents<T = any>(component: T | undefined | null): Svel
   }
 
   const mockComponent = component as any;
+  const eventHandlers = new Map<string, ((e: CustomEvent<any>) => void)[]>();
   
-  // Add mock $on method that does nothing but doesn't throw
+  // Add mock $on method that stores event handlers
   mockComponent.$on = (event: string, handler: (e: CustomEvent<any>) => void) => {
-    // In real Svelte 5, this would be replaced with proper event props
-    // For now, just return a no-op function
-    return () => {};
+    const handlers = eventHandlers.get(event) || [];
+    handlers.push(handler);
+    eventHandlers.set(event, handlers);
+    
+    // Return unsubscribe function
+    return () => {
+      const currentHandlers = eventHandlers.get(event) || [];
+      const index = currentHandlers.indexOf(handler);
+      if (index > -1) {
+        currentHandlers.splice(index, 1);
+      }
+    };
+  };
+  
+  // Add method to trigger events (for testing)
+  mockComponent.$fire = (event: string, detail: any) => {
+    const handlers = eventHandlers.get(event) || [];
+    const customEvent = new CustomEvent(event, { detail });
+    handlers.forEach(handler => handler(customEvent));
   };
   
   // Add mock $set method for property updates

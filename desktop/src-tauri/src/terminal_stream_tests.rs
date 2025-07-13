@@ -5,8 +5,10 @@
 mod tests {
     use crate::error::Result;
     use crate::terminal_stream::{
-        ControlMessage, CreateTerminalOptions, IpcChannel, TerminalEvent, TerminalInput,
-        TerminalMode, TerminalState, TerminalStreamManager,
+        ControlMessage, IpcChannel, TerminalInput, TerminalStreamManager,
+        ipc_handler::TerminalEvent,
+        protocol::CreateTerminalOptions,
+        state::{TerminalMode, TerminalState},
     };
     use async_trait::async_trait;
     use std::sync::Arc;

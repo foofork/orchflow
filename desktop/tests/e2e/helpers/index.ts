@@ -10,8 +10,8 @@ export * from './assertions';
 // Test Setup Helpers
 import type { Page, BrowserContext } from '@playwright/test';
 import { expect } from '@playwright/test';
-import type { TerminalPage, FileExplorerPage, GitPanelPage, SettingsPage, CommandPalettePage } from './page-objects';
-import type { NetworkInterceptor, TestDatabase, PerformanceMonitor, ErrorHandler, StateValidator } from './utilities';
+import { TerminalPage, FileExplorerPage, GitPanelPage, SettingsPage, CommandPalettePage } from './page-objects';
+import { NetworkInterceptor, TestDatabase, PerformanceMonitor, ErrorHandler, StateValidator } from './utilities';
 import { customMatchers } from './assertions';
 
 export interface TestContext {

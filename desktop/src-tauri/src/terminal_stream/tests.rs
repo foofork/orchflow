@@ -2,7 +2,9 @@
 mod tests {
     use super::*;
     use crate::terminal_stream::{
-        state::CursorPosition, CreateTerminalOptions, TerminalInput, TerminalMode,
+        state::{CursorPosition, TerminalMode}, 
+        protocol::CreateTerminalOptions,
+        TerminalInput,
         TerminalStreamManager,
     };
     use tokio::time::{sleep, Duration};

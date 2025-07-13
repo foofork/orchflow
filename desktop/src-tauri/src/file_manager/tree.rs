@@ -15,6 +15,12 @@ pub struct FileTreeCache {
     expanded_dirs: Arc<RwLock<HashSet<PathBuf>>>,
 }
 
+impl Default for FileTreeCache {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl FileTreeCache {
     pub fn new() -> Self {
         Self {

@@ -73,7 +73,7 @@ const fileSystemMock = createMock.module('fs-integration', () => {
       return fileStore.has(path);
     }),
     
-    createDir: vi.fn(async () => {}),
+    createDir: vi.fn(async (path: string) => {}),
     
     readDir: vi.fn(async (path: string) => {
       const entries = [];
