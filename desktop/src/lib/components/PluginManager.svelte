@@ -96,12 +96,12 @@
     </div>
   {/if}
   
-  {#if loading && plugins.length === 0}
+  {#if loading && $plugins.length === 0}
     <div class="loading">
       <div class="spinner" />
       <p>Loading plugins...</p>
     </div>
-  {:else if plugins.length === 0}
+  {:else if $plugins.length === 0}
     <div class="empty-state">
       <p>No plugins installed</p>
       <p class="hint">Install plugins to extend Orchflow's functionality</p>
@@ -129,13 +129,13 @@
           <p class="description">{plugin.description}</p>
           
           <div class="plugin-footer">
-            <span class="author">by {plugin.author.name}</span>
+            <span class="author">by {plugin.author || 'Unknown'}</span>
             <button class="details-button" on:click={() => showPluginDetails(plugin)}>
               Details
             </button>
           </div>
           
-          <div class="status-indicator" style="background-color: {getStatusColor(plugin.status)}" />
+          <div class="status-indicator" style="background-color: {getStatusColor(plugin.loaded ? 'loaded' : 'unloaded')}" />
         </div>
       {/each}
     </div>

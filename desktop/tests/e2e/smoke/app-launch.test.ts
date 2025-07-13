@@ -3,7 +3,8 @@
  * Validates that the application launches successfully and core components are accessible
  */
 
-import { test, expect, describe } from 'vitest';
+import { test, describe } from 'vitest';
+import { expect } from '@playwright/test';
 import { TestContext, withTestContext } from '../helpers/test-context';
 import { WaitStrategies } from '../helpers/utils/wait-strategies';
 

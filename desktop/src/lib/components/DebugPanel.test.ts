@@ -68,7 +68,7 @@ describe('DebugPanel', () => {
 
   describe('Debug Session', () => {
     it('starts debugging when start button clicked', async () => {
-      const consoleSpy = createTypedMock<[message?: any, ...optionalParams: any[]], void>();
+      const consoleSpy = createTypedMock<(message?: any, ...optionalParams: any[]) => void>();
       vi.spyOn(console, 'log').mockImplementation(consoleSpy);
       const { container, unmount } = render(DebugPanel, {
         props: { sessionId: 'test-session' }
@@ -184,7 +184,7 @@ describe('DebugPanel', () => {
 
   describe('Debug Controls', () => {
     it('handles continue execution', async () => {
-      const consoleSpy = createTypedMock<[message?: any, ...optionalParams: any[]], void>();
+      const consoleSpy = createTypedMock<(message?: any, ...optionalParams: any[]) => void>();
       vi.spyOn(console, 'log').mockImplementation(consoleSpy);
       const { container, unmount } = render(DebugPanel, {
         props: { sessionId: 'test-session' }
@@ -214,7 +214,7 @@ describe('DebugPanel', () => {
     });
 
     it('handles step over', async () => {
-      const consoleSpy = createTypedMock<[message?: any, ...optionalParams: any[]], void>();
+      const consoleSpy = createTypedMock<(message?: any, ...optionalParams: any[]) => void>();
       vi.spyOn(console, 'log').mockImplementation(consoleSpy);
       const { container, unmount } = render(DebugPanel, {
         props: { sessionId: 'test-session' }
@@ -239,7 +239,7 @@ describe('DebugPanel', () => {
     });
 
     it('handles step into', async () => {
-      const consoleSpy = createTypedMock<[message?: any, ...optionalParams: any[]], void>();
+      const consoleSpy = createTypedMock<(message?: any, ...optionalParams: any[]) => void>();
       vi.spyOn(console, 'log').mockImplementation(consoleSpy);
       const { container, unmount } = render(DebugPanel, {
         props: { sessionId: 'test-session' }
@@ -264,7 +264,7 @@ describe('DebugPanel', () => {
     });
 
     it('handles step out', async () => {
-      const consoleSpy = createTypedMock<[message?: any, ...optionalParams: any[]], void>();
+      const consoleSpy = createTypedMock<(message?: any, ...optionalParams: any[]) => void>();
       vi.spyOn(console, 'log').mockImplementation(consoleSpy);
       const { container, unmount } = render(DebugPanel, {
         props: { sessionId: 'test-session' }
@@ -289,7 +289,7 @@ describe('DebugPanel', () => {
     });
 
     it('handles restart', async () => {
-      const consoleSpy = createTypedMock<[message?: any, ...optionalParams: any[]], void>();
+      const consoleSpy = createTypedMock<(message?: any, ...optionalParams: any[]) => void>();
       vi.spyOn(console, 'log').mockImplementation(consoleSpy);
       const { container, unmount } = render(DebugPanel, {
         props: { sessionId: 'test-session' }

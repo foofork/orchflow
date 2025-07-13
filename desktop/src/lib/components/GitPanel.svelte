@@ -283,10 +283,10 @@ index 1234567..abcdefg 100644
           {#if gitStatus?.upstream}
             <span class="branch-upstream">→ {gitStatus.upstream}</span>
           {/if}
-          {#if gitStatus?.ahead > 0}
+          {#if gitStatus?.ahead && gitStatus.ahead > 0}
             <span class="branch-ahead">↑{gitStatus.ahead}</span>
           {/if}
-          {#if gitStatus?.behind > 0}
+          {#if gitStatus?.behind && gitStatus.behind > 0}
             <span class="branch-behind">↓{gitStatus.behind}</span>
           {/if}
         </div>
@@ -317,16 +317,16 @@ index 1234567..abcdefg 100644
             <!-- Staged Changes -->
             <div class="file-section">
               <div class="section-header">
-                <h3>Staged Changes ({gitStatus?.staged.length || 0})</h3>
-                {#if gitStatus?.staged.length > 0}
+                <h3>Staged Changes ({gitStatus?.staged?.length || 0})</h3>
+                {#if gitStatus?.staged?.length && gitStatus.staged.length > 0}
                   <button class="section-action" on:click={unstageAll} aria-label="Unstage all staged files">
                     Unstage All
                   </button>
                 {/if}
               </div>
-              {#if gitStatus?.staged.length > 0}
+              {#if gitStatus?.staged?.length && gitStatus.staged.length > 0}
                 <div class="file-list">
-                  {#each gitStatus.staged as file}
+                  {#each gitStatus?.staged || [] as file}
                     <div class="file-item">
                       <span 
                         class="file-status" 
@@ -363,16 +363,16 @@ index 1234567..abcdefg 100644
             <!-- Changes -->
             <div class="file-section">
               <div class="section-header">
-                <h3>Changes ({gitStatus?.unstaged.length || 0})</h3>
-                {#if gitStatus?.unstaged.length > 0}
+                <h3>Changes ({gitStatus?.unstaged?.length || 0})</h3>
+                {#if gitStatus?.unstaged?.length && gitStatus.unstaged.length > 0}
                   <button class="section-action" on:click={stageAll} aria-label="Stage all modified files">
                     Stage All
                   </button>
                 {/if}
               </div>
-              {#if gitStatus?.unstaged.length > 0}
+              {#if gitStatus?.unstaged?.length && gitStatus.unstaged.length > 0}
                 <div class="file-list">
-                  {#each gitStatus.unstaged as file}
+                  {#each gitStatus?.unstaged || [] as file}
                     <div class="file-item">
                       <span 
                         class="file-status" 
@@ -407,13 +407,13 @@ index 1234567..abcdefg 100644
             </div>
             
             <!-- Untracked Files -->
-            {#if gitStatus?.untracked.length > 0}
+            {#if gitStatus?.untracked?.length && gitStatus.untracked.length > 0}
               <div class="file-section">
                 <div class="section-header">
                   <h3>Untracked Files ({gitStatus.untracked.length})</h3>
                 </div>
                 <div class="file-list">
-                  {#each gitStatus.untracked as file}
+                  {#each gitStatus?.untracked || [] as file}
                     <div class="file-item">
                       <span 
                         class="file-status" 
@@ -449,7 +449,7 @@ index 1234567..abcdefg 100644
               <button 
                 class="commit-btn"
                 on:click={commit}
-                disabled={!commitMessage.trim() || gitStatus?.staged.length === 0}
+                disabled={!commitMessage.trim() || !gitStatus?.staged?.length || gitStatus.staged.length === 0}
               >
                 Commit
               </button>

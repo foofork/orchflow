@@ -127,7 +127,17 @@
             clearInterval(pollInterval);
             const backoffMs = exponentialBackoff(connectionRetries - 1, TIMEOUT_CONFIG.TERMINAL_POLL, 5000);
             setTimeout(() => {
-              pollInterval = setInterval(arguments.callee, TIMEOUT_CONFIG.TERMINAL_POLL) as unknown as number;
+              pollInterval = setInterval(() => {
+                if (paneId) {
+                  tmux.capturePane(paneId).then(content => {
+                    if (content !== lastContent) {
+                      terminal.clear();
+                      terminal.write(content);
+                      lastContent = content;
+                    }
+                  }).catch(err => console.error('Failed to capture pane:', err));
+                }
+              }, TIMEOUT_CONFIG.TERMINAL_POLL) as unknown as number;
             }, backoffMs);
             connectionRetries++;
           }

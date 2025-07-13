@@ -1,36 +1,40 @@
 import type { PlaywrightTestConfig } from '@playwright/test';
 
 /**
+ * Base use options for visual regression testing
+ */
+const baseUseOptions = {
+  // Visual regression specific settings
+  screenshot: {
+    mode: 'only-on-failure' as const,
+    fullPage: true,
+  },
+  
+  // Ensure consistent rendering
+  deviceScaleFactor: 1,
+  hasTouch: false,
+  isMobile: false,
+  
+  // Browser settings for consistency
+  launchOptions: {
+    args: [
+      '--font-render-hinting=none',
+      '--disable-skia-runtime-opts',
+      '--disable-system-font-check',
+      '--disable-font-subpixel-positioning',
+      '--disable-lcd-text',
+    ],
+  },
+  
+  // Consistent animations
+  reducedMotion: 'reduce' as const,
+};
+
+/**
  * Visual regression specific configuration
  */
 export const visualRegressionConfig: Partial<PlaywrightTestConfig> = {
-  use: {
-    // Visual regression specific settings
-    screenshot: {
-      mode: 'only-on-failure',
-      fullPage: true,
-    },
-    
-    // Ensure consistent rendering
-    deviceScaleFactor: 1,
-    hasTouch: false,
-    isMobile: false,
-    
-    // Browser settings for consistency
-    launchOptions: {
-      args: [
-        '--font-render-hinting=none',
-        '--disable-skia-runtime-opts',
-        '--disable-system-font-check',
-        '--disable-font-subpixel-positioning',
-        '--disable-lcd-text',
-      ],
-    },
-    
-    // Consistent animations
-    reducedMotion: 'reduce',
-    forcedColors: 'none',
-  },
+  use: baseUseOptions,
   
   expect: {
     // Visual comparison settings
@@ -57,7 +61,7 @@ export const visualRegressionConfig: Partial<PlaywrightTestConfig> = {
     {
       name: 'visual-chrome',
       use: {
-        ...visualRegressionConfig.use,
+        ...baseUseOptions,
         browserName: 'chromium',
         viewport: { width: 1280, height: 720 },
       },
@@ -65,7 +69,7 @@ export const visualRegressionConfig: Partial<PlaywrightTestConfig> = {
     {
       name: 'visual-chrome-dark',
       use: {
-        ...visualRegressionConfig.use,
+        ...baseUseOptions,
         browserName: 'chromium',
         viewport: { width: 1280, height: 720 },
         colorScheme: 'dark',
@@ -74,7 +78,7 @@ export const visualRegressionConfig: Partial<PlaywrightTestConfig> = {
     {
       name: 'visual-mobile',
       use: {
-        ...visualRegressionConfig.use,
+        ...baseUseOptions,
         browserName: 'chromium',
         viewport: { width: 375, height: 667 },
         isMobile: true,
@@ -84,7 +88,7 @@ export const visualRegressionConfig: Partial<PlaywrightTestConfig> = {
     {
       name: 'visual-tablet',
       use: {
-        ...visualRegressionConfig.use,
+        ...baseUseOptions,
         browserName: 'chromium',
         viewport: { width: 768, height: 1024 },
         hasTouch: true,
@@ -93,10 +97,10 @@ export const visualRegressionConfig: Partial<PlaywrightTestConfig> = {
     {
       name: 'visual-high-contrast',
       use: {
-        ...visualRegressionConfig.use,
+        ...baseUseOptions,
         browserName: 'chromium',
         viewport: { width: 1280, height: 720 },
-        forcedColors: 'active',
+        colorScheme: 'dark',
       },
     },
   ],

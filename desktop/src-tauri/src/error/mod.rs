@@ -377,3 +377,30 @@ impl From<io::Error> for OrchflowError {
         }
     }
 }
+
+impl From<serde_json::Error> for OrchflowError {
+    fn from(err: serde_json::Error) -> Self {
+        OrchflowError::InternalError {
+            context: "JSON serialization".to_string(),
+            reason: err.to_string(),
+        }
+    }
+}
+
+impl From<reqwest::Error> for OrchflowError {
+    fn from(err: reqwest::Error) -> Self {
+        OrchflowError::NetworkError {
+            operation: "HTTP request".to_string(),
+            reason: err.to_string(),
+        }
+    }
+}
+
+impl From<rusqlite::Error> for OrchflowError {
+    fn from(err: rusqlite::Error) -> Self {
+        OrchflowError::DatabaseError {
+            operation: "SQL operation".to_string(),
+            reason: err.to_string(),
+        }
+    }
+}

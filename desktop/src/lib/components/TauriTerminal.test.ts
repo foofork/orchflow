@@ -30,7 +30,7 @@ const mockTerminal = {
   write: createSyncMock<[string], void>(),
   writeln: createSyncMock<[string], void>(),
   clear: createSyncMock<[], void>(),
-  onData: createSyncMock<[Function], { dispose: Function }>({ dispose: createSyncMock<[], void>() }),
+  onData: createSyncMock<[(data: string) => void], { dispose: () => void }>({ dispose: createSyncMock<[], void>() }),
   onResize: createSyncMock<[Function], { dispose: Function }>({ dispose: createSyncMock<[], void>() }),
   dispose: createSyncMock<[], void>(),
   resize: createSyncMock<[number, number], void>(),
@@ -177,7 +177,7 @@ describe('TauriTerminal', () => {
       await waitForMount();
       
       // Get the data callback
-      const dataCallback = mockTerminal.onData.mock.calls[0][0];
+      const dataCallback = mockTerminal.onData.mock.calls[0][0] as (data: string) => void;
       await dataCallback('ls -la');
       
       expect(tmux.sendKeys).toHaveBeenCalledWith('pane-123', 'ls -la');
@@ -205,7 +205,7 @@ describe('TauriTerminal', () => {
     });
 
     it('should update terminal content when new output arrives', async () => {
-      tmux.capturePane
+      (tmux.capturePane as any)
         .mockResolvedValueOnce('Initial output\n$ ')
         .mockResolvedValueOnce('New output\n$ ');
       
@@ -252,7 +252,7 @@ describe('TauriTerminal', () => {
     });
 
     it('should clear poll interval on unmount', async () => {
-      const clearIntervalSpy = createTypedMock<(timeout: NodeJS.Timeout) => void>();
+      const clearIntervalSpy = vi.fn();
       vi.spyOn(global, 'clearInterval').mockImplementation(clearIntervalSpy);
       
       const { unmount } = render(TauriTerminal, {
@@ -272,7 +272,7 @@ describe('TauriTerminal', () => {
 
   describe('Error Handling', () => {
     it('should handle pane creation failure gracefully', async () => {
-      const consoleSpy = createTypedMock<[any, ...any[]], void>();
+      const consoleSpy = createTypedMock<(...args: any[]) => void>();
       vi.spyOn(console, 'error').mockImplementation(consoleSpy);
       (tmux.createPane as any).mockRejectedValue(new Error('Failed to create pane'));
       
@@ -292,9 +292,9 @@ describe('TauriTerminal', () => {
     });
 
     it('should handle capture pane failure gracefully', async () => {
-      const consoleSpy = createTypedMock<[any, ...any[]], void>();
+      const consoleSpy = createTypedMock<(...args: any[]) => void>();
       vi.spyOn(console, 'error').mockImplementation(consoleSpy);
-      tmux.capturePane.mockRejectedValue(new Error('Failed to capture'));
+      (tmux.capturePane as any).mockRejectedValue(new Error('Failed to capture'));
       
       const { unmount } = render(TauriTerminal, {
         props: {

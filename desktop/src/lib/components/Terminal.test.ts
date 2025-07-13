@@ -19,6 +19,7 @@ import {
   createMockTerminal
 } from '../../test/domain-builders';
 import { createMockManagerStores } from '../../test/store-mocks';
+import * as managerStoreModule from '$lib/stores/manager';
 import { buildPane, buildSession } from '../../test/test-data-builders';
 
 // Mock browser environment
@@ -40,12 +41,8 @@ let mockWebLinksAddon: {
   dispose?: MockedFunction<() => void>;
 };
 
-// Mock manager store with enhanced patterns
-vi.mock('$lib/stores/manager', () => {
-  // Use a factory function to avoid hoisting issues
-  const { createMockManagerStores } = require('../../test/store-mocks');
-  return createMockManagerStores();
-});
+// Mock manager store with enhanced patterns  
+vi.mock('$lib/stores/manager');
 
 // Mock xterm and addons with enhanced patterns
 vi.mock('@xterm/xterm', () => {
@@ -143,8 +140,8 @@ import Terminal from './Terminal.svelte';
 
 describe('Terminal Component', () => {
   let cleanup: Array<() => void> = [];
-  let mockManager: typeof managerStores.manager;
-  let mockTerminalOutputs: typeof managerStores.terminalOutputs;
+  let mockManager: any;
+  let mockTerminalOutputs: any;
 
   beforeEach(async () => {
     // Clear all mocks
@@ -157,9 +154,14 @@ describe('Terminal Component', () => {
     mockWebLinksAddon = null as any;
     mockResizeObserverInstance = null;
     
+    // Set up mock stores
+    const mockStores = createMockManagerStores();
+    vi.mocked(managerStoreModule).manager = mockStores.manager;
+    vi.mocked(managerStoreModule).terminalOutputs = mockStores.terminalOutputs;
+    
     // Get references to mocked objects
-    mockManager = managerStores.manager;
-    mockTerminalOutputs = managerStores.terminalOutputs;
+    mockManager = mockStores.manager;
+    mockTerminalOutputs = mockStores.terminalOutputs;
     
     // Reset store
     mockTerminalOutputs.set(new Map());
@@ -196,7 +198,7 @@ describe('Terminal Component', () => {
       mockWebLinksAddon.dispose();
     }
     if (mockResizeObserverInstance?.disconnect) {
-      mockResizeObserverInstance.disconnect();
+      mockResizeObserverInstance?.disconnect();
     }
   });
 
@@ -600,7 +602,7 @@ describe('Terminal Component', () => {
       
       const terminalContainer = container.querySelector('.terminal-container');
       expect(mockResizeObserverInstance).toBeTruthy();
-      expect(mockResizeObserverInstance.observe).toHaveBeenCalledWith(terminalContainer);
+      expect(mockResizeObserverInstance?.observe).toHaveBeenCalledWith(terminalContainer);
     });
 
     it('should fit terminal and notify backend on resize', async () => {

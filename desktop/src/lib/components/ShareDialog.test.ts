@@ -3,17 +3,15 @@ import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import ShareDialog from './ShareDialog.svelte';
 import { createTypedMock, createAsyncMock } from '@/test/mock-factory';
 import { mockSvelteEvents } from '@/test/svelte5-event-helper';
-
-// Mock Tauri APIs
-const mockInvoke = createAsyncMock<[string, any?], any>();
-const mockOpen = createAsyncMock<[any], string | string[]>();
-
+import { invoke } from '@tauri-apps/api/core';
+import { open } from '@tauri-apps/plugin-dialog';
+// Mock Tauri APIs with proper factory functions
 vi.mock('@tauri-apps/api/core', () => ({
-  invoke: () => mockInvoke()
+  invoke: vi.fn()
 }));
 
-vi.mock('@tauri-apps/api/dialog', () => ({
-  open: () => mockOpen()
+vi.mock('@tauri-apps/plugin-dialog', () => ({
+  open: vi.fn()
 }));
 
 describe('ShareDialog', () => {
@@ -84,7 +82,7 @@ describe('ShareDialog', () => {
     });
 
     it('should allow selecting files', async () => {
-      mockOpen.mockResolvedValue(['file1.txt', 'file2.js']);
+      vi.mocked(open).mockResolvedValue(['file1.txt', 'file2.js']);
       
       const { getByText, container, unmount } = render(ShareDialog, {
         props: { show: true, mode: 'create' }
@@ -95,7 +93,7 @@ describe('ShareDialog', () => {
       await fireEvent.click(selectButton);
       
       await waitFor(() => {
-        expect(mockOpen).toHaveBeenCalledWith({
+        expect(vi.mocked(open)).toHaveBeenCalledWith({
           multiple: true,
           title: 'Select files to share'
         });
@@ -108,7 +106,7 @@ describe('ShareDialog', () => {
     });
 
     it('should handle single file selection', async () => {
-      mockOpen.mockResolvedValue('single-file.txt');
+      vi.mocked(open).mockResolvedValue('single-file.txt');
       
       const { getByText, container, unmount } = render(ShareDialog, {
         props: { show: true, mode: 'create' }
@@ -125,7 +123,7 @@ describe('ShareDialog', () => {
     });
 
     it('should remove files from selection', async () => {
-      mockOpen.mockResolvedValue(['file1.txt', 'file2.js']);
+      vi.mocked(open).mockResolvedValue(['file1.txt', 'file2.js']);
       
       const { getByText, container, unmount } = render(ShareDialog, {
         props: { show: true, mode: 'create' }
@@ -151,8 +149,8 @@ describe('ShareDialog', () => {
     });
 
     it('should create package with valid data', async () => {
-      mockOpen.mockResolvedValue(['file1.txt']);
-      mockInvoke.mockResolvedValue({ success: true, path: '/tmp/package.share' });
+      vi.mocked(open).mockResolvedValue(['file1.txt']);
+      vi.mocked(invoke).mockResolvedValue({ success: true, path: '/tmp/package.share' });
       
       const { getByText, container, unmount } = render(ShareDialog, {
         props: { show: true, mode: 'create' }
@@ -180,7 +178,7 @@ describe('ShareDialog', () => {
       await fireEvent.click(createButton);
       
       await waitFor(() => {
-        expect(mockInvoke).toHaveBeenCalledWith('create_share_package', {
+        expect(vi.mocked(invoke)).toHaveBeenCalledWith('create_share_package', {
           name: 'My Package',
           description: 'Test description',
           files: ['file1.txt']
@@ -204,8 +202,8 @@ describe('ShareDialog', () => {
     });
 
     it('should handle create package error', async () => {
-      mockOpen.mockResolvedValue(['file1.txt']);
-      mockInvoke.mockRejectedValue(new Error('Failed to create package'));
+      vi.mocked(open).mockResolvedValue(['file1.txt']);
+      vi.mocked(invoke).mockRejectedValue(new Error('Failed to create package'));
       
       const { getByText, container, unmount } = render(ShareDialog, {
         props: { show: true, mode: 'create' }
@@ -246,7 +244,7 @@ describe('ShareDialog', () => {
     });
 
     it('should browse for package file', async () => {
-      mockOpen.mockResolvedValue('/path/to/package.share');
+      vi.mocked(open).mockResolvedValue('/path/to/package.share');
       
       const { getByText, container, unmount } = render(ShareDialog, {
         props: { show: true, mode: 'import' }
@@ -257,7 +255,7 @@ describe('ShareDialog', () => {
       await fireEvent.click(browseButton);
       
       await waitFor(() => {
-        expect(mockOpen).toHaveBeenCalledWith({
+        expect(vi.mocked(open)).toHaveBeenCalledWith({
           filters: [{
             name: 'Share Package',
             extensions: ['share']
@@ -271,7 +269,7 @@ describe('ShareDialog', () => {
     });
 
     it('should import package with valid data', async () => {
-      mockInvoke.mockResolvedValue({ success: true });
+      vi.mocked(invoke).mockResolvedValue({ success: true });
       
       const { getByText, container, unmount } = render(ShareDialog, {
         props: { show: true, mode: 'import' }
@@ -290,7 +288,7 @@ describe('ShareDialog', () => {
       await fireEvent.click(importButton);
       
       await waitFor(() => {
-        expect(mockInvoke).toHaveBeenCalledWith('import_share_package', {
+        expect(vi.mocked(invoke)).toHaveBeenCalledWith('import_share_package', {
           path: '/path/to/package.share',
           targetDirectory: '/home/user/project'
         });
@@ -326,7 +324,7 @@ describe('ShareDialog', () => {
           files: []
         }
       ];
-      mockInvoke.mockResolvedValue(mockPackages);
+      vi.mocked(invoke).mockResolvedValue(mockPackages);
       
       const { unmount } = render(ShareDialog, {
         props: { show: true }
@@ -334,14 +332,14 @@ describe('ShareDialog', () => {
       cleanup.push(unmount);
       
       await waitFor(() => {
-        expect(mockInvoke).toHaveBeenCalledWith('list_share_packages');
+        expect(vi.mocked(invoke)).toHaveBeenCalledWith('list_share_packages');
       });
     });
 
     it('should handle recent packages load error', async () => {
       const consoleSpy = createTypedMock<(message: string, error: Error) => void>();
       vi.spyOn(console, 'error').mockImplementation(consoleSpy);
-      mockInvoke.mockRejectedValue(new Error('Failed to load'));
+      vi.mocked(invoke).mockRejectedValue(new Error('Failed to load'));
       
       const { unmount } = render(ShareDialog, {
         props: { show: true }
@@ -406,14 +404,14 @@ describe('ShareDialog', () => {
     });
 
     it('should disable buttons while loading', async () => {
-      mockOpen.mockResolvedValue(['file1.txt']);
+      vi.mocked(open).mockResolvedValue(['file1.txt']);
       
       // Create a delayed promise to control loading state
       let resolvePromise: () => void;
       const delayedPromise = new Promise((resolve) => {
         resolvePromise = () => resolve({ success: true });
       });
-      mockInvoke.mockReturnValue(delayedPromise);
+      vi.mocked(invoke).mockReturnValue(delayedPromise);
       
       const { getByText, container, unmount } = render(ShareDialog, {
         props: { show: true, mode: 'create' }

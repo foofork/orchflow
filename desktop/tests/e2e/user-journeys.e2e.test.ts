@@ -5,7 +5,8 @@
  * including navigation, interaction, and data persistence.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, beforeEach, afterEach } from 'vitest';
+import { expect } from '@playwright/test';
 import type { Page, Browser, chromium } from 'playwright';
 
 describe('Critical User Journeys E2E', () => {

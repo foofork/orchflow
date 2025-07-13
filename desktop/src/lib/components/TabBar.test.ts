@@ -193,7 +193,7 @@ describe('TabBar', () => {
       });
       cleanup.push(unmount);
       
-      const closeHandler = createTypedMock<(any) => void>();
+      const closeHandler = createTypedMock<(arg0: any) => void>();
       const mockComponent = mockSvelteEvents(component);
       mockComponent.$on('closeTab', closeHandler);
       
@@ -228,7 +228,7 @@ describe('TabBar', () => {
       });
       cleanup.push(unmount);
       
-      const closeHandler = createTypedMock<(any) => void>();
+      const closeHandler = createTypedMock<(arg0: any) => void>();
       const mockComponent = mockSvelteEvents(component);
       mockComponent.$on('closeTab', closeHandler);
       

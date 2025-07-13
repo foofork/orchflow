@@ -108,7 +108,8 @@ export interface PaneState {
 
 // System Types
 // Re-export from metrics service to avoid duplication
-export type { SystemMetrics } from './services/metrics';
+import type { SystemMetrics } from './services/metrics';
+export type { SystemMetrics };
 
 export interface ActivityLog {
   id: string;

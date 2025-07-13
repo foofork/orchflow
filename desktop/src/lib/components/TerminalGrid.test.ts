@@ -5,15 +5,12 @@ import { terminalIPC } from '$lib/services/terminal-ipc';
 import { 
   createAsyncVoidMock, 
   createAsyncMock,
-  createSvelteComponentMock 
+  enhancedComponentMocks 
 } from '@/test/mock-factory';
 import { buildTerminalConfig } from '@/test/domain-builders';
 
 // Mock StreamingTerminal component properly
-const MockStreamingTerminal = createSvelteComponentMock('StreamingTerminal', {
-  terminalId: 'mock-terminal-id',
-  config: buildTerminalConfig()
-});
+const MockStreamingTerminal = enhancedComponentMocks.createSvelteComponentMock('StreamingTerminal');
 
 vi.mock('./StreamingTerminal.svelte', () => ({
   default: MockStreamingTerminal
@@ -465,7 +462,7 @@ describe('TerminalGrid', () => {
           expect.any(Array),
           'test command'
         );
-        const callArgs = mockBroadcastInput.mock.calls[0];
+        const callArgs = mockBroadcastInput.mock.calls[0] as any[];
         expect(callArgs[0].length).toBe(3);
       });
     });

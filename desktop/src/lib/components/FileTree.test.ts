@@ -162,8 +162,8 @@ describe('FileTree', () => {
       const openFileHandler = createVoidMock<[CustomEvent]>();
       const mockComponent = mockSvelteEvents(component);
       mockComponent.$on('select', selectHandler);
-      const mockComponent = mockSvelteEvents(component);
-      mockComponent.$on('openFile', openFileHandler);
+      const mockComponent2 = mockSvelteEvents(component);
+      mockComponent2.$on('openFile', openFileHandler);
       
       const nodeItem = container.querySelector('.node-item') as HTMLElement;
       await fireEvent.click(nodeItem);

@@ -173,7 +173,7 @@ export function createMockManagerStores() {
   const mockActivePane = createMockDerivedAsWritable<Pane | undefined>(undefined);
   const mockPlugins = createMockDerivedAsWritable<PluginInfo[]>([]);
   const mockIsConnected = createMockDerivedAsWritable<boolean>(false);
-  const mockTerminalOutputs = createMockDerivedAsWritable<Map<string, string>>(new Map());
+  const mockTerminalOutputs = createMockDerivedAsWritable<Map<string, string[]>>(new Map());
   const mockLoadedPlugins = createMockDerivedAsWritable<Set<string>>(new Set());
   
   const mockManager: MockManager = {
@@ -188,7 +188,7 @@ export function createMockManagerStores() {
     closePane: createAsyncVoidMock<[paneId: string]>(),
     focusPane: createAsyncVoidMock<[paneId: string]>(),
     getPaneOutput: createAsyncMock<[paneId: string], string>(),
-    subscribe: vi.fn().mockImplementation((fn) => () => {}) as MockedFunction<(fn: (value: any) => void) => () => void>,
+    subscribe: vi.fn().mockImplementation((fn) => () => {}) as unknown as MockedFunction<(fn: (value: any) => void) => () => void>,
   };
   
   return {

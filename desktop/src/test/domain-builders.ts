@@ -441,6 +441,10 @@ export interface MockTerminal {
   copy: MockedFunction<() => string>;
   paste: MockedFunction<(text: string) => void>;
   dispose: MockedFunction<() => void>;
+  onData: MockedFunction<(handler: (data: string) => void) => { dispose: () => void }>;
+  onResize: MockedFunction<(handler: (size: { cols: number; rows: number }) => void) => { dispose: () => void }>;
+  loadAddon: MockedFunction<(addon: any) => void>;
+  open: MockedFunction<(container: HTMLElement) => void>;
 }
 
 export function createMockTerminal(): MockTerminal {
@@ -457,6 +461,10 @@ export function createMockTerminal(): MockTerminal {
     copy: createSyncMock<[], string>(),
     paste: createSyncMock<[string], void>(),
     dispose: createSyncMock<[], void>(),
+    onData: createSyncMock<[(data: string) => void], { dispose: () => void }>(),
+    onResize: createSyncMock<[(size: { cols: number; rows: number }) => void], { dispose: () => void }>(),
+    loadAddon: createSyncMock<[any], void>(),
+    open: createSyncMock<[HTMLElement], void>(),
   };
 }
 

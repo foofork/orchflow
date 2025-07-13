@@ -2,19 +2,26 @@ use std::env;
 use std::path::PathBuf;
 
 /// Replacement for directories crate using platform-specific conventions
+#[derive(Debug, Clone)]
 pub struct AppDirs {
     qualifier: String,
     organization: String,
     application: String,
 }
 
-impl AppDirs {
-    pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
-        Ok(Self {
+impl Default for AppDirs {
+    fn default() -> Self {
+        Self {
             qualifier: "com".to_string(),
             organization: "orchflow".to_string(),
             application: "orchflow".to_string(),
-        })
+        }
+    }
+}
+
+impl AppDirs {
+    pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
+        Ok(Self::default())
     }
 
     /// Get the data directory for the application

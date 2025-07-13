@@ -281,10 +281,11 @@ describe('MetricsDashboard', () => {
       const clearCallsBefore = mockContext.clearRect.mock.calls.length;
       
       // Update metrics
-      currentMetrics.update(m => ({
+      currentMetrics.update(m => m ? ({
         ...m,
-        cpu: { ...m.cpu, usage: 75 }
-      }));
+        cpu: { ...m.cpu, usage: 75 },
+        timestamp: Date.now()
+      }) : m);
       
       await waitFor(() => {
         expect(mockContext.clearRect.mock.calls.length).toBeGreaterThan(clearCallsBefore);
@@ -394,10 +395,11 @@ describe('MetricsDashboard', () => {
       
       // Rapid metric updates
       for (let i = 0; i < 10; i++) {
-        currentMetrics.update(m => ({
+        currentMetrics.update(m => m ? ({
           ...m,
-          cpu: { ...m.cpu, usage: 50 + i }
-        }));
+          cpu: { ...m.cpu, usage: 50 + i },
+          timestamp: Date.now()
+        }) : m);
       }
       
       await waitFor(() => {

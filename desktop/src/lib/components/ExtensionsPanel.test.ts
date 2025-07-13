@@ -226,7 +226,7 @@ describe('ExtensionsPanel', () => {
     });
 
     it('toggles extension enabled state', async () => {
-      const consoleSpy = createTypedMock<[...any[]], void>();
+      const consoleSpy = createTypedMock<(...args: any[]) => void>();
       vi.spyOn(console, 'log').mockImplementation(consoleSpy);
       cleanup.push(() => vi.restoreAllMocks());
       const { container, unmount } = render(ExtensionsPanel);
@@ -260,7 +260,7 @@ describe('ExtensionsPanel', () => {
     });
 
     it('installs extension when install button clicked', async () => {
-      const consoleSpy = createTypedMock<[...any[]], void>();
+      const consoleSpy = createTypedMock<(...args: any[]) => void>();
       vi.spyOn(console, 'log').mockImplementation(consoleSpy);
       cleanup.push(() => vi.restoreAllMocks());
       const { container, unmount } = render(ExtensionsPanel);
@@ -296,7 +296,7 @@ describe('ExtensionsPanel', () => {
     });
 
     it('does not toggle uninstalled extensions', async () => {
-      const consoleSpy = createTypedMock<[...any[]], void>();
+      const consoleSpy = createTypedMock<(...args: any[]) => void>();
       vi.spyOn(console, 'log').mockImplementation(consoleSpy);
       cleanup.push(() => vi.restoreAllMocks());
       const { container, unmount } = render(ExtensionsPanel);

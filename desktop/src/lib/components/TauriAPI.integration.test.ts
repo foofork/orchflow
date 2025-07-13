@@ -186,8 +186,8 @@ describe('Tauri API Integration Tests', () => {
 
   describe('Terminal Integration', () => {
     it('should execute shell commands through Tauri', async () => {
-      // Create a mock Svelte component
-      const mockTerminal = createMock.component('tauri-terminal', {
+      // Create a mock component render function
+      const mockTerminal = {
         render: ({ command = 'echo "test"' } = {}) => {
           const container = document.createElement('div');
           container.innerHTML = `
@@ -213,11 +213,9 @@ describe('Tauri API Integration Tests', () => {
           
           return { container };
         }
-      });
+      };
 
-      const container = document.createElement('div');
-      // Simulate component rendering
-      container.innerHTML = mockTerminal.template || '<div data-testid="run-button"></div><pre data-testid="output"></pre>';
+      const { container } = mockTerminal.render();
       document.body.appendChild(container);
 
       const runButton = container.querySelector('[data-testid="run-button"]') as HTMLButtonElement;
@@ -259,7 +257,7 @@ describe('Tauri API Integration Tests', () => {
         };
       });
 
-      const mockTerminal = createMock.component('error-terminal', {
+      const mockTerminal = {
         render: () => {
           const container = document.createElement('div');
           container.innerHTML = `
@@ -282,7 +280,7 @@ describe('Tauri API Integration Tests', () => {
           
           return { container };
         }
-      });
+      };
 
       const container = document.createElement('div');
       container.innerHTML = '<div data-testid="api-explorer"></div>';
@@ -304,7 +302,7 @@ describe('Tauri API Integration Tests', () => {
       // Setup test file
       fileSystemMock._setFile('/test/sample.txt', 'Initial content');
 
-      const mockFileManager = createMock.component('file-manager', {
+      const mockFileManager = {
         render: () => {
           const container = document.createElement('div');
           container.innerHTML = `
@@ -342,7 +340,7 @@ describe('Tauri API Integration Tests', () => {
           
           return { container };
         }
-      });
+      };
 
       const { container } = mockFileManager.render();
       document.body.appendChild(container);
@@ -375,7 +373,7 @@ describe('Tauri API Integration Tests', () => {
     });
 
     it('should handle file system errors appropriately', async () => {
-      const mockFileManager = createMock.component('error-file-manager', {
+      const mockFileManager = {
         render: () => {
           const container = document.createElement('div');
           container.innerHTML = `
@@ -398,7 +396,7 @@ describe('Tauri API Integration Tests', () => {
           
           return { container };
         }
-      });
+      };
 
       const { container } = mockFileManager.render();
       document.body.appendChild(container);
@@ -416,7 +414,7 @@ describe('Tauri API Integration Tests', () => {
 
   describe('Flow Management Integration', () => {
     it('should create and execute flows through Tauri backend', async () => {
-      const mockFlowRunner = createMock.component('flow-runner', {
+      const mockFlowRunner = {
         render: () => {
           const container = document.createElement('div');
           container.innerHTML = `
@@ -466,7 +464,7 @@ describe('Tauri API Integration Tests', () => {
           
           return { container };
         }
-      });
+      };
 
       const { container } = mockFlowRunner.render();
       document.body.appendChild(container);
@@ -499,7 +497,7 @@ describe('Tauri API Integration Tests', () => {
       // Setup a script file
       fileSystemMock._setFile('/scripts/test.sh', '#!/bin/bash\necho "Script executed"');
 
-      const mockIntegratedApp = createMock.component('integrated-app', {
+      const mockIntegratedApp = {
         render: () => {
           const container = document.createElement('div');
           container.innerHTML = `
@@ -541,7 +539,7 @@ describe('Tauri API Integration Tests', () => {
           
           return { container };
         }
-      });
+      };
 
       const { container } = mockIntegratedApp.render();
       document.body.appendChild(container);

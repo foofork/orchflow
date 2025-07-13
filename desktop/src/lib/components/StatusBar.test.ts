@@ -72,9 +72,9 @@ import {
 } from '@/test/utils/mock-stores';
 import {
   buildSession,
-  buildPane,
-  createSvelteComponentMock
-} from '@/test/domain-builders';
+  buildPane
+} from '@/test/test-data-builders';
+import { enhancedComponentMocks } from '@/test/mock-factory';
 
 describe('StatusBar', () => {
   let clockInterval: NodeJS.Timeout;
@@ -458,7 +458,7 @@ describe('StatusBar', () => {
       const previewPane = buildPane({ 
         id: 'pane-1', 
         title: 'README.md', 
-        pane_type: 'Preview' 
+        pane_type: 'Editor' 
       });
       writableActivePane.set(previewPane);
       

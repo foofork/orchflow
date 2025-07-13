@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::process::Command;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TmuxSession {
     pub name: String,
     pub windows: Vec<TmuxWindow>,
@@ -11,7 +11,7 @@ pub struct TmuxSession {
     pub attached: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TmuxWindow {
     pub id: String,
     pub name: String,
@@ -19,7 +19,7 @@ pub struct TmuxWindow {
     pub active: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TmuxPane {
     pub id: String,
     pub index: i32,

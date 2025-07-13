@@ -295,8 +295,8 @@ test.describe('Component States Visual Tests', () => {
       for (const value of values) {
         await progress.evaluate((el, val) => {
           if (el.tagName === 'PROGRESS') {
-            el.value = val;
-            el.max = 100;
+            (el as HTMLProgressElement).value = val;
+            (el as HTMLProgressElement).max = 100;
           } else {
             el.setAttribute('aria-valuenow', val.toString());
             el.style.width = `${val}%`;

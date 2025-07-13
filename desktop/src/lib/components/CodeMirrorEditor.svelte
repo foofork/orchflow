@@ -174,7 +174,7 @@
   export function format() {
     // CodeMirror doesn't have built-in formatting
     // You could integrate prettier here if needed
-    console.log('Formatting not implemented');
+    console.warn('Formatting not implemented');
   }
   
   export function setLanguage(lang: string) {

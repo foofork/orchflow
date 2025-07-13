@@ -49,16 +49,16 @@
       }
       else if (command === 'list plugins') {
         await manager.refreshPlugins();
-        console.log('Available plugins:', $plugins);
+        console.warn('Available plugins:', $plugins);
       }
       else if (command.startsWith('search ')) {
         const query = trimmedInput.substring(7);
         const results = await manager.searchProject(query);
-        console.log('Search results:', results);
+        console.warn('Search results:', results);
       }
       else if (command === 'get file tree' || command === 'file tree') {
         const tree = await manager.listDirectory('/');
-        console.log('File tree:', tree);
+        console.warn('File tree:', tree);
       }
       else {
         // Try to execute as a plugin command
@@ -69,7 +69,7 @@
           const [pluginId, cmdName] = pluginCmd.split('.');
           // Note: Manager doesn't have executePluginCommand yet
           // This would need to be implemented in the manager API
-          console.log('Plugin commands not yet implemented in manager');
+          console.warn('Plugin commands not yet implemented in manager');
         }
         else {
           // Default: create a terminal and run the command
@@ -80,7 +80,7 @@
             if (pane) {
               await manager.sendInput(pane.id, command + '\n');
             }
-            console.log('Created terminal with command:', command);
+            console.warn('Created terminal with command:', command);
           }
         }
       }

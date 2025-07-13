@@ -7,11 +7,11 @@ import {
   createAsyncVoidMock,
   createSyncMock,
   createTypedMock,
-  createSvelteComponentMock
+  enhancedComponentMocks
 } from '@/test/mock-factory';
 
 // Mock TauriTerminal component - must be hoisted before PaneGrid import
-const MockTauriTerminal = createSvelteComponentMock('TauriTerminal', {
+const MockTauriTerminal = enhancedComponentMocks.createSvelteComponentMock({
   terminal: {
     dispose: createSyncMock<[], void>(),
     clear: createSyncMock<[], void>(),
@@ -110,12 +110,8 @@ describe('PaneGrid Component', () => {
       expect(controls).toBeTruthy();
     });
 
-    it('should accept custom session ID', () => {
-      const { container, unmount } = render(PaneGrid, {
-        props: {
-          sessionId: 'custom-session'
-        }
-      });
+    it('should render with default session ID', () => {
+      const { container, unmount } = render(PaneGrid);
       cleanup.push(unmount);
       
       const gridContainer = container.querySelector('.pane-grid-container');
@@ -777,11 +773,7 @@ describe('PaneGrid Component', () => {
 
   describe('Integration', () => {
     it('should pass correct props to TauriTerminal', async () => {
-      const { container, unmount } = render(PaneGrid, {
-        props: {
-          sessionId: 'test-session'
-        }
-      });
+      const { container, unmount } = render(PaneGrid);
       cleanup.push(unmount);
       
       await waitFor(() => {

@@ -19,7 +19,7 @@ const mockTerminal = {
   clear: createVoidMock(),
   write: createVoidMock<[string]>(),
   writeln: createVoidMock<[string]>(),
-  onData: createTypedMock<(callback: (data: string) => void) => void>(),
+  onData: vi.fn().mockReturnValue({ dispose: vi.fn() }),
   loadAddon: createVoidMock<[addon: any]>(),
   cols: 80,
   rows: 24

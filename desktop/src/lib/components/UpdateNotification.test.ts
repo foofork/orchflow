@@ -81,7 +81,7 @@ describe('UpdateNotification', () => {
   });
 
   it('should show notification when update is available', async () => {
-    let updateAvailableHandler: Function;
+    let updateAvailableHandler: Function = () => {};
     
     mockListen.mockImplementation((event: string, handler: Function) => {
       if (event === 'update-available') {
@@ -115,7 +115,7 @@ describe('UpdateNotification', () => {
   });
 
   it('should handle download button click', async () => {
-    let updateAvailableHandler: Function;
+    let updateAvailableHandler: Function = () => {};
     
     mockListen.mockImplementation((event: string, handler: Function) => {
       if (event === 'update-available') {
@@ -156,7 +156,7 @@ describe('UpdateNotification', () => {
   });
 
   it('should handle close button click', async () => {
-    let updateAvailableHandler: Function;
+    let updateAvailableHandler: Function = () => {};
     
     mockListen.mockImplementation((event: string, handler: Function) => {
       if (event === 'update-available') {
@@ -194,7 +194,7 @@ describe('UpdateNotification', () => {
   });
 
   it('should display version information correctly', async () => {
-    let updateAvailableHandler: Function;
+    let updateAvailableHandler: Function = () => {};
     
     mockInvoke.mockResolvedValueOnce('1.0.0'); // Current version
     mockListen.mockImplementation((event: string, handler: Function) => {
@@ -228,8 +228,8 @@ describe('UpdateNotification', () => {
   });
 
   it('should show progress during download', async () => {
-    let updateAvailableHandler: Function;
-    let progressHandler: Function;
+    let updateAvailableHandler: Function = () => {};
+    let progressHandler: Function = () => {};
     
     mockListen.mockImplementation((event: string, handler: Function) => {
       if (event === 'update-available') {
@@ -273,7 +273,7 @@ describe('UpdateNotification', () => {
   });
 
   it('should handle download errors', async () => {
-    let updateAvailableHandler: Function;
+    let updateAvailableHandler: Function = () => {};
     let errorHandler: Function;
     
     mockListen.mockImplementation((event: string, handler: Function) => {

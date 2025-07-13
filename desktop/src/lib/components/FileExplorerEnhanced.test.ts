@@ -183,7 +183,7 @@ describe('FileExplorerEnhanced', () => {
       });
       cleanup.push(unmount);
 
-      const openHandler = createTypedMock<(CustomEvent) => void>();
+      const openHandler = createTypedMock<(arg0: CustomEvent) => void>();
       const mockComponent = mockSvelteEvents(component);
       mockComponent.$on('open', openHandler);
 

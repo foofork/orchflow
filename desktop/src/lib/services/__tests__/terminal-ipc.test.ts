@@ -1,38 +1,43 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { terminalIPC } from '../terminal-ipc';
-import { invoke } from '@tauri-apps/api/core';
-import { emit, listen } from '@tauri-apps/api/event';
 import { createAsyncMock, createAsyncVoidMock, createTypedMock } from '@/test/mock-factory';
 
 // Type for UnlistenFn
 type UnlistenFn = () => void;
 
-// Create typed mocks
-const mockInvoke = createAsyncMock();
-const mockEmit = createAsyncVoidMock();
-const mockListen = createAsyncMock<UnlistenFn>();
-const mockUnlisten = createTypedMock<UnlistenFn>();
-
 // Mock the Tauri APIs
 vi.mock('@tauri-apps/api/core', () => ({
-  invoke: mockInvoke
+  invoke: vi.fn()
 }));
 
 vi.mock('@tauri-apps/api/event', () => ({
-  emit: mockEmit,
-  listen: mockListen
+  emit: vi.fn(),
+  listen: vi.fn()
 }));
 
 describe('Terminal IPC Service', () => {
   let cleanup: Array<() => void> = [];
   let eventHandlers: Map<string, ((event: any) => void)[]>;
+  let mockUnlisten: ReturnType<typeof createTypedMock>;
+  let mockInvoke: any;
+  let mockListen: any;
+  let mockEmit: any;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     cleanup = [];
     eventHandlers = new Map();
+    mockUnlisten = createTypedMock<UnlistenFn>();
+    
+    // Get mock function references
+    const coreModule = await import('@tauri-apps/api/core');
+    const eventModule = await import('@tauri-apps/api/event');
+    
+    mockInvoke = vi.mocked(coreModule.invoke);
+    mockListen = vi.mocked(eventModule.listen);
+    mockEmit = vi.mocked(eventModule.emit);
     
     // Mock listen to capture event handlers - store multiple handlers per event
-    mockListen.mockImplementation(async (event, handler) => {
+    mockListen.mockImplementation(async (event: string, handler: any) => {
       const existingHandlers = eventHandlers.get(event) || [];
       eventHandlers.set(event, [...existingHandlers, handler]);
       return mockUnlisten;
@@ -104,13 +109,13 @@ describe('Terminal IPC Service', () => {
         last_activity: new Date().toISOString()
       };
       
-      mockInvoke.mockResolvedValue(mockMetadata);
+      vi.mocked(invoke).mockResolvedValue(mockMetadata);
       
       const result = await terminalIPC.createTerminal({
         terminalId: 'term-456'
       });
       
-      expect(mockInvoke).toHaveBeenCalledWith('create_streaming_terminal', {
+      expect(vi.mocked(invoke)).toHaveBeenCalledWith('create_streaming_terminal', {
         terminal_id: 'term-456',
         shell: undefined,
         rows: 24,
@@ -123,7 +128,7 @@ describe('Terminal IPC Service', () => {
 
     it('should handle creation errors', async () => {
       const error = new Error('Backend error');
-      mockInvoke.mockRejectedValue(error);
+      vi.mocked(invoke).mockRejectedValue(error);
       
       await expect(terminalIPC.createTerminal({ terminalId: 'term-789' }))
         .rejects.toThrow('Failed to create terminal: Error: Backend error');
@@ -143,14 +148,14 @@ describe('Terminal IPC Service', () => {
         last_activity: new Date().toISOString()
       };
       
-      mockInvoke.mockResolvedValueOnce(mockMetadata);
+      vi.mocked(invoke).mockResolvedValueOnce(mockMetadata);
       await terminalIPC.createTerminal({ terminalId: 'term-123' });
       
       // Stop the terminal
-      mockInvoke.mockResolvedValueOnce(undefined);
+      vi.mocked(invoke).mockResolvedValueOnce(undefined);
       await terminalIPC.stopTerminal('term-123');
       
-      expect(mockInvoke).toHaveBeenCalledWith('stop_streaming_terminal', {
+      expect(vi.mocked(invoke)).toHaveBeenCalledWith('stop_streaming_terminal', {
         terminal_id: 'term-123'
       });
       expect(terminalIPC.getTerminals().has('term-123')).toBe(false);
@@ -159,7 +164,7 @@ describe('Terminal IPC Service', () => {
 
     it('should handle stop errors', async () => {
       const error = new Error('Terminal not found');
-      mockInvoke.mockRejectedValue(error);
+      vi.mocked(invoke).mockRejectedValue(error);
       
       await expect(terminalIPC.stopTerminal('invalid')).rejects.toThrow('Terminal not found');
     });
@@ -169,7 +174,7 @@ describe('Terminal IPC Service', () => {
     it('should send text input to terminal', async () => {
       await terminalIPC.sendInput('term-123', 'ls -la\n');
       
-      expect(mockInvoke).toHaveBeenCalledWith('send_terminal_input', {
+      expect(vi.mocked(invoke)).toHaveBeenCalledWith('send_terminal_input', {
         terminal_id: 'term-123',
         input_type: 'text',
         data: 'ls -la\n'
@@ -178,7 +183,7 @@ describe('Terminal IPC Service', () => {
 
     it('should handle input errors', async () => {
       const error = new Error('Write failed');
-      mockInvoke.mockRejectedValue(error);
+      vi.mocked(invoke).mockRejectedValue(error);
       
       await expect(terminalIPC.sendInput('term-123', 'data')).rejects.toThrow('Write failed');
     });
@@ -188,7 +193,7 @@ describe('Terminal IPC Service', () => {
     it('should send key input to terminal', async () => {
       await terminalIPC.sendKey('term-123', 'Enter', ['ctrl']);
       
-      expect(mockInvoke).toHaveBeenCalledWith('send_terminal_key', {
+      expect(vi.mocked(invoke)).toHaveBeenCalledWith('send_terminal_key', {
         terminal_id: 'term-123',
         key: 'Enter',
         modifiers: ['ctrl']
@@ -198,7 +203,7 @@ describe('Terminal IPC Service', () => {
     it('should send key without modifiers', async () => {
       await terminalIPC.sendKey('term-123', 'a');
       
-      expect(mockInvoke).toHaveBeenCalledWith('send_terminal_key', {
+      expect(vi.mocked(invoke)).toHaveBeenCalledWith('send_terminal_key', {
         terminal_id: 'term-123',
         key: 'a',
         modifiers: []
@@ -210,7 +215,7 @@ describe('Terminal IPC Service', () => {
     it('should resize terminal', async () => {
       await terminalIPC.resize('term-123', 30, 100);
       
-      expect(mockInvoke).toHaveBeenCalledWith('resize_streaming_terminal', {
+      expect(vi.mocked(invoke)).toHaveBeenCalledWith('resize_streaming_terminal', {
         terminal_id: 'term-123',
         rows: 30,
         cols: 100
@@ -219,7 +224,7 @@ describe('Terminal IPC Service', () => {
 
     it('should handle resize errors', async () => {
       const error = new Error('Terminal not found');
-      mockInvoke.mockRejectedValue(error);
+      vi.mocked(invoke).mockRejectedValue(error);
       
       await expect(terminalIPC.resize('term-123', 30, 100))
         .rejects.toThrow('Terminal not found');
@@ -230,14 +235,14 @@ describe('Terminal IPC Service', () => {
     it('should clear terminal scrollback', async () => {
       await terminalIPC.clearScrollback('term-123');
       
-      expect(mockInvoke).toHaveBeenCalledWith('clear_terminal_scrollback', {
+      expect(vi.mocked(invoke)).toHaveBeenCalledWith('clear_terminal_scrollback', {
         terminal_id: 'term-123'
       });
     });
 
     it('should handle clear errors', async () => {
       const error = new Error('Terminal not found');
-      mockInvoke.mockRejectedValue(error);
+      vi.mocked(invoke).mockRejectedValue(error);
       
       await expect(terminalIPC.clearScrollback('term-123'))
         .rejects.toThrow('Terminal not found');
@@ -258,18 +263,18 @@ describe('Terminal IPC Service', () => {
         last_activity: new Date().toISOString()
       };
       
-      mockInvoke.mockResolvedValue(mockState);
+      vi.mocked(invoke).mockResolvedValue(mockState);
       
       const result = await terminalIPC.getState('term-123');
       
-      expect(mockInvoke).toHaveBeenCalledWith('get_terminal_state', {
+      expect(vi.mocked(invoke)).toHaveBeenCalledWith('get_terminal_state', {
         terminal_id: 'term-123'
       });
       expect(result).toEqual(mockState);
     });
 
     it('should return null on error', async () => {
-      mockInvoke.mockRejectedValue(new Error('Not found'));
+      vi.mocked(invoke).mockRejectedValue(new Error('Not found'));
       
       const result = await terminalIPC.getState('term-123');
       expect(result).toBeNull();
@@ -284,7 +289,7 @@ describe('Terminal IPC Service', () => {
         onOutput: handler
       });
       
-      expect(mockListen).toHaveBeenCalledWith('terminal:output', expect.any(Function));
+      expect(vi.mocked(listen)).toHaveBeenCalledWith('terminal:output', expect.any(Function));
       
       // Wait for async listen to resolve
       await new Promise(resolve => setTimeout(resolve, 10));
@@ -346,7 +351,7 @@ describe('Terminal IPC Service', () => {
         onExit: handler
       });
       
-      expect(mockListen).toHaveBeenCalledWith('terminal:exit', expect.any(Function));
+      expect(vi.mocked(listen)).toHaveBeenCalledWith('terminal:exit', expect.any(Function));
       
       // Wait for async listen to resolve
       await new Promise(resolve => setTimeout(resolve, 10));
@@ -369,7 +374,7 @@ describe('Terminal IPC Service', () => {
         onError: handler
       });
       
-      expect(mockListen).toHaveBeenCalledWith('terminal:error', expect.any(Function));
+      expect(vi.mocked(listen)).toHaveBeenCalledWith('terminal:error', expect.any(Function));
       
       // Wait for async listen to resolve
       await new Promise(resolve => setTimeout(resolve, 10));
@@ -392,7 +397,7 @@ describe('Terminal IPC Service', () => {
         onStateChange: handler
       });
       
-      expect(mockListen).toHaveBeenCalledWith('terminal:state', expect.any(Function));
+      expect(vi.mocked(listen)).toHaveBeenCalledWith('terminal:state', expect.any(Function));
       
       const mockState = {
         id: 'term-123',
@@ -428,14 +433,14 @@ describe('Terminal IPC Service', () => {
         ['term-789', false]
       ];
       
-      mockInvoke.mockResolvedValue(mockResults);
+      vi.mocked(invoke).mockResolvedValue(mockResults);
       
       const result = await terminalIPC.broadcastInput(
         ['term-123', 'term-456', 'term-789'],
         'echo "broadcast"\n'
       );
       
-      expect(mockInvoke).toHaveBeenCalledWith('broadcast_terminal_input', {
+      expect(vi.mocked(invoke)).toHaveBeenCalledWith('broadcast_terminal_input', {
         terminal_ids: ['term-123', 'term-456', 'term-789'],
         input_type: 'text',
         data: 'echo "broadcast"\n'
@@ -457,11 +462,11 @@ describe('Terminal IPC Service', () => {
         status: { Running: null }
       };
       
-      mockInvoke.mockResolvedValue(mockInfo);
+      vi.mocked(invoke).mockResolvedValue(mockInfo);
       
       const result = await terminalIPC.getProcessInfo('term-123');
       
-      expect(mockInvoke).toHaveBeenCalledWith('get_terminal_process_info', {
+      expect(vi.mocked(invoke)).toHaveBeenCalledWith('get_terminal_process_info', {
         terminal_id: 'term-123'
       });
       expect(result).toEqual(mockInfo);
@@ -483,11 +488,11 @@ describe('Terminal IPC Service', () => {
         uptime_seconds: 3600
       };
       
-      mockInvoke.mockResolvedValue(mockHealth);
+      vi.mocked(invoke).mockResolvedValue(mockHealth);
       
       const result = await terminalIPC.getHealth('term-123');
       
-      expect(mockInvoke).toHaveBeenCalledWith('monitor_terminal_health', {
+      expect(vi.mocked(invoke)).toHaveBeenCalledWith('monitor_terminal_health', {
         terminal_id: 'term-123'
       });
       expect(result).toEqual(mockHealth);
@@ -498,7 +503,7 @@ describe('Terminal IPC Service', () => {
     it('should restart terminal process', async () => {
       await terminalIPC.restartTerminal('term-123');
       
-      expect(mockInvoke).toHaveBeenCalledWith('restart_terminal_process', {
+      expect(vi.mocked(invoke)).toHaveBeenCalledWith('restart_terminal_process', {
         terminal_id: 'term-123'
       });
     });
@@ -527,7 +532,7 @@ describe('Terminal IPC Service', () => {
         last_activity: new Date().toISOString()
       };
       
-      mockInvoke
+      vi.mocked(invoke)
         .mockResolvedValueOnce(mockMetadata1)
         .mockResolvedValueOnce(mockMetadata2);
       
@@ -554,7 +559,7 @@ describe('Terminal IPC Service', () => {
   describe('error handling', () => {
     it('should propagate backend errors', async () => {
       const backendError = new Error('Backend error: Terminal process crashed');
-      mockInvoke.mockRejectedValue(backendError);
+      vi.mocked(invoke).mockRejectedValue(backendError);
       
       await expect(terminalIPC.sendInput('term-123', 'data'))
         .rejects.toThrow('Backend error: Terminal process crashed');
@@ -613,7 +618,7 @@ describe('Terminal IPC Service', () => {
         last_activity: new Date().toISOString()
       };
       
-      mockInvoke.mockResolvedValue(mockMetadata);
+      vi.mocked(invoke).mockResolvedValue(mockMetadata);
       
       await terminalIPC.createTerminal({ terminalId: 'term-123' });
       await terminalIPC.createTerminal({ terminalId: 'term-456' });
@@ -622,7 +627,7 @@ describe('Terminal IPC Service', () => {
       expect(terminalIPC.getTerminals().size).toBe(3);
       
       // Stop all terminals
-      mockInvoke.mockResolvedValue(undefined);
+      vi.mocked(invoke).mockResolvedValue(undefined);
       await terminalIPC.stopTerminal('term-123');
       await terminalIPC.stopTerminal('term-456');
       await terminalIPC.stopTerminal('term-789');

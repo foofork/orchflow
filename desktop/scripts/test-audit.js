@@ -10,7 +10,7 @@
  */
 
 import { readFileSync, writeFileSync, readdirSync, statSync } from 'fs';
-import { join, extname, dirname } from 'path';
+import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -43,7 +43,7 @@ class TestAuditor {
   }
 
   async run() {
-    console.log('🔍 Starting test audit...');
+    console.warn('🔍 Starting test audit...');
     
     this.scanTestFiles();
     this.scanSourceFiles();
@@ -54,11 +54,11 @@ class TestAuditor {
     this.generateRecommendations();
     this.outputResults();
     
-    console.log('✅ Test audit completed');
+    console.warn('✅ Test audit completed');
   }
 
   scanTestFiles() {
-    console.log('📂 Scanning test files...');
+    console.warn('📂 Scanning test files...');
     
     const scanDirectory = (dir, category) => {
       try {

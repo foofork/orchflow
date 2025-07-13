@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { ManagerClient, type Session, type Pane, type PaneType, type PluginInfo, type CommandHistoryEntry } from '../manager-client';
+import { ManagerClient, type Session, type Pane, type PluginInfo, type CommandHistoryEntry } from '../manager-client';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { createTypedMock, createVoidMock } from '@/test/mock-factory';

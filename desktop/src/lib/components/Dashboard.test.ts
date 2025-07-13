@@ -1,31 +1,22 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import { tick } from 'svelte';
+import { writable } from 'svelte/store';
 import Dashboard from './Dashboard.svelte';
 import { createMockManagerStores } from '@/test/store-mocks';
 import { buildSession, buildPane } from '@/test/test-data-builders';
 import { createAsyncMock, createAsyncVoidMock, createSyncMock } from '@/test/mock-factory';
 
 // Mock the manager store module
-vi.mock('$lib/stores/manager', () => {
-  const mockStore = createMockManagerStores();
-  return {
-    manager: mockStore.manager,
-    sessions: mockStore.sessions,
-    activeSession: mockStore.activeSession,
-    panes: mockStore.panes,
-    activePane: mockStore.activePane,
-    terminalOutputs: mockStore.terminalOutputs,
-    plugins: mockStore.plugins
-  };
-});
+vi.mock('$lib/stores/manager');
 
 // Import mocked manager and stores after mocking
-import { manager, sessions as sessionsStore, panes as panesStore } from '$lib/stores/manager';
+import * as managerModule from '$lib/stores/manager';
+import { manager } from '$lib/stores/manager';
 
 // Helper function to update manager state
 function updateManagerState(updates: any) {
-  (manager as any).update((state: any) => ({ ...state, ...updates }));
+  (managerModule.manager as any).update((state: any) => ({ ...state, ...updates }));
 }
 
 // Mock global prompt
@@ -37,8 +28,11 @@ describe('Dashboard Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     
-    // Reset manager store state
-    (manager as any).set({
+    // Set up mock stores
+    const mockStores = createMockManagerStores();
+    
+    // Create a writable store for the main manager state
+    const mockManagerStore = writable({
       sessions: [],
       panes: new Map(),
       activeSessionId: undefined,
@@ -47,6 +41,21 @@ describe('Dashboard Component', () => {
       terminalOutputs: new Map(),
       isConnected: true
     });
+    
+    // Mock all manager module exports with correct types
+    vi.mocked(managerModule).manager = mockManagerStore as any;
+    vi.mocked(managerModule).sessions = mockStores.sessions as any;
+    vi.mocked(managerModule).panes = mockStores.panes as any;
+    vi.mocked(managerModule).activeSession = mockStores.activeSession as any;
+    vi.mocked(managerModule).activePane = mockStores.activePane as any;
+    vi.mocked(managerModule).plugins = mockStores.plugins as any;
+    vi.mocked(managerModule).terminalOutputs = mockStores.terminalOutputs as any;
+    vi.mocked(managerModule).isConnected = mockStores.isConnected as any;
+    
+    // Mock manager functions that are called in the test
+    (manager as any).createSession = createAsyncMock();
+    (manager as any).createTerminal = createAsyncMock();
+    (manager as any).focusPane = createAsyncVoidMock();
     
     // Mock window functions
     global.prompt = mockPrompt as any;
@@ -206,13 +215,13 @@ describe('Dashboard Component', () => {
       ['pane3', buildPane({
         id: 'pane3',
         session_id: 'session1',
-        pane_type: 'FileTree' as any,
+        pane_type: 'FileExplorer',
         title: 'Files'
       })],
       ['pane4', buildPane({
         id: 'pane4',
         session_id: 'session1',
-        pane_type: 'Unknown' as any,
+        pane_type: { Custom: 'Unknown' },
         title: 'Other'
       })]
     ]);

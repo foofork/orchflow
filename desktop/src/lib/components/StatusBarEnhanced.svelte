@@ -26,7 +26,7 @@
     untracked?: number;
   }
   
-  interface SystemMetrics {
+  interface LocalSystemMetrics {
     cpu?: number;
     memory?: number;
     disk?: number;

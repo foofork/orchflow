@@ -351,7 +351,7 @@ describe('SearchPanel', () => {
 
   describe('Error Handling', () => {
     it('should handle search errors gracefully', async () => {
-      const consoleSpy = createTypedMock<(any) => void>();
+      const consoleSpy = createTypedMock<(arg0: any) => void>();
       vi.spyOn(console, 'error').mockImplementation(consoleSpy);
       
       // Mock the simulateSearch to throw an error
