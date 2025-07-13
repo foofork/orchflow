@@ -19,8 +19,17 @@ const PORT_RANGES = {
 const LOCK_FILE = path.join(__dirname, '../.port-locks.json');
 
 class PortManager {
+  static instance = null;
+  
   constructor() {
     this.locks = {};
+  }
+  
+  static getInstance() {
+    if (!PortManager.instance) {
+      PortManager.instance = new PortManager();
+    }
+    return PortManager.instance;
   }
 
   async init() {
@@ -45,6 +54,11 @@ class PortManager {
     });
     
     await this.saveLocks();
+  }
+  
+  // Alias for test compatibility
+  async cleanupStaleLocks() {
+    return this.cleanStaleLocks();
   }
 
   async saveLocks() {
@@ -94,6 +108,11 @@ class PortManager {
     
     throw new Error(`No available ports found in ${type} range (${range.start}-${range.end})`);
   }
+  
+  // Alias for test compatibility
+  async allocatePort(type = 'e2e') {
+    return this.findAvailablePort(type);
+  }
 
   async releasePort(port) {
     delete this.locks[port];
@@ -107,6 +126,11 @@ class PortManager {
       }
     });
     await this.saveLocks();
+  }
+  
+  // Alias for test compatibility
+  async releaseAll() {
+    return this.releaseAllForPid(process.pid);
   }
 }
 

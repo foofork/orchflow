@@ -1,0 +1,200 @@
+/**
+ * Test Context Manager for E2E Tests
+ * Provides isolated test environments with unique ports and data directories
+ */
+
+import { chromium, type Browser, type BrowserContext, type Page } from '@playwright/test';
+import { PortManager } from '../../../scripts/port-manager.js';
+import * as fs from 'fs/promises';
+import * as path from 'path';
+import { tmpdir } from 'os';
+
+export interface TestContextOptions {
+  headless?: boolean;
+  slowMo?: number;
+  video?: boolean;
+  trace?: boolean;
+  viewport?: { width: number; height: number };
+}
+
+export class TestContext {
+  private browser?: Browser;
+  private context?: BrowserContext;
+  private port?: number;
+  private dataDir?: string;
+  private pages: Page[] = [];
+  
+  public baseUrl: string = '';
+  
+  constructor(private options: TestContextOptions = {}) {
+    this.options = {
+      headless: true, // Always use headless mode in test environment
+      slowMo: 0,
+      video: false,
+      trace: false,
+      viewport: { width: 1280, height: 720 },
+      ...options
+    };
+  }
+  
+  async setup() {
+    // Allocate unique port
+    const portManager = PortManager.getInstance();
+    this.port = await portManager.allocatePort();
+    this.baseUrl = `http://localhost:${this.port}`;
+    
+    // Create isolated data directory
+    this.dataDir = path.join(tmpdir(), `orchflow-test-${Date.now()}-${Math.random().toString(36).substring(7)}`);
+    await fs.mkdir(this.dataDir, { recursive: true });
+    
+    // Launch browser with persistent context
+    this.context = await chromium.launchPersistentContext(this.dataDir, {
+      headless: this.options.headless,
+      slowMo: this.options.slowMo,
+      viewport: this.options.viewport,
+      recordVideo: this.options.video ? { dir: './test-results/videos' } : undefined,
+      ignoreHTTPSErrors: true,
+      locale: 'en-US',
+      timezoneId: 'UTC',
+      permissions: ['clipboard-read', 'clipboard-write'],
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-web-security'
+      ]
+    });
+    
+    // No separate browser instance when using persistent context
+    
+    if (this.options.trace) {
+      await this.context.tracing.start({
+        screenshots: true,
+        snapshots: true,
+        sources: true
+      });
+    }
+  }
+  
+  async teardown() {
+    // Close all pages
+    for (const page of this.pages) {
+      await page.close().catch(() => {});
+    }
+    
+    // Stop tracing if enabled
+    if (this.options.trace && this.context) {
+      await this.context.tracing.stop({
+        path: `./test-results/traces/trace-${Date.now()}.zip`
+      });
+    }
+    
+    // Close context (browser closes automatically with persistent context)
+    await this.context?.close();
+    
+    // Clean up data directory
+    if (this.dataDir) {
+      await fs.rm(this.dataDir, { recursive: true, force: true }).catch(() => {});
+    }
+    
+    // Release port
+    if (this.port) {
+      const portManager = PortManager.getInstance();
+      await portManager.releasePort(this.port);
+    }
+  }
+  
+  async createPage(): Promise<{ page: Page; baseUrl: string }> {
+    if (!this.context) {
+      throw new Error('Context not initialized. Call setup() first.');
+    }
+    
+    const page = await this.context.newPage();
+    this.pages.push(page);
+    
+    // Set up default event handlers
+    page.on('pageerror', (error) => {
+      console.error(`Page error: ${error.message}`);
+    });
+    
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') {
+        console.error(`Console error: ${msg.text()}`);
+      }
+    });
+    
+    return { page, baseUrl: this.baseUrl };
+  }
+  
+  async reset() {
+    // Close all pages except the first
+    while (this.pages.length > 1) {
+      const page = this.pages.pop();
+      await page?.close();
+    }
+    
+    // Clear cookies and local storage
+    if (this.context) {
+      await this.context.clearCookies();
+      await this.context.clearPermissions();
+    }
+    
+    // Navigate first page to blank
+    if (this.pages[0]) {
+      await this.pages[0].goto('about:blank');
+    }
+  }
+  
+  getPort(): number | undefined {
+    return this.port;
+  }
+  
+  getDataDir(): string | undefined {
+    return this.dataDir;
+  }
+  
+  async takeScreenshot(name: string) {
+    for (let i = 0; i < this.pages.length; i++) {
+      const page = this.pages[i];
+      await page.screenshot({
+        path: `./test-results/screenshots/${name}-page-${i}.png`,
+        fullPage: true
+      });
+    }
+  }
+  
+  async captureState(testName: string) {
+    const stateDir = `./test-results/state/${testName}-${Date.now()}`;
+    await fs.mkdir(stateDir, { recursive: true });
+    
+    // Screenshot all pages
+    await this.takeScreenshot(`${stateDir}/screenshot`);
+    
+    // Save page content
+    for (let i = 0; i < this.pages.length; i++) {
+      const page = this.pages[i];
+      const html = await page.content();
+      await fs.writeFile(`${stateDir}/page-${i}.html`, html);
+      
+      // Save console logs
+      const logs = await page.evaluate(() => {
+        return (window as any).__consoleLogs || [];
+      });
+      await fs.writeFile(`${stateDir}/console-${i}.json`, JSON.stringify(logs, null, 2));
+    }
+  }
+}
+
+// Helper function for quick test setup
+export async function withTestContext<T>(
+  testFn: (context: TestContext) => Promise<T>,
+  options?: TestContextOptions
+): Promise<T> {
+  const context = new TestContext(options);
+  try {
+    await context.setup();
+    return await testFn(context);
+  } finally {
+    await context.teardown();
+  }
+}
