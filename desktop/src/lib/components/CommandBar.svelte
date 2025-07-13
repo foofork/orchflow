@@ -199,7 +199,7 @@
         autocomplete="off"
       />
       {#if loading}
-        <div class="spinner" />
+        <div class="spinner"></div>
       {/if}
     </div>
   </form>

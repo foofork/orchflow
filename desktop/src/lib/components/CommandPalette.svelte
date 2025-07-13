@@ -333,7 +333,7 @@
 </script>
 
 {#if show}
-  <div class="command-palette-overlay" on:click={close} transition:fade={{ duration: 150 }} role="dialog" aria-modal="true" aria-labelledby="command-palette-title">
+  <div class="command-palette-overlay" on:click={close} transition:fade={{ duration: 150 }} role="dialog" aria-modal="true" aria-labelledby="command-palette-title" tabindex="-1">
     <div class="command-palette" on:click|stopPropagation>
       <h2 id="command-palette-title" class="visually-hidden">Command Palette</h2>
       <div class="search-container">

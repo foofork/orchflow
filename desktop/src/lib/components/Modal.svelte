@@ -38,12 +38,14 @@
     role="dialog"
     aria-modal="true"
     aria-label={title || "Modal Dialog"}
+    tabindex="-1"
     transition:fade={{ duration: 200 }}
   >
     <div 
       class="modal-content"
       style="max-width: {width}"
       on:click={handleModalContentClick}
+      on:keydown={handleKeydown}
       role="document"
       transition:scale={{ duration: 200, start: 0.95 }}
     >

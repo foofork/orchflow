@@ -161,8 +161,8 @@ export class TestContext {
     // Install Tauri mock before navigating
     await page.addInitScript(() => {
       // Install Tauri mock if not already present
-      if (typeof window !== 'undefined' && !window.__TAURI__) {
-        const mockInvoke = async (cmd, args) => {
+      if (typeof window !== 'undefined' && !(window as any).__TAURI__) {
+        const mockInvoke = async (cmd: string, args?: any) => {
           console.log(`[TauriMock] invoke called: ${cmd}`, args);
           
           switch (cmd) {
@@ -279,23 +279,23 @@ export class TestContext {
           }
         };
 
-        const mockTransformCallback = (callback) => callback;
+        const mockTransformCallback = (callback: any) => callback;
 
         // Mock the window object for Tauri app
-        window.__TAURI__ = { 
+        (window as any).__TAURI__ = { 
           invoke: mockInvoke,
-          convertFileSrc: (src) => src,
+          convertFileSrc: (src: string) => src,
           transformCallback: mockTransformCallback
         };
-        window.__TAURI_INTERNALS__ = { 
+        (window as any).__TAURI_INTERNALS__ = { 
           invoke: mockInvoke,
           transformCallback: mockTransformCallback
         };
         
         // Mock Tauri plugin-fs module
-        if (!window.__TAURI_PLUGIN_FS__) {
-          window.__TAURI_PLUGIN_FS__ = {
-            readDir: async (path) => {
+        if (!(window as any).__TAURI_PLUGIN_FS__) {
+          (window as any).__TAURI_PLUGIN_FS__ = {
+            readDir: async (path: string) => {
               // Return array with proper structure for FileExplorer
               const entries = [
                 { 
@@ -317,15 +317,15 @@ export class TestContext {
         }
         
         // Mock Tauri app window API
-        window.__TAURI_METADATA__ = {
+        (window as any).__TAURI_METADATA__ = {
           __currentWindow: {
             label: 'main',
             currentWindow: () => ({
               label: 'main',
               isFullscreen: () => Promise.resolve(false),
-              setFullscreen: (fullscreen) => Promise.resolve(),
-              listen: (event, handler) => Promise.resolve(() => {}),
-              emit: (event, payload) => Promise.resolve()
+              setFullscreen: (fullscreen: boolean) => Promise.resolve(),
+              listen: (event: string, handler: any) => Promise.resolve(() => {}),
+              emit: (event: string, payload?: any) => Promise.resolve()
             })
           }
         };
