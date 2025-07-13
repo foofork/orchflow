@@ -12,7 +12,7 @@ const __dirname = path.dirname(__filename);
 const PORT_RANGES = {
   dev: { start: 5173, end: 5180 },
   test: { start: 5181, end: 5190 },
-  e2e: { start: 5191, end: 5200 },
+  e2e: { start: 5300, end: 5320 },
   visual: { start: 5201, end: 5210 }
 };
 

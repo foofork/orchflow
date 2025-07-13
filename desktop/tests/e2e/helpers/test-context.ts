@@ -5,6 +5,8 @@
 
 import { chromium, type Browser, type BrowserContext, type Page } from '@playwright/test';
 import { PortManager } from '../../../scripts/port-manager.js';
+import { DevServerManager, createDevServer } from './dev-server.js';
+import { installTauriMock, type TauriMockConfig } from './tauri-mock.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { tmpdir } from 'os';
@@ -15,6 +17,7 @@ export interface TestContextOptions {
   video?: boolean;
   trace?: boolean;
   viewport?: { width: number; height: number };
+  tauriMock?: TauriMockConfig;
 }
 
 export class TestContext {
@@ -23,6 +26,7 @@ export class TestContext {
   private port?: number;
   private dataDir?: string;
   private pages: Page[] = [];
+  private devServer?: DevServerManager;
   
   public baseUrl: string = '';
   
@@ -42,6 +46,10 @@ export class TestContext {
     const portManager = PortManager.getInstance();
     this.port = await portManager.allocatePort();
     this.baseUrl = `http://localhost:${this.port}`;
+    
+    // Start dev server on allocated port
+    console.log(`🔧 Setting up test context with port ${this.port}`);
+    this.devServer = await createDevServer({ port: this.port });
     
     // Create isolated data directory
     this.dataDir = path.join(tmpdir(), `orchflow-test-${Date.now()}-${Math.random().toString(36).substring(7)}`);
@@ -77,31 +85,69 @@ export class TestContext {
   }
   
   async teardown() {
-    // Close all pages
+    console.log(`🧹 Tearing down test context (port: ${this.port})...`);
+    
+    // Close all pages first
     for (const page of this.pages) {
-      await page.close().catch(() => {});
+      try {
+        await page.close();
+      } catch (error) {
+        console.error('Error closing page:', error);
+      }
     }
+    this.pages = [];
     
     // Stop tracing if enabled
     if (this.options.trace && this.context) {
-      await this.context.tracing.stop({
-        path: `./test-results/traces/trace-${Date.now()}.zip`
-      });
+      try {
+        await this.context.tracing.stop({
+          path: `./test-results/traces/trace-${Date.now()}.zip`
+        });
+      } catch (error) {
+        console.error('Error stopping trace:', error);
+      }
     }
     
     // Close context (browser closes automatically with persistent context)
-    await this.context?.close();
+    try {
+      await this.context?.close();
+    } catch (error) {
+      console.error('Error closing context:', error);
+    }
+    this.context = undefined;
+    
+    // Stop dev server with error handling
+    if (this.devServer) {
+      try {
+        await this.devServer.stop();
+      } catch (error) {
+        console.error('Error stopping dev server:', error);
+      }
+      this.devServer = undefined;
+    }
     
     // Clean up data directory
     if (this.dataDir) {
-      await fs.rm(this.dataDir, { recursive: true, force: true }).catch(() => {});
+      try {
+        await fs.rm(this.dataDir, { recursive: true, force: true });
+      } catch (error) {
+        console.error('Error cleaning data directory:', error);
+      }
+      this.dataDir = undefined;
     }
     
     // Release port
     if (this.port) {
-      const portManager = PortManager.getInstance();
-      await portManager.releasePort(this.port);
+      try {
+        const portManager = PortManager.getInstance();
+        await portManager.releasePort(this.port);
+      } catch (error) {
+        console.error('Error releasing port:', error);
+      }
+      this.port = undefined;
     }
+    
+    console.log(`✅ Test context teardown complete`);
   }
   
   async createPage(): Promise<{ page: Page; baseUrl: string }> {
@@ -111,6 +157,141 @@ export class TestContext {
     
     const page = await this.context.newPage();
     this.pages.push(page);
+    
+    // Install Tauri mock before navigating
+    await page.addInitScript(() => {
+      // Install Tauri mock if not already present
+      if (typeof window !== 'undefined' && !window.__TAURI__) {
+        const mockInvoke = async (cmd, args) => {
+          console.log(`[TauriMock] invoke called: ${cmd}`, args);
+          
+          switch (cmd) {
+            // Flow management
+            case 'get_flows':
+              return [{ id: 1, name: 'Test Flow', description: 'E2E test flow' }];
+            case 'create_flow':
+              return { id: 2, ...args, created_at: new Date().toISOString() };
+            
+            // App info
+            case 'get_app_version':
+              return '1.0.0-e2e';
+            case 'get_settings':
+              return {};
+            
+            // Plugin management
+            case 'get_plugin_statuses':
+            case 'load_plugin_statuses':
+              // Return array that supports filter method
+              const plugins = [
+                { name: 'test-plugin', status: 'active', version: '1.0.0' }
+              ];
+              return plugins;
+            
+            // Update management
+            case 'check_for_updates':
+              return { 
+                available: false, 
+                version: '1.0.0-e2e',
+                current_version: '1.0.0-e2e'
+              };
+            
+            // Session management
+            case 'subscribe':
+              return { success: true, data: [] };
+            case 'get_sessions':
+            case 'refresh_sessions':
+              return [];
+            case 'manager_client_subscribe':
+              return { sessions: [] };
+            case 'get_current_session':
+              return { 
+                id: 'e2e-session',
+                name: 'E2E Test Session',
+                active: true
+              };
+            
+            // File system operations
+            case 'read_directory':
+            case 'load_directory':
+              // Return array that supports sort method
+              const entries = [
+                { name: 'test-file.txt', type: 'file', size: 1024 },
+                { name: 'test-folder', type: 'directory', size: 0 }
+              ];
+              return entries;
+            case 'read_file':
+              return 'Mock file content';
+            case 'write_file':
+              return true;
+            case 'file_exists':
+              return true;
+            
+            // Git operations
+            case 'git_status':
+              return {
+                modified: ['src/test.js'],
+                staged: [],
+                untracked: ['new-file.txt']
+              };
+            case 'git_commit':
+              return {
+                hash: 'abc123',
+                message: args?.message || 'Test commit',
+                timestamp: new Date().toISOString()
+              };
+            
+            // Terminal operations
+            case 'run_command':
+            case 'execute_command':
+              return {
+                stdout: 'Mock command output',
+                stderr: '',
+                exit_code: 0
+              };
+            
+            // Workspace operations  
+            case 'get_workspace_info':
+              return {
+                path: '/mock/workspace',
+                name: 'E2E Test Workspace'
+              };
+            
+            default:
+              console.warn(`[TauriMock] Unhandled command: ${cmd}`);
+              // Return empty object instead of null to prevent null reference errors
+              return {};
+          }
+        };
+
+        const mockTransformCallback = (callback) => callback;
+
+        // Mock the window object for Tauri app
+        window.__TAURI__ = { 
+          invoke: mockInvoke,
+          convertFileSrc: (src) => src,
+          transformCallback: mockTransformCallback
+        };
+        window.__TAURI_INTERNALS__ = { 
+          invoke: mockInvoke,
+          transformCallback: mockTransformCallback
+        };
+        
+        // Mock Tauri app window API
+        window.__TAURI_METADATA__ = {
+          __currentWindow: {
+            label: 'main',
+            currentWindow: () => ({
+              label: 'main',
+              isFullscreen: () => Promise.resolve(false),
+              setFullscreen: (fullscreen) => Promise.resolve(),
+              listen: (event, handler) => Promise.resolve(() => {}),
+              emit: (event, payload) => Promise.resolve()
+            })
+          }
+        };
+        console.log('[TauriMock] Tauri mock installed for E2E testing');
+      }
+    });
     
     // Set up default event handlers
     page.on('pageerror', (error) => {
