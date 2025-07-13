@@ -108,7 +108,7 @@
     </div>
   {:else}
     <div class="plugin-grid">
-      {#each availablePlugins as plugin}
+      {#each availablePlugins as plugin (plugin.id)}
         <div class="plugin-card" class:enabled={plugin.loaded}>
           <div class="plugin-header">
             <span class="plugin-icon">{getPluginIcon(plugin.id)}</span>
@@ -176,7 +176,7 @@
           <div class="detail-section">
             <h4>Capabilities</h4>
             <ul class="permissions-list">
-              {#each selectedMetadata.capabilities as capability}
+              {#each selectedMetadata.capabilities as capability (capability)}
                 <li>{capability}</li>
               {/each}
             </ul>

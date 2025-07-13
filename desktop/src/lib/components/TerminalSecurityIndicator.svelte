@@ -93,7 +93,7 @@
       
       <!-- Quick tier selector -->
       <div class="tier-selector">
-        {#each Object.entries(securityTiers) as [tier, config]}
+        {#each Object.entries(securityTiers) as [tier, config] (tier)}
           <!-- <Tooltip content={config.description}> -->
             <button
               class="tier-option"

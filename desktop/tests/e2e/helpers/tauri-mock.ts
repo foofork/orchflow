@@ -161,7 +161,7 @@ export function createTauriMock(config: TauriMockConfig = {}) {
     // Window mock
     window: {
       appWindow: {
-        listen: (event: string, handler: Function) => {
+        listen: (event: string, handler: (...args: any[]) => any) => {
           console.log(`[TauriMock] Window listener registered: ${event}`);
           return Promise.resolve(() => {});
         },

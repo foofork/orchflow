@@ -106,7 +106,7 @@ const terminalMock = createMock.api('terminal-integration', {
     let processRunning = true;
     
     return {
-      on: (event: string, handler: Function) => {
+      on: (event: string, handler: (...args: any[]) => any) => {
         if (!listeners.has(event)) {
           listeners.set(event, new Set());
         }
@@ -134,7 +134,7 @@ const terminalMock = createMock.api('terminal-integration', {
 // Store mocks for integration testing
 const storeMocks = {
   flows: createMock.store('flows-store', {
-    subscribe: vi.fn((handler: Function) => {
+    subscribe: vi.fn((handler: (...args: any[]) => any) => {
       handler([
         { id: 1, name: 'Test Flow', description: 'Integration test flow' }
       ]);
@@ -145,7 +145,7 @@ const storeMocks = {
   }, [], { tags: ['integration', 'store'] }),
   
   terminal: createMock.store('terminal-store', {
-    subscribe: vi.fn((handler: Function) => {
+    subscribe: vi.fn((handler: (...args: any[]) => any) => {
       handler({ output: '', isRunning: false });
       return () => {};
     }),
