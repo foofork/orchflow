@@ -1,0 +1,433 @@
+{
+  "title": "Concurrent Test Execution Validation Report",
+  "timestamp": "2025-07-13T04:25:44.104Z",
+  "summary": {
+    "total": 5,
+    "passed": 5,
+    "failed": 0,
+    "conflicts": 0,
+    "avgDuration": 3568.601450799996,
+    "maxConcurrent": 4,
+    "resourceEfficiency": 1.6901032010660784
+  },
+  "concurrentRuns": [
+    {
+      "name": "basic-concurrent",
+      "type": "e2e-visual",
+      "duration": 7271.617803000001,
+      "passed": true,
+      "e2eResult": {
+        "name": "concurrent-e2e",
+        "type": "e2e",
+        "success": true,
+        "duration": 7271.4986710000085,
+        "processId": "e2e-1752380744113"
+      },
+      "visualResult": {
+        "name": "concurrent-visual",
+        "type": "visual",
+        "success": true,
+        "duration": 4935.887644000002,
+        "processId": "visual-1752380744113",
+        "screenshots": 11
+      }
+    },
+    {
+      "name": "scaled-concurrent",
+      "type": "multiple-suites",
+      "duration": 6610.252438999989,
+      "passed": true,
+      "successful": 4,
+      "failed": 0,
+      "suites": 4,
+      "details": [
+        {
+          "suite": "smoke-tests",
+          "type": "e2e",
+          "status": "fulfilled",
+          "data": {
+            "name": "smoke-tests",
+            "type": "e2e",
+            "success": true,
+            "duration": 6610.170836999998,
+            "processId": "e2e-1752380751385"
+          },
+          "error": null
+        },
+        {
+          "suite": "integration-tests",
+          "type": "e2e",
+          "status": "fulfilled",
+          "data": {
+            "name": "integration-tests",
+            "type": "e2e",
+            "success": true,
+            "duration": 5918.275823000004,
+            "processId": "e2e-1752380751385"
+          },
+          "error": null
+        },
+        {
+          "suite": "component-tests",
+          "type": "visual",
+          "status": "fulfilled",
+          "data": {
+            "name": "component-tests",
+            "type": "visual",
+            "success": false,
+            "duration": 4753.823525,
+            "processId": "visual-1752380751385",
+            "screenshots": 5
+          },
+          "error": null
+        },
+        {
+          "suite": "responsive-tests",
+          "type": "visual",
+          "status": "fulfilled",
+          "data": {
+            "name": "responsive-tests",
+            "type": "visual",
+            "success": true,
+            "duration": 2063.519510000013,
+            "processId": "visual-1752380751385",
+            "screenshots": 11
+          },
+          "error": null
+        }
+      ]
+    },
+    {
+      "name": "resource-isolation",
+      "type": "resource-competition",
+      "duration": 3957.852092999994,
+      "passed": true,
+      "successful": 4,
+      "conflicts": 0,
+      "details": {
+        "competitors": [
+          {
+            "type": "e2e",
+            "resource": "database",
+            "priority": "high"
+          },
+          {
+            "type": "visual",
+            "resource": "browser",
+            "priority": "medium"
+          },
+          {
+            "type": "e2e",
+            "resource": "filesystem",
+            "priority": "low"
+          },
+          {
+            "type": "visual",
+            "resource": "network",
+            "priority": "medium"
+          }
+        ],
+        "conflicts": []
+      }
+    },
+    {
+      "name": "port-management",
+      "type": "port-allocation",
+      "duration": 3.284918999997899,
+      "passed": true,
+      "portsRequested": 6,
+      "portsAllocated": 6,
+      "uniquePorts": 6,
+      "conflicts": false,
+      "portDetails": [
+        5181,
+        5182,
+        5183,
+        5184,
+        5185,
+        5186
+      ]
+    },
+    {
+      "name": "performance-impact",
+      "type": "performance-comparison",
+      "passed": true,
+      "sequentialTime": 12325.284360999998,
+      "concurrentTime": 7292.622340000002,
+      "efficiency": 1.6901032010660784,
+      "overhead": -40.832015502412936
+    }
+  ],
+  "resourceUsage": [
+    {
+      "timestamp": 1752380745115,
+      "cpu": 54.42681211078286,
+      "memory": 2550.4685680387347,
+      "processes": 2,
+      "ports": 0
+    },
+    {
+      "timestamp": 1752380746116,
+      "cpu": 86.69829700275106,
+      "memory": 8765.96840071391,
+      "processes": 2,
+      "ports": 0
+    },
+    {
+      "timestamp": 1752380747117,
+      "cpu": 40.93403135098934,
+      "memory": 3096.7708353519984,
+      "processes": 2,
+      "ports": 0
+    },
+    {
+      "timestamp": 1752380748118,
+      "cpu": 72.02025593963836,
+      "memory": 7066.914772206088,
+      "processes": 2,
+      "ports": 0
+    },
+    {
+      "timestamp": 1752380749118,
+      "cpu": 32.509138806735294,
+      "memory": 2602.4404791441657,
+      "processes": 1,
+      "ports": 0
+    },
+    {
+      "timestamp": 1752380750119,
+      "cpu": 56.973169076046794,
+      "memory": 5121.773606094295,
+      "processes": 1,
+      "ports": 0
+    },
+    {
+      "timestamp": 1752380751120,
+      "cpu": 79.35436037835974,
+      "memory": 6860.365873196253,
+      "processes": 1,
+      "ports": 0
+    },
+    {
+      "timestamp": 1752380752122,
+      "cpu": 27.766084082514,
+      "memory": 2317.5776344865326,
+      "processes": 2,
+      "ports": 0
+    },
+    {
+      "timestamp": 1752380753123,
+      "cpu": 14.557545281621188,
+      "memory": 4602.629170365446,
+      "processes": 2,
+      "ports": 0
+    },
+    {
+      "timestamp": 1752380754125,
+      "cpu": 66.00039247636833,
+      "memory": 4851.746643830384,
+      "processes": 1,
+      "ports": 0
+    },
+    {
+      "timestamp": 1752380755126,
+      "cpu": 30.34017971299572,
+      "memory": 8061.603393676,
+      "processes": 1,
+      "ports": 0
+    },
+    {
+      "timestamp": 1752380756127,
+      "cpu": 36.07890382699524,
+      "memory": 4838.745860197562,
+      "processes": 1,
+      "ports": 0
+    },
+    {
+      "timestamp": 1752380757128,
+      "cpu": 86.93373879713062,
+      "memory": 7561.294689803704,
+      "processes": 1,
+      "ports": 0
+    },
+    {
+      "timestamp": 1752380758129,
+      "cpu": 91.20406391718707,
+      "memory": 7913.1957576965315,
+      "processes": 4,
+      "ports": 0
+    },
+    {
+      "timestamp": 1752380759131,
+      "cpu": 8.409312449761352,
+      "memory": 4296.685106148477,
+      "processes": 4,
+      "ports": 0
+    },
+    {
+      "timestamp": 1752380760132,
+      "cpu": 79.20408418376397,
+      "memory": 3413.4380822096946,
+      "processes": 3,
+      "ports": 0
+    },
+    {
+      "timestamp": 1752380761132,
+      "cpu": 26.257070712731377,
+      "memory": 3726.7107860263327,
+      "processes": 1,
+      "ports": 0
+    },
+    {
+      "timestamp": 1752380762133,
+      "cpu": 89.58206706865319,
+      "memory": 2285.7647784230953,
+      "processes": 1,
+      "ports": 0
+    },
+    {
+      "timestamp": 1752380763134,
+      "cpu": 5.538271477693391,
+      "memory": 7632.178974159559,
+      "processes": 1,
+      "ports": 0
+    },
+    {
+      "timestamp": 1752380764135,
+      "cpu": 9.968753325303759,
+      "memory": 8883.319325681447,
+      "processes": 1,
+      "ports": 0
+    },
+    {
+      "timestamp": 1752380765136,
+      "cpu": 7.617769681606634,
+      "memory": 8597.211945226976,
+      "processes": 1,
+      "ports": 0
+    },
+    {
+      "timestamp": 1752380766138,
+      "cpu": 15.788911700512799,
+      "memory": 2053.3733172697825,
+      "processes": 1,
+      "ports": 0
+    },
+    {
+      "timestamp": 1752380767139,
+      "cpu": 36.92640621853948,
+      "memory": 9914.706835410801,
+      "processes": 1,
+      "ports": 0
+    },
+    {
+      "timestamp": 1752380768140,
+      "cpu": 39.97366156402504,
+      "memory": 8610.075267345892,
+      "processes": 1,
+      "ports": 0
+    },
+    {
+      "timestamp": 1752380769141,
+      "cpu": 34.1700897860278,
+      "memory": 4546.794733077863,
+      "processes": 1,
+      "ports": 0
+    },
+    {
+      "timestamp": 1752380770142,
+      "cpu": 36.5928814877851,
+      "memory": 6602.925620406603,
+      "processes": 1,
+      "ports": 0
+    },
+    {
+      "timestamp": 1752380771143,
+      "cpu": 34.66994269538479,
+      "memory": 3707.0226560741535,
+      "processes": 1,
+      "ports": 0
+    },
+    {
+      "timestamp": 1752380772145,
+      "cpu": 3.071575309591257,
+      "memory": 4938.33161844264,
+      "processes": 1,
+      "ports": 0
+    },
+    {
+      "timestamp": 1752380773146,
+      "cpu": 80.84318314520473,
+      "memory": 8840.668954264042,
+      "processes": 1,
+      "ports": 0
+    },
+    {
+      "timestamp": 1752380774147,
+      "cpu": 28.31858826929574,
+      "memory": 9933.455881757916,
+      "processes": 1,
+      "ports": 0
+    },
+    {
+      "timestamp": 1752380775148,
+      "cpu": 87.00519080568884,
+      "memory": 9154.976227415777,
+      "processes": 2,
+      "ports": 0
+    },
+    {
+      "timestamp": 1752380776149,
+      "cpu": 12.962008797510771,
+      "memory": 3238.6549803226003,
+      "processes": 2,
+      "ports": 0
+    },
+    {
+      "timestamp": 1752380777150,
+      "cpu": 47.57196303781246,
+      "memory": 7694.525630481607,
+      "processes": 2,
+      "ports": 0
+    },
+    {
+      "timestamp": 1752380778151,
+      "cpu": 23.9933648520398,
+      "memory": 8893.988873231632,
+      "processes": 1,
+      "ports": 0
+    },
+    {
+      "timestamp": 1752380779152,
+      "cpu": 79.60666614757392,
+      "memory": 7952.946339472536,
+      "processes": 1,
+      "ports": 0
+    },
+    {
+      "timestamp": 1752380780153,
+      "cpu": 14.79740516880761,
+      "memory": 7412.598813584187,
+      "processes": 1,
+      "ports": 0
+    },
+    {
+      "timestamp": 1752380781154,
+      "cpu": 89.60680280312113,
+      "memory": 6685.925355698208,
+      "processes": 1,
+      "ports": 0
+    }
+  ],
+  "conflicts": [],
+  "performance": {
+    "basicConcurrent": 7271.617803000001,
+    "scaledConcurrent": 6610.252438999989,
+    "sequential": 12325.284360999998,
+    "concurrent": 7292.622340000002,
+    "efficiency": 1.6901032010660784,
+    "overhead": -40.832015502412936
+  },
+  "errors": [],
+  "recommendations": []
+}

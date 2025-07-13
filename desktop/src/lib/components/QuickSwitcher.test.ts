@@ -7,7 +7,7 @@ import { createTypedMock, createSyncMock, createAsyncMock } from '@/test/mock-fa
 
 describe('QuickSwitcher', () => {
   let user: ReturnType<typeof userEvent.setup>;
-  let cleanup: Array<() => void> = [];
+  const cleanup: Array<() => void> = [];
   
   beforeEach(() => {
     user = userEvent.setup();

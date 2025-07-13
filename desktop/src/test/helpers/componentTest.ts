@@ -1,4 +1,5 @@
-import { render, RenderResult } from '@testing-library/svelte';
+import type { RenderResult } from '@testing-library/svelte';
+import { render } from '@testing-library/svelte';
 import { vi } from 'vitest';
 import type { ComponentType } from 'svelte';
 
@@ -35,20 +36,20 @@ export function renderComponent<T extends ComponentType>(
   
   // Setup mocks if needed
   if (mocks.tauri) {
-    const { mockInvoke } = require('../utils') as UtilsModule;
+    const { mockInvoke } = await import('../utils') as UtilsModule;
     mockInvoke(mocks.tauri);
   }
   
   if (mocks.terminal) {
     // Terminal-specific setup
     vi.mock('@xterm/xterm', () => ({
-      Terminal: (require('../mocks/terminal') as TerminalMocks).MockTerminal,
+      Terminal: (await import('../mocks/terminal') as TerminalMocks).MockTerminal,
     }));
   }
   
   if (mocks.canvas) {
     // Canvas-specific setup
-    const { mockCanvasGetContext } = require('../utils/canvas') as CanvasModule;
+    const { mockCanvasGetContext } = await import('../utils/canvas') as CanvasModule;
     mockCanvasGetContext();
   }
   
@@ -56,7 +57,13 @@ export function renderComponent<T extends ComponentType>(
   
   // Add helper to update props
   const updateProps = async (newProps: Partial<any>) => {
-    result.component.$set(newProps);
+    // Check if component has $set method (Svelte 4 style)
+    if (result.component && typeof (result.component as any).$set === 'function') {
+      (result.component as any).$set(newProps);
+    } else {
+      // For Svelte 5 or components without $set, use rerender
+      await result.rerender(newProps);
+    }
     await vi.waitFor(() => {
       // Wait for Svelte to update
     });

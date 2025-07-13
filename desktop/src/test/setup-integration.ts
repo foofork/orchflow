@@ -32,6 +32,21 @@ const tauriAPI = createMock.api('tauri-integration', {
         };
       case 'get_terminal_output':
         return 'Terminal output for integration test\n';
+      case 'git_status':
+        return { 
+          modified: ['/project/src/main.js'],
+          staged: [],
+          untracked: [] 
+        };
+      case 'git_add_all':
+        return true;
+      case 'git_commit':
+        return { 
+          hash: 'abc123',
+          sha: 'abc123',
+          message: args.message,
+          timestamp: new Date().toISOString()
+        };
       default:
         return null;
     }

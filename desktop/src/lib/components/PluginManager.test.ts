@@ -21,8 +21,8 @@ function createMockPlugin(overrides = {}) {
 }
 
 // Mock the stores module  
-vi.mock('$lib/stores/manager', () => {
-  const { writable, derived } = require('svelte/store');
+vi.mock('$lib/stores/manager', async () => {
+  const { writable, derived } = await import('svelte/store');
   
   const mockPluginsStore = writable([]);
   const mockLoadedPluginsStore = derived(mockPluginsStore, ($plugins: any[]) => $plugins.filter((p: any) => p.loaded));
@@ -31,7 +31,7 @@ vi.mock('$lib/stores/manager', () => {
     refreshPlugins: createAsyncMock<[], void>(undefined),
     loadPlugin: createAsyncMock<[string], void>(undefined),
     unloadPlugin: createAsyncMock<[string], void>(undefined),
-    subscribe: createTypedMock<[fn: (value: any) => void], () => void>()
+    subscribe: createTypedMock<(fn: (value: any) => void) => () => void>()
   };
   
   return {

@@ -2,7 +2,8 @@
   import { onMount, onDestroy, createEventDispatcher } from 'svelte';
   import { derived, writable } from 'svelte/store';
   import { invoke } from '@tauri-apps/api/core';
-  import { listen, UnlistenFn } from '@tauri-apps/api/event';
+  import type { UnlistenFn } from '@tauri-apps/api/event';
+  import { listen } from '@tauri-apps/api/event';
   
   const dispatch = createEventDispatcher();
   

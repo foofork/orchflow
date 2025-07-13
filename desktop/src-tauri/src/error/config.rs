@@ -8,12 +8,16 @@ use thiserror::Error;
 pub enum ConfigError {
     #[error("Configuration error: {key} - {reason}")]
     GenericError { key: String, reason: String },
-    
+
     #[error("Configuration error in {component}: {reason}")]
     ComponentError { component: String, reason: String },
-    
+
     #[error("Invalid configuration value: {key} = {value} - {reason}")]
-    InvalidValue { key: String, value: String, reason: String },
+    InvalidValue {
+        key: String,
+        value: String,
+        reason: String,
+    },
 }
 
 impl ConfigError {
@@ -24,7 +28,7 @@ impl ConfigError {
             reason: reason.to_string(),
         }
     }
-    
+
     /// Helper function to create component config error
     pub fn component_error(component: &str, reason: &str) -> Self {
         Self::ComponentError {
@@ -32,7 +36,7 @@ impl ConfigError {
             reason: reason.to_string(),
         }
     }
-    
+
     /// Helper function to create invalid value error
     pub fn invalid_value(key: &str, value: &str, reason: &str) -> Self {
         Self::InvalidValue {

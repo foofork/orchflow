@@ -18,7 +18,7 @@ vi.mock('svelte/store', () => ({
 }));
 
 describe('Theme Service', () => {
-  let cleanup: Array<() => void> = [];
+  const cleanup: Array<() => void> = [];
   let mockSetAttribute: any;
   let mockAddEventListener: any;
 

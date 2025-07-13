@@ -15,8 +15,7 @@ import { vi, type MockedFunction, type Mock } from 'vitest';
 export function createMockFunction<T extends (...args: any[]) => any>(
   implementation?: T
 ): MockedFunction<T> {
-  const mock = vi.fn(implementation);
-  return mock as MockedFunction<T>;
+  return vi.fn(implementation) as unknown as MockedFunction<T>;
 }
 
 
@@ -28,14 +27,14 @@ export function createMockFunction<T extends (...args: any[]) => any>(
 export function createAsyncMock<TArgs extends any[], TReturn>(
   resolvedValue?: TReturn
 ): MockedFunction<(...args: TArgs) => Promise<TReturn>> {
-  const mock = vi.fn() as MockedFunction<(...args: TArgs) => Promise<TReturn>>;
+  const mock = vi.fn();
   if (resolvedValue !== undefined) {
     mock.mockResolvedValue(resolvedValue as any);
   } else {
     // Always return a Promise, even for void
     mock.mockResolvedValue(undefined as any);
   }
-  return mock;
+  return mock as unknown as MockedFunction<(...args: TArgs) => Promise<TReturn>>;
 }
 
 /**
@@ -46,11 +45,11 @@ export function createAsyncMock<TArgs extends any[], TReturn>(
 export function createSyncMock<TArgs extends any[], TReturn>(
   returnValue?: TReturn
 ): MockedFunction<(...args: TArgs) => TReturn> {
-  const mock = vi.fn() as MockedFunction<(...args: TArgs) => TReturn>;
+  const mock = vi.fn();
   if (returnValue !== undefined) {
     mock.mockReturnValue(returnValue);
   }
-  return mock;
+  return mock as unknown as MockedFunction<(...args: TArgs) => TReturn>;
 }
 
 /**
@@ -61,11 +60,11 @@ export function createSyncMock<TArgs extends any[], TReturn>(
 export function createThrowingMock<TArgs extends any[]>(
   error: Error | string
 ): MockedFunction<(...args: TArgs) => never> {
-  const mock = vi.fn() as MockedFunction<(...args: TArgs) => never>;
+  const mock = vi.fn();
   mock.mockImplementation(() => {
     throw typeof error === 'string' ? new Error(error) : error;
   });
-  return mock;
+  return mock as unknown as MockedFunction<(...args: TArgs) => never>;
 }
 
 /**
@@ -76,9 +75,9 @@ export function createThrowingMock<TArgs extends any[]>(
 export function createRejectingMock<TArgs extends any[]>(
   error: Error | string
 ): MockedFunction<(...args: TArgs) => Promise<never>> {
-  const mock = vi.fn() as MockedFunction<(...args: TArgs) => Promise<never>>;
+  const mock = vi.fn();
   mock.mockRejectedValue(typeof error === 'string' ? new Error(error) : error);
-  return mock;
+  return mock as unknown as MockedFunction<(...args: TArgs) => Promise<never>>;
 }
 
 /**
@@ -89,9 +88,9 @@ export function createRejectingMock<TArgs extends any[]>(
 export function createSequenceMock<TArgs extends any[], TReturn>(
   values: TReturn[]
 ): MockedFunction<(...args: TArgs) => TReturn> {
-  const mock = vi.fn() as MockedFunction<(...args: TArgs) => TReturn>;
+  const mock = vi.fn();
   values.forEach(value => mock.mockReturnValueOnce(value));
-  return mock;
+  return mock as unknown as MockedFunction<(...args: TArgs) => TReturn>;
 }
 
 /**
@@ -102,9 +101,9 @@ export function createSequenceMock<TArgs extends any[], TReturn>(
 export function createAsyncSequenceMock<TArgs extends any[], TReturn>(
   values: TReturn[]
 ): MockedFunction<(...args: TArgs) => Promise<TReturn>> {
-  const mock = vi.fn() as MockedFunction<(...args: TArgs) => Promise<TReturn>>;
+  const mock = vi.fn();
   values.forEach(value => mock.mockResolvedValueOnce(value as any));
-  return mock;
+  return mock as unknown as MockedFunction<(...args: TArgs) => Promise<TReturn>>;
 }
 
 /**
@@ -112,7 +111,7 @@ export function createAsyncSequenceMock<TArgs extends any[], TReturn>(
  * @returns A typed MockedFunction that returns void
  */
 export function createVoidMock<TArgs extends any[]>(): MockedFunction<(...args: TArgs) => void> {
-  return vi.fn() as MockedFunction<(...args: TArgs) => void>;
+  return vi.fn() as unknown as MockedFunction<(...args: TArgs) => void>;
 }
 
 /**
@@ -132,15 +131,13 @@ export type MockOf<T> = T extends (...args: infer TArgs) => infer TReturn
 
 /**
  * Create a typed mock from a function type
- * @param _type Type parameter only (not used at runtime)
  * @param implementation Optional implementation
  * @returns A typed MockedFunction matching the type
  */
 export function createTypedMock<T extends (...args: any[]) => any>(
-  _type?: T,
   implementation?: T
 ): MockOf<T> {
-  return vi.fn(implementation) as MockOf<T>;
+  return vi.fn(implementation) as unknown as MockOf<T>;
 }
 
 /**
@@ -187,8 +184,8 @@ export const MockPatterns = {
   conditionalMock: <TArgs extends any[], TReturn>(
     conditions: Array<{ args: TArgs; returns: TReturn }>
   ): MockedFunction<(...args: TArgs) => TReturn> => {
-    const mock = vi.fn() as MockedFunction<(...args: TArgs) => TReturn>;
-    mock.mockImplementation((...args) => {
+    const mock = vi.fn() as unknown as MockedFunction<(...args: TArgs) => TReturn>;
+    mock.mockImplementation(((...args: any[]) => {
       const condition = conditions.find(c => 
         JSON.stringify(c.args) === JSON.stringify(args)
       );
@@ -196,7 +193,7 @@ export const MockPatterns = {
         return condition.returns;
       }
       throw new Error(`No mock condition matched for args: ${JSON.stringify(args)}`);
-    });
+    }) as any);
     return mock;
   },
   
@@ -204,7 +201,7 @@ export const MockPatterns = {
    * Create a mock that delays before resolving
    */
   delayedMock: <TReturn>(value: TReturn, delay = 100): MockedFunction<() => Promise<TReturn>> => {
-    const mock = vi.fn() as MockedFunction<() => Promise<TReturn>>;
+    const mock = vi.fn() as unknown as MockedFunction<() => Promise<TReturn>>;
     mock.mockImplementation(() => 
       new Promise(resolve => setTimeout(() => resolve(value), delay))
     );
@@ -223,14 +220,14 @@ export function createDataTransferMock(
   return {
     effectAllowed: 'none',
     dropEffect: 'none',
-    setData: createTypedMock<[format: string, data: string], void>(),
+    setData: vi.fn(),
     getData: (() => {
-      const mock = createTypedMock<[format: string], string>();
+      const mock = vi.fn();
       mock.mockReturnValue('');
       return mock;
     })(),
-    clearData: createTypedMock<[format?: string], void>(),
-    setDragImage: createTypedMock<[image: Element, x: number, y: number], void>(),
+    clearData: vi.fn(),
+    setDragImage: vi.fn(),
     types: [],
     files: [] as any,
     items: [] as any,
@@ -266,13 +263,13 @@ export function createEventMock<T extends Event>(
 export const enhancedStoreMocks = {
   createTypedWritable: <T>(initialValue: T) => {
     const store = {
-      subscribe: createTypedMock<[fn: (value: T) => void], () => void>(),
-      set: createTypedMock<[value: T], void>(),
-      update: createTypedMock<[updater: (value: T) => T], void>(),
+      subscribe: vi.fn(),
+      set: vi.fn(),
+      update: vi.fn(),
     };
     
     // Set up default behavior
-    store.subscribe.mockImplementation((fn) => {
+    store.subscribe.mockImplementation((fn: any) => {
       fn(initialValue);
       return () => {};
     });
@@ -282,10 +279,10 @@ export const enhancedStoreMocks = {
   
   createTypedReadable: <T>(value: T) => {
     const store = {
-      subscribe: createTypedMock<[fn: (value: T) => void], () => void>(),
+      subscribe: vi.fn(),
     };
     
-    store.subscribe.mockImplementation((fn) => {
+    store.subscribe.mockImplementation((fn: any) => {
       fn(value);
       return () => {};
     });
@@ -295,10 +292,10 @@ export const enhancedStoreMocks = {
   
   createTypedDerived: <T>(value: T) => {
     const store = {
-      subscribe: createTypedMock<[fn: (value: T) => void], () => void>(),
+      subscribe: vi.fn(),
     };
     
-    store.subscribe.mockImplementation((fn) => {
+    store.subscribe.mockImplementation((fn: any) => {
       fn(value);
       return () => {};
     });
@@ -314,19 +311,19 @@ export const enhancedStoreMocks = {
 export const enhancedComponentMocks = {
   createSvelteComponentMock: (props = {}) => {
     return {
-      $set: createTypedMock<[props: any], void>(),
-      $on: createTypedMock<[event: string, handler: Function], () => void>(),
-      $destroy: createTypedMock<[], void>(),
+      $set: vi.fn(),
+      $on: vi.fn(),
+      $destroy: vi.fn(),
       $$: {
         fragment: {
-          c: createTypedMock<[], void>(),
-          m: createTypedMock<[target: HTMLElement, anchor?: Node], void>(),
-          p: createTypedMock<[ctx: any[], dirty: number[]], void>(),
-          d: createTypedMock<[detaching: boolean], void>(),
+          c: vi.fn(),
+          m: vi.fn(),
+          p: vi.fn(),
+          d: vi.fn(),
         },
         ctx: [],
         props,
-        update: createTypedMock<[], void>(),
+        update: vi.fn(),
         not_equal: (a: any, b: any) => a !== b,
         bound: {},
         on_mount: [],

@@ -1,10 +1,10 @@
 // Plugin management for the Manager
 
+use super::{Event, Manager};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::sync::Arc;
-use super::{Manager, Event};
 
 // ===== Plugin Trait =====
 
@@ -12,21 +12,21 @@ use super::{Manager, Event};
 pub trait Plugin: Send + Sync {
     /// Get the plugin's unique ID
     fn id(&self) -> &str;
-    
+
     /// Get the plugin's metadata
     fn metadata(&self) -> PluginMetadata;
-    
+
     /// Initialize the plugin
     async fn init(&mut self, context: PluginContext) -> Result<(), String>;
-    
+
     /// Handle an event
     async fn handle_event(&mut self, event: &Event) -> Result<(), String>;
-    
+
     /// Handle a custom JSON-RPC request
     async fn handle_request(&mut self, method: &str, _params: Value) -> Result<Value, String> {
         Err(format!("Unknown method: {}", method))
     }
-    
+
     /// Shutdown the plugin
     async fn shutdown(&mut self) -> Result<(), String>;
 }
@@ -64,7 +64,7 @@ impl PluginContext {
     pub async fn execute(&self, action: super::Action) -> Result<Value, String> {
         self.manager.execute_action(action).await
     }
-    
+
     /// Subscribe to specific event types
     pub async fn subscribe(&self, events: Vec<String>) -> Result<(), String> {
         self.manager.subscribe_plugin(&self.plugin_id, events).await
@@ -81,26 +81,26 @@ impl Manager {
             manager: Arc::new(self.clone()),
             plugin_id: plugin_id.clone(),
         };
-        
+
         // Initialize plugin
         plugin.init(context).await?;
-        
+
         // Store plugin
         let mut plugins = self.plugins.write().await;
         plugins.insert(plugin_id.clone(), Arc::new(tokio::sync::Mutex::new(plugin)));
-        
+
         // Emit event
         self.emit_event(Event::PluginLoaded { id: plugin_id });
-        
+
         Ok(())
     }
-    
+
     /// Process file watch events and emit them
     pub async fn process_file_watch_events(&self) {
         if let Some(file_watcher) = &self.file_watcher {
             let watcher = file_watcher.read().await;
             let events = watcher.process_events().await;
-            
+
             for event in events {
                 self.emit_event(Event::FileWatchEvent { event });
             }
@@ -112,7 +112,7 @@ impl Manager {
 pub(super) async fn dispatch_event_to_plugins(manager: &Manager, event: &Event) {
     let plugins = manager.plugins.read().await;
     let subscriptions = manager.plugin_subscriptions.read().await;
-    
+
     // Get event type as string for subscription matching
     let event_type = match event {
         Event::OrchestratorStarted => "orchestrator_started",
@@ -140,7 +140,7 @@ pub(super) async fn dispatch_event_to_plugins(manager: &Manager, event: &Event) 
         Event::Custom { event_type, .. } => event_type.as_str(),
         Event::FileRead { .. } => "file_read",
     };
-    
+
     // Dispatch to subscribed plugins
     for (plugin_id, plugin) in plugins.iter() {
         // Check if plugin is subscribed to this event type
@@ -151,13 +151,15 @@ pub(super) async fn dispatch_event_to_plugins(manager: &Manager, event: &Event) 
                 let plugin_clone = Arc::clone(plugin);
                 let event_clone = event.clone();
                 let event_type_clone = event_type.to_string();
-                
+
                 // Dispatch event in a separate task to avoid blocking
                 tokio::spawn(async move {
                     let mut plugin_guard = plugin_clone.lock().await;
                     if let Err(e) = plugin_guard.handle_event(&event_clone).await {
-                        eprintln!("Plugin {} error handling event {}: {}", 
-                            plugin_id_clone, event_type_clone, e);
+                        eprintln!(
+                            "Plugin {} error handling event {}: {}",
+                            plugin_id_clone, event_type_clone, e
+                        );
                     }
                 });
             }

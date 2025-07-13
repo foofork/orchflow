@@ -1,36 +1,37 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
 import { get } from 'svelte/store';
+import { createTypedMock, createSyncMock, createAsyncMock } from '@/test/mock-factory';
 
 // Mock the stores first
-vi.mock('$lib/stores/manager', () => {
-  const { createMockWritable } = require('@/test/utils/mock-stores');
+vi.mock('$lib/stores/manager', async () => {
+  const { writable } = await import('svelte/store');
   return {
-    manager: createMockWritable(null),
-    activeSession: createMockWritable(null),
-    activePane: createMockWritable(null),
-    panes: createMockWritable(new Map()),
-    sessions: createMockWritable([]),
-    plugins: createMockWritable([]),
-    isConnected: createMockWritable(false),
-    terminalOutputs: createMockWritable(new Map()),
-    loadedPlugins: createMockWritable(new Set())
+    manager: writable(null),
+    activeSession: writable(null),
+    activePane: writable(null),
+    panes: writable(new Map()),
+    sessions: writable([]),
+    plugins: writable([]),
+    isConnected: writable(false),
+    terminalOutputs: writable(new Map()),
+    loadedPlugins: writable(new Set())
   };
 });
 
 // Mock PluginStatusBar component
 vi.mock('./PluginStatusBar.svelte', () => ({
-  default: createTypedMock<[], any>().mockImplementation(() => ({
+  default: createTypedMock<() => any>().mockImplementation(() => ({
     $$: {
       fragment: {
-        c: createTypedMock<[], {}>(() => ({})),
-        m: createTypedMock<[], {}>(() => ({})),
-        p: createTypedMock<[], {}>(() => ({})),
-        d: createTypedMock<[], {}>(() => ({}))
+        c: createTypedMock<() => {}>(() => ({})),
+        m: createTypedMock<() => {}>(() => ({})),
+        p: createTypedMock<() => {}>(() => ({})),
+        d: createTypedMock<() => {}>(() => ({}))
       },
       ctx: [],
       props: {},
-      update: createTypedMock<[], {}>(() => ({})),
+      update: createTypedMock<() => {}>(() => ({})),
       not_equal: (a: any, b: any) => a !== b,
       bound: {},
       on_mount: [],
@@ -45,14 +46,25 @@ vi.mock('./PluginStatusBar.svelte', () => ({
       root: document.createElement('div')
     },
     element: document.createElement('div'),
-    $set: createTypedMock<[any], void>(),
-    $on: createTypedMock<[string, Function], void>(),
-    $destroy: createTypedMock<[], void>()
+    $set: createTypedMock<(props: any) => void>(),
+    $on: createTypedMock<(event: string, handler: Function) => void>(),
+    $destroy: createTypedMock<() => void>()
   }))
 }));
 
 import StatusBar from './StatusBar.svelte';
 import { manager, activeSession, activePane, panes, sessions, plugins, isConnected, terminalOutputs, loadedPlugins } from '$lib/stores/manager';
+import type { Writable } from 'svelte/store';
+
+// Cast mocked stores to writable for tests
+const writableActiveSession = activeSession as unknown as Writable<any>;
+const writableActivePane = activePane as unknown as Writable<any>;
+const writablePanes = panes as unknown as Writable<any>;
+const writableSessions = sessions as unknown as Writable<any>;
+const writablePlugins = plugins as unknown as Writable<any>;
+const writableIsConnected = isConnected as unknown as Writable<any>;
+const writableTerminalOutputs = terminalOutputs as unknown as Writable<any>;
+const writableLoadedPlugins = loadedPlugins as unknown as Writable<any>;
 import {
   createMockWritable,
   createMockManagerStores,
@@ -63,7 +75,6 @@ import {
   buildPane,
   createSvelteComponentMock
 } from '@/test/domain-builders';
-import { createTypedMock, createSyncMock, createAsyncMock } from '@/test/mock-factory';
 
 describe('StatusBar', () => {
   let clockInterval: NodeJS.Timeout;
@@ -80,14 +91,14 @@ describe('StatusBar', () => {
     vi.clearAllTimers();
     vi.useRealTimers();
     // Reset stores using enhanced utilities
-    activeSession.set(null);
-    activePane.set(null);
-    panes.set(new Map());
-    sessions.set([]);
-    plugins.set([]);
-    isConnected.set(false);
-    terminalOutputs.set(new Map());
-    loadedPlugins.set(new Set());
+    writableActiveSession.set(null);
+    writableActivePane.set(null);
+    writablePanes.set(new Map());
+    writableSessions.set([]);
+    writablePlugins.set([]);
+    writableIsConnected.set(false);
+    writableTerminalOutputs.set(new Map());
+    writableLoadedPlugins.set(new Set());
     // Clean up tracked resources
     cleanup.forEach(fn => fn());
     cleanup = [];
@@ -114,7 +125,7 @@ describe('StatusBar', () => {
         id: 'test-session', 
         name: 'My Project' 
       });
-      activeSession.set(testSession);
+      writableActiveSession.set(testSession);
       
       await waitFor(() => {
         expect(screen.getByText('My Project')).toBeInTheDocument();
@@ -131,7 +142,7 @@ describe('StatusBar', () => {
         title: 'main.ts', 
         pane_type: 'Editor' 
       });
-      activePane.set(testPane);
+      writableActivePane.set(testPane);
       
       await waitFor(() => {
         expect(screen.getByText('main.ts')).toBeInTheDocument();
@@ -148,7 +159,7 @@ describe('StatusBar', () => {
         ['pane-2', buildPane({ id: 'pane-2', pane_type: 'Terminal', title: 'Terminal 2' })],
         ['pane-3', buildPane({ id: 'pane-3', pane_type: 'Editor', title: 'main.ts' })]
       ]);
-      panes.set(terminalPanes);
+      writablePanes.set(terminalPanes);
       
       await waitFor(() => {
         expect(screen.getByText('2 terminals')).toBeInTheDocument();
@@ -163,7 +174,7 @@ describe('StatusBar', () => {
       const singleTerminal = new Map([
         ['pane-1', buildPane({ id: 'pane-1', pane_type: 'Terminal', title: 'Terminal 1' })]
       ]);
-      panes.set(singleTerminal);
+      writablePanes.set(singleTerminal);
       
       await waitFor(() => {
         expect(screen.getByText('1 terminal')).toBeInTheDocument();
@@ -260,7 +271,7 @@ describe('StatusBar', () => {
         id: 'test-session', 
         name: 'This is a very long session name that should be truncated' 
       });
-      activeSession.set(longNameSession);
+      writableActiveSession.set(longNameSession);
       
       await waitFor(() => {
         const textElement = screen.getByText(/This is a very long session name/);
@@ -283,9 +294,9 @@ describe('StatusBar', () => {
         ['pane-2', buildPane({ id: 'pane-2', pane_type: 'Terminal', title: 'Terminal 2' })]
       ]);
       
-      activeSession.set(project);
-      activePane.set(editor);
-      panes.set(terminalPanes);
+      writableActiveSession.set(project);
+      writableActivePane.set(editor);
+      writablePanes.set(terminalPanes);
       
       await waitFor(() => {
         expect(screen.getByText('My Project')).toBeInTheDocument();
@@ -318,13 +329,13 @@ describe('StatusBar', () => {
       expect(screen.queryByText('Project A')).not.toBeInTheDocument();
       
       const projectA = buildSession({ id: 'test-session', name: 'Project A' });
-      activeSession.set(projectA);
+      writableActiveSession.set(projectA);
       await waitFor(() => {
         expect(screen.getByText('Project A')).toBeInTheDocument();
       });
       
       const projectB = buildSession({ id: 'test-session', name: 'Project B' });
-      activeSession.set(projectB);
+      writableActiveSession.set(projectB);
       await waitFor(() => {
         expect(screen.queryByText('Project A')).not.toBeInTheDocument();
         expect(screen.getByText('Project B')).toBeInTheDocument();
@@ -338,13 +349,13 @@ describe('StatusBar', () => {
       cleanup.push(unmount);
       
       const file1 = buildPane({ id: 'pane-1', title: 'file1.ts', pane_type: 'Editor' });
-      activePane.set(file1);
+      writableActivePane.set(file1);
       await waitFor(() => {
         expect(screen.getByText('file1.ts')).toBeInTheDocument();
       });
       
       const file2 = buildPane({ id: 'pane-2', title: 'file2.ts', pane_type: 'Editor' });
-      activePane.set(file2);
+      writableActivePane.set(file2);
       await waitFor(() => {
         expect(screen.queryByText('file1.ts')).not.toBeInTheDocument();
         expect(screen.getByText('file2.ts')).toBeInTheDocument();
@@ -358,14 +369,14 @@ describe('StatusBar', () => {
       cleanup.push(unmount);
       
       // Start with no terminals
-      panes.set(new Map());
+      writablePanes.set(new Map());
       expect(screen.queryByText(/terminal/)).not.toBeInTheDocument();
       
       // Add one terminal
       const oneTerminal = new Map([
         ['pane-1', buildPane({ id: 'pane-1', pane_type: 'Terminal', title: 'Terminal 1' })]
       ]);
-      panes.set(oneTerminal);
+      writablePanes.set(oneTerminal);
       await waitFor(() => {
         expect(screen.getByText('1 terminal')).toBeInTheDocument();
       });
@@ -375,7 +386,7 @@ describe('StatusBar', () => {
         ['pane-1', buildPane({ id: 'pane-1', pane_type: 'Terminal', title: 'Terminal 1' })],
         ['pane-2', buildPane({ id: 'pane-2', pane_type: 'Terminal', title: 'Terminal 2' })]
       ]);
-      panes.set(twoTerminals);
+      writablePanes.set(twoTerminals);
       await waitFor(() => {
         expect(screen.getByText('2 terminals')).toBeInTheDocument();
       });
@@ -394,7 +405,7 @@ describe('StatusBar', () => {
       );
       
       const updatedSession = buildSession({ id: 'test-session', name: 'Updated Project' });
-      activeSession.set(updatedSession);
+      writableActiveSession.set(updatedSession);
       
       await updatePromise;
       expect(screen.getByText('Updated Project')).toBeInTheDocument();
@@ -413,7 +424,7 @@ describe('StatusBar', () => {
         title: 'script.js', 
         pane_type: 'Editor' 
       });
-      activePane.set(editorPane);
+      writableActivePane.set(editorPane);
       
       await waitFor(() => {
         expect(screen.getByText('📄')).toBeInTheDocument();
@@ -431,7 +442,7 @@ describe('StatusBar', () => {
         title: 'bash', 
         pane_type: 'Terminal' 
       });
-      activePane.set(terminalPane);
+      writableActivePane.set(terminalPane);
       
       await waitFor(() => {
         expect(screen.getByText('📟')).toBeInTheDocument();
@@ -449,7 +460,7 @@ describe('StatusBar', () => {
         title: 'README.md', 
         pane_type: 'Preview' 
       });
-      activePane.set(previewPane);
+      writableActivePane.set(previewPane);
       
       await waitFor(() => {
         expect(screen.getByText('👁️')).toBeInTheDocument();
@@ -464,7 +475,7 @@ describe('StatusBar', () => {
       });
       cleanup.push(unmount);
       
-      panes.set(new Map());
+      writablePanes.set(new Map());
       
       await waitFor(() => {
         expect(screen.queryByText(/terminal/)).not.toBeInTheDocument();
@@ -477,7 +488,7 @@ describe('StatusBar', () => {
       });
       cleanup.push(unmount);
       
-      activeSession.set(null);
+      writableActiveSession.set(null);
       
       await waitFor(() => {
         expect(screen.queryByText('📁')).not.toBeInTheDocument();
@@ -490,7 +501,7 @@ describe('StatusBar', () => {
       });
       cleanup.push(unmount);
       
-      activePane.set(null);
+      writableActivePane.set(null);
       
       await waitFor(() => {
         expect(screen.queryByText('📄')).not.toBeInTheDocument();
@@ -507,7 +518,7 @@ describe('StatusBar', () => {
       
       // Set initial state
       const session1 = buildSession({ id: 'test-session', name: 'Session 1' });
-      activeSession.set(session1);
+      writableActiveSession.set(session1);
       
       await waitFor(() => {
         expect(screen.getByText('Session 1')).toBeInTheDocument();
@@ -535,7 +546,7 @@ describe('StatusBar', () => {
             title: `Terminal ${i}` 
           })]
         ]);
-        panes.set(newPanes);
+        writablePanes.set(newPanes);
       }
       
       // Should show final state

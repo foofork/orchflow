@@ -34,7 +34,7 @@
 
 <div class="activity-bar">
   <div class="activities">
-    {#each activities as activity}
+    {#each activities as activity (activity.id)}
       <button
         class="activity-item"
         class:active={activeView === activity.id}
@@ -48,7 +48,7 @@
   </div>
   
   <div class="bottom-activities">
-    {#each bottomActivities as activity}
+    {#each bottomActivities as activity (activity.id)}
       <button
         class="activity-item"
         class:active={activeView === activity.id}

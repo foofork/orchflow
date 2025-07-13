@@ -16,15 +16,17 @@ export default defineConfig({
     env: {
       coverage: false
     },
-    setupNodeEvents(on, config) {
+    setupNodeEvents(on, _config) {
       // implement node event listeners here
       on('task', {
         log(message) {
-          console.log(message)
+          // Use console.warn instead of console.log for Cypress tasks
+          console.warn(`[Cypress Task] ${message}`)
           return null
         },
         table(message) {
-          console.table(message)
+          // Use console.warn instead of console.table for Cypress tasks
+          console.warn('[Cypress Task Table]', message)
           return null
         }
       })

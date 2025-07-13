@@ -9,17 +9,17 @@ use serde_json::Value;
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum Action {
     // Session management
-    CreateSession { 
-        name: String 
+    CreateSession {
+        name: String,
     },
-    DeleteSession { 
-        session_id: String 
+    DeleteSession {
+        session_id: String,
     },
     SaveSession {
         session_id: String,
         name: Option<String>,
     },
-    
+
     // Pane management
     CreatePane {
         session_id: String,
@@ -28,45 +28,45 @@ pub enum Action {
         shell_type: Option<ShellType>,
         name: Option<String>,
     },
-    ClosePane { 
-        pane_id: String 
+    ClosePane {
+        pane_id: String,
     },
-    ResizePane { 
-        pane_id: String, 
-        width: u32, 
-        height: u32 
+    ResizePane {
+        pane_id: String,
+        width: u32,
+        height: u32,
     },
     RenamePane {
         pane_id: String,
         name: String,
     },
-    
+
     // File management
-    CreateFile { 
-        path: String, 
-        content: Option<String> 
+    CreateFile {
+        path: String,
+        content: Option<String>,
     },
-    OpenFile { 
-        path: String 
+    OpenFile {
+        path: String,
     },
-    CreateDirectory { 
-        path: String 
+    CreateDirectory {
+        path: String,
     },
-    DeletePath { 
-        path: String, 
-        permanent: bool 
+    DeletePath {
+        path: String,
+        permanent: bool,
     },
-    RenamePath { 
-        old_path: String, 
-        new_name: String 
+    RenamePath {
+        old_path: String,
+        new_name: String,
     },
-    CopyPath { 
-        source: String, 
-        destination: String 
+    CopyPath {
+        source: String,
+        destination: String,
     },
-    MovePath { 
-        source: String, 
-        destination: String 
+    MovePath {
+        source: String,
+        destination: String,
     },
     MoveFiles {
         files: Vec<String>,
@@ -84,38 +84,38 @@ pub enum Action {
         pattern: String,
         path: Option<String>,
     },
-    
+
     // Search
-    SearchProject { 
-        pattern: String, 
-        options: Value 
+    SearchProject {
+        pattern: String,
+        options: Value,
     },
-    SearchInFile { 
-        file_path: String, 
-        pattern: String 
+    SearchInFile {
+        file_path: String,
+        pattern: String,
     },
-    
+
     // Terminal operations
-    SendKeys { 
-        pane_id: String, 
-        keys: String 
+    SendKeys {
+        pane_id: String,
+        keys: String,
     },
-    RunCommand { 
-        pane_id: String, 
-        command: String 
+    RunCommand {
+        pane_id: String,
+        command: String,
     },
-    GetPaneOutput { 
-        pane_id: String, 
-        lines: Option<u32> 
+    GetPaneOutput {
+        pane_id: String,
+        lines: Option<u32>,
     },
-    
+
     // Plugin management
-    LoadPlugin { 
-        id: String, 
-        config: Value 
+    LoadPlugin {
+        id: String,
+        config: Value,
     },
-    UnloadPlugin { 
-        id: String 
+    UnloadPlugin {
+        id: String,
     },
 }
 

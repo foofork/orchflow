@@ -1,10 +1,10 @@
+use crate::manager::{Action, Event, Manager};
+use futures_util::{SinkExt, StreamExt};
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::sync::Arc;
 use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::{accept_async, tungstenite::Message};
-use futures_util::{StreamExt, SinkExt};
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
-use crate::manager::{Manager, Action, Event};
 
 #[derive(Debug, Deserialize)]
 struct JsonRpcRequest {
@@ -53,17 +53,17 @@ impl WebSocketServer {
     pub fn new(manager: Arc<Manager>, port: u16) -> Self {
         Self { manager, port }
     }
-    
+
     pub async fn start(&self) -> Result<(), Box<dyn std::error::Error>> {
         let addr = format!("127.0.0.1:{}", self.port);
         let listener = TcpListener::bind(&addr).await?;
         println!("WebSocket server listening on ws://{}", addr);
-        
+
         while let Ok((stream, _)) = listener.accept().await {
             let manager = self.manager.clone();
             tokio::spawn(handle_connection(stream, manager));
         }
-        
+
         Ok(())
     }
 }
@@ -76,14 +76,14 @@ async fn handle_connection(stream: TcpStream, manager: Arc<Manager>) {
             return;
         }
     };
-    
+
     println!("New WebSocket connection established");
-    
+
     let (ws_sender, mut ws_receiver) = ws_stream.split();
-    
+
     // Create a channel to send messages to the WebSocket
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<Message>();
-    
+
     // Spawn task to handle sending messages
     let mut ws_sender = ws_sender;
     let send_task = tokio::spawn(async move {
@@ -93,11 +93,11 @@ async fn handle_connection(stream: TcpStream, manager: Arc<Manager>) {
             }
         }
     });
-    
+
     // Subscribe to orchestrator events
     let mut event_rx = manager.event_tx.subscribe();
     let tx_events = tx.clone();
-    
+
     // Spawn task to forward events to client
     let event_task = tokio::spawn(async move {
         while let Ok(event) = event_rx.recv().await {
@@ -106,7 +106,7 @@ async fn handle_connection(stream: TcpStream, manager: Arc<Manager>) {
                 method: "manager.event".to_string(),
                 params: EventParams { event },
             };
-            
+
             if let Ok(json) = serde_json::to_string(&notification) {
                 if tx_events.send(Message::Text(json)).is_err() {
                     break;
@@ -114,7 +114,7 @@ async fn handle_connection(stream: TcpStream, manager: Arc<Manager>) {
             }
         }
     });
-    
+
     // Handle incoming messages
     while let Some(msg) = ws_receiver.next().await {
         match msg {
@@ -139,7 +139,7 @@ async fn handle_connection(stream: TcpStream, manager: Arc<Manager>) {
             _ => {}
         }
     }
-    
+
     // Clean up
     send_task.abort();
     event_task.abort();
@@ -161,9 +161,9 @@ async fn handle_request(text: &str, manager: &Arc<Manager>) -> JsonRpcResponse {
             };
         }
     };
-    
+
     let id = request.id.clone();
-    
+
     match request.method.as_str() {
         "execute" => {
             if let Some(params) = request.params {
@@ -211,7 +211,7 @@ async fn handle_request(text: &str, manager: &Arc<Manager>) -> JsonRpcResponse {
                 }
             }
         }
-        
+
         "subscribe" => {
             // For now, all clients receive all events
             // In future, could implement filtering
@@ -222,7 +222,7 @@ async fn handle_request(text: &str, manager: &Arc<Manager>) -> JsonRpcResponse {
                 id,
             }
         }
-        
+
         _ => JsonRpcResponse {
             jsonrpc: "2.0".to_string(),
             result: None,

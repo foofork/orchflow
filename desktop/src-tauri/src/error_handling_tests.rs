@@ -3,7 +3,7 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::error::{OrchflowError, ErrorCategory, Result};
+    use crate::error::{ErrorCategory, OrchflowError, Result};
     use std::path::PathBuf;
 
     #[test]
@@ -28,7 +28,10 @@ mod tests {
 
         // Test validation errors
         let validation_error = OrchflowError::validation_error("input", "invalid format");
-        assert!(matches!(validation_error.category(), ErrorCategory::Validation));
+        assert!(matches!(
+            validation_error.category(),
+            ErrorCategory::Validation
+        ));
     }
 
     #[test]
@@ -139,9 +142,15 @@ mod tests {
 
     #[test]
     fn test_plugin_errors() {
-        let plugin_error = OrchflowError::plugin_error("git-plugin", "checkout", "branch not found");
-        
-        if let OrchflowError::PluginError { ref plugin_id, ref operation, ref reason } = plugin_error {
+        let plugin_error =
+            OrchflowError::plugin_error("git-plugin", "checkout", "branch not found");
+
+        if let OrchflowError::PluginError {
+            ref plugin_id,
+            ref operation,
+            ref reason,
+        } = plugin_error
+        {
             assert_eq!(plugin_id, "git-plugin");
             assert_eq!(operation, "checkout");
             assert_eq!(reason, "branch not found");
@@ -160,7 +169,7 @@ mod tests {
         };
 
         assert!(matches!(db_error.category(), ErrorCategory::Database));
-        
+
         let error_string = db_error.to_string();
         assert!(error_string.contains("Database error"));
         assert!(error_string.contains("insert_session"));
@@ -175,7 +184,7 @@ mod tests {
         };
 
         assert!(matches!(network_error.category(), ErrorCategory::Network));
-        
+
         let error_string = network_error.to_string();
         assert!(error_string.contains("Connection timeout"));
         assert!(error_string.contains("ws://localhost:7777"));
@@ -195,7 +204,7 @@ mod tests {
 
         assert!(test_function().is_ok());
         assert!(error_function().is_err());
-        
+
         let error = error_function().unwrap_err();
         assert!(matches!(error.category(), ErrorCategory::System));
     }

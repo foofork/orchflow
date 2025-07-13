@@ -3,7 +3,7 @@
 // Defines the message types for terminal communication between
 // the Rust backend and frontend via IPC.
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 /// Main terminal message wrapper
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -43,14 +43,9 @@ pub struct TerminalOutput {
 #[serde(tag = "command", content = "params")]
 pub enum ControlMessage {
     /// Resize the terminal
-    Resize {
-        rows: u16,
-        cols: u16,
-    },
+    Resize { rows: u16, cols: u16 },
     /// Change terminal mode
-    ModeChange {
-        mode: String,
-    },
+    ModeChange { mode: String },
     /// Terminal gained focus
     Focus,
     /// Terminal lost focus
@@ -73,10 +68,7 @@ pub enum StatusMessage {
         exit_code: Option<i32>,
     },
     /// Error occurred
-    Error {
-        terminal_id: String,
-        error: String,
-    },
+    Error { terminal_id: String, error: String },
 }
 
 /// Terminal creation options
@@ -123,12 +115,12 @@ impl TerminalInput {
     pub fn text(text: impl Into<String>) -> Self {
         Self::Text(text.into())
     }
-    
+
     /// Create special key input
     pub fn key(key: impl Into<String>) -> Self {
         Self::SpecialKey(key.into())
     }
-    
+
     /// Create paste input (handles large text efficiently)
     pub fn paste(text: impl Into<String>) -> Self {
         // For paste, we might want to send as binary to handle special chars

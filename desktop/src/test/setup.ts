@@ -107,6 +107,14 @@ vi.mock('@tauri-apps/plugin-updater', () => ({
   onUpdaterEvent: vi.fn(() => Promise.resolve(() => {})),
 }));
 
+vi.mock('@tauri-apps/plugin-dialog', () => ({
+  open: vi.fn(() => Promise.resolve(null)),
+  save: vi.fn(() => Promise.resolve(null)),
+  message: vi.fn(() => Promise.resolve()),
+  ask: vi.fn(() => Promise.resolve(true)),
+  confirm: vi.fn(() => Promise.resolve(true)),
+}));
+
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
@@ -122,6 +130,48 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
+// Mock WebSocket for jsdom environment
+class MockWebSocket {
+  url: string;
+  protocol: string | string[] | undefined;
+  readyState: number = 0; // CONNECTING
+  onopen: ((event: Event) => void) | null = null;
+  onclose: ((event: CloseEvent) => void) | null = null;
+  onerror: ((event: Event) => void) | null = null;
+  onmessage: ((event: MessageEvent) => void) | null = null;
+  
+  static CONNECTING = 0;
+  static OPEN = 1;
+  static CLOSING = 2;
+  static CLOSED = 3;
+  
+  constructor(url: string, protocols?: string | string[]) {
+    this.url = url;
+    this.protocol = protocols;
+    
+    // Simulate connection opening
+    setTimeout(() => {
+      this.readyState = MockWebSocket.OPEN;
+      if (this.onopen) {
+        this.onopen(new Event('open'));
+      }
+    }, 0);
+  }
+  
+  send = vi.fn();
+  close = vi.fn(() => {
+    this.readyState = MockWebSocket.CLOSED;
+    if (this.onclose) {
+      this.onclose(new CloseEvent('close'));
+    }
+  });
+  addEventListener = vi.fn();
+  removeEventListener = vi.fn();
+  dispatchEvent = vi.fn();
+}
+
+global.WebSocket = MockWebSocket as any;
+
 // Mock ResizeObserver
 class MockResizeObserver {
   observe = vi.fn();
@@ -135,6 +185,55 @@ class MockResizeObserver {
 }
 
 global.ResizeObserver = MockResizeObserver as any;
+
+// Mock Web Animations API for tests
+if (typeof Element.prototype.animate === 'undefined') {
+  Element.prototype.animate = vi.fn().mockImplementation(function(keyframes, options) {
+    const animationInstance: any = {
+      play: vi.fn(),
+      pause: vi.fn(),
+      cancel: vi.fn(),
+      finish: vi.fn(),
+      reverse: vi.fn(),
+      updatePlaybackRate: vi.fn(),
+      effect: null,
+      timeline: null,
+      playState: 'running',
+      pending: false,
+      ready: null as any,
+      finished: null as any,
+      onfinish: null,
+      oncancel: null,
+      onremove: null,
+      id: '',
+      playbackRate: 1,
+      startTime: null,
+      currentTime: 0,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    };
+    
+    // Set promises after animation object is created
+    animationInstance.ready = Promise.resolve(animationInstance);
+    animationInstance.finished = Promise.resolve(animationInstance);
+    
+    // Simulate animation finishing
+    if (typeof options === 'number') {
+      setTimeout(() => {
+        animationInstance.playState = 'finished';
+        if (animationInstance.onfinish) animationInstance.onfinish();
+      }, options);
+    } else if (options && typeof options.duration === 'number') {
+      setTimeout(() => {
+        animationInstance.playState = 'finished';
+        if (animationInstance.onfinish) animationInstance.onfinish();
+      }, options.duration);
+    }
+    
+    return animationInstance;
+  });
+}
 
 // Mock IntersectionObserver
 global.IntersectionObserver = vi.fn().mockImplementation(() => ({
@@ -244,8 +343,8 @@ Element.prototype.scrollIntoView = vi.fn();
 
 
 // Mock dynamic imports for components
-const originalImport = global.import;
-global.import = vi.fn(async (path: string) => {
+const originalImport = (global as any).import;
+(global as any).import = vi.fn(async (path: string) => {
   if (path.includes('CodeMirrorEditor.svelte')) {
     // Return a mock Svelte component constructor
     const MockCodeMirrorEditor = class {

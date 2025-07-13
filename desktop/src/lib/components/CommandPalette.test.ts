@@ -5,6 +5,7 @@ import CommandPalette from './CommandPalette.svelte';
 import { mockInvoke } from '../../test/utils';
 import { createAsyncMock, createTypedMock, createSyncMock } from '@/test/mock-factory';
 import { buildCommandPaletteItem } from '../../test/test-data-builders';
+import { mockSvelteEvents } from '@/test/svelte5-event-helper';
 
 describe('CommandPalette', () => {
   let user: ReturnType<typeof userEvent.setup>;
@@ -117,7 +118,8 @@ describe('CommandPalette', () => {
     });
     cleanup.push(unmount);
     
-    component.$on('close', mockClose);
+    const mockComponent = mockSvelteEvents(component);
+    mockComponent.$on('close', mockClose);
     
     await waitFor(() => {
       expect(getByPlaceholderText('Type a command or search...')).toBeInTheDocument();
@@ -167,7 +169,8 @@ describe('CommandPalette', () => {
     });
     cleanup.push(unmount);
     
-    component.$on('close', mockClose);
+    const mockComponent = mockSvelteEvents(component);
+    mockComponent.$on('close', mockClose);
     
     await waitFor(() => {
       expect(getByPlaceholderText('Type a command or search...')).toBeInTheDocument();

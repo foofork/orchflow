@@ -141,10 +141,10 @@ afterEach(async ({ task }) => {
     metadata.duration = duration;
     metadata.status = status;
     
-    if (task.result?.error) {
-      metadata.error = {
-        message: task.result.error.message,
-        stack: task.result.error.stack
+    if (task.result?.errors) {
+      metadata.errors = {
+        message: task.result.errors.message,
+        stack: task.result.errors.stack
       };
     }
     

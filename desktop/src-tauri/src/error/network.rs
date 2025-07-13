@@ -8,10 +8,10 @@ use thiserror::Error;
 pub enum NetworkError {
     #[error("Network error: {operation} - {reason}")]
     OperationError { operation: String, reason: String },
-    
+
     #[error("WebSocket error: {reason}")]
     WebSocketError { reason: String },
-    
+
     #[error("Connection timeout: {endpoint} - {timeout_ms}ms")]
     ConnectionTimeout { endpoint: String, timeout_ms: u64 },
 }
@@ -24,12 +24,14 @@ impl NetworkError {
             reason: reason.to_string(),
         }
     }
-    
+
     /// Helper function to create WebSocket error
     pub fn websocket_error(reason: &str) -> Self {
-        Self::WebSocketError { reason: reason.to_string() }
+        Self::WebSocketError {
+            reason: reason.to_string(),
+        }
     }
-    
+
     /// Helper function to create connection timeout error
     pub fn connection_timeout(endpoint: &str, timeout_ms: u64) -> Self {
         Self::ConnectionTimeout {

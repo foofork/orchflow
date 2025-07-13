@@ -48,7 +48,7 @@ const storeModule = await import('../manager');
 const { manager, sessions, activeSession, panes, activePane, plugins, loadedPlugins, terminalOutputs, isConnected, error } = storeModule;
 
 describe('Manager Store', () => {
-  let cleanup: Array<() => void> = [];
+  const cleanup: Array<() => void> = [];
   let eventHandlers: Map<string, (event: ManagerEvent) => void>;
   let isInitialized = false;
   let unsubscribeFns: (() => void)[] = [];

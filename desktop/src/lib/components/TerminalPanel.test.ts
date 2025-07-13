@@ -11,6 +11,7 @@ import {
 } from '@/test/mock-factory';
 import { buildTerminalConfig, buildTerminalOutput } from '@/test/domain-builders';
 import { invoke } from '@tauri-apps/api/core';
+import { mockSvelteEvents } from '@/test/svelte5-event-helper';
 
 // Create typed mocks for Tauri API
 const mockInvoke = createAsyncMock<[string, any?], any>();
@@ -128,7 +129,7 @@ describe('TerminalPanel Component', () => {
   });
 
   it('creates new terminal', async () => {
-    const handleTerminalCreate = createTypedMock<[], void>();
+    const handleTerminalCreate = createTypedMock<() => void>();
     const { getByTitle } = renderTerminalPanel({ 
       terminals: mockTerminals,
       onTerminalCreate: handleTerminalCreate,
@@ -141,7 +142,7 @@ describe('TerminalPanel Component', () => {
   });
 
   it('switches between terminal tabs', async () => {
-    const handleTabSwitch = createTypedMock<[string], void>();
+    const handleTabSwitch = createTypedMock<(string) => void>();
     const { getByText } = renderTerminalPanel({ 
       terminals: mockTerminals,
       activeTerminalId: 'term-1',
@@ -155,7 +156,7 @@ describe('TerminalPanel Component', () => {
   });
 
   it('closes terminal tab', async () => {
-    const handleTerminalClose = createTypedMock<[string], void>();
+    const handleTerminalClose = createTypedMock<(string) => void>();
     const { getAllByTitle } = renderTerminalPanel({ 
       terminals: mockTerminals,
       onTerminalClose: handleTerminalClose,
@@ -185,7 +186,7 @@ describe('TerminalPanel Component', () => {
   });
 
   it('handles split view actions', async () => {
-    const handleSplit = createTypedMock<[string], void>();
+    const handleSplit = createTypedMock<(string) => void>();
     const { getByTitle } = renderTerminalPanel({ 
       terminals: mockTerminals,
       onSplit: handleSplit,
@@ -219,7 +220,7 @@ describe('TerminalPanel Component', () => {
   });
 
   it('toggles broadcast mode', async () => {
-    const handleBroadcast = createTypedMock<[], void>();
+    const handleBroadcast = createTypedMock<() => void>();
     const { getByTitle } = renderTerminalPanel({ 
       terminals: mockTerminals,
       onBroadcastToggle: handleBroadcast,
@@ -252,7 +253,7 @@ describe('TerminalPanel Component', () => {
   });
 
   it('executes quick command', async () => {
-    const handleQuickCommand = createTypedMock<[string], void>();
+    const handleQuickCommand = createTypedMock<(string) => void>();
     const { getByTitle, getByText } = renderTerminalPanel({ 
       terminals: mockTerminals,
       activeTerminalId: 'term-1',
@@ -290,7 +291,7 @@ describe('TerminalPanel Component', () => {
   });
 
   it('handles terminal rename', async () => {
-    const handleRename = createTypedMock<[string, string], void>();
+    const handleRename = createTypedMock<(string, string) => void>();
     const { getByText, getByDisplayValue } = renderTerminalPanel({ 
       terminals: mockTerminals,
       onTerminalRename: handleRename,
@@ -315,7 +316,7 @@ describe('TerminalPanel Component', () => {
   });
 
   it('supports tab reordering with drag and drop', async () => {
-    const handleReorder = createTypedMock<[number, number], void>();
+    const handleReorder = createTypedMock<(number, number) => void>();
     const { getByText } = renderTerminalPanel({ 
       terminals: mockTerminals,
       onTabReorder: handleReorder,
@@ -334,7 +335,7 @@ describe('TerminalPanel Component', () => {
   });
 
   it('shows layout options', async () => {
-    const handleLayoutChange = createTypedMock<[string], void>();
+    const handleLayoutChange = createTypedMock<(string) => void>();
     const { getByTitle, getByText } = renderTerminalPanel({ 
       terminals: mockTerminals,
       supportedLayouts: ['single', 'split', 'grid'],
@@ -385,7 +386,7 @@ describe('TerminalPanel Component', () => {
   });
 
   it('handles terminal output search', async () => {
-    const handleSearch = createTypedMock<[string], void>();
+    const handleSearch = createTypedMock<(string) => void>();
     const { getByTitle, getByPlaceholderText } = renderTerminalPanel({ 
       terminals: mockTerminals,
       onSearch: handleSearch,
@@ -451,7 +452,7 @@ describe('TerminalPanel Component', () => {
 
   describe('Terminal Actions', () => {
     it('should handle terminal selection', async () => {
-      const onTabSwitch = createTypedMock<[string], void>();
+      const onTabSwitch = createTypedMock<(string) => void>();
       const { getByText } = renderTerminalPanel({
         terminals: mockTerminals,
         onTabSwitch
@@ -555,7 +556,7 @@ describe('TerminalPanel Component', () => {
 
   describe('Drag and Drop', () => {
     it('should handle tab reordering with proper data transfer', async () => {
-      const onTabReorder = createTypedMock<[number, number], void>();
+      const onTabReorder = createTypedMock<(number, number) => void>();
       const mockSetData = createSyncMock<[string, string], void>();
       
       const { container } = renderTerminalPanel({
@@ -661,8 +662,9 @@ describe('TerminalPanel Component', () => {
         testMode: false // Disable test mode to trigger actual creation
       });
 
-      const errorHandler = createTypedMock<[any], void>();
-      component.$on('error', errorHandler);
+      const errorHandler = createTypedMock<(any) => void>();
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('error', errorHandler);
 
       // Component should handle error gracefully during init
       await waitFor(() => {
@@ -757,8 +759,9 @@ describe('TerminalPanel Component', () => {
     it('should dispatch openSettings event', async () => {
       const { container, component } = renderTerminalPanel();
 
-      const settingsHandler = createTypedMock<[any], void>();
-      component.$on('openSettings', settingsHandler);
+      const settingsHandler = createTypedMock<(any) => void>();
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('openSettings', settingsHandler);
 
       const settingsBtn = container.querySelector('[title="Terminal Settings"]');
       await user.click(settingsBtn!);
@@ -769,8 +772,9 @@ describe('TerminalPanel Component', () => {
     it('should dispatch toggleBroadcast event', async () => {
       const { container, component } = renderTerminalPanel();
 
-      const broadcastHandler = createTypedMock<[any], void>();
-      component.$on('toggleBroadcast', broadcastHandler);
+      const broadcastHandler = createTypedMock<(any) => void>();
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('toggleBroadcast', broadcastHandler);
 
       const broadcastBtn = container.querySelector('[title="Toggle broadcast"]');
       await user.click(broadcastBtn!);
@@ -781,8 +785,9 @@ describe('TerminalPanel Component', () => {
     it('should dispatch search event', async () => {
       const { container, component } = renderTerminalPanel();
 
-      const searchHandler = createTypedMock<[any], void>();
-      component.$on('search', searchHandler);
+      const searchHandler = createTypedMock<(any) => void>();
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('search', searchHandler);
 
       const searchBtn = container.querySelector('[title="Search (Ctrl+F)"]');
       await user.click(searchBtn!);
@@ -813,8 +818,9 @@ describe('TerminalPanel Component', () => {
         terminals
       });
 
-      const moveHandler = createTypedMock<[any], void>();
-      component.$on('moveToWindow', moveHandler);
+      const moveHandler = createTypedMock<(any) => void>();
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('moveToWindow', moveHandler);
 
       const tab = container.querySelector('.terminal-tab');
       await fireEvent.contextMenu(tab!);
@@ -870,7 +876,7 @@ describe('TerminalPanel Component', () => {
         }
       ];
 
-      const onTerminalClose = createTypedMock<[string], void>();
+      const onTerminalClose = createTypedMock<(string) => void>();
       const { component } = renderTerminalPanel({
         terminals, 
         onTerminalClose

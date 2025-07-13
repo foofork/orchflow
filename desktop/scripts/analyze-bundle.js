@@ -28,7 +28,7 @@ function formatBytes(bytes) {
 }
 
 async function analyzeBundle() {
-  console.log('🔍 Analyzing build output...\n');
+  console.warn('🔍 Analyzing build output...\n');
   
   try {
     const buildDir = 'build';
@@ -37,7 +37,7 @@ async function analyzeBundle() {
     // Check build directory
     if (await stat(buildDir).catch(() => false)) {
       const buildSize = await getDirectorySize(buildDir);
-      console.log(`📦 Build directory size: ${formatBytes(buildSize)}`);
+      console.warn(`📦 Build directory size: ${formatBytes(buildSize)}`);
       
       // Analyze specific file types
       const jsFiles = await readdir(join(buildDir, '_app'), { withFileTypes: true })
@@ -45,11 +45,11 @@ async function analyzeBundle() {
         .catch(() => []);
       
       if (jsFiles.length > 0) {
-        console.log('\n📄 JavaScript files:');
+        console.warn('\n📄 JavaScript files:');
         for (const file of jsFiles) {
           const filePath = join(buildDir, '_app', file.name);
           const stats = await stat(filePath);
-          console.log(`  - ${file.name}: ${formatBytes(stats.size)}`);
+          console.warn(`  - ${file.name}: ${formatBytes(stats.size)}`);
         }
       }
     }
@@ -57,16 +57,16 @@ async function analyzeBundle() {
     // Check dist directory
     if (await stat(distDir).catch(() => false)) {
       const distSize = await getDirectorySize(distDir);
-      console.log(`\n📦 Dist directory size: ${formatBytes(distSize)}`);
+      console.warn(`\n📦 Dist directory size: ${formatBytes(distSize)}`);
     }
     
     // Performance recommendations
-    console.log('\n💡 Optimization recommendations:');
-    console.log('  1. Enable code splitting for routes');
-    console.log('  2. Lazy load heavy components');
-    console.log('  3. Use dynamic imports for optional features');
-    console.log('  4. Enable compression (gzip/brotli)');
-    console.log('  5. Minify and tree-shake dependencies');
+    console.warn('\n💡 Optimization recommendations:');
+    console.warn('  1. Enable code splitting for routes');
+    console.warn('  2. Lazy load heavy components');
+    console.warn('  3. Use dynamic imports for optional features');
+    console.warn('  4. Enable compression (gzip/brotli)');
+    console.warn('  5. Minify and tree-shake dependencies');
     
   } catch (error) {
     console.error('Error analyzing bundle:', error.message);

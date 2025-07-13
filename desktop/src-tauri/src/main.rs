@@ -2,55 +2,55 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod error;
-mod tmux;
-mod mux_backend;
 mod layout;
 mod layout_commands;
+mod mux_backend;
 mod neovim;
 mod simple_state_store;
+mod tmux;
 // mod state_commands; // REMOVED - legacy module replaced by unified_state_commands
-mod manager;
-mod state_manager;
-mod unified_state_commands;
-mod terminal_commands;
-mod terminal_stream;
-mod terminal_stream_commands;
-mod file_manager;
+mod command_history;
 mod file_commands;
+mod file_manager;
 mod file_watcher;
 mod file_watcher_commands;
+mod manager;
+mod module_commands;
+mod modules;
+mod plugins;
 mod project_search;
 mod search_commands;
-mod command_history;
-mod terminal_search;
-mod plugins;
-mod websocket_server;
-mod modules;
-mod module_commands;
 mod startup;
+mod state_manager;
+mod terminal_commands;
+mod terminal_search;
+mod terminal_stream;
+mod terminal_stream_commands;
+mod unified_state_commands;
 mod updater;
+mod websocket_server;
 // mod test_results; // Legacy SQLx-based implementation - DEPRECATED
-mod test_results_v2; // New SimpleStateStore implementation
-mod test_results_v2_tests; // Tests for v2 implementation
-mod error_handling_tests; // Tests for error handling
-mod integration_tests; // Integration tests
-mod experimental;
-mod window_state;
-mod metrics;
 mod app_dirs;
-mod sharing_service;
-mod command_history_commands;
 mod backend_commands;
-mod test_parser_commands;
-mod trash_commands;
+mod command_history_commands;
+mod error_handling_tests; // Tests for error handling
+mod experimental;
 mod git_commands;
+mod integration_tests; // Integration tests
+mod metrics;
 #[cfg(test)]
 mod project_search_tests;
+mod sharing_service;
+mod test_parser_commands;
+mod test_results_v2; // New SimpleStateStore implementation
+mod test_results_v2_tests; // Tests for v2 implementation
+mod trash_commands;
+mod window_state;
 
-use tmux::*;
 use layout::*;
 use layout_commands::*;
 use neovim::*;
+use tmux::*;
 // use simple_state_store::*; // Not needed - using unified_state_commands
 // Removed legacy state_commands - using unified_state_commands instead
 // use unified_state_commands::*; // Using explicit imports in invoke_handler
@@ -64,11 +64,11 @@ use metrics::*;
 use sharing_service::SharingService;
 use simple_state_store::SimpleStateStore;
 use std::sync::{Arc, Mutex};
-use tauri::{Manager, Emitter};
+use tauri::{Emitter, Manager};
 use tauri_plugin_fs;
-use tauri_plugin_shell;
-use tauri_plugin_process;
 use tauri_plugin_os;
+use tauri_plugin_process;
+use tauri_plugin_shell;
 use tauri_plugin_updater;
 use tauri_plugin_window_state;
 
@@ -85,11 +85,12 @@ async fn main() {
     tauri::Builder::default()
         .setup(|app| {
             let handle = app.handle();
-            
+
             // Initialize terminal streaming manager
-            let terminal_stream_manager = Arc::new(terminal_stream::TerminalStreamManager::new(handle.clone()));
+            let terminal_stream_manager =
+                Arc::new(terminal_stream::TerminalStreamManager::new(handle.clone()));
             handle.manage(terminal_stream_manager);
-            
+
             // Spawn async initialization without non-Send plugin registry
             let handle_clone = handle.clone();
             tauri::async_runtime::spawn(async move {
@@ -105,12 +106,12 @@ async fn main() {
                     }
                 }
             });
-            
+
             // Run synchronous startup tasks
             startup::preload_resources(&handle);
             window_state::setup_window_state_persistence(&handle);
             setup_auto_update_check(&handle);
-            
+
             Ok(())
         })
         .manage(AppState {
@@ -129,9 +130,8 @@ async fn main() {
         .manage({
             // Initialize ModuleLoader
             let store = Arc::new(SimpleStateStore::new_with_file("orchflow.db").unwrap());
-            let modules_dir = app_dirs::get_modules_dir().unwrap_or_else(|_| {
-                std::env::current_dir().unwrap().join("modules")
-            });
+            let modules_dir = app_dirs::get_modules_dir()
+                .unwrap_or_else(|_| std::env::current_dir().unwrap().join("modules"));
             let module_loader = ModuleLoader::new(modules_dir, store);
             Arc::new(tokio::sync::Mutex::new(module_loader))
         })

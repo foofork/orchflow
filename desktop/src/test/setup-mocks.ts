@@ -163,9 +163,10 @@ vi.mock('$lib/components/Button.svelte', () => ({
   default: createSvelteComponentMock('Button', { variant: 'primary' })
 }));
 
-vi.mock('$lib/components/Dialog.svelte', () => ({
-  default: createSvelteComponentMock('Dialog', { open: false })
-}));
+// Dialog is not mocked to allow testing the actual component
+// vi.mock('$lib/components/Dialog.svelte', () => ({
+//   default: createSvelteComponentMock('Dialog', { show: false })
+// }));
 
 // Export the helper for other tests
 export { createSvelteComponentMock };

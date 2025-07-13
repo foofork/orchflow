@@ -2,12 +2,9 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, waitFor, screen } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import FileExplorer from './FileExplorer.svelte';
-import { 
-  createAsyncMock, 
-  createSyncMock,
-  enhancedComponentMocks,
-  MockedFunction
-} from '@/test/mock-factory';
+import type { MockedFunction } from '@/test/mock-factory';
+import { createAsyncMock, createSyncMock, enhancedComponentMocks } from '@/test/mock-factory';
+import { mockSvelteEvents } from '@/test/svelte5-event-helper';
 import {
   buildFileNode,
   buildDirectoryNode,
@@ -232,7 +229,7 @@ describe('FileExplorer Component', () => {
       expect(screen.getByText('index.js')).toBeTruthy();
       
       // Check that we have an expanded directory with children visible
-      let childrenDiv = container.querySelector('.children');
+      const childrenDiv = container.querySelector('.children');
       expect(childrenDiv).toBeTruthy();
       expect(childrenDiv?.querySelector('.name')?.textContent).toBe('index.js');
       
@@ -252,7 +249,8 @@ describe('FileExplorer Component', () => {
       cleanup.push(unmount);
       
       const openFileHandler = createSyncMock<[any], void>();
-      const unsubscribe = component.$on('openFile', (event) => {
+      const mockComponent = mockSvelteEvents(component);
+      const unsubscribe = mockComponent.$on('openFile', (event) => {
         openFileHandler(event.detail);
       });
       cleanup.push(unsubscribe);
@@ -675,7 +673,8 @@ describe('FileExplorer Component', () => {
       cleanup.push(unmount);
       
       const openFileHandler = createSyncMock<[string], void>();
-      const unsubscribe = component.$on('openFile', (event) => {
+      const mockComponent = mockSvelteEvents(component);
+      const unsubscribe = mockComponent.$on('openFile', (event) => {
         openFileHandler(event.detail);
       });
       cleanup.push(unsubscribe);

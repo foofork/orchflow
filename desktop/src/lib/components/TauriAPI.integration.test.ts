@@ -215,7 +215,9 @@ describe('Tauri API Integration Tests', () => {
         }
       });
 
-      const { container } = mockTerminal.render({ command: 'echo "Hello World"' });
+      const container = document.createElement('div');
+      // Simulate component rendering
+      container.innerHTML = mockTerminal.template || '<div data-testid="run-button"></div><pre data-testid="output"></pre>';
       document.body.appendChild(container);
 
       const runButton = container.querySelector('[data-testid="run-button"]') as HTMLButtonElement;

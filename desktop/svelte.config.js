@@ -11,6 +11,12 @@ const config = {
     }),
     prerender: {
       entries: []
+    },
+    alias: {
+      '@': 'src',
+      '@/*': 'src/*',
+      '$lib': 'src/lib',
+      '$lib/*': 'src/lib/*'
     }
   }
 };

@@ -1,11 +1,11 @@
-use std::time::Instant;
+use crate::manager::Manager;
+use crate::modules::ModuleLoader;
+use crate::simple_state_store::SimpleStateStore;
+use crate::state_manager::StateManager;
 use std::sync::Arc;
+use std::time::Instant;
 use tauri::{AppHandle, Manager as TauriManager};
 use tokio::sync::mpsc;
-use crate::simple_state_store::SimpleStateStore;
-use crate::manager::Manager;
-use crate::state_manager::StateManager;
-use crate::modules::ModuleLoader;
 
 /// Startup performance metrics
 #[derive(Debug, Clone, serde::Serialize)]
@@ -35,7 +35,7 @@ pub async fn initialize_app(app: &AppHandle) -> Result<StartupMetrics, Box<dyn s
 
     // 1. Initialize critical components first
     let state_start = Instant::now();
-    
+
     // Get the managed state store from Tauri and initialize SQLx pool
     let state_store = if let Some(managed_store) = app.try_state::<Arc<SimpleStateStore>>() {
         // Use the managed state store
@@ -48,12 +48,12 @@ pub async fn initialize_app(app: &AppHandle) -> Result<StartupMetrics, Box<dyn s
             .join("orchflow.db");
         Arc::new(SimpleStateStore::new_with_file(db_path.to_str().unwrap())?)
     };
-    
+
     // SQLx pool is now automatically initialized during SimpleStateStore construction
     println!("SQLx pool initialization completed in SimpleStateStore::new()");
-    
+
     let state_manager = StateManager::new(state_store.clone());
-    
+
     // State is automatically loaded from SimpleStateStore as needed
     // No explicit load_from_store() method required
     // Create manager using new MuxBackend system
@@ -63,25 +63,26 @@ pub async fn initialize_app(app: &AppHandle) -> Result<StartupMetrics, Box<dyn s
         mux_backend,
         state_store.clone(),
     ));
-    
+
     // Initialize terminal searcher after manager is created
     manager.initialize_terminal_searcher().await;
-    
+
     // Initialize module loader
     let modules_dir = crate::app_dirs::get_project_dirs()?
         .data_subdir("modules")
         .expect("Failed to get modules directory");
-    
-    let module_loader = Arc::new(tokio::sync::Mutex::new(
-        ModuleLoader::new(modules_dir, state_store.clone())
-    ));
-    
+
+    let module_loader = Arc::new(tokio::sync::Mutex::new(ModuleLoader::new(
+        modules_dir,
+        state_store.clone(),
+    )));
+
     // Manage all state
     app.manage(state_store.clone());
     app.manage(state_manager.clone());
     app.manage(manager.clone());
     app.manage(module_loader.clone());
-    
+
     metrics.state_store_ms = state_start.elapsed().as_millis() as u64;
 
     // 2. Spawn parallel initialization tasks
@@ -109,7 +110,7 @@ pub async fn initialize_app(app: &AppHandle) -> Result<StartupMetrics, Box<dyn s
         let elapsed = start.elapsed().as_millis() as u64;
         tx3.send(("orchestrator", Ok(elapsed))).await.ok();
     });
-    
+
     // Defer module scanning until actually needed
     // This saves ~20-30ms during startup
     let tx4 = tx.clone();
@@ -130,7 +131,7 @@ pub async fn initialize_app(app: &AppHandle) -> Result<StartupMetrics, Box<dyn s
     // tokio::spawn(async move {
     //     crate::websocket_server::start_websocket_server(ws_manager, 7777).await;
     // });
-    
+
     // Defer plugin loading until after startup
     // This saves ~30-50ms during startup. Plugins will be loaded on-demand
     // or in the background after the UI is responsive.
@@ -138,13 +139,13 @@ pub async fn initialize_app(app: &AppHandle) -> Result<StartupMetrics, Box<dyn s
     tokio::spawn(async move {
         // Wait a bit to let the UI become responsive first
         tokio::time::sleep(std::time::Duration::from_millis(100)).await;
-        
+
         let plugin_registry = crate::plugins::PluginRegistry::new();
         let essential_plugins = [
-            "terminal",   // Most likely to be used immediately
-            "session",    // Core functionality
+            "terminal", // Most likely to be used immediately
+            "session",  // Core functionality
         ];
-        
+
         // Load essential plugins first
         for plugin_id in &essential_plugins {
             if let Some(plugin) = plugin_registry.create(plugin_id) {
@@ -155,16 +156,16 @@ pub async fn initialize_app(app: &AppHandle) -> Result<StartupMetrics, Box<dyn s
                 }
             }
         }
-        
+
         // Then load other plugins in background
         let other_plugins = [
             "file-browser",
-            "test-runner", 
-            "lsp",        // Language Server Protocol
-            "syntax",     // Syntax highlighting
-            "search",     // Project-wide search
+            "test-runner",
+            "lsp",    // Language Server Protocol
+            "syntax", // Syntax highlighting
+            "search", // Project-wide search
         ];
-        
+
         for plugin_id in &other_plugins {
             if let Some(plugin) = plugin_registry.create(plugin_id) {
                 if let Err(e) = plugin_manager.load_plugin(plugin).await {
@@ -175,7 +176,7 @@ pub async fn initialize_app(app: &AppHandle) -> Result<StartupMetrics, Box<dyn s
             }
         }
     });
-    
+
     // Drop original sender so we know when all tasks are done
     drop(tx);
 
@@ -194,7 +195,7 @@ pub async fn initialize_app(app: &AppHandle) -> Result<StartupMetrics, Box<dyn s
     }
 
     metrics.total_ms = start.elapsed().as_millis() as u64;
-    
+
     println!("Startup completed in {}ms", metrics.total_ms);
     println!("  State store: {}ms", metrics.state_store_ms);
     println!("  Neovim check: {}ms", metrics.neovim_check_ms);
@@ -212,7 +213,7 @@ async fn check_neovim_binary() -> Result<(), String> {
     if which::which("nvim").is_ok() {
         return Ok(());
     }
-    
+
     // Fallback to version check if 'which' fails
     tokio::process::Command::new("nvim")
         .arg("--version")
@@ -229,7 +230,7 @@ async fn check_tmux_binary() -> Result<(), String> {
     if which::which("tmux").is_ok() {
         return Ok(());
     }
-    
+
     // Fallback to version check if 'which' fails
     tokio::process::Command::new("tmux")
         .arg("-V")
@@ -239,17 +240,16 @@ async fn check_tmux_binary() -> Result<(), String> {
     Ok(())
 }
 
-
-
 /// Preload critical resources in background
 pub fn preload_resources(app: &AppHandle) {
     let handle = app.clone();
-    
+
     tokio::spawn(async move {
         // Preload common module manifests
         if let Some(modules_path) = crate::app_dirs::AppDirs::new()
             .ok()
-            .and_then(|dirs| dirs.data_dir()) {
+            .and_then(|dirs| dirs.data_dir())
+        {
             let modules_dir = modules_path.join("modules");
             if modules_dir.exists() {
                 // Scan and cache module manifests

@@ -64,7 +64,7 @@
       const pollOutput = async () => {
         try {
           const output = await invoke('get_terminal_output');
-          terminalOutput = output;
+          terminalOutput = output as string;
         } catch (error) {
           console.error('Get output error:', error);
         }

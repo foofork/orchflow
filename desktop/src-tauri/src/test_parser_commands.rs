@@ -1,9 +1,9 @@
 // Test parser commands for parsing test output and storing results
-use tauri::State;
 use crate::error::Result;
-use serde::{Deserialize, Serialize};
 use regex::Regex;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use tauri::State;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ParsedTestResult {
@@ -32,7 +32,8 @@ impl ToString for TestStatus {
             TestStatus::Failed => "failed",
             TestStatus::Skipped => "skipped",
             TestStatus::Pending => "pending",
-        }.to_string()
+        }
+        .to_string()
     }
 }
 
@@ -55,18 +56,20 @@ pub async fn parse_and_store_test_output(
         "pytest" => parse_pytest_output(&request.output),
         "cargo" | "rust" => parse_cargo_test_output(&request.output),
         "go" => parse_go_test_output(&request.output),
-        _ => return Err(crate::error::OrchflowError::ValidationError {
-            field: "framework".to_string(),
-            reason: format!("Unsupported test framework: {}", request.framework),
-        }),
+        _ => {
+            return Err(crate::error::OrchflowError::ValidationError {
+                field: "framework".to_string(),
+                reason: format!("Unsupported test framework: {}", request.framework),
+            })
+        }
     };
-    
+
     // Store results in database
     let mut total = 0;
     let mut passed = 0;
     let mut failed = 0;
     let mut skipped = 0;
-    
+
     // Process test results without database storage for now
     for result in parsed_results {
         total += 1;
@@ -76,20 +79,21 @@ pub async fn parse_and_store_test_output(
             TestStatus::Skipped => skipped += 1,
             TestStatus::Pending => skipped += 1,
         }
-        
+
         // TODO: Store test results using SimpleStateStore key-value store
         let result_key = format!("test_result:{}:{}", request.run_id, result.test_name);
-        let result_data = serde_json::to_string(&result)
-            .map_err(|e| crate::error::OrchflowError::ValidationError {
+        let result_data = serde_json::to_string(&result).map_err(|e| {
+            crate::error::OrchflowError::ValidationError {
                 field: "test_result".to_string(),
                 reason: format!("Failed to serialize test result: {}", e),
-            })?;
-        
+            }
+        })?;
+
         if let Err(e) = state.set(&result_key, &result_data).await {
             eprintln!("Warning: Failed to store test result: {}", e);
         }
     }
-    
+
     Ok(ParseTestSummary {
         total_tests: total,
         passed_tests: passed,
@@ -110,21 +114,21 @@ pub struct ParseTestSummary {
 
 pub fn parse_jest_vitest_output(output: &str) -> Vec<ParsedTestResult> {
     let mut results = Vec::new();
-    
+
     // Regex patterns for Jest/Vitest
     let pass_regex = Regex::new(r"✓\s+(.+)\s+\((\d+)\s*ms\)").unwrap();
     let fail_regex = Regex::new(r"✗\s+(.+)\s+\((\d+)\s*ms\)").unwrap();
     let skip_regex = Regex::new(r"○\s+(.+)").unwrap();
     let suite_regex = Regex::new(r"^\s*(.+\.(?:test|spec)\.[jt]sx?)\s*$").unwrap();
-    
+
     let mut current_file = "unknown".to_string();
-    
+
     for line in output.lines() {
         // Check for test file
         if let Some(cap) = suite_regex.captures(line) {
             current_file = cap[1].to_string();
         }
-        
+
         // Check for passed tests
         if let Some(cap) = pass_regex.captures(line) {
             results.push(ParsedTestResult {
@@ -137,7 +141,7 @@ pub fn parse_jest_vitest_output(output: &str) -> Vec<ParsedTestResult> {
                 error_stack: None,
             });
         }
-        
+
         // Check for failed tests
         if let Some(cap) = fail_regex.captures(line) {
             results.push(ParsedTestResult {
@@ -150,7 +154,7 @@ pub fn parse_jest_vitest_output(output: &str) -> Vec<ParsedTestResult> {
                 error_stack: None,
             });
         }
-        
+
         // Check for skipped tests
         if let Some(cap) = skip_regex.captures(line) {
             results.push(ParsedTestResult {
@@ -164,15 +168,15 @@ pub fn parse_jest_vitest_output(output: &str) -> Vec<ParsedTestResult> {
             });
         }
     }
-    
+
     results
 }
 
 pub fn parse_pytest_output(output: &str) -> Vec<ParsedTestResult> {
     let mut results = Vec::new();
-    
+
     let test_regex = Regex::new(r"([\w/]+\.py)::(test_\w+).*?(PASSED|FAILED|SKIPPED)").unwrap();
-    
+
     for cap in test_regex.captures_iter(output) {
         let status = match &cap[3] {
             "PASSED" => TestStatus::Passed,
@@ -180,7 +184,7 @@ pub fn parse_pytest_output(output: &str) -> Vec<ParsedTestResult> {
             "SKIPPED" => TestStatus::Skipped,
             _ => TestStatus::Pending,
         };
-        
+
         results.push(ParsedTestResult {
             test_file: cap[1].to_string(),
             test_name: cap[2].to_string(),
@@ -195,16 +199,16 @@ pub fn parse_pytest_output(output: &str) -> Vec<ParsedTestResult> {
             error_stack: None,
         });
     }
-    
+
     results
 }
 
 pub fn parse_cargo_test_output(output: &str) -> Vec<ParsedTestResult> {
     let mut results = Vec::new();
-    
+
     let test_regex = Regex::new(r"test\s+([\w:]+)\s+\.\.\.\s+(ok|FAILED|ignored)").unwrap();
     let duration_regex = Regex::new(r"test result:.*?finished in (\d+\.\d+)s").unwrap();
-    
+
     for cap in test_regex.captures_iter(output) {
         let status = match &cap[2] {
             "ok" => TestStatus::Passed,
@@ -212,7 +216,7 @@ pub fn parse_cargo_test_output(output: &str) -> Vec<ParsedTestResult> {
             "ignored" => TestStatus::Skipped,
             _ => TestStatus::Pending,
         };
-        
+
         let test_path = cap[1].to_string();
         let parts: Vec<&str> = test_path.split("::").collect();
         let test_file = if parts.len() > 1 {
@@ -220,7 +224,7 @@ pub fn parse_cargo_test_output(output: &str) -> Vec<ParsedTestResult> {
         } else {
             "unknown.rs".to_string()
         };
-        
+
         results.push(ParsedTestResult {
             test_file,
             test_name: parts.last().map(|s| *s).unwrap_or(&cap[1]).to_string(),
@@ -235,23 +239,23 @@ pub fn parse_cargo_test_output(output: &str) -> Vec<ParsedTestResult> {
             error_stack: None,
         });
     }
-    
+
     results
 }
 
 pub fn parse_go_test_output(output: &str) -> Vec<ParsedTestResult> {
     let mut results = Vec::new();
-    
+
     let test_regex = Regex::new(r"---\s+(PASS|FAIL|SKIP):\s+(\w+)\s+\((\d+\.\d+)s\)").unwrap();
     let package_regex = Regex::new(r"(?:ok|FAIL)\s+([\w/\.]+)").unwrap();
-    
+
     let mut current_package = "unknown".to_string();
-    
+
     for line in output.lines() {
         if let Some(cap) = package_regex.captures(line) {
             current_package = cap[1].to_string();
         }
-        
+
         if let Some(cap) = test_regex.captures(line) {
             let status = match &cap[1] {
                 "PASS" => TestStatus::Passed,
@@ -259,9 +263,9 @@ pub fn parse_go_test_output(output: &str) -> Vec<ParsedTestResult> {
                 "SKIP" => TestStatus::Skipped,
                 _ => TestStatus::Pending,
             };
-            
+
             let duration_ms = (cap[3].parse::<f64>().unwrap_or(0.0) * 1000.0) as i32;
-            
+
             results.push(ParsedTestResult {
                 test_file: format!("{}_test.go", current_package.replace("/", "_")),
                 test_name: cap[2].to_string(),
@@ -277,7 +281,7 @@ pub fn parse_go_test_output(output: &str) -> Vec<ParsedTestResult> {
             });
         }
     }
-    
+
     results
 }
 
@@ -289,14 +293,24 @@ pub async fn get_supported_test_frameworks() -> Result<Vec<TestFrameworkInfo>> {
             id: "jest".to_string(),
             name: "Jest".to_string(),
             language: "JavaScript/TypeScript".to_string(),
-            file_patterns: vec!["*.test.js".to_string(), "*.test.ts".to_string(), "*.spec.js".to_string(), "*.spec.ts".to_string()],
+            file_patterns: vec![
+                "*.test.js".to_string(),
+                "*.test.ts".to_string(),
+                "*.spec.js".to_string(),
+                "*.spec.ts".to_string(),
+            ],
             command: "npm test".to_string(),
         },
         TestFrameworkInfo {
             id: "vitest".to_string(),
             name: "Vitest".to_string(),
             language: "JavaScript/TypeScript".to_string(),
-            file_patterns: vec!["*.test.js".to_string(), "*.test.ts".to_string(), "*.spec.js".to_string(), "*.spec.ts".to_string()],
+            file_patterns: vec![
+                "*.test.js".to_string(),
+                "*.test.ts".to_string(),
+                "*.spec.js".to_string(),
+                "*.spec.ts".to_string(),
+            ],
             command: "npm run test".to_string(),
         },
         TestFrameworkInfo {

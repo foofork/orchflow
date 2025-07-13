@@ -1,8 +1,8 @@
 use super::backend::MuxBackend;
-use super::tmux_backend::TmuxBackend;
 use super::muxd_backend::MuxdBackend;
+use super::tmux_backend::TmuxBackend;
+use log::{error, info, warn};
 use std::env;
-use log::{info, warn, error};
 
 /// Create a mux backend based on environment configuration (async version)
 pub async fn create_mux_backend_async() -> Box<dyn MuxBackend> {
@@ -10,16 +10,16 @@ pub async fn create_mux_backend_async() -> Box<dyn MuxBackend> {
         info!("ORCH_MUX_BACKEND not set, defaulting to tmux");
         "tmux".to_string()
     });
-    
+
     info!("Creating mux backend with type: {}", backend_type);
-    
+
     match backend_type.as_str() {
         "muxd" => {
             let url = env::var("MUXD_URL").unwrap_or_else(|_| {
                 info!("MUXD_URL not set, using default ws://localhost:7890/ws");
                 "ws://localhost:7890/ws".to_string()
             });
-            
+
             match MuxdBackend::new(url).await {
                 Ok(backend) => {
                     info!("Successfully created MuxdBackend");
@@ -60,16 +60,16 @@ pub fn create_mux_backend() -> Box<dyn MuxBackend> {
         info!("ORCH_MUX_BACKEND not set, defaulting to tmux");
         "tmux".to_string()
     });
-    
+
     info!("Creating mux backend with type: {}", backend_type);
-    
+
     match backend_type.as_str() {
         "muxd" => {
             let url = env::var("MUXD_URL").unwrap_or_else(|_| {
                 info!("MUXD_URL not set, using default ws://localhost:7890/ws");
                 "ws://localhost:7890/ws".to_string()
             });
-            
+
             // Try to use existing runtime or create a new one
             match tokio::runtime::Handle::try_current() {
                 Ok(handle) => {
@@ -88,20 +88,21 @@ pub fn create_mux_backend() -> Box<dyn MuxBackend> {
                 Err(_) => {
                     // No runtime exists, create a new one
                     match tokio::runtime::Runtime::new() {
-                        Ok(rt) => {
-                            match rt.block_on(MuxdBackend::new(url)) {
-                                Ok(backend) => {
-                                    info!("Successfully created MuxdBackend");
-                                    Box::new(backend)
-                                }
-                                Err(e) => {
-                                    error!("Failed to create MuxdBackend: {}, falling back to tmux", e);
-                                    Box::new(TmuxBackend::new())
-                                }
+                        Ok(rt) => match rt.block_on(MuxdBackend::new(url)) {
+                            Ok(backend) => {
+                                info!("Successfully created MuxdBackend");
+                                Box::new(backend)
                             }
-                        }
+                            Err(e) => {
+                                error!("Failed to create MuxdBackend: {}, falling back to tmux", e);
+                                Box::new(TmuxBackend::new())
+                            }
+                        },
                         Err(e) => {
-                            error!("Failed to create tokio runtime: {}, falling back to tmux", e);
+                            error!(
+                                "Failed to create tokio runtime: {}, falling back to tmux",
+                                e
+                            );
                             Box::new(TmuxBackend::new())
                         }
                     }
@@ -134,17 +135,17 @@ pub fn create_mux_backend() -> Box<dyn MuxBackend> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_default_backend_is_tmux() {
         // Clear env var
         env::remove_var("ORCH_MUX_BACKEND");
-        
+
         let _backend = create_mux_backend();
         // We can't directly test the type, but we can verify it doesn't panic
         assert!(true);
     }
-    
+
     #[test]
     fn test_env_var_tmux() {
         env::set_var("ORCH_MUX_BACKEND", "tmux");
@@ -152,7 +153,7 @@ mod tests {
         assert!(true);
         env::remove_var("ORCH_MUX_BACKEND");
     }
-    
+
     #[test]
     fn test_env_var_muxd_falls_back() {
         env::set_var("ORCH_MUX_BACKEND", "muxd");
@@ -161,7 +162,7 @@ mod tests {
         assert!(true);
         env::remove_var("ORCH_MUX_BACKEND");
     }
-    
+
     #[test]
     fn test_env_var_mock() {
         env::set_var("ORCH_MUX_BACKEND", "mock");

@@ -1,8 +1,8 @@
 // State management data types
 
-use serde::{Deserialize, Serialize};
-use chrono::{DateTime, Utc};
 use crate::layout::GridLayout;
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
 // ===== Core State Types =====
 
@@ -45,18 +45,35 @@ pub enum PaneType {
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum StateEvent {
     // Session events
-    SessionCreated { session: SessionState },
-    SessionUpdated { session: SessionState },
-    SessionDeleted { session_id: String },
-    
+    SessionCreated {
+        session: SessionState,
+    },
+    SessionUpdated {
+        session: SessionState,
+    },
+    SessionDeleted {
+        session_id: String,
+    },
+
     // Pane events
-    PaneCreated { pane: PaneState },
-    PaneUpdated { pane: PaneState },
-    PaneDeleted { pane_id: String },
-    
+    PaneCreated {
+        pane: PaneState,
+    },
+    PaneUpdated {
+        pane: PaneState,
+    },
+    PaneDeleted {
+        pane_id: String,
+    },
+
     // Layout events
-    LayoutUpdated { session_id: String, layout: GridLayout },
-    LayoutReset { session_id: String },
+    LayoutUpdated {
+        session_id: String,
+        layout: GridLayout,
+    },
+    LayoutReset {
+        session_id: String,
+    },
 }
 
 impl std::fmt::Display for StateEvent {
@@ -64,11 +81,15 @@ impl std::fmt::Display for StateEvent {
         match self {
             StateEvent::SessionCreated { session } => write!(f, "SessionCreated({})", session.name),
             StateEvent::SessionUpdated { session } => write!(f, "SessionUpdated({})", session.name),
-            StateEvent::SessionDeleted { session_id } => write!(f, "SessionDeleted({})", session_id),
+            StateEvent::SessionDeleted { session_id } => {
+                write!(f, "SessionDeleted({})", session_id)
+            }
             StateEvent::PaneCreated { pane } => write!(f, "PaneCreated({})", pane.id),
             StateEvent::PaneUpdated { pane } => write!(f, "PaneUpdated({})", pane.id),
             StateEvent::PaneDeleted { pane_id } => write!(f, "PaneDeleted({})", pane_id),
-            StateEvent::LayoutUpdated { session_id, .. } => write!(f, "LayoutUpdated({})", session_id),
+            StateEvent::LayoutUpdated { session_id, .. } => {
+                write!(f, "LayoutUpdated({})", session_id)
+            }
             StateEvent::LayoutReset { session_id } => write!(f, "LayoutReset({})", session_id),
         }
     }
@@ -87,7 +108,7 @@ impl SessionState {
             updated_at: now,
         }
     }
-    
+
     pub fn add_pane(&mut self, pane_id: String) {
         if !self.panes.contains(&pane_id) {
             self.panes.push(pane_id.clone());
@@ -97,7 +118,7 @@ impl SessionState {
             self.updated_at = Utc::now();
         }
     }
-    
+
     pub fn remove_pane(&mut self, pane_id: &str) {
         self.panes.retain(|id| id != pane_id);
         if self.active_pane.as_ref() == Some(&pane_id.to_string()) {
@@ -105,14 +126,14 @@ impl SessionState {
         }
         self.updated_at = Utc::now();
     }
-    
+
     pub fn set_active_pane(&mut self, pane_id: String) {
         if self.panes.contains(&pane_id) {
             self.active_pane = Some(pane_id);
             self.updated_at = Utc::now();
         }
     }
-    
+
     pub fn update_layout(&mut self, layout: GridLayout) {
         self.layout = Some(layout);
         self.updated_at = Utc::now();
@@ -137,15 +158,15 @@ impl PaneState {
             created_at: Utc::now(),
         }
     }
-    
+
     pub fn set_title(&mut self, title: String) {
         self.title = title;
     }
-    
+
     pub fn set_working_dir(&mut self, working_dir: Option<String>) {
         self.working_dir = working_dir;
     }
-    
+
     pub fn set_command(&mut self, command: Option<String>) {
         self.command = command;
     }

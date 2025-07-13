@@ -1,7 +1,7 @@
 // Handler modules for individual action implementations
 
-pub mod session;
-pub mod pane;
 pub mod file;
-pub mod terminal;
+pub mod pane;
 pub mod search;
+pub mod session;
+pub mod terminal;

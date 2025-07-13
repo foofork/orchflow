@@ -123,7 +123,7 @@
         
         {#if showDetails}
           <ul class="factors-list" transition:slide>
-            {#each warning.riskFactors as factor}
+            {#each warning.riskFactors as factor (factor)}
               <li>
                 <Icon name="alert-circle" size="tiny" class="text-warning" />
                 {factor}

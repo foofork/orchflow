@@ -73,10 +73,10 @@ describe('Flow Lifecycle E2E Tests', () => {
     await page.click('[data-testid="save-flow-button"]');
     
     // Verify success message
-    await expect(page.locator('[data-testid="success-message"]')).toContainText('Flow saved successfully');
+    await expect(page.locator('[data-testid="success-message"]')).toHaveText('Flow saved successfully');
     
     // Verify flow appears in the list
-    await expect(page.locator('[data-testid="flow-list"]')).toContainText('E2E Test Flow');
+    await expect(page.locator('[data-testid="flow-list"]')).toHaveText('E2E Test Flow');
   });
 
   test('User can execute a flow and see output', async () => {
@@ -98,13 +98,13 @@ describe('Flow Lifecycle E2E Tests', () => {
     await page.click('[data-testid="run-flow-button"]');
     
     // Wait for execution to start
-    await expect(page.locator('[data-testid="execution-status"]')).toContainText('Running');
+    await expect(page.locator('[data-testid="execution-status"]')).toHaveText('Running');
     
     // Wait for execution to complete and verify output
-    await expect(page.locator('[data-testid="terminal-output"]')).toContainText('Test execution output', { timeout: 10000 });
+    await expect(page.locator('[data-testid="terminal-output"]')).toHaveText('Test execution output', { timeout: 10000 });
     
     // Verify status changes to completed
-    await expect(page.locator('[data-testid="execution-status"]')).toContainText('Completed');
+    await expect(page.locator('[data-testid="execution-status"]')).toHaveText('Completed');
   });
 
   test('User can edit an existing flow', async () => {
@@ -133,8 +133,8 @@ describe('Flow Lifecycle E2E Tests', () => {
     await page.click('[data-testid="save-flow-button"]');
     
     // Verify changes
-    await expect(page.locator('[data-testid="flow-list"]')).toContainText('Edited Test Flow');
-    await expect(page.locator('[data-testid="flow-description"]')).toContainText('Updated description');
+    await expect(page.locator('[data-testid="flow-list"]')).toHaveText('Edited Test Flow');
+    await expect(page.locator('[data-testid="flow-description"]')).toHaveText('Updated description');
   });
 
   test('User can delete a flow', async () => {
@@ -154,8 +154,8 @@ describe('Flow Lifecycle E2E Tests', () => {
     await page.click('[data-testid="confirm-delete-button"]');
     
     // Verify flow is removed
-    await expect(page.locator('[data-testid="flow-list"]')).not.toContainText('Delete Test Flow');
-    await expect(page.locator('[data-testid="success-message"]')).toContainText('Flow deleted successfully');
+    await expect(page.locator('[data-testid="flow-list"]')).not.toHaveText('Delete Test Flow');
+    await expect(page.locator('[data-testid="success-message"]')).toHaveText('Flow deleted successfully');
   });
 
   test('User can navigate between different sections', async () => {
@@ -191,10 +191,10 @@ describe('Flow Lifecycle E2E Tests', () => {
     await page.click('[data-testid="save-flow-button"]');
     
     // Verify error message
-    await expect(page.locator('[data-testid="error-message"]')).toContainText('Flow name is required');
+    await expect(page.locator('[data-testid="error-message"]')).toHaveText('Flow name is required');
     
     // Verify form remains interactive
-    await expect(page.locator('[data-testid="flow-name-input"]')).toBeEditable();
+    await expect(page.locator('[data-testid="flow-name-input"]')).toBeEnabled();
   });
 
   test('Terminal displays command output correctly', async () => {
@@ -209,7 +209,7 @@ describe('Flow Lifecycle E2E Tests', () => {
     await page.press('[data-testid="terminal-input"]', 'Enter');
     
     // Verify output appears
-    await expect(page.locator('[data-testid="terminal-output"]')).toContainText('Terminal test output', { timeout: 5000 });
+    await expect(page.locator('[data-testid="terminal-output"]')).toHaveText('Terminal test output', { timeout: 5000 });
     
     // Test command history
     await page.press('[data-testid="terminal-input"]', 'ArrowUp');
@@ -232,7 +232,7 @@ describe('Flow Lifecycle E2E Tests', () => {
     
     // Verify flow still exists
     await page.click('[data-testid="flows-tab"]');
-    await expect(page.locator('[data-testid="flow-list"]')).toContainText('Persistence Test Flow');
+    await expect(page.locator('[data-testid="flow-list"]')).toHaveText('Persistence Test Flow');
   });
 
   test('Complex flow with multiple steps executes correctly', async () => {
@@ -265,10 +265,10 @@ describe('Flow Lifecycle E2E Tests', () => {
     
     // Verify all steps execute
     for (let i = 1; i <= 3; i++) {
-      await expect(page.locator('[data-testid="terminal-output"]')).toContainText(`Step ${i}`, { timeout: 10000 });
+      await expect(page.locator('[data-testid="terminal-output"]')).toHaveText(`Step ${i}`, { timeout: 10000 });
     }
     
     // Verify completion
-    await expect(page.locator('[data-testid="execution-status"]')).toContainText('Completed');
+    await expect(page.locator('[data-testid="execution-status"]')).toHaveText('Completed');
   });
 });

@@ -18,7 +18,7 @@ export class TerminalPage extends BasePage {
   private readonly terminalSettings = '[data-testid="terminal-settings"]';
   private readonly searchBox = '[data-testid="terminal-search"]';
   private readonly notification = '[data-testid="notification"]';
-  private readonly confirmDialog = '[data-testid="confirm-dialog"]';
+  private readonly confirmDialogSelector = '[data-testid="confirm-dialog"]';
   private readonly restoreButton = '[data-testid="restore-terminal-button"]';
 
   constructor(page: Page) {
@@ -353,7 +353,7 @@ export class TerminalPage extends BasePage {
    * Check if confirmation dialog is visible
    */
   async isConfirmationDialogVisible(): Promise<boolean> {
-    return await this.elementExists(this.confirmDialog);
+    return await this.elementExists(this.confirmDialogSelector);
   }
 
   /**

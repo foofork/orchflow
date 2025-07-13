@@ -8,10 +8,10 @@ use thiserror::Error;
 pub enum ValidationError {
     #[error("Validation failed: {field} - {reason}")]
     FieldValidation { field: String, reason: String },
-    
+
     #[error("Invalid input: {input} - {reason}")]
     InvalidInput { input: String, reason: String },
-    
+
     #[error("Constraint violation: {constraint} - {reason}")]
     ConstraintViolation { constraint: String, reason: String },
 }
@@ -24,7 +24,7 @@ impl ValidationError {
             reason: reason.to_string(),
         }
     }
-    
+
     /// Helper function to create invalid input error
     pub fn invalid_input(input: &str, reason: &str) -> Self {
         Self::InvalidInput {
@@ -32,7 +32,7 @@ impl ValidationError {
             reason: reason.to_string(),
         }
     }
-    
+
     /// Helper function to create constraint violation error
     pub fn constraint_violation(constraint: &str, reason: &str) -> Self {
         Self::ConstraintViolation {

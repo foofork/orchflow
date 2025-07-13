@@ -6,8 +6,8 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tauri::State;
 
-use crate::simple_state_store::SimpleStateStore;
 use crate::error::OrchflowError;
+use crate::simple_state_store::SimpleStateStore;
 
 // ===== Core Types =====
 
@@ -122,44 +122,51 @@ impl TestResultsManager {
     // Test Suite Management
     pub async fn create_test_suite(&self, suite: TestSuite) -> Result<TestSuite, OrchflowError> {
         let key = format!("test_suite:{}", suite.id);
-        let value = serde_json::to_string(&suite)
-            .map_err(|e| OrchflowError::StatePersistenceError { 
-                reason: format!("Failed to serialize test suite: {}", e) 
+        let value =
+            serde_json::to_string(&suite).map_err(|e| OrchflowError::StatePersistenceError {
+                reason: format!("Failed to serialize test suite: {}", e),
             })?;
-        
-        self.store.set(&key, &value).await
-            .map_err(|e| OrchflowError::StatePersistenceError { 
-                reason: format!("Failed to store test suite: {:?}", e) 
+
+        self.store
+            .set(&key, &value)
+            .await
+            .map_err(|e| OrchflowError::StatePersistenceError {
+                reason: format!("Failed to store test suite: {:?}", e),
             })?;
-        
+
         Ok(suite)
     }
-    
+
     pub async fn get_test_suite(&self, suite_id: &str) -> Result<Option<TestSuite>, OrchflowError> {
         let key = format!("test_suite:{}", suite_id);
-        
+
         match self.store.get(&key).await {
             Ok(Some(value)) => {
-                let suite: TestSuite = serde_json::from_str(&value)
-                    .map_err(|e| OrchflowError::StatePersistenceError { 
-                        reason: format!("Failed to deserialize test suite: {}", e) 
-                    })?;
+                let suite: TestSuite = serde_json::from_str(&value).map_err(|e| {
+                    OrchflowError::StatePersistenceError {
+                        reason: format!("Failed to deserialize test suite: {}", e),
+                    }
+                })?;
                 Ok(Some(suite))
             }
             Ok(None) => Ok(None),
-            Err(e) => Err(OrchflowError::StatePersistenceError { 
-                reason: format!("Failed to retrieve test suite: {:?}", e) 
+            Err(e) => Err(OrchflowError::StatePersistenceError {
+                reason: format!("Failed to retrieve test suite: {:?}", e),
             }),
         }
     }
-    
-    pub async fn list_test_suites(&self, session_id: &str) -> Result<Vec<TestSuite>, OrchflowError> {
+
+    pub async fn list_test_suites(
+        &self,
+        session_id: &str,
+    ) -> Result<Vec<TestSuite>, OrchflowError> {
         let prefix = "test_suite:";
-        let all_values = self.store.list_with_prefix(prefix).await
-            .map_err(|e| OrchflowError::StatePersistenceError { 
-                reason: format!("Failed to list test suites: {:?}", e) 
-            })?;
-        
+        let all_values = self.store.list_with_prefix(prefix).await.map_err(|e| {
+            OrchflowError::StatePersistenceError {
+                reason: format!("Failed to list test suites: {:?}", e),
+            }
+        })?;
+
         let mut suites = Vec::new();
         for kv in all_values {
             if let Ok(suite) = serde_json::from_str::<TestSuite>(&kv.value) {
@@ -168,71 +175,83 @@ impl TestResultsManager {
                 }
             }
         }
-        
+
         Ok(suites)
     }
 
     // Test Run Management
     pub async fn create_test_run(&self, run: TestRun) -> Result<TestRun, OrchflowError> {
         let key = format!("test_run:{}", run.id);
-        let value = serde_json::to_string(&run)
-            .map_err(|e| OrchflowError::StatePersistenceError { 
-                reason: format!("Failed to serialize test run: {}", e) 
+        let value =
+            serde_json::to_string(&run).map_err(|e| OrchflowError::StatePersistenceError {
+                reason: format!("Failed to serialize test run: {}", e),
             })?;
-        
-        self.store.set(&key, &value).await
-            .map_err(|e| OrchflowError::StatePersistenceError { 
-                reason: format!("Failed to store test run: {:?}", e) 
+
+        self.store
+            .set(&key, &value)
+            .await
+            .map_err(|e| OrchflowError::StatePersistenceError {
+                reason: format!("Failed to store test run: {:?}", e),
             })?;
-        
+
         Ok(run)
     }
-    
+
     pub async fn update_test_run(&self, run: TestRun) -> Result<TestRun, OrchflowError> {
         self.create_test_run(run).await // Same as create for now
     }
-    
+
     pub async fn get_test_run(&self, run_id: &str) -> Result<Option<TestRun>, OrchflowError> {
         let key = format!("test_run:{}", run_id);
-        
+
         match self.store.get(&key).await {
             Ok(Some(value)) => {
-                let run: TestRun = serde_json::from_str(&value)
-                    .map_err(|e| OrchflowError::StatePersistenceError { 
-                        reason: format!("Failed to deserialize test run: {}", e) 
-                    })?;
+                let run: TestRun = serde_json::from_str(&value).map_err(|e| {
+                    OrchflowError::StatePersistenceError {
+                        reason: format!("Failed to deserialize test run: {}", e),
+                    }
+                })?;
                 Ok(Some(run))
             }
             Ok(None) => Ok(None),
-            Err(e) => Err(OrchflowError::StatePersistenceError { 
-                reason: format!("Failed to retrieve test run: {:?}", e) 
+            Err(e) => Err(OrchflowError::StatePersistenceError {
+                reason: format!("Failed to retrieve test run: {:?}", e),
             }),
         }
     }
 
     // Test Results Management
-    pub async fn create_test_result(&self, result: TestResult) -> Result<TestResult, OrchflowError> {
+    pub async fn create_test_result(
+        &self,
+        result: TestResult,
+    ) -> Result<TestResult, OrchflowError> {
         let key = format!("test_result:{}", result.id);
-        let value = serde_json::to_string(&result)
-            .map_err(|e| OrchflowError::StatePersistenceError { 
-                reason: format!("Failed to serialize test result: {}", e) 
+        let value =
+            serde_json::to_string(&result).map_err(|e| OrchflowError::StatePersistenceError {
+                reason: format!("Failed to serialize test result: {}", e),
             })?;
-        
-        self.store.set(&key, &value).await
-            .map_err(|e| OrchflowError::StatePersistenceError { 
-                reason: format!("Failed to store test result: {:?}", e) 
+
+        self.store
+            .set(&key, &value)
+            .await
+            .map_err(|e| OrchflowError::StatePersistenceError {
+                reason: format!("Failed to store test result: {:?}", e),
             })?;
-        
+
         Ok(result)
     }
-    
-    pub async fn get_test_results_for_run(&self, run_id: &str) -> Result<Vec<TestResult>, OrchflowError> {
+
+    pub async fn get_test_results_for_run(
+        &self,
+        run_id: &str,
+    ) -> Result<Vec<TestResult>, OrchflowError> {
         let prefix = "test_result:";
-        let all_values = self.store.list_with_prefix(prefix).await
-            .map_err(|e| OrchflowError::StatePersistenceError { 
-                reason: format!("Failed to list test results: {:?}", e) 
-            })?;
-        
+        let all_values = self.store.list_with_prefix(prefix).await.map_err(|e| {
+            OrchflowError::StatePersistenceError {
+                reason: format!("Failed to list test results: {:?}", e),
+            }
+        })?;
+
         let mut results = Vec::new();
         for kv in all_values {
             if let Ok(result) = serde_json::from_str::<TestResult>(&kv.value) {
@@ -241,22 +260,26 @@ impl TestResultsManager {
                 }
             }
         }
-        
+
         Ok(results)
     }
 
     // Analytics and Reporting
-    pub async fn get_test_run_summaries(&self, session_id: &str) -> Result<Vec<TestRunSummary>, OrchflowError> {
+    pub async fn get_test_run_summaries(
+        &self,
+        session_id: &str,
+    ) -> Result<Vec<TestRunSummary>, OrchflowError> {
         let suites = self.list_test_suites(session_id).await?;
         let mut summaries = Vec::new();
-        
+
         for suite in suites {
             let prefix = "test_run:";
-            let all_values = self.store.list_with_prefix(prefix).await
-                .map_err(|e| OrchflowError::StatePersistenceError { 
-                    reason: format!("Failed to list test runs: {:?}", e) 
-                })?;
-            
+            let all_values = self.store.list_with_prefix(prefix).await.map_err(|e| {
+                OrchflowError::StatePersistenceError {
+                    reason: format!("Failed to list test runs: {:?}", e),
+                }
+            })?;
+
             for kv in all_values {
                 if let Ok(run) = serde_json::from_str::<TestRun>(&kv.value) {
                     if run.suite_id == suite.id {
@@ -274,16 +297,19 @@ impl TestResultsManager {
                 }
             }
         }
-        
+
         Ok(summaries)
     }
-    
-    pub async fn get_test_failure_trends(&self, session_id: &str) -> Result<Vec<TestFailureTrend>, OrchflowError> {
+
+    pub async fn get_test_failure_trends(
+        &self,
+        session_id: &str,
+    ) -> Result<Vec<TestFailureTrend>, OrchflowError> {
         // Implementation would analyze test results to identify patterns
         // For now, return empty vector
         Ok(Vec::new())
     }
-    
+
     pub async fn delete_test_data(&self, session_id: &str) -> Result<(), OrchflowError> {
         // This would delete all test data for a session
         // Implementation would require listing and deleting all related keys

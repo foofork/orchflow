@@ -8,13 +8,13 @@ use thiserror::Error;
 pub enum LayoutError {
     #[error("Layout operation failed: {operation} - {reason}")]
     OperationFailed { operation: String, reason: String },
-    
+
     #[error("Invalid pane split: {reason}")]
     InvalidPaneSplit { reason: String },
-    
+
     #[error("Cannot close pane: {reason}")]
     PaneCloseError { reason: String },
-    
+
     #[error("Pane resize failed: {reason}")]
     PaneResizeError { reason: String },
 }
@@ -27,9 +27,11 @@ impl LayoutError {
             reason: reason.to_string(),
         }
     }
-    
+
     /// Helper function to create invalid split error
     pub fn invalid_split(reason: &str) -> Self {
-        Self::InvalidPaneSplit { reason: reason.to_string() }
+        Self::InvalidPaneSplit {
+            reason: reason.to_string(),
+        }
     }
 }

@@ -1,12 +1,12 @@
 // LSP-specific types and data structures
 
+use lsp_types::Diagnostic;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
-use tokio::sync::{mpsc, Mutex};
 use std::sync::Arc;
 use tokio::process::Child;
-use lsp_types::Diagnostic;
+use tokio::sync::{mpsc, Mutex};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LanguageServerConfig {

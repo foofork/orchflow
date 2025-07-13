@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import SearchPanel from './SearchPanel.svelte';
 import { createTypedMock, createSyncMock, createAsyncMock } from '@/test/mock-factory';
+import { mockSvelteEvents } from '@/test/svelte5-event-helper';
 
 // Mock Tauri API
 vi.mock('@tauri-apps/api/core', () => ({
@@ -292,7 +293,8 @@ describe('SearchPanel', () => {
       const input = container.querySelector('.search-input') as HTMLInputElement;
       
       let eventData: any = null;
-      component.$on('openFile', (event: CustomEvent) => {
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('openFile', (event: CustomEvent) => {
         eventData = event.detail;
       });
       
@@ -322,7 +324,8 @@ describe('SearchPanel', () => {
       const input = container.querySelector('.search-input') as HTMLInputElement;
       
       const events: any[] = [];
-      component.$on('openFile', (event: CustomEvent) => {
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('openFile', (event: CustomEvent) => {
         events.push(event.detail);
       });
       
@@ -348,7 +351,7 @@ describe('SearchPanel', () => {
 
   describe('Error Handling', () => {
     it('should handle search errors gracefully', async () => {
-      const consoleSpy = createTypedMock<[any], void>();
+      const consoleSpy = createTypedMock<(any) => void>();
       vi.spyOn(console, 'error').mockImplementation(consoleSpy);
       
       // Mock the simulateSearch to throw an error

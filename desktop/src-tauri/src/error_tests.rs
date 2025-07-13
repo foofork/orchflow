@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod error_tests {
-    use crate::error::*;
     use crate::error::context::*;
+    use crate::error::*;
     use std::path::PathBuf;
 
     #[test]
@@ -14,7 +14,10 @@ mod error_tests {
     #[test]
     fn test_backend_error() {
         let err = OrchflowError::backend_error("create_pane", "tmux not running");
-        assert_eq!(err.to_string(), "Backend operation failed: create_pane - tmux not running");
+        assert_eq!(
+            err.to_string(),
+            "Backend operation failed: create_pane - tmux not running"
+        );
         assert_eq!(err.category(), ErrorCategory::Backend);
     }
 
@@ -87,7 +90,7 @@ mod error_tests {
     fn test_error_conversion_from_io_error() {
         let io_err = std::io::Error::new(std::io::ErrorKind::NotFound, "file not found");
         let orch_err: OrchflowError = io_err.into();
-        
+
         match orch_err {
             OrchflowError::FileError { reason } => {
                 assert!(reason.contains("file not found"));
@@ -102,18 +105,23 @@ mod error_tests {
         let context = ErrorContext::new("split_pane", "LayoutManager")
             .with_session_id("test-session")
             .with_pane_id("test-pane");
-        
+
         let contextual = ContextualError::new(
             base_err.clone(),
             ErrorCategory::State,
             ErrorSeverity::Warning,
             context,
-        ).recoverable().with_retry();
+        )
+        .recoverable()
+        .with_retry();
 
         assert_eq!(contextual.error.to_string(), "Pane not found: test-pane");
         assert_eq!(contextual.context.operation, "split_pane");
         assert_eq!(contextual.context.component, "LayoutManager");
-        assert_eq!(contextual.context.session_id, Some("test-session".to_string()));
+        assert_eq!(
+            contextual.context.session_id,
+            Some("test-session".to_string())
+        );
         assert_eq!(contextual.context.pane_id, Some("test-pane".to_string()));
         assert_eq!(contextual.category, ErrorCategory::State);
         assert_eq!(contextual.severity, ErrorSeverity::Warning);
@@ -129,7 +137,10 @@ mod error_tests {
         assert_eq!(format!("{:?}", ErrorCategory::Terminal), "Terminal");
         assert_eq!(format!("{:?}", ErrorCategory::FileSystem), "FileSystem");
         assert_eq!(format!("{:?}", ErrorCategory::Plugin), "Plugin");
-        assert_eq!(format!("{:?}", ErrorCategory::Configuration), "Configuration");
+        assert_eq!(
+            format!("{:?}", ErrorCategory::Configuration),
+            "Configuration"
+        );
         assert_eq!(format!("{:?}", ErrorCategory::Database), "Database");
         assert_eq!(format!("{:?}", ErrorCategory::Network), "Network");
         assert_eq!(format!("{:?}", ErrorCategory::Validation), "Validation");
@@ -176,17 +187,19 @@ mod error_tests {
             operation: "split_pane".to_string(),
             timeout_ms: 5000,
         };
-        
+
         let context = ErrorContext::new("split_layout_pane", "LayoutManager")
             .with_session_id("main-session")
             .with_pane_id("pane-123");
-        
+
         let contextual = ContextualError::new(
             timeout_err,
             ErrorCategory::Backend,
             ErrorSeverity::Error,
             context,
-        ).recoverable().with_retry();
+        )
+        .recoverable()
+        .with_retry();
 
         // Verify error properties
         assert_eq!(contextual.category, ErrorCategory::Backend);
@@ -197,7 +210,10 @@ mod error_tests {
         // Verify context
         assert_eq!(contextual.context.operation, "split_layout_pane");
         assert_eq!(contextual.context.component, "LayoutManager");
-        assert_eq!(contextual.context.session_id, Some("main-session".to_string()));
+        assert_eq!(
+            contextual.context.session_id,
+            Some("main-session".to_string())
+        );
         assert_eq!(contextual.context.pane_id, Some("pane-123".to_string()));
     }
 
@@ -218,11 +234,15 @@ mod error_tests {
     fn test_module_errors() {
         let module_not_found = OrchflowError::module_not_found("test-module");
         assert_eq!(module_not_found.category(), ErrorCategory::Plugin);
-        
+
         let module_err = OrchflowError::module_error("test-module", "load", "invalid format");
         assert_eq!(module_err.category(), ErrorCategory::Plugin);
         match module_err {
-            OrchflowError::ModuleError { module_name, operation, reason } => {
+            OrchflowError::ModuleError {
+                module_name,
+                operation,
+                reason,
+            } => {
                 assert_eq!(module_name, "test-module");
                 assert_eq!(operation, "load");
                 assert_eq!(reason, "invalid format");

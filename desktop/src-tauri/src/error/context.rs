@@ -60,17 +60,17 @@ impl ErrorContext {
             stack_trace: None,
         }
     }
-    
+
     pub fn with_session_id(mut self, session_id: &str) -> Self {
         self.session_id = Some(session_id.to_string());
         self
     }
-    
+
     pub fn with_pane_id(mut self, pane_id: &str) -> Self {
         self.pane_id = Some(pane_id.to_string());
         self
     }
-    
+
     pub fn with_file_path(mut self, file_path: &str) -> Self {
         self.file_path = Some(file_path.to_string());
         self
@@ -93,12 +93,12 @@ impl ContextualError {
             retry_suggested: false,
         }
     }
-    
+
     pub fn recoverable(mut self) -> Self {
         self.recoverable = true;
         self
     }
-    
+
     pub fn with_retry(mut self) -> Self {
         self.retry_suggested = true;
         self

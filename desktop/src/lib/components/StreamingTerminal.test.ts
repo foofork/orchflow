@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock, type MockedFunction } from 'vitest';
 import { render, waitFor, fireEvent } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import StreamingTerminal from './StreamingTerminal.svelte';
@@ -20,7 +20,7 @@ let resizeObserverInstances: any[] = [];
 
 describe('StreamingTerminal', () => {
   let cleanup: Array<() => void> = [];
-  let mockUnlisten: Mock;
+  let mockUnlisten: MockedFunction<() => void>;
   let eventHandlers: Map<string, (event: any) => void>;
   let mockTerminal: any;
   let mockFitAddon: any;
@@ -35,7 +35,7 @@ describe('StreamingTerminal', () => {
     resizeObserverInstances = [];
     
     // Setup ResizeObserver mock
-    global.ResizeObserver = createTypedMock<[callback: ResizeObserverCallback], ResizeObserver>().mockImplementation((callback) => {
+    global.ResizeObserver = createTypedMock<(callback: ResizeObserverCallback) => ResizeObserver>().mockImplementation((callback) => {
       const instance = {
         observe: createVoidMock(),
         unobserve: createVoidMock(),
@@ -73,15 +73,15 @@ describe('StreamingTerminal', () => {
       focus: createVoidMock(),
       blur: createVoidMock(),
       dispose: createVoidMock(),
-      onData: createTypedMock<[callback: (data: string) => void], { dispose: () => void }>().mockImplementation((callback) => {
+      onData: createTypedMock<(callback: (data: string) => void) => { dispose: () => void }>().mockImplementation((callback) => {
         mockTerminal._dataCallback = callback;
         return { dispose: createVoidMock() };
       }),
-      onResize: createTypedMock<[callback: (data: { cols: number; rows: number }) => void], { dispose: () => void }>().mockImplementation((callback) => {
+      onResize: createTypedMock<(callback: (data: { cols: number; rows: number }) => void) => { dispose: () => void }>().mockImplementation((callback) => {
         mockTerminal._resizeCallback = callback;
         return { dispose: createVoidMock() };
       }),
-      resize: createTypedMock<[cols: number, rows: number], void>().mockImplementation((cols, rows) => {
+      resize: createTypedMock<(cols: number, rows: number) => void>().mockImplementation((cols, rows) => {
         mockTerminal.cols = cols;
         mockTerminal.rows = rows;
       }),
@@ -94,7 +94,7 @@ describe('StreamingTerminal', () => {
     };
 
     mockWebglAddon = {
-      onContextLoss: createTypedMock<[callback: () => void], void>().mockImplementation((callback) => {
+      onContextLoss: createTypedMock<(callback: () => void) => void>().mockImplementation((callback) => {
         mockWebglAddon._contextLossCallback = callback;
       }),
       dispose: createVoidMock()
@@ -138,10 +138,10 @@ describe('StreamingTerminal', () => {
     it('should initialize terminal with custom props', async () => {
       const mockFactory = createAsyncMock<[], { term: any; FitAddon: () => any; WebglAddon: () => any; SearchAddon: () => any; WebLinksAddon: () => any }>({
         term: mockTerminal,
-        FitAddon: createTypedMock<[], any>().mockReturnValue(mockFitAddon),
-        WebglAddon: createTypedMock<[], any>().mockReturnValue(mockWebglAddon),
-        SearchAddon: createTypedMock<[], any>().mockReturnValue(mockSearchAddon),
-        WebLinksAddon: createTypedMock<[], any>()
+        FitAddon: createTypedMock<() => any>().mockReturnValue(mockFitAddon),
+        WebglAddon: createTypedMock<() => any>().mockReturnValue(mockWebglAddon),
+        SearchAddon: createTypedMock<() => any>().mockReturnValue(mockSearchAddon),
+        WebLinksAddon: createTypedMock<() => any>()
       });
 
       const { container } = render(StreamingTerminal, {
@@ -165,7 +165,7 @@ describe('StreamingTerminal', () => {
     it('should create backend terminal with correct parameters', async () => {
       const mockFactory = createAsyncMock<[], { term: any; FitAddon: () => any }>({
         term: mockTerminal,
-        FitAddon: createTypedMock<[], any>().mockReturnValue(mockFitAddon)
+        FitAddon: createTypedMock<() => any>().mockReturnValue(mockFitAddon)
       });
 
       render(StreamingTerminal, {
@@ -218,10 +218,10 @@ describe('StreamingTerminal', () => {
     it('should load all addons when available', async () => {
       const mockFactory = createAsyncMock<[], { term: any; FitAddon: () => any; WebglAddon: () => any; SearchAddon: () => any; WebLinksAddon: () => any }>({
         term: mockTerminal,
-        FitAddon: createTypedMock<[], any>().mockReturnValue(mockFitAddon),
-        WebglAddon: createTypedMock<[], any>().mockReturnValue(mockWebglAddon),
-        SearchAddon: createTypedMock<[], any>().mockReturnValue(mockSearchAddon),
-        WebLinksAddon: createTypedMock<[], any>()
+        FitAddon: createTypedMock<() => any>().mockReturnValue(mockFitAddon),
+        WebglAddon: createTypedMock<() => any>().mockReturnValue(mockWebglAddon),
+        SearchAddon: createTypedMock<() => any>().mockReturnValue(mockSearchAddon),
+        WebLinksAddon: createTypedMock<() => any>()
       });
 
       const { unmount } = render(StreamingTerminal, {
@@ -247,14 +247,14 @@ describe('StreamingTerminal', () => {
       const mockFactory = createAsyncMock<[], { term: any; FitAddon: () => any; WebglAddon: () => any }>({
         term: {
           ...mockTerminal,
-          loadAddon: createTypedMock<[addon: any], void>().mockImplementation((addon) => {
+          loadAddon: createTypedMock<(addon: any) => void>().mockImplementation((addon) => {
             if (addon === failingWebglAddon) {
               throw new Error('WebGL not supported');
             }
           })
         },
-        FitAddon: createTypedMock<[], any>().mockReturnValue(mockFitAddon),
-        WebglAddon: createTypedMock<[], any>().mockReturnValue(failingWebglAddon)
+        FitAddon: createTypedMock<() => any>().mockReturnValue(mockFitAddon),
+        WebglAddon: createTypedMock<() => any>().mockReturnValue(failingWebglAddon)
       });
 
       const { unmount } = render(StreamingTerminal, {
@@ -278,7 +278,7 @@ describe('StreamingTerminal', () => {
     it('should handle WebGL context loss', async () => {
       const mockFactory = createAsyncMock<[], { term: any; WebglAddon: () => any }>({
         term: mockTerminal,
-        WebglAddon: createTypedMock<[], any>().mockReturnValue(mockWebglAddon)
+        WebglAddon: createTypedMock<() => any>().mockReturnValue(mockWebglAddon)
       });
 
       const { unmount } = render(StreamingTerminal, {
@@ -512,7 +512,7 @@ describe('StreamingTerminal', () => {
     it('should set up resize observer when fit addon is available', async () => {
       const mockFactory = createAsyncMock<[], { term: any; FitAddon: () => any }>({
         term: mockTerminal,
-        FitAddon: createTypedMock<[], any>().mockReturnValue(mockFitAddon)
+        FitAddon: createTypedMock<() => any>().mockReturnValue(mockFitAddon)
       });
 
       const { container, unmount } = render(StreamingTerminal, {
@@ -537,7 +537,7 @@ describe('StreamingTerminal', () => {
     it('should trigger fit on resize', async () => {
       const mockFactory = createAsyncMock<[], { term: any; FitAddon: () => any }>({
         term: mockTerminal,
-        FitAddon: createTypedMock<[], any>().mockReturnValue(mockFitAddon)
+        FitAddon: createTypedMock<() => any>().mockReturnValue(mockFitAddon)
       });
 
       const { container, unmount } = render(StreamingTerminal, {
@@ -659,7 +659,7 @@ describe('StreamingTerminal', () => {
     it('should expose search method', async () => {
       const mockFactory = createAsyncMock<[], { term: any; SearchAddon: () => any }>({
         term: mockTerminal,
-        SearchAddon: createTypedMock<[], any>().mockReturnValue(mockSearchAddon)
+        SearchAddon: createTypedMock<() => any>().mockReturnValue(mockSearchAddon)
       });
 
       const { component, unmount } = render(StreamingTerminal, {
@@ -724,9 +724,9 @@ describe('StreamingTerminal', () => {
     it('should clean up on destroy', async () => {
       const mockFactory = createAsyncMock<[], { term: any; FitAddon: () => any; WebglAddon: () => any; SearchAddon: () => any }>({
         term: mockTerminal,
-        FitAddon: createTypedMock<[], any>().mockReturnValue(mockFitAddon),
-        WebglAddon: createTypedMock<[], any>().mockReturnValue(mockWebglAddon),
-        SearchAddon: createTypedMock<[], any>().mockReturnValue(mockSearchAddon)
+        FitAddon: createTypedMock<() => any>().mockReturnValue(mockFitAddon),
+        WebglAddon: createTypedMock<() => any>().mockReturnValue(mockWebglAddon),
+        SearchAddon: createTypedMock<() => any>().mockReturnValue(mockSearchAddon)
       });
 
       const { unmount } = render(StreamingTerminal, {

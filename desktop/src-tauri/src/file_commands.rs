@@ -1,8 +1,8 @@
-use tauri::State;
-use serde::{Deserialize, Serialize};
-use crate::manager::{Manager, Action};
 use crate::error::Result;
 use crate::file_manager::{FileNode, FileOperation};
+use crate::manager::{Action, Manager};
+use serde::{Deserialize, Serialize};
+use tauri::State;
 
 /// Get the file tree for a directory
 #[tauri::command]
@@ -12,20 +12,23 @@ pub async fn get_file_tree(
     max_depth: Option<usize>,
 ) -> Result<FileNode> {
     let error_path = path.clone().unwrap_or_else(|| ".".to_string());
-    let action = Action::GetFileTree { path, max_depth: max_depth.map(|d| d as u32) };
-    
-    let result = manager.execute_action(action).await
-        .map_err(|e| crate::error::OrchflowError::FileOperationError {
+    let action = Action::GetFileTree {
+        path,
+        max_depth: max_depth.map(|d| d as u32),
+    };
+
+    let result = manager.execute_action(action).await.map_err(|e| {
+        crate::error::OrchflowError::FileOperationError {
             operation: "get_file_tree".to_string(),
             path: error_path.into(),
             reason: e.to_string(),
-        })?;
-    
-    serde_json::from_value(result)
-        .map_err(|e| crate::error::OrchflowError::ValidationError {
-            field: "file_tree".to_string(),
-            reason: e.to_string(),
-        })
+        }
+    })?;
+
+    serde_json::from_value(result).map_err(|e| crate::error::OrchflowError::ValidationError {
+        field: "file_tree".to_string(),
+        reason: e.to_string(),
+    })
 }
 
 /// Create a new file
@@ -36,51 +39,47 @@ pub async fn create_file(
     content: Option<String>,
 ) -> Result<()> {
     let action = Action::CreateFile { path, content };
-    
-    manager.execute_action(action).await
-        .map_err(|e| crate::error::OrchflowError::FileOperationError {
+
+    manager.execute_action(action).await.map_err(|e| {
+        crate::error::OrchflowError::FileOperationError {
             operation: "create_file".to_string(),
             path: "".into(),
             reason: e.to_string(),
-        })?;
-    
+        }
+    })?;
+
     Ok(())
 }
 
 /// Create a new directory
 #[tauri::command]
-pub async fn create_directory(
-    manager: State<'_, Manager>,
-    path: String,
-) -> Result<()> {
+pub async fn create_directory(manager: State<'_, Manager>, path: String) -> Result<()> {
     let action = Action::CreateDirectory { path };
-    
-    manager.execute_action(action).await
-        .map_err(|e| crate::error::OrchflowError::FileOperationError {
+
+    manager.execute_action(action).await.map_err(|e| {
+        crate::error::OrchflowError::FileOperationError {
             operation: "create_directory".to_string(),
             path: "".into(),
             reason: e.to_string(),
-        })?;
-    
+        }
+    })?;
+
     Ok(())
 }
 
 /// Delete a file or directory
 #[tauri::command]
-pub async fn delete_path(
-    manager: State<'_, Manager>,
-    path: String,
-    permanent: bool,
-) -> Result<()> {
+pub async fn delete_path(manager: State<'_, Manager>, path: String, permanent: bool) -> Result<()> {
     let action = Action::DeletePath { path, permanent };
-    
-    manager.execute_action(action).await
-        .map_err(|e| crate::error::OrchflowError::FileOperationError {
+
+    manager.execute_action(action).await.map_err(|e| {
+        crate::error::OrchflowError::FileOperationError {
             operation: "delete_path".to_string(),
             path: "".into(),
             reason: e.to_string(),
-        })?;
-    
+        }
+    })?;
+
     Ok(())
 }
 
@@ -91,20 +90,23 @@ pub async fn rename_path(
     old_path: String,
     new_name: String,
 ) -> Result<RenameResult> {
-    let action = Action::RenamePath { old_path: old_path.clone(), new_name };
-    
-    let result = manager.execute_action(action).await
-        .map_err(|e| crate::error::OrchflowError::FileOperationError {
+    let action = Action::RenamePath {
+        old_path: old_path.clone(),
+        new_name,
+    };
+
+    let result = manager.execute_action(action).await.map_err(|e| {
+        crate::error::OrchflowError::FileOperationError {
             operation: "rename_path".to_string(),
             path: old_path.into(),
             reason: e.to_string(),
-        })?;
-    
-    serde_json::from_value(result)
-        .map_err(|e| crate::error::OrchflowError::ValidationError {
-            field: "rename_result".to_string(),
-            reason: e.to_string(),
-        })
+        }
+    })?;
+
+    serde_json::from_value(result).map_err(|e| crate::error::OrchflowError::ValidationError {
+        field: "rename_result".to_string(),
+        reason: e.to_string(),
+    })
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -121,14 +123,15 @@ pub async fn move_files(
     destination: String,
 ) -> Result<()> {
     let action = Action::MoveFiles { files, destination };
-    
-    manager.execute_action(action).await
-        .map_err(|e| crate::error::OrchflowError::FileOperationError {
+
+    manager.execute_action(action).await.map_err(|e| {
+        crate::error::OrchflowError::FileOperationError {
             operation: "move_files".to_string(),
             path: "".into(),
             reason: e.to_string(),
-        })?;
-    
+        }
+    })?;
+
     Ok(())
 }
 
@@ -140,14 +143,15 @@ pub async fn copy_files(
     destination: String,
 ) -> Result<()> {
     let action = Action::CopyFiles { files, destination };
-    
-    manager.execute_action(action).await
-        .map_err(|e| crate::error::OrchflowError::FileOperationError {
+
+    manager.execute_action(action).await.map_err(|e| {
+        crate::error::OrchflowError::FileOperationError {
             operation: "copy_files".to_string(),
             path: "".into(),
             reason: e.to_string(),
-        })?;
-    
+        }
+    })?;
+
     Ok(())
 }
 
@@ -158,20 +162,23 @@ pub async fn search_files(
     pattern: String,
     path: Option<String>,
 ) -> Result<SearchResult> {
-    let action = Action::SearchFiles { pattern: pattern.clone(), path };
-    
-    let result = manager.execute_action(action).await
-        .map_err(|e| crate::error::OrchflowError::FileOperationError {
+    let action = Action::SearchFiles {
+        pattern: pattern.clone(),
+        path,
+    };
+
+    let result = manager.execute_action(action).await.map_err(|e| {
+        crate::error::OrchflowError::FileOperationError {
             operation: "search_files".to_string(),
             path: "".into(),
             reason: e.to_string(),
-        })?;
-    
-    serde_json::from_value(result)
-        .map_err(|e| crate::error::OrchflowError::ValidationError {
-            field: "search_result".to_string(),
-            reason: e.to_string(),
-        })
+        }
+    })?;
+
+    serde_json::from_value(result).map_err(|e| crate::error::OrchflowError::ValidationError {
+        field: "search_result".to_string(),
+        reason: e.to_string(),
+    })
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -183,13 +190,12 @@ pub struct SearchResult {
 
 /// Expand a directory in the file tree
 #[tauri::command]
-pub async fn expand_directory(
-    manager: State<'_, Manager>,
-    path: String,
-) -> Result<Vec<FileNode>> {
+pub async fn expand_directory(manager: State<'_, Manager>, path: String) -> Result<Vec<FileNode>> {
     // Get file manager directly for this operation
     if let Some(file_manager) = &manager.file_manager {
-        let children = file_manager.expand_directory(std::path::Path::new(&path)).await
+        let children = file_manager
+            .expand_directory(std::path::Path::new(&path))
+            .await
             .map_err(|e| e)?;
         Ok(children)
     } else {
@@ -202,13 +208,12 @@ pub async fn expand_directory(
 
 /// Collapse a directory in the file tree
 #[tauri::command]
-pub async fn collapse_directory(
-    manager: State<'_, Manager>,
-    path: String,
-) -> Result<()> {
+pub async fn collapse_directory(manager: State<'_, Manager>, path: String) -> Result<()> {
     // Get file manager directly for this operation
     if let Some(file_manager) = &manager.file_manager {
-        file_manager.collapse_directory(std::path::Path::new(&path)).await
+        file_manager
+            .collapse_directory(std::path::Path::new(&path))
+            .await
             .map_err(|e| e)?;
         Ok(())
     } else {
@@ -228,11 +233,10 @@ pub async fn get_file_preview(
 ) -> Result<String> {
     // Get file manager directly for this operation
     if let Some(file_manager) = &manager.file_manager {
-        let preview = file_manager.get_file_preview(
-            std::path::Path::new(&path),
-            max_lines.unwrap_or(50)
-        ).await
-        .map_err(|e| e)?;
+        let preview = file_manager
+            .get_file_preview(std::path::Path::new(&path), max_lines.unwrap_or(50))
+            .await
+            .map_err(|e| e)?;
         Ok(preview)
     } else {
         Err(crate::error::OrchflowError::InternalError {
@@ -250,7 +254,9 @@ pub async fn get_file_operation_history(
 ) -> Result<Vec<FileOperation>> {
     // Get file manager directly for this operation
     if let Some(file_manager) = &manager.file_manager {
-        let history = file_manager.get_operation_history(limit.unwrap_or(50)).await;
+        let history = file_manager
+            .get_operation_history(limit.unwrap_or(50))
+            .await;
         Ok(history)
     } else {
         Err(crate::error::OrchflowError::InternalError {
@@ -262,13 +268,10 @@ pub async fn get_file_operation_history(
 
 /// Undo last file operation
 #[tauri::command]
-pub async fn undo_file_operation(
-    manager: State<'_, Manager>,
-) -> Result<()> {
+pub async fn undo_file_operation(manager: State<'_, Manager>) -> Result<()> {
     // Get file manager directly for this operation
     if let Some(file_manager) = &manager.file_manager {
-        file_manager.undo_last_operation().await
-            .map_err(|e| e)?;
+        file_manager.undo_last_operation().await.map_err(|e| e)?;
         Ok(())
     } else {
         Err(crate::error::OrchflowError::InternalError {

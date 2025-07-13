@@ -1,5 +1,5 @@
-use std::path::PathBuf;
 use std::env;
+use std::path::PathBuf;
 
 /// Replacement for directories crate using platform-specific conventions
 pub struct AppDirs {
@@ -88,9 +88,11 @@ impl AppDirs {
 
         #[cfg(target_os = "windows")]
         {
-            env::var_os("LOCALAPPDATA")
-                .map(PathBuf::from)
-                .map(|d| d.join(&self.organization).join(&self.application).join("cache"))
+            env::var_os("LOCALAPPDATA").map(PathBuf::from).map(|d| {
+                d.join(&self.organization)
+                    .join(&self.application)
+                    .join("cache")
+            })
         }
     }
 
@@ -108,6 +110,7 @@ pub fn get_project_dirs() -> Result<AppDirs, Box<dyn std::error::Error>> {
 /// Get the modules directory for storing orchflow modules
 pub fn get_modules_dir() -> Result<PathBuf, Box<dyn std::error::Error>> {
     let app_dirs = AppDirs::new()?;
-    app_dirs.data_subdir("modules")
+    app_dirs
+        .data_subdir("modules")
         .ok_or_else(|| "Could not determine modules directory".into())
 }

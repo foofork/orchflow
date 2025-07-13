@@ -3,15 +3,15 @@
 // Uses Tauri's event system for efficient desktop IPC communication
 // between the Rust backend and frontend for terminal I/O.
 
-use tauri::{AppHandle, Manager, Emitter};
-use tokio::sync::{mpsc, RwLock};
-use std::sync::Arc;
-use std::collections::HashMap;
 use bytes::Bytes;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::sync::Arc;
+use tauri::{AppHandle, Emitter, Manager};
+use tokio::sync::{mpsc, RwLock};
 
+use super::protocol::{ControlMessage, TerminalInput};
 use super::pty_manager::PtyHandle;
-use super::protocol::{TerminalInput, ControlMessage};
 
 /// Events emitted to frontend
 #[derive(Debug, Clone, Serialize)]
@@ -68,7 +68,7 @@ impl IpcHandler {
             active_streams: Arc::new(RwLock::new(HashMap::new())),
         }
     }
-    
+
     /// Start streaming terminal output to frontend via IPC
     pub async fn start_streaming(
         &self,
@@ -76,12 +76,12 @@ impl IpcHandler {
         pty_handle: PtyHandle,
     ) -> Result<(), crate::error::OrchflowError> {
         let (cancel_tx, mut cancel_rx) = mpsc::channel::<()>(1);
-        
+
         // Clone for move into task
         let app_handle = self.app_handle.clone();
         let terminal_id_clone = terminal_id.clone();
         let mut output_rx = pty_handle.output_tx.subscribe();
-        
+
         // Spawn output streaming task
         tokio::spawn(async move {
             loop {
@@ -92,44 +92,50 @@ impl IpcHandler {
                             Ok(data) => {
                                 // Convert bytes to base64 for safe transmission
                                 let encoded = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &data);
-                                
+
                                 let event = TerminalEvent::Output {
                                     terminal_id: terminal_id_clone.clone(),
                                     data: encoded,
                                 };
-                                
+
                                 // Emit to all windows
                                 let _ = app_handle.emit(TERMINAL_OUTPUT_EVENT, &event);
                             }
                             Err(_) => break, // Channel closed
                         }
                     }
-                    
+
                     // Handle cancellation
                     _ = cancel_rx.recv() => {
                         break;
                     }
                 }
             }
-            
+
             // Emit exit event
-            let _ = app_handle.emit(TERMINAL_EXIT_EVENT, &TerminalEvent::Exit {
-                terminal_id: terminal_id_clone,
-                code: None,
-            });
+            let _ = app_handle.emit(
+                TERMINAL_EXIT_EVENT,
+                &TerminalEvent::Exit {
+                    terminal_id: terminal_id_clone,
+                    code: None,
+                },
+            );
         });
-        
+
         // Store stream handle
         let handle = StreamHandle {
             pty_handle: pty_handle.clone(),
             cancel_tx,
         };
-        
-        self.active_streams.write().await.insert(terminal_id, handle);
-        
+
+        self.active_streams
+            .write()
+            .await
+            .insert(terminal_id, handle);
+
         Ok(())
     }
-    
+
     /// Send input from frontend to terminal
     pub async fn send_input(
         &self,
@@ -137,7 +143,7 @@ impl IpcHandler {
         input: TerminalInput,
     ) -> Result<(), crate::error::OrchflowError> {
         let streams = self.active_streams.read().await;
-        
+
         if let Some(handle) = streams.get(terminal_id) {
             let data = match input {
                 TerminalInput::Text(text) => Bytes::from(text),
@@ -159,30 +165,33 @@ impl IpcHandler {
                         "pagedown" => "\x1b[6~",
                         "delete" => "\x1b[3~",
                         "insert" => "\x1b[2~",
-                        _ => return Err(crate::error::OrchflowError::TerminalError {
-                            operation: "send_input".to_string(),
-                            reason: format!("Unknown special key: {}", key),
-                        }),
+                        _ => {
+                            return Err(crate::error::OrchflowError::TerminalError {
+                                operation: "send_input".to_string(),
+                                reason: format!("Unknown special key: {}", key),
+                            })
+                        }
                     };
                     Bytes::from(sequence.to_string())
                 }
             };
-            
-            handle.pty_handle.send_input(data).await
-                .map_err(|e| crate::error::OrchflowError::TerminalError {
+
+            handle.pty_handle.send_input(data).await.map_err(|e| {
+                crate::error::OrchflowError::TerminalError {
                     operation: "send_input".to_string(),
                     reason: e,
-                })?;
+                }
+            })?;
         } else {
             return Err(crate::error::OrchflowError::TerminalError {
                 operation: "send_input".to_string(),
                 reason: format!("Terminal {} not found", terminal_id),
             });
         }
-        
+
         Ok(())
     }
-    
+
     /// Send control message to frontend
     pub async fn send_control(
         &self,
@@ -192,43 +201,47 @@ impl IpcHandler {
         match control {
             ControlMessage::Resize { rows, cols } => {
                 // Emit resize event to frontend
-                self.app_handle.emit(
-                    TERMINAL_STATE_EVENT,
-                    &TerminalEvent::StateChanged {
-                        terminal_id: terminal_id.to_string(),
-                        state: TerminalStateInfo {
-                            rows,
-                            cols,
-                            cursor_x: 0,
-                            cursor_y: 0,
-                            mode: "normal".to_string(),
-                            active: true,
+                self.app_handle
+                    .emit(
+                        TERMINAL_STATE_EVENT,
+                        &TerminalEvent::StateChanged {
+                            terminal_id: terminal_id.to_string(),
+                            state: TerminalStateInfo {
+                                rows,
+                                cols,
+                                cursor_x: 0,
+                                cursor_y: 0,
+                                mode: "normal".to_string(),
+                                active: true,
+                            },
                         },
-                    },
-                ).map_err(|e| crate::error::OrchflowError::TerminalError {
-                    operation: "send_control".to_string(),
-                    reason: e.to_string(),
-                })?;
+                    )
+                    .map_err(|e| crate::error::OrchflowError::TerminalError {
+                        operation: "send_control".to_string(),
+                        reason: e.to_string(),
+                    })?;
             }
             ControlMessage::ModeChange { mode } => {
                 // Emit mode change event
-                self.app_handle.emit(
-                    TERMINAL_STATE_EVENT,
-                    &TerminalEvent::StateChanged {
-                        terminal_id: terminal_id.to_string(),
-                        state: TerminalStateInfo {
-                            rows: 24, // Will be updated by frontend
-                            cols: 80,
-                            cursor_x: 0,
-                            cursor_y: 0,
-                            mode,
-                            active: true,
+                self.app_handle
+                    .emit(
+                        TERMINAL_STATE_EVENT,
+                        &TerminalEvent::StateChanged {
+                            terminal_id: terminal_id.to_string(),
+                            state: TerminalStateInfo {
+                                rows: 24, // Will be updated by frontend
+                                cols: 80,
+                                cursor_x: 0,
+                                cursor_y: 0,
+                                mode,
+                                active: true,
+                            },
                         },
-                    },
-                ).map_err(|e| crate::error::OrchflowError::TerminalError {
-                    operation: "send_control".to_string(),
-                    reason: e.to_string(),
-                })?;
+                    )
+                    .map_err(|e| crate::error::OrchflowError::TerminalError {
+                        operation: "send_control".to_string(),
+                        reason: e.to_string(),
+                    })?;
             }
             ControlMessage::Focus => {
                 // Handle focus event
@@ -237,10 +250,10 @@ impl IpcHandler {
                 // Handle blur event
             }
         }
-        
+
         Ok(())
     }
-    
+
     /// Stop streaming for a terminal
     pub async fn stop_streaming(
         &self,
@@ -250,27 +263,29 @@ impl IpcHandler {
             // Send cancellation signal
             let _ = handle.cancel_tx.send(()).await;
         }
-        
+
         Ok(())
     }
-    
+
     /// Send error to frontend
     pub async fn send_error(
         &self,
         terminal_id: &str,
         error: String,
     ) -> Result<(), crate::error::OrchflowError> {
-        self.app_handle.emit(
-            TERMINAL_ERROR_EVENT,
-            &TerminalEvent::Error {
-                terminal_id: terminal_id.to_string(),
-                error,
-            },
-        ).map_err(|e| crate::error::OrchflowError::TerminalError {
-            operation: "send_error".to_string(),
-            reason: e.to_string(),
-        })?;
-        
+        self.app_handle
+            .emit(
+                TERMINAL_ERROR_EVENT,
+                &TerminalEvent::Error {
+                    terminal_id: terminal_id.to_string(),
+                    error,
+                },
+            )
+            .map_err(|e| crate::error::OrchflowError::TerminalError {
+                operation: "send_error".to_string(),
+                reason: e.to_string(),
+            })?;
+
         Ok(())
     }
 }

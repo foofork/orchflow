@@ -57,7 +57,7 @@ impl BuiltinPlugin {
             commands: HashMap::new(),
         }
     }
-    
+
     pub fn register_command<F>(&mut self, name: &str, handler: F)
     where
         F: Fn(Value) -> Result<Value> + Send + Sync + 'static,
@@ -71,21 +71,21 @@ impl Plugin for BuiltinPlugin {
     fn metadata(&self) -> &PluginMetadata {
         &self.metadata
     }
-    
+
     fn state(&self) -> PluginState {
         self.state.clone()
     }
-    
+
     async fn activate(&mut self) -> Result<()> {
         self.state = PluginState::Loaded;
         Ok(())
     }
-    
+
     async fn deactivate(&mut self) -> Result<()> {
         self.state = PluginState::Unloaded;
         Ok(())
     }
-    
+
     async fn handle_command(&self, command: &str, args: Value) -> Result<Value> {
         if let Some(handler) = self.commands.get(command) {
             handler(args)
@@ -109,35 +109,42 @@ impl PluginManager {
             plugins: Arc::new(RwLock::new(HashMap::new())),
         }
     }
-    
+
     pub async fn register_plugin(&self, plugin: Box<dyn Plugin>) -> Result<()> {
         let id = plugin.metadata().id.clone();
         self.plugins.write().await.insert(id, plugin);
         Ok(())
     }
-    
+
     pub async fn load_plugin(&self, id: &str) -> Result<()> {
         if let Some(plugin) = self.plugins.write().await.get_mut(id) {
             plugin.activate().await?;
         }
         Ok(())
     }
-    
+
     pub async fn unload_plugin(&self, id: &str) -> Result<()> {
         if let Some(plugin) = self.plugins.write().await.get_mut(id) {
             plugin.deactivate().await?;
         }
         Ok(())
     }
-    
+
     pub async fn list_plugins(&self) -> Vec<PluginMetadata> {
-        self.plugins.read().await
+        self.plugins
+            .read()
+            .await
             .values()
             .map(|p| p.metadata().clone())
             .collect()
     }
-    
-    pub async fn execute_command(&self, plugin_id: &str, command: &str, args: Value) -> Result<Value> {
+
+    pub async fn execute_command(
+        &self,
+        plugin_id: &str,
+        command: &str,
+        args: Value,
+    ) -> Result<Value> {
         let plugins = self.plugins.read().await;
         if let Some(plugin) = plugins.get(plugin_id) {
             plugin.handle_command(command, args).await

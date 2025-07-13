@@ -3,7 +3,7 @@
 // Tracks the state of each terminal including cursor position,
 // mode, and other terminal-specific information.
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -80,21 +80,21 @@ impl TerminalState {
             last_activity: chrono::Utc::now(),
         }
     }
-    
+
     /// Update cursor position
     pub fn set_cursor(&mut self, x: u16, y: u16) {
         self.cursor.x = x.min(self.cols - 1);
         self.cursor.y = y.min(self.rows - 1);
         self.update_activity();
     }
-    
+
     /// Move cursor relatively
     pub fn move_cursor(&mut self, dx: i16, dy: i16) {
         let new_x = (self.cursor.x as i16 + dx).max(0).min(self.cols as i16 - 1) as u16;
         let new_y = (self.cursor.y as i16 + dy).max(0).min(self.rows as i16 - 1) as u16;
         self.set_cursor(new_x, new_y);
     }
-    
+
     /// Resize terminal
     pub fn resize(&mut self, rows: u16, cols: u16) {
         self.rows = rows;
@@ -108,23 +108,23 @@ impl TerminalState {
         }
         self.update_activity();
     }
-    
+
     /// Change terminal mode
     pub fn set_mode(&mut self, mode: TerminalMode) {
         self.mode = mode;
         self.update_activity();
     }
-    
+
     /// Update last activity timestamp
     pub fn update_activity(&mut self) {
         self.last_activity = chrono::Utc::now();
     }
-    
+
     /// Set terminal title
     pub fn set_title(&mut self, title: String) {
         self.title = title;
     }
-    
+
     /// Update process info
     pub fn update_process_info(&mut self, info: ProcessInfo) {
         self.process_info = Some(info);
@@ -143,17 +143,17 @@ impl TerminalStateManager {
             states: Arc::new(RwLock::new(std::collections::HashMap::new())),
         }
     }
-    
+
     /// Add a new terminal state
     pub async fn add_terminal(&self, state: TerminalState) {
         self.states.write().await.insert(state.id.clone(), state);
     }
-    
+
     /// Get terminal state
     pub async fn get_terminal(&self, id: &str) -> Option<TerminalState> {
         self.states.read().await.get(id).cloned()
     }
-    
+
     /// Update terminal state
     pub async fn update_terminal<F>(&self, id: &str, updater: F) -> Result<(), String>
     where
@@ -167,20 +167,25 @@ impl TerminalStateManager {
             Err(format!("Terminal {} not found", id))
         }
     }
-    
+
     /// Remove terminal state
     pub async fn remove_terminal(&self, id: &str) -> Option<TerminalState> {
         self.states.write().await.remove(id)
     }
-    
+
     /// Get all terminal states
     pub async fn get_all_terminals(&self) -> Vec<TerminalState> {
         self.states.read().await.values().cloned().collect()
     }
-    
+
     /// Get active terminal count
     pub async fn active_count(&self) -> usize {
-        self.states.read().await.values().filter(|s| s.active).count()
+        self.states
+            .read()
+            .await
+            .values()
+            .filter(|s| s.active)
+            .count()
     }
 }
 

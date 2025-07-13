@@ -1,8 +1,8 @@
 // Database connection management and initialization
 
 use rusqlite::{Connection, Result as SqliteResult};
-use std::sync::{Arc, Mutex};
 use std::path::Path;
+use std::sync::{Arc, Mutex};
 
 pub struct ConnectionManager {
     pub conn: Arc<Mutex<Connection>>,
@@ -16,7 +16,7 @@ impl ConnectionManager {
             conn: Arc::new(Mutex::new(conn)),
         })
     }
-    
+
     /// Create a new connection manager with file-based database
     pub fn new_with_file<P: AsRef<Path>>(path: P) -> SqliteResult<Self> {
         let conn = Connection::open(path)?;
@@ -24,11 +24,11 @@ impl ConnectionManager {
             conn: Arc::new(Mutex::new(conn)),
         })
     }
-    
+
     /// Initialize the database schema
     pub fn initialize_schema(&self) -> SqliteResult<()> {
         let conn = self.conn.lock().unwrap();
-        
+
         // Create sessions table
         conn.execute(
             "CREATE TABLE IF NOT EXISTS sessions (
@@ -41,7 +41,7 @@ impl ConnectionManager {
             )",
             [],
         )?;
-        
+
         // Create panes table
         conn.execute(
             "CREATE TABLE IF NOT EXISTS panes (
@@ -56,7 +56,7 @@ impl ConnectionManager {
             )",
             [],
         )?;
-        
+
         // Create layouts table
         conn.execute(
             "CREATE TABLE IF NOT EXISTS layouts (
@@ -71,7 +71,7 @@ impl ConnectionManager {
             )",
             [],
         )?;
-        
+
         // Create modules table
         conn.execute(
             "CREATE TABLE IF NOT EXISTS modules (
@@ -84,7 +84,7 @@ impl ConnectionManager {
             )",
             [],
         )?;
-        
+
         // Create key-value store table
         conn.execute(
             "CREATE TABLE IF NOT EXISTS key_value_store (
@@ -95,103 +95,90 @@ impl ConnectionManager {
             )",
             [],
         )?;
-        
+
         // Create indexes for better performance
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_panes_session_id ON panes(session_id)",
             [],
         )?;
-        
+
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_layouts_session_id ON layouts(session_id)",
             [],
         )?;
-        
+
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_layouts_active ON layouts(is_active)",
             [],
         )?;
-        
+
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_sessions_last_active ON sessions(last_active)",
             [],
         )?;
-        
+
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_modules_enabled ON modules(enabled)",
             [],
         )?;
-        
+
         Ok(())
     }
-    
+
     /// Enable foreign key constraints
     pub fn enable_foreign_keys(&self) -> SqliteResult<()> {
         let conn = self.conn.lock().unwrap();
         conn.execute("PRAGMA foreign_keys = ON", [])?;
         Ok(())
     }
-    
+
     /// Set WAL mode for better concurrent access
     pub fn enable_wal_mode(&self) -> SqliteResult<()> {
         let conn = self.conn.lock().unwrap();
         conn.execute("PRAGMA journal_mode = WAL", [])?;
         Ok(())
     }
-    
+
     /// Optimize database settings
     pub fn optimize_settings(&self) -> SqliteResult<()> {
         let conn = self.conn.lock().unwrap();
-        
+
         // Set synchronous mode to normal for better performance
         conn.execute("PRAGMA synchronous = NORMAL", [])?;
-        
+
         // Increase cache size to 64MB
         conn.execute("PRAGMA cache_size = -65536", [])?;
-        
+
         // Set temp store to memory
         conn.execute("PRAGMA temp_store = MEMORY", [])?;
-        
+
         // Set mmap size to 256MB
         conn.execute("PRAGMA mmap_size = 268435456", [])?;
-        
+
         Ok(())
     }
-    
+
     /// Get database statistics
     pub fn get_stats(&self) -> SqliteResult<DatabaseStats> {
         let conn = self.conn.lock().unwrap();
-        
-        let session_count: i64 = conn.query_row(
-            "SELECT COUNT(*) FROM sessions",
-            [],
-            |row| row.get(0),
-        )?;
-        
-        let pane_count: i64 = conn.query_row(
-            "SELECT COUNT(*) FROM panes",
-            [],
-            |row| row.get(0),
-        )?;
-        
-        let layout_count: i64 = conn.query_row(
-            "SELECT COUNT(*) FROM layouts",
-            [],
-            |row| row.get(0),
-        )?;
-        
+
+        let session_count: i64 =
+            conn.query_row("SELECT COUNT(*) FROM sessions", [], |row| row.get(0))?;
+
+        let pane_count: i64 = conn.query_row("SELECT COUNT(*) FROM panes", [], |row| row.get(0))?;
+
+        let layout_count: i64 =
+            conn.query_row("SELECT COUNT(*) FROM layouts", [], |row| row.get(0))?;
+
         let module_count: i64 = conn.query_row(
             "SELECT COUNT(*) FROM modules WHERE enabled = 1",
             [],
             |row| row.get(0),
         )?;
-        
-        let kv_count: i64 = conn.query_row(
-            "SELECT COUNT(*) FROM key_value_store",
-            [],
-            |row| row.get(0),
-        )?;
-        
+
+        let kv_count: i64 =
+            conn.query_row("SELECT COUNT(*) FROM key_value_store", [], |row| row.get(0))?;
+
         Ok(DatabaseStats {
             sessions: session_count as usize,
             panes: pane_count as usize,
@@ -200,23 +187,19 @@ impl ConnectionManager {
             key_value_pairs: kv_count as usize,
         })
     }
-    
+
     /// Run database vacuum
     pub fn vacuum(&self) -> SqliteResult<()> {
         let conn = self.conn.lock().unwrap();
         conn.execute("VACUUM", [])?;
         Ok(())
     }
-    
+
     /// Check database integrity
     pub fn check_integrity(&self) -> SqliteResult<bool> {
         let conn = self.conn.lock().unwrap();
-        let result: String = conn.query_row(
-            "PRAGMA integrity_check",
-            [],
-            |row| row.get(0),
-        )?;
-        
+        let result: String = conn.query_row("PRAGMA integrity_check", [], |row| row.get(0))?;
+
         Ok(result == "ok")
     }
 }

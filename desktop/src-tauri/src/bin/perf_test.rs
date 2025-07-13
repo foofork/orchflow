@@ -1,11 +1,11 @@
-use std::time::{Duration, Instant};
-use tokio::runtime::Runtime;
 use orchflow::{
-    manager::{Action, ShellType, PaneType},
+    manager::{Action, PaneType, ShellType},
     mux_backend::create_mux_backend,
     simple_state_store::SimpleStateStore,
 };
 use std::sync::Arc;
+use std::time::{Duration, Instant};
+use tokio::runtime::Runtime;
 
 #[derive(Debug)]
 struct BenchmarkResult {
@@ -36,16 +36,16 @@ where
 {
     let mut times = Vec::with_capacity(iterations as usize);
     let start = Instant::now();
-    
+
     for _ in 0..iterations {
         times.push(f());
     }
-    
+
     let total_time = start.elapsed();
     let avg_time = total_time / iterations;
     let min_time = *times.iter().min().unwrap();
     let max_time = *times.iter().max().unwrap();
-    
+
     BenchmarkResult {
         name,
         iterations,
@@ -59,22 +59,23 @@ where
 fn main() {
     println!("OrchFlow Performance Benchmarks");
     println!("================================\n");
-    
+
     let rt = Runtime::new().unwrap();
-    
+
     // Benchmark: State Store Operations
     {
         let store = Arc::new(SimpleStateStore::new_with_file("test.db").unwrap());
-        
+
         let result = run_benchmark("State Store - Write", 10000, || {
             let start = Instant::now();
             rt.block_on(async {
-                let _ = store.set_setting("test_key", &serde_json::json!({"value": 42}).to_string());
+                let _ =
+                    store.set_setting("test_key", &serde_json::json!({"value": 42}).to_string());
             });
             start.elapsed()
         });
         result.print();
-        
+
         let result = run_benchmark("State Store - Read", 10000, || {
             let start = Instant::now();
             rt.block_on(async {
@@ -84,7 +85,7 @@ fn main() {
         });
         result.print();
     }
-    
+
     // Benchmark: MuxBackend Creation
     {
         let result = run_benchmark("MuxBackend Creation", 100, || {
@@ -94,11 +95,13 @@ fn main() {
         });
         result.print();
     }
-    
+
     // Benchmark: Action Serialization/Deserialization
     {
         let actions = vec![
-            Action::CreateSession { name: "test".to_string() },
+            Action::CreateSession {
+                name: "test".to_string(),
+            },
             Action::CreatePane {
                 session_id: "session-1".to_string(),
                 pane_type: PaneType::Terminal,
@@ -114,13 +117,16 @@ fn main() {
                 session_id: "session-1".to_string(),
                 name: Some("Test Session".to_string()),
             },
-            Action::GetFileTree { path: None, max_depth: Some(3) },
+            Action::GetFileTree {
+                path: None,
+                max_depth: Some(3),
+            },
             Action::SearchFiles {
                 pattern: "TODO".to_string(),
                 path: None,
             },
         ];
-        
+
         let result = run_benchmark("Action Serialization", 10000, || {
             let start = Instant::now();
             for action in &actions {
@@ -129,11 +135,12 @@ fn main() {
             start.elapsed()
         });
         result.print();
-        
-        let serialized: Vec<String> = actions.iter()
+
+        let serialized: Vec<String> = actions
+            .iter()
             .map(|a| serde_json::to_string(a).unwrap())
             .collect();
-        
+
         let result = run_benchmark("Action Deserialization", 10000, || {
             let start = Instant::now();
             for json in &serialized {
@@ -143,7 +150,7 @@ fn main() {
         });
         result.print();
     }
-    
+
     // Benchmark: Concurrent Operations
     {
         let result = run_benchmark("Spawn 100 Async Tasks", 100, || {
@@ -163,22 +170,22 @@ fn main() {
         });
         result.print();
     }
-    
+
     // Benchmark: Channel Communication
     {
         use tokio::sync::mpsc;
-        
+
         let result = run_benchmark("Channel Send/Receive", 10000, || {
             let start = Instant::now();
             rt.block_on(async {
                 let (tx, mut rx) = mpsc::channel(100);
-                
+
                 tokio::spawn(async move {
                     for i in 0..100 {
                         tx.send(i).await.unwrap();
                     }
                 });
-                
+
                 while let Some(_) = rx.recv().await {
                     // Process message
                 }
@@ -187,7 +194,7 @@ fn main() {
         });
         result.print();
     }
-    
+
     println!("\nBenchmark Summary");
     println!("=================");
     println!("All benchmarks completed successfully.");

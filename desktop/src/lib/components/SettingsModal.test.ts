@@ -23,14 +23,14 @@ vi.mock('$app/environment', () => ({
 global.window = Object.create(window);
 Object.defineProperty(window, '__TAURI__', {
   value: {
-    invoke: createTypedMock<[string, any?], Promise<any>>()
+    invoke: createTypedMock<(string, any?) => Promise<any>>()
   },
   writable: true
 });
 
 // Mock dynamic import for Tauri
 vi.mock('@tauri-apps/api/core', () => ({
-  invoke: createTypedMock<[string, any?], Promise<any>>()
+  invoke: createTypedMock<(string, any?) => Promise<any>>()
 }));
 
 describe('SettingsModal', () => {

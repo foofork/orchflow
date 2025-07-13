@@ -1,0 +1,13 @@
+{
+  "name": "navigation menu is functional",
+  "file": "tests/e2e/smoke/app-launch.test.ts",
+  "started": "2025-07-13T10:19:51.002Z",
+  "environment": {
+    "node": "v22.16.0",
+    "platform": "linux",
+    "ci": false
+  },
+  "completed": "2025-07-13T10:19:51.158Z",
+  "duration": 158,
+  "status": "fail"
+}

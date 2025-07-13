@@ -8,10 +8,10 @@ use thiserror::Error;
 pub enum TerminalError {
     #[error("Command execution failed: {command} - {reason}")]
     CommandError { command: String, reason: String },
-    
+
     #[error("Terminal operation failed: {operation} - {reason}")]
     OperationFailed { operation: String, reason: String },
-    
+
     #[error("Command timeout: {command} timed out after {timeout_ms}ms")]
     CommandTimeout { command: String, timeout_ms: u64 },
 }
@@ -24,7 +24,7 @@ impl TerminalError {
             reason: reason.to_string(),
         }
     }
-    
+
     /// Helper function to create operation error
     pub fn operation_failed(operation: &str, reason: &str) -> Self {
         Self::OperationFailed {
@@ -32,7 +32,7 @@ impl TerminalError {
             reason: reason.to_string(),
         }
     }
-    
+
     /// Helper function to create command timeout error
     pub fn command_timeout(command: &str, timeout_ms: u64) -> Self {
         Self::CommandTimeout {

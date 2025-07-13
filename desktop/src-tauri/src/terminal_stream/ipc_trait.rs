@@ -3,10 +3,10 @@
 // This trait allows us to abstract away the Tauri-specific IPC implementation
 // and provide mock implementations for testing.
 
-use async_trait::async_trait;
-use super::protocol::{TerminalInput, ControlMessage};
-use super::pty_manager::PtyHandle;
 use super::ipc_handler::TerminalEvent;
+use super::protocol::{ControlMessage, TerminalInput};
+use super::pty_manager::PtyHandle;
+use async_trait::async_trait;
 
 /// Trait for IPC communication
 #[async_trait]
@@ -17,27 +17,24 @@ pub trait IpcChannel: Send + Sync {
         terminal_id: String,
         pty_handle: PtyHandle,
     ) -> Result<(), crate::error::OrchflowError>;
-    
+
     /// Send input to terminal
     async fn send_input(
         &self,
         terminal_id: &str,
         input: TerminalInput,
     ) -> Result<(), crate::error::OrchflowError>;
-    
+
     /// Send control message
     async fn send_control(
         &self,
         terminal_id: &str,
         message: ControlMessage,
     ) -> Result<(), crate::error::OrchflowError>;
-    
+
     /// Stop streaming
-    async fn stop_streaming(
-        &self,
-        terminal_id: &str,
-    ) -> Result<(), crate::error::OrchflowError>;
-    
+    async fn stop_streaming(&self, terminal_id: &str) -> Result<(), crate::error::OrchflowError>;
+
     /// Emit event (for testing)
     async fn emit_event(&self, event: TerminalEvent) -> Result<(), crate::error::OrchflowError>;
 }
@@ -64,7 +61,7 @@ impl IpcChannel for TauriIpcChannel {
     ) -> Result<(), crate::error::OrchflowError> {
         self.inner.start_streaming(terminal_id, pty_handle).await
     }
-    
+
     async fn send_input(
         &self,
         terminal_id: &str,
@@ -72,7 +69,7 @@ impl IpcChannel for TauriIpcChannel {
     ) -> Result<(), crate::error::OrchflowError> {
         self.inner.send_input(terminal_id, input).await
     }
-    
+
     async fn send_control(
         &self,
         terminal_id: &str,
@@ -80,14 +77,11 @@ impl IpcChannel for TauriIpcChannel {
     ) -> Result<(), crate::error::OrchflowError> {
         self.inner.send_control(terminal_id, message).await
     }
-    
-    async fn stop_streaming(
-        &self,
-        terminal_id: &str,
-    ) -> Result<(), crate::error::OrchflowError> {
+
+    async fn stop_streaming(&self, terminal_id: &str) -> Result<(), crate::error::OrchflowError> {
         self.inner.stop_streaming(terminal_id).await
     }
-    
+
     async fn emit_event(&self, _event: TerminalEvent) -> Result<(), crate::error::OrchflowError> {
         // Not directly exposed by IpcHandler, but we don't need it for real usage
         Ok(())
@@ -97,9 +91,9 @@ impl IpcChannel for TauriIpcChannel {
 #[cfg(test)]
 pub mod mock {
     use super::*;
-    use tokio::sync::{Mutex, mpsc};
     use std::collections::HashMap;
-    
+    use tokio::sync::{mpsc, Mutex};
+
     /// Mock IPC channel for testing
     pub struct MockIpcChannel {
         pub events: std::sync::Arc<Mutex<Vec<TerminalEvent>>>,
@@ -107,7 +101,7 @@ pub mod mock {
         pub stop_tx: mpsc::Sender<String>,
         pub stop_rx: std::sync::Arc<Mutex<mpsc::Receiver<String>>>,
     }
-    
+
     impl MockIpcChannel {
         pub fn new() -> Self {
             let (stop_tx, stop_rx) = mpsc::channel(10);
@@ -118,16 +112,16 @@ pub mod mock {
                 stop_rx: std::sync::Arc::new(Mutex::new(stop_rx)),
             }
         }
-        
+
         pub async fn get_events(&self) -> Vec<TerminalEvent> {
             self.events.lock().await.clone()
         }
-        
+
         pub async fn clear_events(&self) {
             self.events.lock().await.clear();
         }
     }
-    
+
     #[async_trait]
     impl IpcChannel for MockIpcChannel {
         async fn start_streaming(
@@ -135,10 +129,13 @@ pub mod mock {
             terminal_id: String,
             pty_handle: PtyHandle,
         ) -> Result<(), crate::error::OrchflowError> {
-            self.active_streams.lock().await.insert(terminal_id, pty_handle);
+            self.active_streams
+                .lock()
+                .await
+                .insert(terminal_id, pty_handle);
             Ok(())
         }
-        
+
         async fn send_input(
             &self,
             terminal_id: &str,
@@ -160,14 +157,16 @@ pub mod mock {
                         bytes::Bytes::from(sequence.to_string())
                     }
                 };
-                handle.send_input(data).await.map_err(|e| crate::error::OrchflowError::TerminalError {
-                    operation: "send_input".to_string(),
-                    reason: e,
+                handle.send_input(data).await.map_err(|e| {
+                    crate::error::OrchflowError::TerminalError {
+                        operation: "send_input".to_string(),
+                        reason: e,
+                    }
                 })?;
             }
             Ok(())
         }
-        
+
         async fn send_control(
             &self,
             _terminal_id: &str,
@@ -176,7 +175,7 @@ pub mod mock {
             // Mock implementation - just record the control message
             Ok(())
         }
-        
+
         async fn stop_streaming(
             &self,
             terminal_id: &str,
@@ -185,8 +184,11 @@ pub mod mock {
             let _ = self.stop_tx.send(terminal_id.to_string()).await;
             Ok(())
         }
-        
-        async fn emit_event(&self, event: TerminalEvent) -> Result<(), crate::error::OrchflowError> {
+
+        async fn emit_event(
+            &self,
+            event: TerminalEvent,
+        ) -> Result<(), crate::error::OrchflowError> {
             self.events.lock().await.push(event);
             Ok(())
         }

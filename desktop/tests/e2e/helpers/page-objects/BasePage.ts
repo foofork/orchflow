@@ -11,7 +11,7 @@ export interface WaitOptions {
 }
 
 export abstract class BasePage {
-  constructor(protected page: Page) {}
+  constructor(public page: Page) {}
   
   /**
    * Wait for the page to be fully loaded

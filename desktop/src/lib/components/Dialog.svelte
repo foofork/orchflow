@@ -78,7 +78,9 @@
     if (!show || testMode || !autoFocus) return;
     
     // Store the previously focused element
-    previouslyFocused = document.activeElement as HTMLElement;
+    if (typeof document !== 'undefined' && document.activeElement) {
+      previouslyFocused = document.activeElement as HTMLElement;
+    }
     
     // Wait for DOM to update
     await tick();
@@ -103,9 +105,9 @@
   }
   
   // Set up focus management when dialog shows/hides
-  $: if (show) {
+  $: if (show && typeof document !== 'undefined') {
     setupFocus();
-  } else {
+  } else if (!show) {
     restoreFocus();
   }
   

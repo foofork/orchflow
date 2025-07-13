@@ -5,6 +5,7 @@ import {
   createSyncMock,
   createAsyncMock
 } from '@/test/mock-factory';
+import { mockSvelteEvents } from '@/test/svelte5-event-helper';
 import TabBar from './TabBar.svelte';
 
 // Helper to create DataTransfer mock
@@ -192,8 +193,9 @@ describe('TabBar', () => {
       });
       cleanup.push(unmount);
       
-      const closeHandler = createTypedMock<[any], void>();
-      component.$on('closeTab', closeHandler);
+      const closeHandler = createTypedMock<(any) => void>();
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('closeTab', closeHandler);
       
       const firstCloseButton = container.querySelector('.tab-close');
       await fireEvent.click(firstCloseButton!);
@@ -226,8 +228,9 @@ describe('TabBar', () => {
       });
       cleanup.push(unmount);
       
-      const closeHandler = createTypedMock<[any], void>();
-      component.$on('closeTab', closeHandler);
+      const closeHandler = createTypedMock<(any) => void>();
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('closeTab', closeHandler);
       
       const closeButton = container.querySelector('.tab-close');
       (closeButton as HTMLElement).focus();

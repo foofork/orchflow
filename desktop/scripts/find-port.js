@@ -31,4 +31,4 @@ async function findAvailablePort(startPort) {
 }
 
 const port = await findAvailablePort(defaultPort);
-console.log(port);
+console.warn(port);

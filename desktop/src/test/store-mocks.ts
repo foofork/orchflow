@@ -188,7 +188,7 @@ export function createMockManagerStores() {
     closePane: createAsyncVoidMock<[paneId: string]>(),
     focusPane: createAsyncVoidMock<[paneId: string]>(),
     getPaneOutput: createAsyncMock<[paneId: string], string>(),
-    subscribe: vi.fn().mockImplementation((fn) => () => {}),
+    subscribe: vi.fn().mockImplementation((fn) => () => {}) as MockedFunction<(fn: (value: any) => void) => () => void>,
   };
   
   return {

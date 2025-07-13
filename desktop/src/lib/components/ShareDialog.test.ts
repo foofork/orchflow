@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import ShareDialog from './ShareDialog.svelte';
 import { createTypedMock, createAsyncMock } from '@/test/mock-factory';
+import { mockSvelteEvents } from '@/test/svelte5-event-helper';
 
 // Mock Tauri APIs
 const mockInvoke = createAsyncMock<[string, any?], any>();
@@ -338,7 +339,7 @@ describe('ShareDialog', () => {
     });
 
     it('should handle recent packages load error', async () => {
-      const consoleSpy = createTypedMock<[message: string, error: Error], void>();
+      const consoleSpy = createTypedMock<(message: string, error: Error) => void>();
       vi.spyOn(console, 'error').mockImplementation(consoleSpy);
       mockInvoke.mockRejectedValue(new Error('Failed to load'));
       
@@ -363,7 +364,8 @@ describe('ShareDialog', () => {
       cleanup.push(unmount);
       
       const closeHandler = createTypedMock<() => void>();
-      component.$on('close', closeHandler);
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('close', closeHandler);
       
       const cancelButton = getByText('Cancel');
       await fireEvent.click(cancelButton);
@@ -378,7 +380,8 @@ describe('ShareDialog', () => {
       cleanup.push(unmount);
       
       const closeHandler = createTypedMock<() => void>();
-      component.$on('close', closeHandler);
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('close', closeHandler);
       
       const overlay = container.querySelector('.share-overlay');
       await fireEvent.click(overlay!);
@@ -393,7 +396,8 @@ describe('ShareDialog', () => {
       cleanup.push(unmount);
       
       const closeHandler = createTypedMock<() => void>();
-      component.$on('close', closeHandler);
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('close', closeHandler);
       
       const dialog = container.querySelector('.share-dialog');
       await fireEvent.click(dialog!);

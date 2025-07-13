@@ -17,7 +17,6 @@ export function buildSession(overrides?: Partial<Session>): Session {
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     panes: [],
-    metadata: {},
     ...overrides,
   };
 }
@@ -49,9 +48,7 @@ export function buildPlugin(overrides?: Partial<PluginInfo>): PluginInfo {
     description: 'A test plugin',
     author: 'Test Author',
     capabilities: [],
-    path: '/path/to/plugin',
     loaded: false,
-    type: 'core',
     ...overrides,
   };
 }
@@ -288,6 +285,8 @@ function deepMergeSettings(target: Settings, overrides?: DeepPartial<Settings>):
     result.editor = {
       ...target.editor,
       ...overrides.editor,
+      // Ensure rulers is properly typed - filter out undefined values
+      rulers: (overrides.editor.rulers || target.editor.rulers || []).filter((r): r is number => r !== undefined),
     };
   }
   

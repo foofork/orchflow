@@ -4,7 +4,7 @@ import StatusBarEnhanced from '../StatusBarEnhanced.svelte';
 import { createTypedMock, createSyncMock, createAsyncMock } from '@/test/mock-factory';
 
 describe('Debug', () => {
-  let cleanup: Array<() => void> = [];
+  const cleanup: Array<() => void> = [];
 
   afterEach(() => {
     cleanup.forEach(fn => fn());

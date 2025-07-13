@@ -48,7 +48,7 @@ describe('Critical User Journeys E2E', () => {
       await page.waitForSelector('[data-testid="project-created-success"]');
       
       // Verify project appears in sidebar
-      await expect(page.locator('[data-testid="project-list"]')).toContainText('E2E Test Project');
+      await expect(page.locator('[data-testid="project-list"]')).toHaveText('E2E Test Project');
 
       // Step 2: Create directory structure
       await page.click('[data-testid="file-explorer-new-folder"]');
@@ -90,9 +90,9 @@ export { greet };
 
       // Step 5: Verify file tree structure
       const fileTree = page.locator('[data-testid="file-tree"]');
-      await expect(fileTree).toContainText('src');
-      await expect(fileTree).toContainText('tests');
-      await expect(fileTree).toContainText('main.js');
+      await expect(fileTree).toHaveText('src');
+      await expect(fileTree).toHaveText('tests');
+      await expect(fileTree).toHaveText('main.js');
 
       // Step 6: Create test file
       await page.click('[data-testid="tests-folder"]');
@@ -121,9 +121,9 @@ describe('greet function', () => {
       await page.waitForSelector('[data-testid="app-loaded"]');
       
       // Check that structure persisted
-      await expect(page.locator('[data-testid="file-tree"]')).toContainText('E2E Test Project');
-      await expect(page.locator('[data-testid="file-tree"]')).toContainText('main.js');
-      await expect(page.locator('[data-testid="file-tree"]')).toContainText('main.test.js');
+      await expect(page.locator('[data-testid="file-tree"]')).toHaveText('E2E Test Project');
+      await expect(page.locator('[data-testid="file-tree"]')).toHaveText('main.js');
+      await expect(page.locator('[data-testid="file-tree"]')).toHaveText('main.test.js');
     });
   });
 
@@ -140,7 +140,7 @@ describe('greet function', () => {
 
       // Wait for command output
       await page.waitForSelector('[data-testid="terminal-output"]');
-      await expect(page.locator('[data-testid="terminal-output"]')).toContainText('Hello from E2E test');
+      await expect(page.locator('[data-testid="terminal-output"]')).toHaveText('Hello from E2E test');
 
       // Step 3: Open second terminal tab
       await page.click('[data-testid="new-terminal-tab"]');
@@ -158,10 +158,10 @@ describe('greet function', () => {
 
       // Step 5: Switch between terminals
       await page.click('[data-testid="terminal-tab-1"]');
-      await expect(page.locator('[data-testid="terminal-output"]')).toContainText('Hello from E2E test');
+      await expect(page.locator('[data-testid="terminal-output"]')).toHaveText('Hello from E2E test');
 
       await page.click('[data-testid="terminal-tab-2"]');
-      await expect(page.locator('[data-testid="terminal-output"]')).toContainText('total');
+      await expect(page.locator('[data-testid="terminal-output"]')).toHaveText('total');
 
       // Step 6: Close terminal tab
       await page.click('[data-testid="close-terminal-tab-2"]');
@@ -227,8 +227,8 @@ describe('greet function', () => {
 
       // Step 7: Verify execution results
       const executionLog = page.locator('[data-testid="execution-log"]');
-      await expect(executionLog).toContainText('Flow step 1 executed');
-      await expect(executionLog).toContainText('File written successfully');
+      await expect(executionLog).toHaveText('Flow step 1 executed');
+      await expect(executionLog).toHaveText('File written successfully');
 
       // Step 8: Check flow history
       await page.click('[data-testid="flow-history-tab"]');
@@ -236,8 +236,8 @@ describe('greet function', () => {
       await expect(historyItems).toHaveCount(1);
       
       const latestExecution = historyItems.first();
-      await expect(latestExecution).toContainText('completed');
-      await expect(latestExecution).toContainText('E2E Test Flow');
+      await expect(latestExecution).toHaveText('completed');
+      await expect(latestExecution).toHaveText('E2E Test Flow');
     });
   });
 
@@ -252,7 +252,7 @@ describe('greet function', () => {
       await page.waitForSelector('[data-testid="git-initialized-success"]');
 
       // Verify git status shows untracked files
-      await expect(page.locator('[data-testid="git-status"]')).toContainText('untracked');
+      await expect(page.locator('[data-testid="git-status"]')).toHaveText('untracked');
 
       // Step 3: Stage files
       await page.click('[data-testid="stage-all-button"]');
@@ -269,7 +269,7 @@ describe('greet function', () => {
       await page.click('[data-testid="create-branch-confirm"]');
 
       // Verify we're on the new branch
-      await expect(page.locator('[data-testid="current-branch"]')).toContainText('feature/e2e-testing');
+      await expect(page.locator('[data-testid="current-branch"]')).toHaveText('feature/e2e-testing');
 
       // Step 6: Make changes and commit
       // Modify a file
@@ -292,7 +292,7 @@ export { greet, multiply };`;
 
       // Step 7: Commit changes
       await page.click('[data-testid="git-panel-button"]');
-      await expect(page.locator('[data-testid="git-status"]')).toContainText('modified');
+      await expect(page.locator('[data-testid="git-status"]')).toHaveText('modified');
       
       await page.click('[data-testid="stage-all-button"]');
       await page.fill('[data-testid="commit-message-input"]', 'Add multiply function');
@@ -302,17 +302,17 @@ export { greet, multiply };`;
       // Step 8: Switch back to main branch
       await page.click('[data-testid="branch-selector"]');
       await page.click('[data-testid="branch-main"]');
-      await expect(page.locator('[data-testid="current-branch"]')).toContainText('main');
+      await expect(page.locator('[data-testid="current-branch"]')).toHaveText('main');
 
       // Step 9: View commit history
       await page.click('[data-testid="git-history-tab"]');
       const commitHistory = page.locator('[data-testid="commit-history"]');
-      await expect(commitHistory).toContainText('Initial commit');
+      await expect(commitHistory).toHaveText('Initial commit');
       
       // Switch to feature branch and verify its commit
       await page.click('[data-testid="branch-selector"]');
       await page.click('[data-testid="branch-feature/e2e-testing"]');
-      await expect(commitHistory).toContainText('Add multiply function');
+      await expect(commitHistory).toHaveText('Add multiply function');
     });
   });
 
@@ -337,7 +337,7 @@ export { greet, multiply };`;
       
       // Verify the editor opened to the correct line
       const editorContent = page.locator('[data-testid="code-editor"] textarea');
-      await expect(editorContent).toContainText('greet');
+      await expect(editorContent).toHaveText('greet');
 
       // Step 4: Perform search and replace
       await page.keyboard.press('Control+H');
@@ -444,7 +444,7 @@ export { greet, multiply };`;
 
       // Wait for error notification
       await page.waitForSelector('[data-testid="error-notification"]');
-      await expect(page.locator('[data-testid="error-notification"]')).toContainText('Invalid file name');
+      await expect(page.locator('[data-testid="error-notification"]')).toHaveText('Invalid file name');
 
       // Step 2: Dismiss error and try again
       await page.click('[data-testid="dismiss-error-button"]');
@@ -462,7 +462,7 @@ export { greet, multiply };`;
       await page.click('[data-testid="sync-flows-button"]');
 
       await page.waitForSelector('[data-testid="network-error-dialog"]');
-      await expect(page.locator('[data-testid="network-error-dialog"]')).toContainText('Network connection failed');
+      await expect(page.locator('[data-testid="network-error-dialog"]')).toHaveText('Network connection failed');
 
       // Step 4: Test recovery options
       await page.click('[data-testid="retry-button"]');
@@ -493,7 +493,7 @@ export { greet, multiply };`;
 
       // Should show recovery dialog
       await page.waitForSelector('[data-testid="recovery-dialog"]');
-      await expect(page.locator('[data-testid="recovery-dialog"]')).toContainText('unsaved changes');
+      await expect(page.locator('[data-testid="recovery-dialog"]')).toHaveText('unsaved changes');
 
       // Recover the content
       await page.click('[data-testid="recover-changes-button"]');
@@ -502,7 +502,7 @@ export { greet, multiply };`;
       // Verify content was recovered
       await page.click('[data-testid="unsaved-file.txt-file"]');
       await page.waitForSelector('[data-testid="code-editor"]');
-      await expect(page.locator('[data-testid="code-editor"] textarea')).toContainText('Unsaved content that should be recovered');
+      await expect(page.locator('[data-testid="code-editor"] textarea')).toHaveText('Unsaved content that should be recovered');
     });
   });
 });

@@ -1,18 +1,19 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi, type MockedFunction } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/svelte'
 import userEvent from '@testing-library/user-event'
 import ActivityBar from './ActivityBar.svelte'
 import type { ComponentProps } from 'svelte'
 import { createTypedMock } from '@/test/mock-factory'
+import { mockSvelteEvents } from '@/test/svelte5-event-helper'
 
 describe('ActivityBar', () => {
   let cleanup: Array<() => void> = []
   let user: ReturnType<typeof userEvent.setup>
-  let mockViewChange: ReturnType<typeof createTypedMock<[string], void>>
+  let mockViewChange: MockedFunction<(view: string) => void>
 
   beforeEach(() => {
     user = userEvent.setup()
-    mockViewChange = createTypedMock<[string], void>()
+    mockViewChange = vi.fn() as unknown as MockedFunction<(view: string) => void>
     vi.clearAllMocks()
   })
 
@@ -103,7 +104,8 @@ describe('ActivityBar', () => {
       const { component, unmount } = render(ActivityBar)
       cleanup.push(unmount)
       
-      component.$on('viewChange', (e: CustomEvent<string>) => {
+      const mockComponent = mockSvelteEvents(component)
+      mockComponent.$on('viewChange', (e: CustomEvent<string>) => {
         mockViewChange(e.detail)
       })
       
@@ -117,7 +119,8 @@ describe('ActivityBar', () => {
       const { component, unmount } = render(ActivityBar)
       cleanup.push(unmount)
       
-      component.$on('viewChange', (e: CustomEvent<string>) => {
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('viewChange', (e: CustomEvent<string>) => {
         mockViewChange(e.detail)
       })
       
@@ -145,7 +148,8 @@ describe('ActivityBar', () => {
       const { component, unmount } = render(ActivityBar)
       cleanup.push(unmount)
       
-      component.$on('viewChange', (e: CustomEvent<string>) => {
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('viewChange', (e: CustomEvent<string>) => {
         mockViewChange(e.detail)
       })
       
@@ -249,7 +253,8 @@ describe('ActivityBar', () => {
       const { component, unmount } = render(ActivityBar)
       cleanup.push(unmount)
       
-      component.$on('viewChange', (e: CustomEvent<string>) => {
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('viewChange', (e: CustomEvent<string>) => {
         mockViewChange(e.detail)
       })
       
@@ -265,7 +270,8 @@ describe('ActivityBar', () => {
       const { component, unmount } = render(ActivityBar)
       cleanup.push(unmount)
       
-      component.$on('viewChange', (e: CustomEvent<string>) => {
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('viewChange', (e: CustomEvent<string>) => {
         mockViewChange(e.detail)
       })
       
@@ -451,12 +457,13 @@ describe('ActivityBar', () => {
     })
 
     it('dispatches events that can be listened to by parent components', async () => {
-      const handleViewChange = createTypedMock<[string], void>()
+      const handleViewChange = vi.fn()
       
       const { component, unmount } = render(ActivityBar, { activeView: 'explorer' })
       cleanup.push(unmount)
       
-      component.$on('viewChange', (e: CustomEvent<string>) => {
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('viewChange', (e: CustomEvent<string>) => {
         handleViewChange(e.detail)
       })
       

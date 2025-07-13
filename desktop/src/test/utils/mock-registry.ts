@@ -231,7 +231,7 @@ export class MockRegistry {
   /**
    * Track performance metrics for a mock
    */
-  private trackPerformance(id: string, duration: number, error?: boolean): void {
+  public trackPerformance(id: string, duration: number, error?: boolean): void {
     if (!this.performanceData[id]) {
       this.performanceData[id] = {
         count: 0,
@@ -539,8 +539,10 @@ export const mockDecorators = {
         const result = mock(...args);
         
         if (cache.size >= cacheSize) {
-          const firstKey = cache.keys().next().value;
-          cache.delete(firstKey);
+          const firstKey = cache.keys().next().value as string;
+          if (firstKey) {
+            cache.delete(firstKey);
+          }
         }
         
         cache.set(key, result);
@@ -562,7 +564,7 @@ export function withMockRegistry<T extends Function>(
   target: T,
   context?: ClassMethodDecoratorContext
 ): T {
-  return function (...args: any[]) {
+  return function (this: any, ...args: any[]) {
     mockRegistry.createSnapshot('before-test');
     try {
       return target.apply(this, args);

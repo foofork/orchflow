@@ -6,8 +6,8 @@ mod tests {
     use crate::modules::{ModuleLoader, ModuleManifest, ModuleType, Permission};
     use crate::simple_state_store::SimpleStateStore;
     use std::sync::Arc;
-    use tokio::sync::Mutex;
     use tempfile::TempDir;
+    use tokio::sync::Mutex;
 
     async fn setup_test_loader() -> (Arc<Mutex<ModuleLoader>>, TempDir) {
         let temp_dir = TempDir::new().unwrap();
@@ -34,16 +34,16 @@ mod tests {
     async fn test_module_manifest_validation() {
         let manifest = create_test_manifest("test-module");
         let json = serde_json::to_value(&manifest).unwrap();
-        
+
         // Should be valid
         let result = serde_json::from_value::<ModuleManifest>(json.clone());
         assert!(result.is_ok());
-        
+
         // Test invalid manifest
         let mut invalid = json.as_object().unwrap().clone();
         invalid.remove("name");
         let invalid_json = serde_json::Value::Object(invalid);
-        
+
         let result = serde_json::from_value::<ModuleManifest>(invalid_json);
         assert!(result.is_err());
     }
@@ -51,7 +51,7 @@ mod tests {
     #[tokio::test]
     async fn test_module_loader_initialization() {
         let (loader, _temp_dir) = setup_test_loader().await;
-        
+
         // List modules should return empty initially
         let loader = loader.lock().await;
         let modules = loader.list_modules();
@@ -61,11 +61,11 @@ mod tests {
     #[tokio::test]
     async fn test_module_scanning() {
         let (loader, temp_dir) = setup_test_loader().await;
-        
+
         // Create a module directory with manifest
         let module_dir = temp_dir.path().join("test-module");
         std::fs::create_dir(&module_dir).unwrap();
-        
+
         let manifest = create_test_manifest("test-module");
         let manifest_path = module_dir.join("manifest.json");
         std::fs::write(
@@ -73,14 +73,14 @@ mod tests {
             serde_json::to_string_pretty(&manifest).unwrap(),
         )
         .unwrap();
-        
+
         // Scan modules
         let mut loader = loader.lock().await;
         let loaded = loader.scan_modules().await.unwrap();
-        
+
         assert_eq!(loaded.len(), 1);
         assert_eq!(loaded[0], "test-module");
-        
+
         // Verify module is loaded
         let module = loader.get_module("test-module").unwrap();
         assert_eq!(module.manifest.name, "test-module");
@@ -90,11 +90,11 @@ mod tests {
     #[tokio::test]
     async fn test_module_enable_disable() {
         let (loader, temp_dir) = setup_test_loader().await;
-        
+
         // Create and scan a module
         let module_dir = temp_dir.path().join("toggle-module");
         std::fs::create_dir(&module_dir).unwrap();
-        
+
         let manifest = create_test_manifest("toggle-module");
         let manifest_path = module_dir.join("manifest.json");
         std::fs::write(
@@ -102,23 +102,29 @@ mod tests {
             serde_json::to_string_pretty(&manifest).unwrap(),
         )
         .unwrap();
-        
+
         let mut loader = loader.lock().await;
         loader.scan_modules().await.unwrap();
-        
+
         // Module should be enabled by default
         let module = loader.get_module("toggle-module").unwrap();
         assert!(module.config.enabled);
-        
+
         // Disable module
-        loader.set_module_enabled("toggle-module", false).await.unwrap();
-        
+        loader
+            .set_module_enabled("toggle-module", false)
+            .await
+            .unwrap();
+
         let module = loader.get_module("toggle-module").unwrap();
         assert!(!module.config.enabled);
-        
+
         // Enable module
-        loader.set_module_enabled("toggle-module", true).await.unwrap();
-        
+        loader
+            .set_module_enabled("toggle-module", true)
+            .await
+            .unwrap();
+
         let module = loader.get_module("toggle-module").unwrap();
         assert!(module.config.enabled);
     }
@@ -140,7 +146,7 @@ mod tests {
             ],
             config_schema: None,
         };
-        
+
         // Verify permissions are stored correctly
         assert_eq!(manifest.permissions.len(), 3);
         assert!(manifest.permissions.contains(&Permission::FileSystem));
@@ -159,11 +165,11 @@ mod tests {
             ModuleType::Language,
             ModuleType::Tool,
         ];
-        
+
         for module_type in types {
             let json = serde_json::to_value(&module_type).unwrap();
             let deserialized: ModuleType = serde_json::from_value(json).unwrap();
-            
+
             match (&module_type, &deserialized) {
                 (ModuleType::Agent, ModuleType::Agent) => (),
                 (ModuleType::Command, ModuleType::Command) => (),
@@ -179,11 +185,11 @@ mod tests {
     #[tokio::test]
     async fn test_module_config() {
         let (loader, temp_dir) = setup_test_loader().await;
-        
+
         // Create module with config schema
         let module_dir = temp_dir.path().join("config-module");
         std::fs::create_dir(&module_dir).unwrap();
-        
+
         let mut manifest = create_test_manifest("config-module");
         manifest.config_schema = Some(serde_json::json!({
             "type": "object",
@@ -198,17 +204,17 @@ mod tests {
                 }
             }
         }));
-        
+
         let manifest_path = module_dir.join("manifest.json");
         std::fs::write(
             &manifest_path,
             serde_json::to_string_pretty(&manifest).unwrap(),
         )
         .unwrap();
-        
+
         let mut loader = loader.lock().await;
         loader.scan_modules().await.unwrap();
-        
+
         let module = loader.get_module("config-module").unwrap();
         assert!(module.manifest.config_schema.is_some());
     }
@@ -216,30 +222,26 @@ mod tests {
     #[tokio::test]
     async fn test_module_error_handling() {
         let (loader, _temp_dir) = setup_test_loader().await;
-        
+
         let loader = loader.lock().await;
-        
+
         // Test getting non-existent module
         let result = loader.get_module("non-existent");
         assert!(result.is_none());
-        
+
         // Test executing command on non-existent module
-        let result = loader
-            .execute_command("non-existent", "test", vec![])
-            .await;
+        let result = loader.execute_command("non-existent", "test", vec![]).await;
         assert!(result.is_err());
         assert_eq!(result.unwrap_err(), "Module not found");
-        
+
         // Test setting enabled on non-existent module
         drop(loader); // Release lock
-        let loader_arc = Arc::new(Mutex::new(
-            ModuleLoader::new(
-                _temp_dir.path().to_path_buf(),
-                Arc::new(SimpleStateStore::new().unwrap()),
-            ),
-        ));
+        let loader_arc = Arc::new(Mutex::new(ModuleLoader::new(
+            _temp_dir.path().to_path_buf(),
+            Arc::new(SimpleStateStore::new().unwrap()),
+        )));
         let mut loader = loader_arc.lock().await;
-        
+
         let result = loader.set_module_enabled("non-existent", false).await;
         assert!(result.is_err());
         assert_eq!(result.unwrap_err(), "Module not found");

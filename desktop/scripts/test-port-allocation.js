@@ -3,7 +3,7 @@
 import net from 'net';
 
 async function testPortAllocation() {
-  console.log('🔍 Testing port allocation logic...\n');
+  console.warn('🔍 Testing port allocation logic...\n');
   
   const isPortAvailable = (port) => {
     return new Promise((resolve) => {
@@ -34,25 +34,25 @@ async function testPortAllocation() {
   };
   
   // Test port availability
-  console.log('📊 Port availability check:');
+  console.warn('📊 Port availability check:');
   const portsToCheck = [5173, 5174, 5175, 5176, 5177];
   
   for (const port of portsToCheck) {
     const available = await isPortAvailable(port);
-    console.log(`  Port ${port}: ${available ? '✅ Available' : '❌ In use'}`);
+    console.warn(`  Port ${port}: ${available ? '✅ Available' : '❌ In use'}`);
   }
   
-  console.log();
+  console.warn();
   
   // Find next available port
   try {
     const availablePort = await findAvailablePort();
-    console.log(`🎯 Next available port: ${availablePort}`);
+    console.warn(`🎯 Next available port: ${availablePort}`);
   } catch (error) {
     console.error(`❌ Error: ${error.message}`);
   }
   
-  console.log('\n✅ Port allocation test completed!');
+  console.warn('\n✅ Port allocation test completed!');
 }
 
 testPortAllocation().catch(console.error);

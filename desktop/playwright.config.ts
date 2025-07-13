@@ -1,8 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
-import { chromium } from '@playwright/test';
 import net from 'net';
 
-// Helper function to find available port
+// Helper function to find available port (currently unused but kept for future use)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function findAvailablePort(startPort: number = 5174): Promise<number> {
   const maxPort = 5200;
   
@@ -31,7 +31,8 @@ function isPortAvailable(port: number): Promise<boolean> {
   });
 }
 
-// Function to clean up leftover processes and socket files
+// Function to clean up leftover processes and socket files (currently unused but kept for future use)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function cleanup() {
   try {
     // Kill any leftover vite processes
@@ -42,16 +43,16 @@ async function cleanup() {
     try {
       await execAsync('pkill -f "vite.*dev" || true');
       await execAsync('pkill -f "npm.*dev" || true');
-      console.log('✅ Cleaned up any leftover dev processes');
-    } catch (error) {
+      console.warn('✅ Cleaned up any leftover dev processes');
+    } catch {
       // Ignore errors - processes might not exist
     }
     
     // Clean up potential socket files
     try {
       await execAsync('find /tmp -name "*vite*" -delete 2>/dev/null || true');
-      console.log('✅ Cleaned up socket files');
-    } catch (error) {
+      console.warn('✅ Cleaned up socket files');
+    } catch {
       // Ignore errors
     }
     

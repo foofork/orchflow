@@ -1,7 +1,7 @@
 pub mod backend;
-pub mod tmux_backend;
-pub mod muxd_backend;
 pub mod factory;
+pub mod muxd_backend;
+pub mod tmux_backend;
 
 #[cfg(test)]
 pub mod mock_backend;
@@ -21,7 +21,7 @@ mod tmux_integration_tests;
 #[cfg(test)]
 mod benchmarks;
 
-pub use backend::{MuxBackend, MuxError, Session, Pane, SplitType, PaneSize};
+pub use backend::{MuxBackend, MuxError, Pane, PaneSize, Session, SplitType};
 pub use factory::create_mux_backend;
 
 #[cfg(test)]

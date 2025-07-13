@@ -10,6 +10,7 @@ import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import CommandConfirmationDialog from './CommandConfirmationDialog.svelte';
 import { MockSvelteComponent } from '../../test/utils/svelte-component-mock-types';
 import { createTypedMock, createAsyncMock } from '@/test/mock-factory';
+import { mockSvelteEvents } from '@/test/svelte5-event-helper';
 
 // Mock Modal component
 vi.mock('./Modal.svelte', () => {
@@ -112,9 +113,9 @@ describe('CommandConfirmationDialog', () => {
 
   beforeEach(() => {
     cleanup = [];
-    mockOnConfirm = createTypedMock<[], void>();
-    mockOnCancel = createTypedMock<[], void>();
-    mockOnBypass = createTypedMock<[], void>();
+    mockOnConfirm = createTypedMock<() => void>();
+    mockOnCancel = createTypedMock<() => void>();
+    mockOnBypass = createTypedMock<() => void>();
   });
 
   afterEach(() => {
@@ -188,8 +189,9 @@ describe('CommandConfirmationDialog', () => {
     });
     cleanup.push(unmount);
 
-    const confirmHandler = createTypedMock<[any], void>();
-    component.$on('confirm', confirmHandler);
+    const confirmHandler = vi.fn();
+    const mockComponent = mockSvelteEvents(component);
+    mockComponent.$on('confirm', confirmHandler);
 
     await waitFor(() => {
       expect(container.querySelector('.confirmation-dialog')).toBeInTheDocument();
@@ -223,8 +225,9 @@ describe('CommandConfirmationDialog', () => {
     });
     cleanup.push(unmount);
 
-    const cancelHandler = createTypedMock<[any], void>();
-    component.$on('cancel', cancelHandler);
+    const cancelHandler = vi.fn();
+    const mockComponent = mockSvelteEvents(component);
+    mockComponent.$on('cancel', cancelHandler);
 
     await waitFor(() => {
       expect(container.querySelector('.confirmation-dialog')).toBeInTheDocument();
@@ -259,8 +262,9 @@ describe('CommandConfirmationDialog', () => {
     });
     cleanup.push(unmount);
 
-    const bypassHandler = createTypedMock<[any], void>();
-    component.$on('bypass', bypassHandler);
+    const bypassHandler = vi.fn();
+    const mockComponent = mockSvelteEvents(component);
+    mockComponent.$on('bypass', bypassHandler);
 
     await waitFor(() => {
       expect(container.querySelector('.confirmation-dialog')).toBeInTheDocument();
@@ -312,8 +316,9 @@ describe('CommandConfirmationDialog', () => {
     });
     cleanup.push(unmount);
 
-    const confirmHandler = createTypedMock<[any], void>();
-    component.$on('confirm', confirmHandler);
+    const confirmHandler = vi.fn();
+    const mockComponent = mockSvelteEvents(component);
+    mockComponent.$on('confirm', confirmHandler);
 
     await waitFor(() => {
       expect(container.querySelector('.confirmation-dialog')).toBeInTheDocument();
@@ -387,8 +392,9 @@ describe('CommandConfirmationDialog', () => {
     });
     cleanup.push(unmount);
 
-    const cancelHandler = createTypedMock<[any], void>();
-    component.$on('cancel', cancelHandler);
+    const cancelHandler = vi.fn();
+    const mockComponent = mockSvelteEvents(component);
+    mockComponent.$on('cancel', cancelHandler);
 
     await waitFor(() => {
       expect(container.querySelector('.confirmation-dialog')).toBeInTheDocument();

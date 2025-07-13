@@ -50,9 +50,9 @@ describe('Metrics Service', () => {
     // Mock WebSocket
     mockWebSocket = {
       close: createVoidMock(),
-      send: createTypedMock<[data: string | ArrayBuffer | Blob | ArrayBufferView], void>(),
-      addEventListener: createTypedMock<[type: string, listener: EventListener], void>(),
-      removeEventListener: createTypedMock<[type: string, listener: EventListener], void>(),
+      send: createTypedMock<(data: string | ArrayBuffer | Blob | ArrayBufferView) => void>(),
+      addEventListener: createTypedMock<(type: string, listener: EventListener) => void>(),
+      removeEventListener: createTypedMock<(type: string, listener: EventListener) => void>(),
       readyState: WebSocket.OPEN,
       onopen: null,
       onmessage: null,

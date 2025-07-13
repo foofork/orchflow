@@ -3,6 +3,7 @@ import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import ConfigPanel from './ConfigPanel.svelte';
 import { createTypedMock, createSyncMock, createAsyncMock } from '@/test/mock-factory';
+import { mockSvelteEvents } from '@/test/svelte5-event-helper';
 
 // Mock the dynamic import of CodeMirrorEditor before any tests run
 beforeAll(() => {
@@ -55,13 +56,14 @@ beforeAll(() => {
             root: editorEl
           };
           
-          this.$destroy = createSyncMock<[], void>(() => {
+          this.$destroy = createSyncMock<[], void>();
+          this.$destroy.mockImplementation(() => {
             if (editorEl.parentNode) {
               editorEl.parentNode.removeChild(editorEl);
             }
           });
           
-          this.$on = createTypedMock<[string, Function], () => void>((event: string, handler: Function) => {
+          this.$on = createTypedMock<(event: string, handler: Function) => () => void>((event: string, handler: Function) => {
             if (!this.$$.callbacks[event]) {
               this.$$.callbacks[event] = [];
             }
@@ -76,7 +78,8 @@ beforeAll(() => {
             };
           });
           
-          this.$set = createSyncMock<[any], void>((newProps: any) => {
+          this.$set = createSyncMock<[any], void>();
+          this.$set.mockImplementation((newProps: any) => {
             Object.assign(this.$$.props, newProps);
             if (newProps.value !== undefined) {
               editorContent.textContent = newProps.value;
@@ -335,7 +338,8 @@ describe('ConfigPanel', () => {
       cleanup.push(unmount);
       
       const saveHandler = createSyncMock<[any], void>();
-      component.$on('save', saveHandler);
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('save', saveHandler);
       
       const saveButton = getByText('Save');
       await fireEvent.click(saveButton);
@@ -359,7 +363,8 @@ describe('ConfigPanel', () => {
       cleanup.push(unmount);
       
       const saveHandler = createSyncMock<[any], void>();
-      component.$on('save', saveHandler);
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('save', saveHandler);
       
       // Simulate invalid JSON
       const changeEvent = new CustomEvent('change', { detail: '{ invalid' });
@@ -381,7 +386,8 @@ describe('ConfigPanel', () => {
       cleanup.push(unmount);
       
       const closeHandler = createSyncMock<[any], void>();
-      component.$on('close', closeHandler);
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('close', closeHandler);
       
       const cancelButton = getByText('Cancel');
       await fireEvent.click(cancelButton);
@@ -423,8 +429,9 @@ describe('ConfigPanel', () => {
         resolveSave = resolve;
       });
       
-      const saveHandler = createSyncMock<[any], Promise<void>>(() => savePromise);
-      component.$on('save', saveHandler);
+      const saveHandler = createSyncMock<[any], Promise<void>>(savePromise);
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('save', saveHandler);
       
       const saveButton = getByText('Save') as HTMLButtonElement;
       await fireEvent.click(saveButton);
@@ -539,7 +546,8 @@ describe('ConfigPanel', () => {
       cleanup.push(unmount);
       
       const saveHandler = createSyncMock<[any], void>();
-      component.$on('save', saveHandler);
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('save', saveHandler);
       
       await fireEvent.keyDown(container.querySelector('.config-panel')!, {
         key: 's',
@@ -559,7 +567,8 @@ describe('ConfigPanel', () => {
       cleanup.push(unmount);
       
       const closeHandler = createSyncMock<[any], void>();
-      component.$on('close', closeHandler);
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('close', closeHandler);
       
       await fireEvent.keyDown(container.querySelector('.config-panel')!, {
         key: 'Escape'

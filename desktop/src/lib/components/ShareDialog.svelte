@@ -6,6 +6,7 @@
   
   export let show = false;
   export let mode: 'create' | 'import' = 'create';
+  export let testMode = false;
   
   const dispatch = createEventDispatcher();
   
@@ -49,7 +50,7 @@
   let success: ShareResult | null = null;
   let recentPackages: SharePackage[] = [];
   
-  $: if (show) {
+  $: if (show && !testMode) {
     loadRecentPackages();
   }
   
@@ -395,7 +396,7 @@
           </div>
         {/if}
         
-        {#if recentPackages.length > 0}
+        {#if recentPackages && recentPackages.length > 0}
           <div class="recent-section">
             <h3>Recent Packages</h3>
             <div class="package-list">

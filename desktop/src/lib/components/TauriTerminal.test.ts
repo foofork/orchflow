@@ -30,8 +30,8 @@ const mockTerminal = {
   write: createSyncMock<[string], void>(),
   writeln: createSyncMock<[string], void>(),
   clear: createSyncMock<[], void>(),
-  onData: createSyncMock<[Function], { dispose: Function }>(() => ({ dispose: createSyncMock<[], void>() })),
-  onResize: createSyncMock<[Function], { dispose: Function }>(() => ({ dispose: createSyncMock<[], void>() })),
+  onData: createSyncMock<[Function], { dispose: Function }>({ dispose: createSyncMock<[], void>() }),
+  onResize: createSyncMock<[Function], { dispose: Function }>({ dispose: createSyncMock<[], void>() }),
   dispose: createSyncMock<[], void>(),
   resize: createSyncMock<[number, number], void>(),
   focus: createSyncMock<[], void>(),
@@ -43,7 +43,7 @@ const mockTerminal = {
 
 const mockFitAddon = {
   fit: createSyncMock<[], void>(),
-  proposeDimensions: createSyncMock<[], { cols: number; rows: number }>(() => ({ cols: 80, rows: 24 })),
+  proposeDimensions: createSyncMock<[], { cols: number; rows: number }>({ cols: 80, rows: 24 }),
   activate: createSyncMock<[any], void>(),
   dispose: createSyncMock<[], void>()
 };
@@ -55,15 +55,15 @@ const mockWebLinksAddon = {
 
 // Mock dynamic imports
 vi.doMock('@xterm/xterm', () => ({
-  Terminal: createSyncMock<[any?], typeof mockTerminal>(() => mockTerminal)
+  Terminal: createSyncMock<[any?], typeof mockTerminal>(mockTerminal)
 }));
 
 vi.doMock('@xterm/addon-fit', () => ({
-  FitAddon: createSyncMock<[any?], typeof mockFitAddon>(() => mockFitAddon)
+  FitAddon: createSyncMock<[any?], typeof mockFitAddon>(mockFitAddon)
 }));
 
 vi.doMock('@xterm/addon-web-links', () => ({
-  WebLinksAddon: createSyncMock<[any?], typeof mockWebLinksAddon>(() => mockWebLinksAddon)
+  WebLinksAddon: createSyncMock<[any?], typeof mockWebLinksAddon>(mockWebLinksAddon)
 }));
 
 vi.doMock('@xterm/xterm/css/xterm.css', () => ({}));
@@ -147,11 +147,11 @@ describe('TauriTerminal', () => {
         observe: Function;
         unobserve: Function;
         disconnect: Function;
-      }>(() => ({
+      }>({
         observe: mockObserve,
         unobserve: createSyncMock<[Element], void>(),
         disconnect: createSyncMock<[], void>()
-      }));
+      });
       global.ResizeObserver = MockResizeObserver as any;
       
       const { unmount } = render(TauriTerminal);
@@ -252,7 +252,7 @@ describe('TauriTerminal', () => {
     });
 
     it('should clear poll interval on unmount', async () => {
-      const clearIntervalSpy = createTypedMock<[NodeJS.Timeout], void>();
+      const clearIntervalSpy = createTypedMock<(timeout: NodeJS.Timeout) => void>();
       vi.spyOn(global, 'clearInterval').mockImplementation(clearIntervalSpy);
       
       const { unmount } = render(TauriTerminal, {

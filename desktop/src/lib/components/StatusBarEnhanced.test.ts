@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { createTypedMock } from '@/test/mock-factory';
+import { mockSvelteEvents } from '@/test/svelte5-event-helper';
 import StatusBarEnhanced from './StatusBarEnhanced.svelte';
 
 describe('StatusBarEnhanced', () => {
@@ -215,7 +216,8 @@ describe('StatusBarEnhanced', () => {
     cleanup.push(unmount);
     
     let actionEvent = null;
-    component.$on('action', (event) => {
+    const mockComponent = mockSvelteEvents(component);
+    mockComponent.$on('action', (event) => {
       actionEvent = event.detail;
     });
     
@@ -238,7 +240,8 @@ describe('StatusBarEnhanced', () => {
     cleanup.push(unmount);
     
     let actionEvent = null;
-    component.$on('action', (event) => {
+    const mockComponent = mockSvelteEvents(component);
+    mockComponent.$on('action', (event) => {
       actionEvent = event.detail;
     });
     
@@ -258,7 +261,8 @@ describe('StatusBarEnhanced', () => {
     cleanup.push(unmount);
     
     let actionEvent = null;
-    component.$on('action', (event) => {
+    const mockComponent = mockSvelteEvents(component);
+    mockComponent.$on('action', (event) => {
       actionEvent = event.detail;
     });
     
@@ -352,7 +356,7 @@ describe('StatusBarEnhanced', () => {
   });
 
   it('handles custom item click callbacks', async () => {
-    const clickCallback = createTypedMock<[], void>();
+    const clickCallback = createTypedMock<() => void>();
     const { getByText, unmount } = render(StatusBarEnhanced, {
       props: { 
         testMode: true,
@@ -381,7 +385,8 @@ describe('StatusBarEnhanced', () => {
     expect(getByText('📄 file1.ts')).toBeInTheDocument();
     
     // Update props
-    component.$set({ 
+    const mockComponent = mockSvelteEvents(component);
+    mockComponent.$set({ 
       currentFile: { path: '/test/file2.ts', line: 5, column: 10 }
     });
     

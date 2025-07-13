@@ -107,17 +107,8 @@ export interface PaneState {
 }
 
 // System Types
-export interface SystemMetrics {
-  cpu: number;
-  memory: {
-    used: number;
-    total: number;
-    percentage: number;
-  };
-  uptime: number;
-  agentCount: number;
-  activeAgents: number;
-}
+// Re-export from metrics service to avoid duplication
+export type { SystemMetrics } from './services/metrics';
 
 export interface ActivityLog {
   id: string;

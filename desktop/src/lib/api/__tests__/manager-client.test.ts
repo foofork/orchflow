@@ -10,7 +10,7 @@ describe('ManagerClient', () => {
   let client: ManagerClient;
   let mockedInvoke: any;
   let mockedListen: any;
-  let cleanup: Array<() => void> = [];
+  const cleanup: Array<() => void> = [];
 
   beforeEach(() => {
     client = new ManagerClient();
@@ -661,14 +661,14 @@ describe('ManagerClient', () => {
   describe('Event Handling', () => {
     describe('onEvent', () => {
       it('should register event handler', () => {
-        const handler = createTypedMock<[event: any], void>();
+        const handler = createTypedMock<(event: any) => void>();
         const unsubscribe = client.onEvent('SessionCreated', handler);
 
         expect(typeof unsubscribe).toBe('function');
       });
 
       it('should unregister event handler', () => {
-        const handler = createTypedMock<[event: any], void>();
+        const handler = createTypedMock<(event: any) => void>();
         const unsubscribe = client.onEvent('SessionCreated', handler);
 
         unsubscribe();
@@ -679,8 +679,8 @@ describe('ManagerClient', () => {
       });
 
       it('should handle multiple handlers for same event', () => {
-        const handler1 = createTypedMock<[event: any], void>();
-        const handler2 = createTypedMock<[event: any], void>();
+        const handler1 = createTypedMock<(event: any) => void>();
+        const handler2 = createTypedMock<(event: any) => void>();
 
         const unsub1 = client.onEvent('SessionCreated', handler1);
         const unsub2 = client.onEvent('SessionCreated', handler2);
@@ -709,7 +709,11 @@ describe('ManagerClient', () => {
           send: createVoidMock<[data: string | ArrayBufferLike | Blob | ArrayBufferView]>(),
         };
 
-        global.WebSocket = createTypedMock<[url: string], WebSocket>(() => mockWebSocket as any);
+        global.WebSocket = createTypedMock<(url: string) => WebSocket>(() => mockWebSocket as any) as any;
+        (global.WebSocket as any).CONNECTING = 0;
+        (global.WebSocket as any).OPEN = 1;
+        (global.WebSocket as any).CLOSING = 2;
+        (global.WebSocket as any).CLOSED = 3;
       });
 
       it('should connect to WebSocket', async () => {
@@ -723,7 +727,7 @@ describe('ManagerClient', () => {
       });
 
       it('should handle WebSocket messages', async () => {
-        const handler = createTypedMock<[event: any], void>();
+        const handler = createTypedMock<(event: any) => void>();
         client.onEvent('SessionCreated', handler);
 
         await client.connectWebSocket();
@@ -792,7 +796,7 @@ describe('ManagerClient', () => {
 
     describe('dispose', () => {
       it('should clean up resources', () => {
-        const handler = createTypedMock<[event: any], void>();
+        const handler = createTypedMock<(event: any) => void>();
         client.onEvent('SessionCreated', handler);
 
         client.dispose();

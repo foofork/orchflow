@@ -7,16 +7,16 @@ import { exec } from 'child_process';
 const execAsync = promisify(exec);
 
 async function verifyPlaywrightFix() {
-  console.log('🔍 Verifying Playwright port conflict fix...\n');
+  console.warn('🔍 Verifying Playwright port conflict fix...\n');
   
   try {
     // Step 1: Cleanup
-    console.log('1️⃣ Running cleanup...');
+    console.warn('1️⃣ Running cleanup...');
     await execAsync('node scripts/cleanup-test-environment.js');
-    console.log('✅ Cleanup completed\n');
+    console.warn('✅ Cleanup completed\n');
     
     // Step 2: Test TypeScript compilation
-    console.log('2️⃣ Testing TypeScript compilation...');
+    console.warn('2️⃣ Testing TypeScript compilation...');
     try {
       await execAsync('npx tsc --noEmit --project tsconfig.json');
       console.log('✅ TypeScript compilation successful\n');

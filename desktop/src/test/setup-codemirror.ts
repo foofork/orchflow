@@ -48,11 +48,11 @@ const mockEditorState = {
   StateEffect: {
     define: vi.fn()
   },
-  Compartment: vi.fn().mockImplementation(() => ({
-    of: vi.fn((value) => value || { extension: 'compartment' }),
-    reconfigure: vi.fn((value) => ({ reconfigure: true, value })),
-    get: vi.fn()
-  })),
+  Compartment: class {
+    of = vi.fn((value) => ({ extension: value || 'compartment' }));
+    reconfigure = vi.fn((value) => ({ reconfigure: true, value }));
+    get = vi.fn();
+  },
   EditorSelection: {
     cursor: vi.fn((pos) => ({ from: pos, to: pos, head: pos, anchor: pos })),
     range: vi.fn((from, to) => ({ from, to, head: to, anchor: from }))
@@ -149,9 +149,16 @@ Object.assign(MockEditorView, {
 // Mock view module
 vi.mock('@codemirror/view', () => ({
   EditorView: MockEditorView,
-  keymap: vi.fn((bindings) => ({
-    extension: { keymap: bindings }
-  })),
+  keymap: Object.assign(
+    vi.fn((bindings) => ({
+      extension: { keymap: bindings }
+    })),
+    {
+      of: vi.fn((bindings) => ({
+        extension: { keymap: bindings }
+      }))
+    }
+  ),
   drawSelection: vi.fn(() => ({ extension: 'drawSelection' })),
   dropCursor: vi.fn(() => ({ extension: 'dropCursor' })),
   rectangularSelection: vi.fn(() => ({ extension: 'rectangularSelection' })),

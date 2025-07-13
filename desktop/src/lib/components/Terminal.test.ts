@@ -27,17 +27,17 @@ vi.mock('$app/environment', () => ({ browser: true }));
 // Enhanced mock instances with proper types
 let mockTerminalInstance: ReturnType<typeof createMockTerminal>;
 let mockFitAddon: {
-  fit: MockedFunction<[], void>;
-  proposeDimensions: MockedFunction<[], { cols: number; rows: number } | null>;
-  dispose: MockedFunction<[], void>;
+  fit: MockedFunction<() => void>;
+  proposeDimensions: MockedFunction<() => { cols: number; rows: number } | null>;
+  dispose: MockedFunction<() => void>;
 };
 let mockSearchAddon: {
-  findNext: MockedFunction<[searchTerm: string], void>;
-  findPrevious: MockedFunction<[searchTerm: string], void>;
-  dispose: MockedFunction<[], void>;
+  findNext: MockedFunction<(searchTerm: string) => void>;
+  findPrevious: MockedFunction<(searchTerm: string) => void>;
+  dispose: MockedFunction<() => void>;
 };
 let mockWebLinksAddon: {
-  dispose?: MockedFunction<[], void>;
+  dispose?: MockedFunction<() => void>;
 };
 
 // Create manager mocks before module imports
@@ -51,7 +51,7 @@ vi.mock('$lib/stores/manager', () => {
 // Mock xterm and addons with enhanced patterns
 vi.mock('@xterm/xterm', () => {
   return {
-    Terminal: createTypedMock<[options?: any], typeof mockTerminalInstance>().mockImplementation((options?: any) => {
+    Terminal: createTypedMock<(options?: any) => typeof mockTerminalInstance>().mockImplementation((options?: any) => {
       // Create a new mock terminal instance
       mockTerminalInstance = createMockTerminal();
       
@@ -66,7 +66,7 @@ vi.mock('@xterm/xterm', () => {
       });
       
       // Override onResize to track handlers
-      const onResize = createTypedMock<[handler: (size: { cols: number; rows: number }) => void], () => void>();
+      const onResize = createTypedMock<(handler: (size: { cols: number; rows: number }) => void) => () => void>();
       onResize.mockImplementation((handler) => {
         onResizeHandlers.push(handler);
         return createVoidMock();
@@ -84,7 +84,7 @@ vi.mock('@xterm/xterm', () => {
 
 vi.mock('@xterm/addon-fit', () => {
   return {
-    FitAddon: createTypedMock<[], typeof mockFitAddon>().mockImplementation(() => {
+    FitAddon: createTypedMock<() => typeof mockFitAddon>().mockImplementation(() => {
       mockFitAddon = {
         fit: createVoidMock(),
         proposeDimensions: createSyncMock<[], { cols: number; rows: number } | null>({ cols: 80, rows: 24 }),
@@ -97,7 +97,7 @@ vi.mock('@xterm/addon-fit', () => {
 
 vi.mock('@xterm/addon-search', () => {
   return {
-    SearchAddon: createTypedMock<[], typeof mockSearchAddon>().mockImplementation(() => {
+    SearchAddon: createTypedMock<() => typeof mockSearchAddon>().mockImplementation(() => {
       mockSearchAddon = {
         findNext: createVoidMock<[string]>(),
         findPrevious: createVoidMock<[string]>(),
@@ -109,7 +109,7 @@ vi.mock('@xterm/addon-search', () => {
 });
 
 vi.mock('@xterm/addon-web-links', () => ({
-  WebLinksAddon: createTypedMock<[], typeof mockWebLinksAddon>().mockImplementation(() => {
+  WebLinksAddon: createTypedMock<() => typeof mockWebLinksAddon>().mockImplementation(() => {
     mockWebLinksAddon = {
       dispose: createVoidMock()
     };

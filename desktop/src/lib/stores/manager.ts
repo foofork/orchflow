@@ -25,7 +25,7 @@ function createManagerStore() {
     isConnected: false,
   });
 
-  let eventUnsubscribers: (() => void)[] = [];
+  const eventUnsubscribers: (() => void)[] = [];
 
   // Initialize store
   async function init() {

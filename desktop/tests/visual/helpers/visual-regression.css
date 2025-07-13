@@ -1,0 +1,166 @@
+/**
+ * CSS overrides for visual regression testing
+ * Ensures consistent rendering across test runs
+ */
+
+/* Disable all animations and transitions */
+*,
+*::before,
+*::after {
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
+  transition-property: none !important;
+}
+
+/* Disable smooth scrolling */
+html {
+  scroll-behavior: auto !important;
+}
+
+/* Hide elements that change between test runs */
+[data-testid*="timestamp"],
+[data-testid*="date"],
+[data-testid*="time"],
+.timestamp,
+.date,
+.time,
+time {
+  visibility: hidden !important;
+}
+
+/* Hide version numbers */
+[data-testid*="version"],
+.version {
+  visibility: hidden !important;
+}
+
+/* Stabilize cursors */
+* {
+  cursor: default !important;
+}
+
+/* Disable caret blinking */
+*:focus {
+  caret-color: transparent !important;
+}
+
+/* Hide scrollbars for consistency */
+::-webkit-scrollbar {
+  display: none !important;
+}
+
+* {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+/* Consistent selection colors */
+::selection {
+  background-color: #b3d4fc !important;
+  color: #000 !important;
+}
+
+::-moz-selection {
+  background-color: #b3d4fc !important;
+  color: #000 !important;
+}
+
+/* Disable video autoplay */
+video {
+  autoplay: false !important;
+}
+
+/* Consistent placeholder text */
+::placeholder {
+  opacity: 0.5 !important;
+}
+
+/* Stabilize focus outlines */
+:focus {
+  outline-width: 2px !important;
+  outline-style: solid !important;
+  outline-offset: 2px !important;
+}
+
+/* Hide loading spinners that might be mid-animation */
+.loading:not([data-visual-test]),
+.spinner:not([data-visual-test]),
+[role="progressbar"]:not([data-visual-test]) {
+  visibility: hidden !important;
+}
+
+/* Consistent font rendering */
+body {
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+  text-rendering: optimizeLegibility !important;
+}
+
+/* Disable backdrop filters for consistency */
+* {
+  backdrop-filter: none !important;
+}
+
+/* Consistent box shadows */
+* {
+  box-shadow: var(--box-shadow) !important;
+}
+
+/* Hide elements marked as dynamic */
+[data-visual-hide="true"] {
+  visibility: hidden !important;
+}
+
+/* Ensure images are loaded */
+img {
+  image-rendering: crisp-edges !important;
+  image-rendering: -webkit-optimize-contrast !important;
+}
+
+/* Consistent input styling */
+input,
+textarea,
+select {
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+}
+
+/* Disable marquee animations */
+marquee {
+  animation: none !important;
+  behavior: none !important;
+}
+
+/* Consistent video poster frames */
+video[poster] {
+  object-fit: cover !important;
+}
+
+/* Hide browser-specific UI elements */
+::-webkit-media-controls,
+::-webkit-media-controls-overlay-play-button,
+::-webkit-media-controls-start-playback-button {
+  display: none !important;
+}
+
+/* Consistent list markers */
+ul,
+ol {
+  list-style-image: none !important;
+}
+
+/* Disable CSS counters animation */
+@counter-style * {
+  system: cyclic !important;
+}
+
+/* Consistent print styling */
+@media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}

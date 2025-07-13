@@ -2,13 +2,11 @@
 //
 // Tauri commands for terminal I/O streaming and management
 
-use tauri::State;
-use crate::terminal_stream::{
-    TerminalStreamManager, TerminalInput, TerminalMetadata,
-};
 use crate::error::Result;
+use crate::terminal_stream::{TerminalInput, TerminalMetadata, TerminalStreamManager};
 use serde_json::Value;
 use std::sync::Arc;
+use tauri::State;
 
 // Note: Terminal streaming manager should be initialized in main.rs setup, not via command
 
@@ -24,13 +22,10 @@ pub async fn create_streaming_terminal(
     manager: State<'_, Arc<TerminalStreamManager>>,
 ) -> Result<TerminalMetadata> {
     // Create terminal with PTY
-    let pty_handle = manager.create_terminal(
-        terminal_id.clone(),
-        shell.clone(),
-        rows,
-        cols,
-    ).await?;
-    
+    let pty_handle = manager
+        .create_terminal(terminal_id.clone(), shell.clone(), rows, cols)
+        .await?;
+
     // Return metadata
     Ok(TerminalMetadata {
         id: terminal_id,
@@ -62,12 +57,14 @@ pub async fn send_terminal_input(
         "text" => TerminalInput::Text(data),
         "key" => TerminalInput::SpecialKey(data),
         "paste" => TerminalInput::paste(data),
-        _ => return Err(crate::error::OrchflowError::ValidationError {
-            field: "input_type".to_string(),
-            reason: format!("Unknown input type: {}", input_type),
-        }),
+        _ => {
+            return Err(crate::error::OrchflowError::ValidationError {
+                field: "input_type".to_string(),
+                reason: format!("Unknown input type: {}", input_type),
+            })
+        }
     };
-    
+
     manager.send_input(&terminal_id, input).await?;
     Ok(())
 }
@@ -120,7 +117,7 @@ pub async fn send_terminal_key(
 ) -> Result<()> {
     // Build key sequence with modifiers
     let mut sequence = String::new();
-    
+
     // Handle modifiers
     for modifier in &modifiers {
         match modifier.as_str() {
@@ -130,7 +127,7 @@ pub async fn send_terminal_key(
             _ => {}
         }
     }
-    
+
     // Add key
     let key_sequence = match key.as_str() {
         "a" if modifiers.contains(&"ctrl".to_string()) => "\x01", // Ctrl+A
@@ -140,7 +137,7 @@ pub async fn send_terminal_key(
         "z" if modifiers.contains(&"ctrl".to_string()) => "\x1a", // Ctrl+Z
         _ => &key,
     };
-    
+
     let input = TerminalInput::Text(key_sequence.to_string());
     manager.send_input(&terminal_id, input).await?;
     Ok(())
@@ -158,19 +155,24 @@ pub async fn broadcast_terminal_input(
         "text" => TerminalInput::Text(data),
         "key" => TerminalInput::SpecialKey(data),
         "paste" => TerminalInput::paste(data),
-        _ => return Err(crate::error::OrchflowError::ValidationError {
-            field: "input_type".to_string(),
-            reason: format!("Unknown input type: {}", input_type),
-        }),
+        _ => {
+            return Err(crate::error::OrchflowError::ValidationError {
+                field: "input_type".to_string(),
+                reason: format!("Unknown input type: {}", input_type),
+            })
+        }
     };
-    
+
     let mut results = Vec::new();
-    
+
     for terminal_id in terminal_ids {
-        let success = manager.send_input(&terminal_id, input.clone()).await.is_ok();
+        let success = manager
+            .send_input(&terminal_id, input.clone())
+            .await
+            .is_ok();
         results.push((terminal_id, success));
     }
-    
+
     Ok(results)
 }
 

@@ -3,6 +3,7 @@ import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { tick } from 'svelte';
 import { createTypedMock, createSyncMock, createAsyncMock } from '@/test/mock-factory';
+import { mockSvelteEvents } from '@/test/svelte5-event-helper';
 import Modal from './Modal.svelte';
 
 describe('Modal', () => {
@@ -143,7 +144,7 @@ describe('Modal', () => {
       cleanup.push(unmount);
       
       // By default, footer should not exist
-      let modalFooter = container.querySelector('.modal-footer');
+      const modalFooter = container.querySelector('.modal-footer');
       expect(modalFooter).not.toBeInTheDocument();
       
       // The component uses $$slots.footer to conditionally render footer
@@ -174,7 +175,8 @@ describe('Modal', () => {
       cleanup.push(unmount);
       
       let closeEventFired = false;
-      component.$on('close', () => {
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('close', () => {
         closeEventFired = true;
       });
       
@@ -192,7 +194,8 @@ describe('Modal', () => {
       cleanup.push(unmount);
       
       let closeEventFired = false;
-      component.$on('close', () => {
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('close', () => {
         closeEventFired = true;
       });
       
@@ -210,7 +213,8 @@ describe('Modal', () => {
       cleanup.push(unmount);
       
       let closeEventFired = false;
-      component.$on('close', () => {
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('close', () => {
         closeEventFired = true;
       });
       
@@ -228,7 +232,8 @@ describe('Modal', () => {
       cleanup.push(unmount);
       
       let closeEventFired = false;
-      component.$on('close', () => {
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('close', () => {
         closeEventFired = true;
       });
       
@@ -246,7 +251,8 @@ describe('Modal', () => {
       cleanup.push(unmount);
       
       let closeEventFired = false;
-      component.$on('close', () => {
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('close', () => {
         closeEventFired = true;
       });
       
@@ -264,7 +270,8 @@ describe('Modal', () => {
       cleanup.push(unmount);
       
       let closeEventFired = false;
-      component.$on('close', () => {
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('close', () => {
         closeEventFired = true;
       });
       
@@ -282,7 +289,8 @@ describe('Modal', () => {
       cleanup.push(unmount);
       
       let closeEventFired = false;
-      component.$on('close', () => {
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('close', () => {
         closeEventFired = true;
       });
       
@@ -435,13 +443,14 @@ describe('Modal', () => {
       cleanup.push(unmount);
       
       // Rapid toggling
-      await component.$set({ show: false });
+      const mockComponent = mockSvelteEvents(component);
+      await mockComponent.$set({ show: false });
       await tick();
-      await component.$set({ show: true });
+      await mockComponent.$set({ show: true });
       await tick();
-      await component.$set({ show: false });
+      await mockComponent.$set({ show: false });
       await tick();
-      await component.$set({ show: true });
+      await mockComponent.$set({ show: true });
       await tick();
       
       const modalOverlay = container.querySelector('.modal-overlay');

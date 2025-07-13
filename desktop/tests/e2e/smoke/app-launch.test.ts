@@ -288,11 +288,11 @@ describe('Critical Path Smoke Test', () => {
       await page.click('[data-testid="run-flow-button"]');
       
       // Wait for execution
-      await expect(page.locator('[data-testid="execution-status"]')).toContainText('Running');
-      await expect(page.locator('[data-testid="terminal-output"]')).toContainText('Smoke test passed', {
+      await expect(page.locator('[data-testid="execution-status"]')).toHaveText('Running');
+      await expect(page.locator('[data-testid="terminal-output"]')).toHaveText('Smoke test passed', {
         timeout: 10000
       });
-      await expect(page.locator('[data-testid="execution-status"]')).toContainText('Completed');
+      await expect(page.locator('[data-testid="execution-status"]')).toHaveText('Completed');
     });
   });
 });

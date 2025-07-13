@@ -7,7 +7,7 @@
  * audit recommendations and predefined criteria.
  */
 
-import { readFileSync, writeFileSync, copyFileSync, unlinkSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from 'fs';
 import { join, dirname, basename } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -30,18 +30,18 @@ class TestMigrator {
   }
 
   async run() {
-    console.log(`🔄 Starting test migration${this.dryRun ? ' (DRY RUN)' : ''}...`);
+    console.warn(`🔄 Starting test migration${this.dryRun ? ' (DRY RUN)' : ''}...`);
     
     await this.loadMigrationCandidates();
     await this.planMigrations();
     await this.executeMigrations();
     this.generateReport();
     
-    console.log('✅ Test migration completed');
+    console.warn('✅ Test migration completed');
   }
 
   async loadMigrationCandidates() {
-    console.log('📋 Loading migration candidates...');
+    console.warn('📋 Loading migration candidates...');
     
     // Try to load from audit report first
     const auditReportPath = join(testResults, 'test-audit-report.json');
@@ -50,13 +50,13 @@ class TestMigrator {
       try {
         const auditReport = JSON.parse(readFileSync(auditReportPath, 'utf8'));
         this.migrationQueue = auditReport.migrationCandidates || [];
-        console.log(`📊 Loaded ${this.migrationQueue.length} candidates from audit report`);
-      } catch (error) {
+        console.warn(`📊 Loaded ${this.migrationQueue.length} candidates from audit report`);
+      } catch (_error) {
         console.warn('⚠️  Could not load audit report, performing manual analysis...');
         await this.performManualAnalysis();
       }
     } else {
-      console.log('ℹ️  No audit report found, performing manual analysis...');
+      console.warn('ℹ️  No audit report found, performing manual analysis...');
       await this.performManualAnalysis();
     }
   }
@@ -79,20 +79,18 @@ class TestMigrator {
       }
     }
     
-    console.log(`🔍 Manual analysis found ${this.migrationQueue.length} candidates`);
+    console.warn(`🔍 Manual analysis found ${this.migrationQueue.length} candidates`);
   }
 
   findTestFiles(dir) {
     const testFiles = [];
-    const fs = require('fs');
-    
     function scanDir(currentDir) {
       try {
-        const items = fs.readdirSync(currentDir);
+        const items = readdirSync(currentDir);
         
         for (const item of items) {
           const fullPath = join(currentDir, item);
-          const stat = fs.statSync(fullPath);
+          const stat = statSync(fullPath);
           
           if (stat.isDirectory()) {
             scanDir(fullPath);
@@ -103,7 +101,7 @@ class TestMigrator {
             }
           }
         }
-      } catch (error) {
+      } catch {
         console.warn(`Warning: Could not scan directory ${currentDir}`);
       }
     }
@@ -144,7 +142,7 @@ class TestMigrator {
   }
 
   async planMigrations() {
-    console.log('📋 Planning migrations...');
+    console.warn('📋 Planning migrations...');
     
     // Sort by priority and integration score
     this.migrationQueue.sort((a, b) => {
@@ -171,14 +169,14 @@ class TestMigrator {
       return true;
     });
 
-    console.log(`📊 Planned ${this.migrationQueue.length} migrations`);
+    console.warn(`📊 Planned ${this.migrationQueue.length} migrations`);
     
     if (this.migrationQueue.length > 0) {
-      console.log('\nMigration Plan:');
+      console.warn('\nMigration Plan:');
       this.migrationQueue.forEach((candidate, index) => {
-        console.log(`${index + 1}. ${candidate.path} (${candidate.priority})`);
-        console.log(`   Reason: ${candidate.reason}`);
-        console.log(`   Score: ${candidate.integrationScore}`);
+        console.warn(`${index + 1}. ${candidate.path} (${candidate.priority})`);
+        console.warn(`   Reason: ${candidate.reason}`);
+        console.warn(`   Score: ${candidate.integrationScore}`);
       });
     }
   }
@@ -189,16 +187,16 @@ class TestMigrator {
 
   async executeMigrations() {
     if (this.migrationQueue.length === 0) {
-      console.log('ℹ️  No migrations to execute');
+      console.warn('ℹ️  No migrations to execute');
       return;
     }
 
-    console.log(`🚀 Executing ${this.migrationQueue.length} migrations...`);
+    console.warn(`🚀 Executing ${this.migrationQueue.length} migrations...`);
     
     for (const candidate of this.migrationQueue) {
       try {
         await this.migrateTest(candidate);
-      } catch (error) {
+      } catch (_error) {
         console.error(`❌ Failed to migrate ${candidate.path}:`, error.message);
         this.migrationResults.failed.push({
           ...candidate,
@@ -212,7 +210,7 @@ class TestMigrator {
     const originalPath = join(projectRoot, candidate.path);
     const integrationPath = join(projectRoot, this.getIntegrationTestPath(candidate.path));
     
-    console.log(`🔄 Migrating ${candidate.path}...`);
+    console.warn(`🔄 Migrating ${candidate.path}...`);
     
     if (!existsSync(originalPath)) {
       throw new Error(`Original test file not found: ${originalPath}`);
@@ -222,7 +220,7 @@ class TestMigrator {
     const migratedContent = this.transformToIntegrationTest(originalContent, candidate);
     
     if (this.dryRun) {
-      console.log(`📝 [DRY RUN] Would create: ${integrationPath}`);
+      console.warn(`📝 [DRY RUN] Would create: ${integrationPath}`);
       this.migrationResults.migrated.push({
         ...candidate,
         originalPath,
@@ -246,7 +244,7 @@ class TestMigrator {
       integrationPath
     });
     
-    console.log(`✅ Migrated: ${candidate.path} -> ${this.getIntegrationTestPath(candidate.path)}`);
+    console.warn(`✅ Migrated: ${candidate.path} -> ${this.getIntegrationTestPath(candidate.path)}`);
   }
 
   transformToIntegrationTest(content, candidate) {
@@ -406,27 +404,27 @@ class TestMigrator {
 
     writeFileSync(reportPath, JSON.stringify(this.migrationResults, null, 2));
     
-    console.log(`📊 Migration report written to: ${reportPath}`);
+    console.warn(`📊 Migration report written to: ${reportPath}`);
     
     // Print summary
-    console.log('\n📊 MIGRATION SUMMARY');
-    console.log('===================');
-    console.log(`Total Candidates: ${this.migrationResults.summary.totalCandidates}`);
-    console.log(`✅ Migrated: ${this.migrationResults.summary.migrated}`);
-    console.log(`❌ Failed: ${this.migrationResults.summary.failed}`);
-    console.log(`⏭️  Skipped: ${this.migrationResults.summary.skipped}`);
+    console.warn('\n📊 MIGRATION SUMMARY');
+    console.warn('===================');
+    console.warn(`Total Candidates: ${this.migrationResults.summary.totalCandidates}`);
+    console.warn(`✅ Migrated: ${this.migrationResults.summary.migrated}`);
+    console.warn(`❌ Failed: ${this.migrationResults.summary.failed}`);
+    console.warn(`⏭️  Skipped: ${this.migrationResults.summary.skipped}`);
     
     if (this.migrationResults.failed.length > 0) {
-      console.log('\n❌ FAILED MIGRATIONS:');
+      console.warn('\n❌ FAILED MIGRATIONS:');
       this.migrationResults.failed.forEach(failure => {
-        console.log(`- ${failure.path}: ${failure.error}`);
+        console.warn(`- ${failure.path}: ${failure.error}`);
       });
     }
     
     if (this.migrationResults.migrated.length > 0) {
-      console.log('\n✅ SUCCESSFUL MIGRATIONS:');
+      console.warn('\n✅ SUCCESSFUL MIGRATIONS:');
       this.migrationResults.migrated.forEach(migration => {
-        console.log(`- ${migration.path} -> ${this.getIntegrationTestPath(migration.path)}`);
+        console.warn(`- ${migration.path} -> ${this.getIntegrationTestPath(migration.path)}`);
       });
     }
 
@@ -481,7 +479,7 @@ Update your testing documentation to reflect the new test structure.
 `;
 
     writeFileSync(nextStepsPath, nextSteps);
-    console.log(`📋 Next steps written to: ${nextStepsPath}`);
+    console.warn(`📋 Next steps written to: ${nextStepsPath}`);
   }
 }
 

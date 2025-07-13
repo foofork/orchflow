@@ -8,6 +8,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Port range configuration
+/** @type {Record<string, {start: number, end: number}>} */
 const PORT_RANGES = {
   dev: { start: 5173, end: 5180 },
   test: { start: 5181, end: 5190 },
@@ -19,9 +20,11 @@ const PORT_RANGES = {
 const LOCK_FILE = path.join(__dirname, '../.port-locks.json');
 
 class PortManager {
+  /** @type {PortManager | null} */
   static instance = null;
   
   constructor() {
+    /** @type {Record<string, {port: number, pid: number, timestamp: number}>} */
     this.locks = {};
   }
   
@@ -65,6 +68,10 @@ class PortManager {
     await fs.writeFile(LOCK_FILE, JSON.stringify(this.locks, null, 2));
   }
 
+  /**
+   * @param {number} port
+   * @returns {Promise<boolean>}
+   */
   async isPortAvailable(port) {
     // Check if port is locked by another process
     if (this.locks[port] && Date.now() - this.locks[port].timestamp < 60 * 60 * 1000) {
@@ -87,6 +94,10 @@ class PortManager {
     });
   }
 
+  /**
+   * @param {string} type
+   * @returns {Promise<number>}
+   */
   async findAvailablePort(type = 'dev') {
     const range = PORT_RANGES[type];
     if (!range) {
@@ -97,7 +108,7 @@ class PortManager {
       if (await this.isPortAvailable(port)) {
         // Lock the port
         this.locks[port] = {
-          type,
+          port,
           pid: process.pid,
           timestamp: Date.now()
         };
@@ -109,16 +120,26 @@ class PortManager {
     throw new Error(`No available ports found in ${type} range (${range.start}-${range.end})`);
   }
   
-  // Alias for test compatibility
+  /**
+   * Alias for test compatibility
+   * @param {string} type
+   * @returns {Promise<number>}
+   */
   async allocatePort(type = 'e2e') {
     return this.findAvailablePort(type);
   }
 
+  /**
+   * @param {number} port
+   */
   async releasePort(port) {
     delete this.locks[port];
     await this.saveLocks();
   }
 
+  /**
+   * @param {number} pid
+   */
   async releaseAllForPid(pid) {
     Object.keys(this.locks).forEach(port => {
       if (this.locks[port].pid === pid) {
@@ -152,7 +173,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   try {
     await manager.init();
     const port = await manager.findAvailablePort(type);
-    console.log(port);
+    console.warn(port);
   } catch (error) {
     console.error(error.message);
     process.exit(1);

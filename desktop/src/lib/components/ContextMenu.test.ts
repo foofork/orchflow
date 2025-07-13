@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { createTypedMock } from '@/test/mock-factory';
+import { mockSvelteEvents } from '@/test/svelte5-event-helper';
 import ContextMenu from './ContextMenu.svelte';
 
 describe('ContextMenu', () => {
@@ -75,7 +76,8 @@ describe('ContextMenu', () => {
     cleanup.push(unmount);
     
     let closeEvent = false;
-    component.$on('close', () => {
+    const mockComponent = mockSvelteEvents(component);
+    mockComponent.$on('close', () => {
       closeEvent = true;
     });
     
@@ -95,7 +97,8 @@ describe('ContextMenu', () => {
     cleanup.push(unmount);
     
     let closeEvent = false;
-    component.$on('close', () => {
+    const mockComponent = mockSvelteEvents(component);
+    mockComponent.$on('close', () => {
       closeEvent = true;
     });
     
@@ -112,7 +115,8 @@ describe('ContextMenu', () => {
     cleanup.push(unmount);
     
     let closeEvent = false;
-    component.$on('close', () => {
+    const mockComponent = mockSvelteEvents(component);
+    mockComponent.$on('close', () => {
       closeEvent = true;
     });
     
@@ -130,7 +134,8 @@ describe('ContextMenu', () => {
     cleanup.push(unmount);
     
     let closeEvent = false;
-    component.$on('close', () => {
+    const mockComponent = mockSvelteEvents(component);
+    mockComponent.$on('close', () => {
       closeEvent = true;
     });
     
@@ -206,8 +211,8 @@ describe('ContextMenu', () => {
 
   it('adjusts position when menu would go off screen', () => {
     // Mock window dimensions
-    const stubInnerWidth = createTypedMock<[], number>();
-    const stubInnerHeight = createTypedMock<[], number>();
+    const stubInnerWidth = createTypedMock<() => number>();
+    const stubInnerHeight = createTypedMock<() => number>();
     stubInnerWidth.mockReturnValue(800);
     stubInnerHeight.mockReturnValue(600);
     vi.stubGlobal('innerWidth', 800);

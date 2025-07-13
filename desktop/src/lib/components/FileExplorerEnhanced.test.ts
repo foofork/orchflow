@@ -4,6 +4,7 @@ import FileExplorerEnhanced from './FileExplorerEnhanced.svelte';
 import type { TreeNode } from '$lib/types';
 import { buildTreeNode, buildDirectoryNode, buildFileNode } from '@/test/test-data-builders';
 import { createAsyncMock, createSyncMock, createTypedMock } from '@/test/mock-factory';
+import { mockSvelteEvents } from '@/test/svelte5-event-helper';
 
 // The FileTree, ContextMenu, and Dialog components are already mocked in setup-mocks.ts
 // But we need to mock FileTree.svelte explicitly since it's not in setup-mocks.ts
@@ -182,8 +183,9 @@ describe('FileExplorerEnhanced', () => {
       });
       cleanup.push(unmount);
 
-      const openHandler = createTypedMock<[CustomEvent], void>();
-      component.$on('open', openHandler);
+      const openHandler = createTypedMock<(CustomEvent) => void>();
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('open', openHandler);
 
       // TODO: Simulate file double-click through DOM events instead of calling component method
       // await component.openFile(mockFile);
@@ -408,7 +410,7 @@ describe('FileExplorerEnhanced', () => {
       });
       cleanup.push(unmount);
 
-      const deleteHandler = createTypedMock<[], void>();
+      const deleteHandler = createTypedMock<() => void>();
       vi.spyOn(window, 'confirm').mockReturnValue(true);
 
       // Set up a selected file

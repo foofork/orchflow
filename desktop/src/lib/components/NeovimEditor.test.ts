@@ -19,7 +19,7 @@ const mockTerminal = {
   clear: createVoidMock(),
   write: createVoidMock<[string]>(),
   writeln: createVoidMock<[string]>(),
-  onData: createTypedMock<[callback: (data: string) => void], void>(),
+  onData: createTypedMock<(callback: (data: string) => void) => void>(),
   loadAddon: createVoidMock<[addon: any]>(),
   cols: 80,
   rows: 24
@@ -30,11 +30,11 @@ const mockFitAddon = {
 };
 
 vi.mock('@xterm/xterm', () => ({
-  Terminal: createTypedMock<[], typeof mockTerminal>(() => mockTerminal)
+  Terminal: createTypedMock<() => typeof mockTerminal>(() => mockTerminal)
 }));
 
 vi.mock('@xterm/addon-fit', () => ({
-  FitAddon: createTypedMock<[], typeof mockFitAddon>(() => mockFitAddon)
+  FitAddon: createTypedMock<() => typeof mockFitAddon>(() => mockFitAddon)
 }));
 
 // Mock tmux client
@@ -63,7 +63,7 @@ vi.mock('$lib/tauri/neovim', () => ({
 }));
 
 // Mock ResizeObserver
-global.ResizeObserver = createTypedMock<[callback: ResizeObserverCallback], ResizeObserver>(() => ({
+global.ResizeObserver = createTypedMock<(callback: ResizeObserverCallback) => ResizeObserver>(() => ({
   observe: createVoidMock<[target: Element]>(),
   disconnect: createVoidMock(),
   unobserve: createVoidMock<[target: Element]>()

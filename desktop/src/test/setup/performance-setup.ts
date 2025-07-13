@@ -109,8 +109,8 @@ export const regression = new RegressionDetector();
 
 // Load baselines from previous runs
 try {
-  const fs = require('fs');
-  const path = require('path');
+  const fs = await import('fs');
+  const path = await import('path');
   const baselinesPath = path.join(process.cwd(), 'test-results', 'performance-baselines.json');
   
   if (fs.existsSync(baselinesPath)) {
@@ -126,8 +126,8 @@ try {
 // Save baselines after all tests
 export function saveBaselines(): void {
   try {
-    const fs = require('fs');
-    const path = require('path');
+    const fs = await import('fs');
+    const path = await import('path');
     
     // Ensure results directory exists
     const resultsDir = path.join(process.cwd(), 'test-results');

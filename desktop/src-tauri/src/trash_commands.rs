@@ -1,19 +1,18 @@
 // Trash-related Tauri commands
 
-use tauri::State;
-use crate::manager::Manager;
 use crate::error::Result;
+use crate::manager::Manager;
 use serde_json::Value;
 use std::path::PathBuf;
+use tauri::State;
 
 /// List all trashed items
 #[tauri::command]
-pub async fn list_trash(
-    manager: State<'_, Manager>,
-) -> Result<Vec<Value>> {
+pub async fn list_trash(manager: State<'_, Manager>) -> Result<Vec<Value>> {
     if let Some(file_manager) = &manager.file_manager {
         let items = file_manager.list_trash().await;
-        let json_items = items.into_iter()
+        let json_items = items
+            .into_iter()
             .map(|item| serde_json::to_value(item).unwrap())
             .collect();
         Ok(json_items)
@@ -34,7 +33,8 @@ pub async fn get_trash_from_directory(
     if let Some(file_manager) = &manager.file_manager {
         let dir_path = PathBuf::from(path);
         let items = file_manager.get_trash_from_directory(&dir_path).await;
-        let json_items = items.into_iter()
+        let json_items = items
+            .into_iter()
             .map(|item| serde_json::to_value(item).unwrap())
             .collect();
         Ok(json_items)
@@ -48,13 +48,11 @@ pub async fn get_trash_from_directory(
 
 /// Search trash by name
 #[tauri::command]
-pub async fn search_trash(
-    query: String,
-    manager: State<'_, Manager>,
-) -> Result<Vec<Value>> {
+pub async fn search_trash(query: String, manager: State<'_, Manager>) -> Result<Vec<Value>> {
     if let Some(file_manager) = &manager.file_manager {
         let items = file_manager.search_trash(&query).await;
-        let json_items = items.into_iter()
+        let json_items = items
+            .into_iter()
             .map(|item| serde_json::to_value(item).unwrap())
             .collect();
         Ok(json_items)
@@ -68,9 +66,7 @@ pub async fn search_trash(
 
 /// Get trash statistics
 #[tauri::command]
-pub async fn get_trash_stats(
-    manager: State<'_, Manager>,
-) -> Result<Value> {
+pub async fn get_trash_stats(manager: State<'_, Manager>) -> Result<Value> {
     if let Some(file_manager) = &manager.file_manager {
         let stats = file_manager.get_trash_stats().await;
         Ok(serde_json::to_value(stats).unwrap())
@@ -84,13 +80,11 @@ pub async fn get_trash_stats(
 
 /// Get recently trashed items
 #[tauri::command]
-pub async fn get_recent_trash(
-    limit: usize,
-    manager: State<'_, Manager>,
-) -> Result<Vec<Value>> {
+pub async fn get_recent_trash(limit: usize, manager: State<'_, Manager>) -> Result<Vec<Value>> {
     if let Some(file_manager) = &manager.file_manager {
         let items = file_manager.get_recent_trash(limit).await;
-        let json_items = items.into_iter()
+        let json_items = items
+            .into_iter()
             .map(|item| serde_json::to_value(item).unwrap())
             .collect();
         Ok(json_items)
@@ -104,13 +98,11 @@ pub async fn get_recent_trash(
 
 /// Clean up old trash items (older than specified days)
 #[tauri::command]
-pub async fn cleanup_old_trash(
-    days: i64,
-    manager: State<'_, Manager>,
-) -> Result<Vec<Value>> {
+pub async fn cleanup_old_trash(days: i64, manager: State<'_, Manager>) -> Result<Vec<Value>> {
     if let Some(file_manager) = &manager.file_manager {
         let removed_items = file_manager.cleanup_old_trash(days).await?;
-        let json_items = removed_items.into_iter()
+        let json_items = removed_items
+            .into_iter()
             .map(|item| serde_json::to_value(item).unwrap())
             .collect();
         Ok(json_items)
@@ -124,9 +116,7 @@ pub async fn cleanup_old_trash(
 
 /// Empty the trash
 #[tauri::command]
-pub async fn empty_trash(
-    manager: State<'_, Manager>,
-) -> Result<()> {
+pub async fn empty_trash(manager: State<'_, Manager>) -> Result<()> {
     if let Some(file_manager) = &manager.file_manager {
         file_manager.empty_trash().await
     } else {
@@ -140,6 +130,5 @@ pub async fn empty_trash(
 /// Get the platform-specific trash location
 #[tauri::command]
 pub fn get_trash_location() -> Option<String> {
-    crate::file_manager::trash::get_trash_location()
-        .map(|path| path.to_string_lossy().to_string())
+    crate::file_manager::trash::get_trash_location().map(|path| path.to_string_lossy().to_string())
 }

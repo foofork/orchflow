@@ -162,7 +162,7 @@
     handleSubmit();
   }
   
-  let debounceTimer: NodeJS.Timeout;
+  let debounceTimer: ReturnType<typeof setTimeout>;
   
   function handleInput() {
     clearTimeout(debounceTimer);
@@ -206,7 +206,7 @@
   
   {#if showSuggestions && suggestions.length > 0}
     <div class="suggestions">
-      {#each suggestions as suggestion, i}
+      {#each suggestions as suggestion, i (suggestion)}
         <button
           class="suggestion"
           class:selected={i === selectedSuggestion}

@@ -453,7 +453,7 @@
 										<input
 											type="checkbox"
 											bind:checked={localSettings.appearance.compactMode}
-											on:change={(e) => updateSetting('appearance', 'compactMode', e.target.checked)}
+											on:change={(e) => updateSetting('appearance', 'compactMode', (e.target as HTMLInputElement).checked)}
 										/>
 										Compact Mode
 									</label>
@@ -464,7 +464,7 @@
 										<input
 											type="checkbox"
 											bind:checked={localSettings.appearance.animations}
-											on:change={(e) => updateSetting('appearance', 'animations', e.target.checked)}
+											on:change={(e) => updateSetting('appearance', 'animations', (e.target as HTMLInputElement).checked)}
 										/>
 										Enable Animations
 									</label>
@@ -482,7 +482,7 @@
 										min="1"
 										max="8"
 										bind:value={localSettings.editor.tabSize}
-										on:input={(e) => updateSetting('editor', 'tabSize', +e.target.value)}
+										on:input={(e) => updateSetting('editor', 'tabSize', +(e.target as HTMLInputElement).value)}
 									/>
 								</div>
 

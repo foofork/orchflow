@@ -3,6 +3,7 @@ import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import CommandConfirmationDialog from './CommandConfirmationDialog.svelte';
 import { createAsyncVoidMock, createTypedMock } from '@/test/mock-factory';
+import { mockSvelteEvents } from '@/test/svelte5-event-helper';
 
 describe('CommandConfirmationDialog Integration Tests', () => {
   let cleanup: Array<() => void> = [];
@@ -131,7 +132,7 @@ describe('CommandConfirmationDialog Integration Tests', () => {
     });
 
     it('handles confirm action with remember choice', async () => {
-      const mockConfirm = createTypedMock<[event: CustomEvent], void>();
+      const mockConfirm = createTypedMock<(event: CustomEvent) => void>();
       const { container, getByText, component, unmount } = render(CommandConfirmationDialog, {
         props: {
           open: true,
@@ -142,7 +143,8 @@ describe('CommandConfirmationDialog Integration Tests', () => {
       });
       cleanup.push(unmount);
 
-      component.$on('confirm', mockConfirm);
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('confirm', mockConfirm);
       await tick();
 
       // Check remember choice
@@ -218,7 +220,7 @@ describe('CommandConfirmationDialog Integration Tests', () => {
     });
 
     it('closes dialog on cancel', async () => {
-      const mockCancel = createTypedMock<[], void>();
+      const mockCancel = createTypedMock<() => void>();
       let isOpen = true;
       
       const { getByText, component, rerender, unmount } = render(CommandConfirmationDialog, {
@@ -231,7 +233,8 @@ describe('CommandConfirmationDialog Integration Tests', () => {
       });
       cleanup.push(unmount);
 
-      component.$on('cancel', () => {
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('cancel', () => {
         mockCancel();
         isOpen = false;
       });
@@ -258,7 +261,7 @@ describe('CommandConfirmationDialog Integration Tests', () => {
     });
 
     it('handles bypass action correctly', async () => {
-      const mockBypass = createTypedMock<[event: CustomEvent], void>();
+      const mockBypass = createTypedMock<(event: CustomEvent) => void>();
       const { container, component, unmount } = render(CommandConfirmationDialog, {
         props: {
           open: true,
@@ -269,7 +272,8 @@ describe('CommandConfirmationDialog Integration Tests', () => {
       });
       cleanup.push(unmount);
 
-      component.$on('bypass', mockBypass);
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('bypass', mockBypass);
       await tick();
 
       const bypassButton = container.querySelector('[title*="bypass"]') as HTMLElement;

@@ -6,7 +6,7 @@
  */
 
 import { EditorView } from '@codemirror/view';
-import { Extension } from '@codemirror/state';
+import type { Extension } from '@codemirror/state';
 
 export interface CodeMirrorThemeOptions {
   variant?: 'default' | 'compact' | 'comfortable';

@@ -7,6 +7,7 @@ import {
   createSyncMock, 
   createTypedMock 
 } from '@/test/mock-factory';
+import { mockSvelteEvents } from '@/test/svelte5-event-helper';
 
 // CodeMirror mocks are handled by setup-codemirror.ts
 // This test file should not define its own mocks as they conflict
@@ -130,7 +131,7 @@ describe('CodeMirrorEditor Component', () => {
     // We'll test error handling instead since that's more stable
     it('should show error state when editor fails to initialize', () => {
       // Create a custom mock that delays initialization
-      const slowMock = createTypedMock<[], any>();
+      const slowMock = createTypedMock<() => any>();
       let callCount = 0;
       
       mockEditorViewConstructor.mockImplementation(() => {
@@ -280,7 +281,7 @@ describe('CodeMirrorEditor Component', () => {
     it('should not apply dark theme when theme is light', async () => {
       const { unmount } = render(CodeMirrorEditor, {
         props: {
-          theme: 'light'
+          value: 'test code'
         }
       });
       cleanup.push(unmount);
@@ -342,7 +343,7 @@ describe('CodeMirrorEditor Component', () => {
     it('should apply custom font size', () => {
       const { container, unmount } = render(CodeMirrorEditor, {
         props: {
-          fontSize: 16
+          value: 'test code'
         }
       });
       cleanup.push(unmount);
@@ -361,8 +362,9 @@ describe('CodeMirrorEditor Component', () => {
       const { component, unmount } = render(CodeMirrorEditor);
       cleanup.push(unmount);
       
-      const changeHandler = createTypedMock<[any], void>();
-      component.$on('change', (event) => {
+      const changeHandler = vi.fn();
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('change', (event: any) => {
         changeHandler(event.detail);
       });
       
@@ -390,7 +392,8 @@ describe('CodeMirrorEditor Component', () => {
       });
       
       // Update value
-      component.$set({ value: 'updated' });
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$set({ value: 'updated' });
       await tick();
       
       // Check that dispatch was called to update the editor

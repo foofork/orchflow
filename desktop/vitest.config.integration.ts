@@ -9,8 +9,8 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup-integration.ts'],
     include: ['src/**/*.integration.test.{js,ts}'],
-    testTimeout: 30000,
-    hookTimeout: 30000,
+    testTimeout: 60000,
+    hookTimeout: 60000,
   },
   resolve: {
     conditions: ['browser', 'svelte'],

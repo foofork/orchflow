@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render } from '@testing-library/svelte';
 import StatusBarEnhanced from '../StatusBarEnhanced.svelte';
 import { createTypedMock } from '@/test/mock-factory';
+import { mockSvelteEvents } from '@/test/svelte5-event-helper';
 
 /**
  * Example of properly isolated unit test
@@ -41,8 +42,9 @@ describe('StatusBarEnhanced - Simple Unit Test', () => {
     });
     cleanup.push(unmount);
     
-    const handleAction = createTypedMock<[event: CustomEvent], void>();
-    component.$on('action', handleAction);
+    const handleAction = createTypedMock<(event: CustomEvent) => void>();
+    const mockComponent = mockSvelteEvents(component);
+    mockComponent.$on('action', handleAction);
     
     // Click on file info
     await getByText(/main\.ts/).click();

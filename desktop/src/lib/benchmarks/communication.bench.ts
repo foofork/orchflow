@@ -1,5 +1,5 @@
 import { bench, describe } from 'vitest';
-import { writable, get } from 'svelte/store';
+import { writable } from 'svelte/store';
 
 // Mock implementations for benchmarking
 class MockTerminalManager {
@@ -13,7 +13,7 @@ class MockTerminalManager {
     this.outputs.set(paneId, current);
   }
   
-  async execute(command: any): Promise<void> {
+  async execute(_command: Record<string, unknown>): Promise<void> {
     // Simulate command execution
     await new Promise(resolve => setTimeout(resolve, 0));
   }
@@ -41,7 +41,8 @@ describe('Terminal Communication Benchmarks', () => {
   bench('terminal output retrieval (1000 lines)', async () => {
     // Pre-populate output
     const outputs = Array.from({ length: 1000 }, (_, i) => `Line ${i}\n`);
-    (manager as any).outputs.set('test-pane', outputs);
+    // Direct access to private property for benchmarking
+    (manager as unknown as { outputs: Map<string, string[]> }).outputs.set('test-pane', outputs);
     
     await manager.getPaneOutput('test-pane', 1000);
   });
@@ -65,9 +66,9 @@ describe('Terminal Communication Benchmarks', () => {
 describe('File System Event Benchmarks', () => {
   // Mock file system watcher
   class MockFileWatcher {
-    private listeners = new Map<string, Function[]>();
+    private listeners = new Map<string, Array<(...args: unknown[]) => void>>();
     
-    watch(path: string, callback: Function) {
+    watch(path: string, callback: (...args: unknown[]) => void) {
       const listeners = this.listeners.get(path) || [];
       listeners.push(callback);
       this.listeners.set(path, listeners);

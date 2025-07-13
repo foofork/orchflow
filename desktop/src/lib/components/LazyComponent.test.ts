@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import LazyComponent from './LazyComponent.svelte';
 import TestHelpers from './TestHelpers.svelte';
-import { createAsyncMock, createTypedMock } from '@/test/mock-factory';
+import { createTypedMock } from '@/test/mock-factory';
 
 describe('LazyComponent', () => {
   let consoleErrorSpy: any;
@@ -22,8 +22,8 @@ describe('LazyComponent', () => {
   });
 
   it('should display loading state initially', () => {
-    const loader = createAsyncMock(() => new Promise(() => {})); // Never resolves
-    const { unmount } = render(LazyComponent, { props: { loader } });
+    const loader = vi.fn(() => new Promise(() => {})); // Never resolves
+    const { unmount } = render(LazyComponent, { props: { loader: loader as any } });
     cleanup.push(unmount);
 
     expect(screen.getByText('Loading...')).toBeInTheDocument();
@@ -32,19 +32,19 @@ describe('LazyComponent', () => {
   });
 
   it('should display custom placeholder text', () => {
-    const loader = createAsyncMock(() => new Promise(() => {}));
+    const loader = vi.fn(() => new Promise(() => {}));
     const placeholder = 'Please wait...';
-    const { unmount } = render(LazyComponent, { props: { loader, placeholder } });
+    const { unmount } = render(LazyComponent, { props: { loader: loader as any, placeholder } });
     cleanup.push(unmount);
 
     expect(screen.getByText(placeholder)).toBeInTheDocument();
   });
 
   it('should load and display the component successfully', async () => {
-    const loader = createAsyncMock(async () => ({ default: TestHelpers }));
+    const loader = vi.fn(async () => ({ default: TestHelpers }));
     const testProps = { name: 'Test', value: 42 };
     
-    const { unmount } = render(LazyComponent, { props: { loader, props: testProps } });
+    const { unmount } = render(LazyComponent, { props: { loader: loader as any, props: testProps } });
     cleanup.push(unmount);
 
     // Initially shows loading
@@ -62,11 +62,11 @@ describe('LazyComponent', () => {
 
   it('should handle loading errors gracefully', async () => {
     const errorMessage = 'Failed to import module';
-    const loader = createAsyncMock(async () => {
+    const loader = vi.fn(async () => {
       throw new Error(errorMessage);
     });
 
-    const { unmount } = render(LazyComponent, { props: { loader } });
+    const { unmount } = render(LazyComponent, { props: { loader: loader as any } });
     cleanup.push(unmount);
 
     // Initially shows loading
@@ -90,9 +90,9 @@ describe('LazyComponent', () => {
   });
 
   it('should handle null/undefined module gracefully', async () => {
-    const loader = createAsyncMock(async () => ({ default: null }));
+    const loader = vi.fn(async () => ({ default: null }));
     
-    const { unmount } = render(LazyComponent, { props: { loader } });
+    const { unmount } = render(LazyComponent, { props: { loader: loader as any } });
     cleanup.push(unmount);
 
     await waitFor(() => {
@@ -105,7 +105,7 @@ describe('LazyComponent', () => {
   });
 
   it('should handle immediate resolution', async () => {
-    const loader = createAsyncMock(() => Promise.resolve({ default: TestHelpers }));
+    const loader = vi.fn(() => Promise.resolve({ default: TestHelpers }));
     
     const { unmount } = render(LazyComponent, { props: { loader, props: { name: 'Quick', value: 100 } } });
     cleanup.push(unmount);
@@ -120,10 +120,10 @@ describe('LazyComponent', () => {
   });
 
   it('should work with empty props object by default', async () => {
-    const loader = createAsyncMock(async () => ({ default: TestHelpers }));
+    const loader = vi.fn(async () => ({ default: TestHelpers }));
     
     // Don't pass props at all
-    const { unmount } = render(LazyComponent, { props: { loader } });
+    const { unmount } = render(LazyComponent, { props: { loader: loader as any } });
     cleanup.push(unmount);
 
     await waitFor(() => {
@@ -135,11 +135,11 @@ describe('LazyComponent', () => {
   });
 
   it('should handle loader rejection with non-Error objects', async () => {
-    const loader = createAsyncMock(async () => {
+    const loader = vi.fn(async () => {
       throw 'String error';
     });
 
-    const { unmount } = render(LazyComponent, { props: { loader } });
+    const { unmount } = render(LazyComponent, { props: { loader: loader as any } });
     cleanup.push(unmount);
 
     await waitFor(() => {
@@ -154,11 +154,11 @@ describe('LazyComponent', () => {
   });
 
   it('should use error message for non-Error objects', async () => {
-    const loader = createAsyncMock(async () => {
+    const loader = vi.fn(async () => {
       throw { message: 'Custom error message' };
     });
 
-    const { unmount } = render(LazyComponent, { props: { loader } });
+    const { unmount } = render(LazyComponent, { props: { loader: loader as any } });
     cleanup.push(unmount);
 
     await waitFor(() => {
@@ -168,11 +168,11 @@ describe('LazyComponent', () => {
   });
 
   it('should display placeholder when thrown error is not an Error instance without message', async () => {
-    const loader = createAsyncMock(async () => {
+    const loader = vi.fn(async () => {
       throw { someOtherProp: 'not a message' };
     });
 
-    const { unmount } = render(LazyComponent, { props: { loader } });
+    const { unmount } = render(LazyComponent, { props: { loader: loader as any } });
     cleanup.push(unmount);
 
     await waitFor(() => {

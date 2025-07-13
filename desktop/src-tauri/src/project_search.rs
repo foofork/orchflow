@@ -1,12 +1,12 @@
-use std::path::PathBuf;
-use std::sync::Arc;
-use tokio::sync::{mpsc, RwLock};
-use serde::{Deserialize, Serialize};
+use crate::error::{OrchflowError, Result};
 use grep::regex::RegexMatcherBuilder;
 use grep::searcher::{Searcher, SearcherBuilder, Sink, SinkMatch};
 use ignore::{WalkBuilder, WalkState};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use crate::error::{OrchflowError, Result};
+use std::path::PathBuf;
+use std::sync::Arc;
+use tokio::sync::{mpsc, RwLock};
 
 /// Search result for a single file
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -88,16 +88,19 @@ impl ProjectSearch {
             saved_searches: Arc::new(RwLock::new(HashMap::new())),
         }
     }
-    
+
     /// Perform a project-wide search
     pub async fn search(&self, options: SearchOptions) -> Result<Vec<FileSearchResult>> {
         // Add to history
         if !options.pattern.is_empty() {
-            self.search_history.write().await.push(options.pattern.clone());
+            self.search_history
+                .write()
+                .await
+                .push(options.pattern.clone());
         }
-        
+
         let search_path = options.path.as_ref().unwrap_or(&self.root_path);
-        
+
         // Build the pattern matcher
         let pattern = if options.whole_word {
             format!(r"\b{}\b", regex::escape(&options.pattern))
@@ -106,23 +109,24 @@ impl ProjectSearch {
         } else {
             regex::escape(&options.pattern)
         };
-        
+
         let mut builder = RegexMatcherBuilder::new();
         builder.case_insensitive(!options.case_sensitive);
-        
-        let matcher = builder.build(&pattern)
+
+        let matcher = builder
+            .build(&pattern)
             .map_err(|e| OrchflowError::ValidationError {
                 field: "pattern".to_string(),
                 reason: e.to_string(),
             })?;
-        
+
         // Configure the searcher
         let searcher = SearcherBuilder::new()
             .line_number(true)
             .before_context(options.context_lines)
             .after_context(options.context_lines)
             .build();
-        
+
         // Set up the directory walker
         let mut walk_builder = WalkBuilder::new(search_path);
         walk_builder
@@ -130,21 +134,21 @@ impl ProjectSearch {
             .hidden(!options.search_hidden)
             .max_depth(None)
             .threads(num_cpus::get());
-        
+
         // Add include patterns
         for pattern in &options.include_patterns {
             walk_builder.add_custom_ignore_filename(pattern);
         }
-        
+
         // Add exclude patterns
         for pattern in &options.exclude_patterns {
             walk_builder.add_custom_ignore_filename(pattern);
         }
-        
+
         let (tx, mut rx) = mpsc::channel(100);
         let max_results = options.max_results.unwrap_or(usize::MAX);
         let max_file_size = options.max_file_size;
-        
+
         // Perform parallel search
         let walker = walk_builder.build_parallel();
         walker.run(|| {
@@ -152,22 +156,22 @@ impl ProjectSearch {
             let matcher = matcher.clone();
             let mut searcher = searcher.clone();
             let mut total_results = 0;
-            
+
             Box::new(move |result| {
                 if total_results >= max_results {
                     return WalkState::Quit;
                 }
-                
+
                 let entry = match result {
                     Ok(entry) => entry,
                     Err(_) => return WalkState::Continue,
                 };
-                
+
                 // Skip non-files
                 if !entry.file_type().map(|ft| ft.is_file()).unwrap_or(false) {
                     return WalkState::Continue;
                 }
-                
+
                 // Check file size
                 if let Some(max_size) = max_file_size {
                     if let Ok(metadata) = entry.metadata() {
@@ -176,22 +180,23 @@ impl ProjectSearch {
                         }
                     }
                 }
-                
+
                 // Search the file
                 let path = entry.path();
-                let mut sink = MatchCollector::with_context(path.to_path_buf(), options.context_lines);
-                
+                let mut sink =
+                    MatchCollector::with_context(path.to_path_buf(), options.context_lines);
+
                 // Pre-load file content for context if needed
                 if options.context_lines > 0 {
                     if let Ok(content) = std::fs::read_to_string(path) {
                         sink.set_file_content(&content);
                     }
                 }
-                
+
                 if let Err(_) = searcher.search_path(&matcher, path, &mut sink) {
                     return WalkState::Continue;
                 }
-                
+
                 if !sink.matches.is_empty() {
                     total_results += sink.matches.len();
                     let result = FileSearchResult {
@@ -199,18 +204,18 @@ impl ProjectSearch {
                         total_matches: sink.matches.len(),
                         matches: sink.matches,
                     };
-                    
+
                     let _ = tx.blocking_send(result);
-                    
+
                     if total_results >= max_results {
                         return WalkState::Quit;
                     }
                 }
-                
+
                 WalkState::Continue
             })
         });
-        
+
         // Collect results
         drop(tx);
         let mut results = Vec::new();
@@ -220,66 +225,71 @@ impl ProjectSearch {
                 break;
             }
         }
-        
+
         // Cache results
         let cache_key = format!("{:?}", options);
-        self.search_cache.write().await.insert(cache_key, results.clone());
-        
+        self.search_cache
+            .write()
+            .await
+            .insert(cache_key, results.clone());
+
         Ok(results)
     }
-    
+
     /// Search with a simple string pattern
-    pub async fn search_simple(&self, pattern: &str, case_sensitive: bool) -> Result<Vec<FileSearchResult>> {
+    pub async fn search_simple(
+        &self,
+        pattern: &str,
+        case_sensitive: bool,
+    ) -> Result<Vec<FileSearchResult>> {
         let options = SearchOptions {
             pattern: pattern.to_string(),
             case_sensitive,
             ..Default::default()
         };
-        
+
         self.search(options).await
     }
-    
+
     /// Get cached search results
     pub async fn get_cached_results(&self, pattern: &str) -> Option<Vec<FileSearchResult>> {
         let cache = self.search_cache.read().await;
-        cache.iter()
+        cache
+            .iter()
             .find(|(k, _)| k.contains(pattern))
             .map(|(_, v)| v.clone())
     }
-    
+
     /// Clear search cache
     pub async fn clear_cache(&self) {
         self.search_cache.write().await.clear();
     }
-    
+
     /// Save a search for later use
     pub async fn save_search(&self, name: String, options: SearchOptions) {
         self.saved_searches.write().await.insert(name, options);
     }
-    
+
     /// Load a saved search
     pub async fn load_search(&self, name: &str) -> Option<SearchOptions> {
         self.saved_searches.read().await.get(name).cloned()
     }
-    
+
     /// Get search history
     pub async fn get_history(&self, limit: usize) -> Vec<String> {
         let history = self.search_history.read().await;
-        history.iter()
-            .rev()
-            .take(limit)
-            .cloned()
-            .collect()
+        history.iter().rev().take(limit).cloned().collect()
     }
-    
+
     /// Get all saved searches
     pub async fn get_saved_searches(&self) -> Vec<(String, SearchOptions)> {
         let saved = self.saved_searches.read().await;
-        saved.iter()
+        saved
+            .iter()
             .map(|(name, options)| (name.clone(), options.clone()))
             .collect()
     }
-    
+
     /// Replace in files
     pub async fn replace_in_files(
         &self,
@@ -289,7 +299,7 @@ impl ProjectSearch {
     ) -> Result<Vec<ReplaceResult>> {
         let search_results = self.search(search_options.clone()).await?;
         let mut replace_results = Vec::new();
-        
+
         for file_result in search_results {
             let mut result = ReplaceResult {
                 path: file_result.path.clone(),
@@ -297,17 +307,20 @@ impl ProjectSearch {
                 success: true,
                 error: None,
             };
-            
+
             if dry_run {
                 // Just report what would be replaced
                 result.replacements = file_result.total_matches;
                 replace_results.push(result);
             } else {
                 // Perform actual file replacement
-                match self.replace_in_file(&file_result, &search_options, replacement).await {
+                match self
+                    .replace_in_file(&file_result, &search_options, replacement)
+                    .await
+                {
                     Ok(count) => {
                         result.replacements = count;
-                    },
+                    }
                     Err(e) => {
                         result.success = false;
                         result.error = Some(e.to_string());
@@ -316,10 +329,10 @@ impl ProjectSearch {
                 replace_results.push(result);
             }
         }
-        
+
         Ok(replace_results)
     }
-    
+
     /// Replace occurrences in a single file
     async fn replace_in_file(
         &self,
@@ -327,17 +340,18 @@ impl ProjectSearch {
         search_options: &SearchOptions,
         replacement: &str,
     ) -> Result<usize> {
-        use tokio::fs;
         use regex::Regex;
-        
+        use tokio::fs;
+
         // Read the file
-        let content = fs::read_to_string(&file_result.path).await
-            .map_err(|e| crate::error::OrchflowError::FileOperationError {
+        let content = fs::read_to_string(&file_result.path).await.map_err(|e| {
+            crate::error::OrchflowError::FileOperationError {
                 operation: "read_file".to_string(),
                 path: file_result.path.clone(),
                 reason: e.to_string(),
-            })?;
-        
+            }
+        })?;
+
         // Perform replacements
         let (new_content, count) = if search_options.regex {
             // Regex replacement
@@ -346,7 +360,7 @@ impl ProjectSearch {
             } else {
                 search_options.pattern.clone()
             };
-            
+
             match Regex::new(&pattern) {
                 Ok(re) => {
                     let mut count = 0;
@@ -355,11 +369,13 @@ impl ProjectSearch {
                         replacement
                     });
                     (new_content.into_owned(), count)
-                },
-                Err(e) => return Err(crate::error::OrchflowError::ValidationError {
-                    field: "pattern".to_string(),
-                    reason: format!("Invalid regex: {}", e),
-                }),
+                }
+                Err(e) => {
+                    return Err(crate::error::OrchflowError::ValidationError {
+                        field: "pattern".to_string(),
+                        reason: format!("Invalid regex: {}", e),
+                    })
+                }
             }
         } else {
             // Simple string replacement
@@ -367,48 +383,59 @@ impl ProjectSearch {
             let mut count = 0;
             let mut new_content = String::with_capacity(content.len());
             let mut last_end = 0;
-            
+
             let matches: Vec<_> = if search_options.case_sensitive {
                 content.match_indices(search_str).collect()
             } else {
-                content.to_lowercase()
+                content
+                    .to_lowercase()
                     .match_indices(&search_str.to_lowercase())
                     .map(|(pos, _)| (pos, &content[pos..pos + search_str.len()]))
                     .collect()
             };
-            
+
             for (pos, _) in matches {
                 // Check whole word boundary if needed
                 if search_options.whole_word {
-                    let before_ok = pos == 0 || !content.chars().nth(pos - 1).unwrap_or(' ').is_alphanumeric();
-                    let after_ok = pos + search_str.len() >= content.len() || 
-                        !content.chars().nth(pos + search_str.len()).unwrap_or(' ').is_alphanumeric();
-                    
+                    let before_ok = pos == 0
+                        || !content
+                            .chars()
+                            .nth(pos - 1)
+                            .unwrap_or(' ')
+                            .is_alphanumeric();
+                    let after_ok = pos + search_str.len() >= content.len()
+                        || !content
+                            .chars()
+                            .nth(pos + search_str.len())
+                            .unwrap_or(' ')
+                            .is_alphanumeric();
+
                     if !before_ok || !after_ok {
                         continue;
                     }
                 }
-                
+
                 new_content.push_str(&content[last_end..pos]);
                 new_content.push_str(replacement);
                 last_end = pos + search_str.len();
                 count += 1;
             }
-            
+
             new_content.push_str(&content[last_end..]);
             (new_content, count)
         };
-        
+
         // Only write if we made changes
         if count > 0 {
-            fs::write(&file_result.path, new_content).await
+            fs::write(&file_result.path, new_content)
+                .await
                 .map_err(|e| crate::error::OrchflowError::FileOperationError {
                     operation: "write_file".to_string(),
                     path: file_result.path.clone(),
                     reason: e.to_string(),
                 })?;
         }
-        
+
         Ok(count)
     }
 }
@@ -430,7 +457,7 @@ impl MatchCollector {
             file_lines: Vec::new(),
         }
     }
-    
+
     fn with_context(path: PathBuf, context_lines: usize) -> Self {
         Self {
             path,
@@ -439,21 +466,22 @@ impl MatchCollector {
             file_lines: Vec::new(),
         }
     }
-    
+
     fn set_file_content(&mut self, content: &str) {
         self.file_lines = content.lines().map(|s| s.to_string()).collect();
     }
-    
+
     fn get_context_lines(&self, line_number: u64, before: bool) -> Vec<String> {
         let line_idx = line_number.saturating_sub(1) as usize;
         if self.file_lines.is_empty() {
             return vec![];
         }
-        
+
         if before {
             let start = line_idx.saturating_sub(self.context_lines);
             let end = line_idx;
-            self.file_lines.get(start..end)
+            self.file_lines
+                .get(start..end)
                 .unwrap_or_default()
                 .iter()
                 .map(|s| s.trim_end().to_string())
@@ -461,7 +489,8 @@ impl MatchCollector {
         } else {
             let start = (line_idx + 1).min(self.file_lines.len());
             let end = (line_idx + 1 + self.context_lines).min(self.file_lines.len());
-            self.file_lines.get(start..end)
+            self.file_lines
+                .get(start..end)
                 .unwrap_or_default()
                 .iter()
                 .map(|s| s.trim_end().to_string())
@@ -472,17 +501,21 @@ impl MatchCollector {
 
 impl Sink for MatchCollector {
     type Error = std::io::Error;
-    
-    fn matched(&mut self, _searcher: &Searcher, mat: &SinkMatch<'_>) -> std::result::Result<bool, Self::Error> {
+
+    fn matched(
+        &mut self,
+        _searcher: &Searcher,
+        mat: &SinkMatch<'_>,
+    ) -> std::result::Result<bool, Self::Error> {
         let line_text = String::from_utf8_lossy(mat.bytes()).to_string();
         let line_number = mat.line_number().unwrap_or(0);
-        
+
         let match_start = mat.absolute_byte_offset() as usize;
         let match_end = match_start + mat.bytes().len();
-        
+
         let context_before = self.get_context_lines(line_number, true);
         let context_after = self.get_context_lines(line_number, false);
-        
+
         let search_match = SearchMatch {
             line_number,
             line_text: line_text.trim_end().to_string(),
@@ -491,12 +524,11 @@ impl Sink for MatchCollector {
             context_before,
             context_after,
         };
-        
+
         self.matches.push(search_match);
         Ok(true)
     }
 }
-
 
 /// Result of a replace operation
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -512,146 +544,156 @@ mod tests {
     use super::*;
     use tempfile::TempDir;
     use tokio::fs;
-    
+
     #[tokio::test]
     async fn test_simple_search() -> Result<()> {
         let temp_dir = TempDir::new().unwrap();
         let search = ProjectSearch::new(temp_dir.path().to_path_buf());
-        
+
         // Create test files
         let file1 = temp_dir.path().join("test1.txt");
-        fs::write(&file1, "Hello world\nThis is a test\nHello again").await.unwrap();
-        
+        fs::write(&file1, "Hello world\nThis is a test\nHello again")
+            .await
+            .unwrap();
+
         let file2 = temp_dir.path().join("test2.txt");
-        fs::write(&file2, "Another file\nWith hello in it").await.unwrap();
-        
+        fs::write(&file2, "Another file\nWith hello in it")
+            .await
+            .unwrap();
+
         // Search for "hello" (case insensitive)
         let results = search.search_simple("hello", false).await?;
-        
+
         assert_eq!(results.len(), 2);
         assert_eq!(results[0].total_matches + results[1].total_matches, 3);
-        
+
         Ok(())
     }
-    
+
     #[tokio::test]
     async fn test_search_with_context() -> Result<()> {
         let temp_dir = TempDir::new().unwrap();
         let search = ProjectSearch::new(temp_dir.path().to_path_buf());
-        
+
         // Create test file with multiple lines
         let file1 = temp_dir.path().join("context_test.txt");
-        fs::write(&file1, "Line 1\nLine 2\nTarget line\nLine 4\nLine 5").await.unwrap();
-        
+        fs::write(&file1, "Line 1\nLine 2\nTarget line\nLine 4\nLine 5")
+            .await
+            .unwrap();
+
         // Search with context
         let options = SearchOptions {
             pattern: "Target".to_string(),
             context_lines: 1,
             ..Default::default()
         };
-        
+
         let results = search.search(options).await?;
-        
+
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].matches.len(), 1);
-        
+
         let match_result = &results[0].matches[0];
         assert_eq!(match_result.context_before.len(), 1);
         assert_eq!(match_result.context_after.len(), 1);
         assert_eq!(match_result.context_before[0], "Line 2");
         assert_eq!(match_result.context_after[0], "Line 4");
-        
+
         Ok(())
     }
-    
+
     #[tokio::test]
     async fn test_replace_in_files() -> Result<()> {
         let temp_dir = TempDir::new().unwrap();
         let search = ProjectSearch::new(temp_dir.path().to_path_buf());
-        
+
         // Create test file
         let file1 = temp_dir.path().join("replace_test.txt");
-        fs::write(&file1, "Hello world\nHello everyone").await.unwrap();
-        
+        fs::write(&file1, "Hello world\nHello everyone")
+            .await
+            .unwrap();
+
         // Perform replacement
         let options = SearchOptions {
             pattern: "Hello".to_string(),
             case_sensitive: true,
             ..Default::default()
         };
-        
+
         let results = search.replace_in_files(options, "Hi", false).await?;
-        
+
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].replacements, 2);
         assert!(results[0].success);
-        
+
         // Verify file content
         let content = fs::read_to_string(&file1).await.unwrap();
         assert_eq!(content, "Hi world\nHi everyone");
-        
+
         Ok(())
     }
-    
+
     #[tokio::test]
     async fn test_save_and_load_search() -> Result<()> {
         let temp_dir = TempDir::new().unwrap();
         let search = ProjectSearch::new(temp_dir.path().to_path_buf());
-        
+
         let options = SearchOptions {
             pattern: "test pattern".to_string(),
             case_sensitive: true,
             regex: true,
             ..Default::default()
         };
-        
+
         // Save search
-        search.save_search("my_search".to_string(), options.clone()).await;
-        
+        search
+            .save_search("my_search".to_string(), options.clone())
+            .await;
+
         // Load search
         let loaded = search.load_search("my_search").await;
         assert!(loaded.is_some());
-        
+
         let loaded_options = loaded.unwrap();
         assert_eq!(loaded_options.pattern, "test pattern");
         assert_eq!(loaded_options.case_sensitive, true);
         assert_eq!(loaded_options.regex, true);
-        
+
         // Test get_saved_searches
         let saved_searches = search.get_saved_searches().await;
         assert_eq!(saved_searches.len(), 1);
         assert_eq!(saved_searches[0].0, "my_search");
-        
+
         Ok(())
     }
-    
+
     #[tokio::test]
     async fn test_search_history() -> Result<()> {
         let temp_dir = TempDir::new().unwrap();
         let search = ProjectSearch::new(temp_dir.path().to_path_buf());
-        
+
         // Create dummy file to search
         let file1 = temp_dir.path().join("dummy.txt");
         fs::write(&file1, "content").await.unwrap();
-        
+
         // Perform searches to build history
         search.search_simple("first", false).await?;
         search.search_simple("second", false).await?;
         search.search_simple("third", false).await?;
-        
+
         // Check history
         let history = search.get_history(10).await;
         assert_eq!(history.len(), 3);
-        assert_eq!(history[0], "third");  // Most recent first
+        assert_eq!(history[0], "third"); // Most recent first
         assert_eq!(history[1], "second");
         assert_eq!(history[2], "first");
-        
+
         // Test with limit
         let limited_history = search.get_history(2).await;
         assert_eq!(limited_history.len(), 2);
         assert_eq!(limited_history[0], "third");
         assert_eq!(limited_history[1], "second");
-        
+
         Ok(())
     }
 }

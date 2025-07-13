@@ -9,6 +9,7 @@ import {
   createSyncMock 
 } from '@/test/mock-factory';
 import { buildGitStatus, buildGitCommit, buildGitOperationResult } from '@/test/domain-builders';
+import { mockSvelteEvents } from '@/test/svelte5-event-helper';
 
 // Mock Tauri API
 const mockInvoke = createAsyncMock<[string, any?], any>();
@@ -625,8 +626,9 @@ index 1234567..abcdefg 100644
       
       const { container, component, unmount } = render(GitPanel, { props: { show: true } });
       cleanup.push(unmount);
-      const closeHandler = createTypedMock<[], void>();
-      component.$on('close', closeHandler);
+      const closeHandler = createTypedMock<() => void>();
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('close', closeHandler);
       
       const overlay = container.querySelector('.git-panel-overlay') as HTMLElement;
       await fireEvent.click(overlay);
@@ -641,8 +643,9 @@ index 1234567..abcdefg 100644
       
       const { container, component, unmount } = render(GitPanel, { props: { show: true } });
       cleanup.push(unmount);
-      const closeHandler = createTypedMock<[], void>();
-      component.$on('close', closeHandler);
+      const closeHandler = createTypedMock<() => void>();
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('close', closeHandler);
       
       const panel = container.querySelector('.git-panel') as HTMLElement;
       await fireEvent.click(panel);
@@ -656,8 +659,9 @@ index 1234567..abcdefg 100644
       
       const { container, component, unmount } = render(GitPanel, { props: { show: true } });
       cleanup.push(unmount);
-      const closeHandler = createTypedMock<[], void>();
-      component.$on('close', closeHandler);
+      const closeHandler = createTypedMock<() => void>();
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('close', closeHandler);
       
       const closeBtn = container.querySelector('.close-btn') as HTMLElement;
       await fireEvent.click(closeBtn);
@@ -672,8 +676,9 @@ index 1234567..abcdefg 100644
       
       const { component, unmount } = render(GitPanel, { props: { show: true } });
       cleanup.push(unmount);
-      const closeHandler = createTypedMock<[], void>();
-      component.$on('close', closeHandler);
+      const closeHandler = createTypedMock<() => void>();
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('close', closeHandler);
       
       await fireEvent.keyDown(document, { key: 'Escape' });
       

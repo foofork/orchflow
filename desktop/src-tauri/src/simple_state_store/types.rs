@@ -1,7 +1,7 @@
 // Database entity types and structures
 
-use serde::{Deserialize, Serialize};
 use chrono::NaiveDateTime;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Session {
@@ -18,8 +18,8 @@ pub struct Pane {
     pub id: String,
     pub session_id: String,
     pub tmux_pane: Option<String>,
-    pub pane_type: String, // 'editor', 'terminal', 'repl'
-    pub content: Option<String>, // scrollback cache
+    pub pane_type: String,        // 'editor', 'terminal', 'repl'
+    pub content: Option<String>,  // scrollback cache
     pub metadata: Option<String>, // JSON
     pub created_at: NaiveDateTime,
 }

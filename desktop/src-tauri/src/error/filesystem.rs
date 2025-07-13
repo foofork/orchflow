@@ -8,14 +8,18 @@ use thiserror::Error;
 #[serde(tag = "type", content = "details")]
 pub enum FileSystemError {
     #[error("File operation failed: {operation} on {path} - {reason}")]
-    FileOperationError { operation: String, path: PathBuf, reason: String },
-    
+    FileOperationError {
+        operation: String,
+        path: PathBuf,
+        reason: String,
+    },
+
     #[error("Directory not found: {path}")]
     DirectoryNotFound { path: String },
-    
+
     #[error("Permission denied: {operation} on {resource}")]
     PermissionDenied { operation: String, resource: String },
-    
+
     #[error("Search operation failed: {operation} - {reason}")]
     SearchError { operation: String, reason: String },
 }
@@ -29,12 +33,14 @@ impl FileSystemError {
             reason: reason.to_string(),
         }
     }
-    
+
     /// Helper function to create directory not found error
     pub fn directory_not_found(path: &str) -> Self {
-        Self::DirectoryNotFound { path: path.to_string() }
+        Self::DirectoryNotFound {
+            path: path.to_string(),
+        }
     }
-    
+
     /// Helper function to create permission denied error
     pub fn permission_denied(operation: &str, resource: &str) -> Self {
         Self::PermissionDenied {
@@ -42,7 +48,7 @@ impl FileSystemError {
             resource: resource.to_string(),
         }
     }
-    
+
     /// Helper function to create search error
     pub fn search_error(operation: &str, reason: &str) -> Self {
         Self::SearchError {

@@ -5,11 +5,14 @@
  * Signs platform-specific installers for distribution
  */
 
-const fs = require('fs');
-const path = require('path');
-const { execSync } = require('child_process');
+import fs from 'fs';
+import path from 'path';
+import { execSync } from 'child_process';
+import { fileURLToPath } from 'url';
 
-const BUNDLE_DIR = path.join(__dirname, '../src-tauri/target/release/bundle');
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const BUNDLE_DIR = path.join(path.dirname(__dirname), 'src-tauri/target/release/bundle');
 const PLATFORMS = {
   macos: {
     dir: 'dmg',
@@ -29,7 +32,7 @@ const PLATFORMS = {
 };
 
 function log(message) {
-  console.log(`[Bundle Signer] ${message}`);
+  console.warn(`[Bundle Signer] ${message}`);
 }
 
 function error(message) {
@@ -92,12 +95,13 @@ function verifySignature(platform, bundlePath) {
       case 'windows':
         execSync(`signtool verify /pa "${bundlePath}"`, { stdio: 'pipe' });
         break;
-      case 'linux':
+      case 'linux': {
         const sigFile = bundlePath + '.sig';
         if (fs.existsSync(sigFile)) {
           execSync(`gpg --verify "${sigFile}" "${bundlePath}"`, { stdio: 'pipe' });
         }
         break;
+      }
       default:
         return false;
     }
@@ -220,12 +224,12 @@ function main() {
   }
 }
 
-// Handle command line execution
-if (require.main === module) {
+// Handle command line execution  
+if (import.meta.url === `file://${process.argv[1]}`) {
   main();
 }
 
-module.exports = {
+export {
   signBundle,
   verifySignature,
   findBundles

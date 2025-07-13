@@ -1,10 +1,10 @@
+use crate::manager::{Event, Plugin, PluginContext, PluginMetadata};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::HashMap;
-use tree_sitter::{Language, Parser, Node};
+use tree_sitter::{Language, Node, Parser};
 use tree_sitter_highlight::{HighlightConfiguration, Highlighter};
-use crate::manager::{Plugin, PluginMetadata, PluginContext, Event};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct ThemeColors {
@@ -24,16 +24,16 @@ impl Default for ThemeColors {
     fn default() -> Self {
         // VS Code Dark+ theme colors
         Self {
-            keyword: "#569cd6".to_string(),      // Blue
-            function: "#dcdcaa".to_string(),     // Yellow
-            string: "#ce9178".to_string(),       // Orange
-            number: "#b5cea8".to_string(),       // Light green
-            comment: "#6a9955".to_string(),      // Green
-            variable: "#9cdcfe".to_string(),     // Light blue
-            type_name: "#4ec9b0".to_string(),    // Teal
-            operator: "#d4d4d4".to_string(),     // Light gray
-            punctuation: "#d4d4d4".to_string(),  // Light gray
-            constant: "#4fc1ff".to_string(),     // Bright blue
+            keyword: "#569cd6".to_string(),     // Blue
+            function: "#dcdcaa".to_string(),    // Yellow
+            string: "#ce9178".to_string(),      // Orange
+            number: "#b5cea8".to_string(),      // Light green
+            comment: "#6a9955".to_string(),     // Green
+            variable: "#9cdcfe".to_string(),    // Light blue
+            type_name: "#4ec9b0".to_string(),   // Teal
+            operator: "#d4d4d4".to_string(),    // Light gray
+            punctuation: "#d4d4d4".to_string(), // Light gray
+            constant: "#4fc1ff".to_string(),    // Bright blue
         }
     }
 }
@@ -62,16 +62,21 @@ impl SyntaxPlugin {
     pub fn new() -> Self {
         let mut languages = HashMap::new();
         let mut highlight_configs = HashMap::new();
-        
-        // Register languages
-        languages.insert("rust".to_string(), tree_sitter_rust::language());
-        languages.insert("typescript".to_string(), tree_sitter_typescript::language_typescript());
-        languages.insert("tsx".to_string(), tree_sitter_typescript::language_tsx());
-        languages.insert("javascript".to_string(), tree_sitter_javascript::language());
-        languages.insert("python".to_string(), tree_sitter_python::language());
-        languages.insert("go".to_string(), tree_sitter_go::language());
-        languages.insert("json".to_string(), tree_sitter_json::language());
-        
+
+        // Register languages - use the LANGUAGE constants
+        unsafe {
+            languages.insert("rust".to_string(), tree_sitter_rust::LANGUAGE.into());
+            languages.insert(
+                "typescript".to_string(),
+                tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into(),
+            );
+            languages.insert("tsx".to_string(), tree_sitter_typescript::LANGUAGE_TSX.into());
+            languages.insert("javascript".to_string(), tree_sitter_javascript::LANGUAGE.into());
+            languages.insert("python".to_string(), tree_sitter_python::LANGUAGE.into());
+            languages.insert("go".to_string(), tree_sitter_go::LANGUAGE.into());
+            languages.insert("json".to_string(), tree_sitter_json::LANGUAGE.into());
+        }
+
         // Additional languages (these would need their respective tree-sitter crates)
         // Note: These are commented out as they require additional dependencies
         // languages.insert("cpp".to_string(), tree_sitter_cpp::language());
@@ -94,7 +99,7 @@ impl SyntaxPlugin {
         // languages.insert("markdown".to_string(), tree_sitter_md::language());
         // languages.insert("vue".to_string(), tree_sitter_vue::language());
         // languages.insert("svelte".to_string(), tree_sitter_svelte::language());
-        
+
         // Load highlight queries for each language
         let highlight_names = vec![
             "attribute",
@@ -118,23 +123,23 @@ impl SyntaxPlugin {
             "comment",
             "number",
         ];
-        
+
         // Rust highlighting configuration
         if let Ok(rust_config) = HighlightConfiguration::new(
-            tree_sitter_rust::language(),
+            unsafe { tree_sitter_rust::LANGUAGE.into() },
             tree_sitter_rust::HIGHLIGHTS_QUERY,
-            "",  // injections query - empty for now
-            "",  // locals query - empty for now  
-            "",  // 5th parameter - empty highlights query for now
+            "", // injections query - empty for now
+            "", // locals query - empty for now
+            "", // 5th parameter - empty highlights query for now
         ) {
             let mut config = rust_config;
             config.configure(&highlight_names);
             highlight_configs.insert("rust".to_string(), config);
         }
-        
+
         // Add other language configurations similarly
         // (In real implementation, would load all language queries)
-        
+
         Self {
             context: None,
             parsers: HashMap::new(),
@@ -144,13 +149,11 @@ impl SyntaxPlugin {
             highlighter: Highlighter::new(),
         }
     }
-    
+
     /// Get language for file extension
     fn get_language_for_file(&self, file_path: &str) -> Option<String> {
-        let extension = std::path::Path::new(file_path)
-            .extension()?
-            .to_str()?;
-        
+        let extension = std::path::Path::new(file_path).extension()?.to_str()?;
+
         match extension {
             "rs" => Some("rust".to_string()),
             "ts" => Some("typescript".to_string()),
@@ -159,7 +162,7 @@ impl SyntaxPlugin {
             "py" | "pyw" => Some("python".to_string()),
             "go" => Some("go".to_string()),
             "json" | "jsonc" => Some("json".to_string()),
-            
+
             // Additional language mappings (when tree-sitter crates are added)
             "cpp" | "cc" | "cxx" | "c++" | "hpp" | "hxx" | "h++" => Some("cpp".to_string()),
             "c" | "h" => Some("c".to_string()),
@@ -181,40 +184,45 @@ impl SyntaxPlugin {
             "md" | "markdown" => Some("markdown".to_string()),
             "vue" => Some("vue".to_string()),
             "svelte" => Some("svelte".to_string()),
-            
+
             _ => None,
         }
     }
-    
+
     /// Parse and highlight code
-    fn highlight_code(&mut self, language: &str, code: &str) -> Result<Vec<HighlightRange>, String> {
-        let lang = self.languages.get(language)
+    fn highlight_code(
+        &mut self,
+        language: &str,
+        code: &str,
+    ) -> Result<Vec<HighlightRange>, String> {
+        let lang = self
+            .languages
+            .get(language)
             .ok_or_else(|| format!("Language not supported: {}", language))?;
-        
+
         // Get or create parser for language
         let parser = self.parsers.entry(language.to_string()).or_insert_with(|| {
             let mut parser = Parser::new();
             parser.set_language(lang).unwrap();
             parser
         });
-        
-        let tree = parser.parse(code, None)
-            .ok_or("Failed to parse code")?;
-        
+
+        let tree = parser.parse(code, None).ok_or("Failed to parse code")?;
+
         let mut highlights = Vec::new();
-        
+
         // Simple highlighting based on node types
         // (In real implementation, would use highlight configurations)
         let cursor = tree.walk();
         self.visit_node(cursor.node(), code, &mut highlights);
-        
+
         Ok(highlights)
     }
-    
+
     /// Visit tree nodes and collect highlights
     fn visit_node(&self, node: Node, source: &str, highlights: &mut Vec<HighlightRange>) {
         let node_kind = node.kind();
-        
+
         // Map node kinds to highlight scopes and colors
         let (scope, color) = match node_kind {
             // Keywords (common across languages)
@@ -261,10 +269,10 @@ impl SyntaxPlugin {
                 return;
             }
         };
-        
+
         let start = node.start_position();
         let end = node.end_position();
-        
+
         highlights.push(HighlightRange {
             start_line: start.row,
             start_col: start.column,
@@ -273,42 +281,51 @@ impl SyntaxPlugin {
             scope: scope.to_string(),
             color: color.to_string(),
         });
-        
+
         // Still visit children for some node types
-        if !matches!(node_kind, "string_literal" | "raw_string_literal" | "char_literal" | 
-                                "integer_literal" | "float_literal" | "line_comment" | "block_comment") {
+        if !matches!(
+            node_kind,
+            "string_literal"
+                | "raw_string_literal"
+                | "char_literal"
+                | "integer_literal"
+                | "float_literal"
+                | "line_comment"
+                | "block_comment"
+        ) {
             for child in node.children(&mut node.walk()) {
                 self.visit_node(child, source, highlights);
             }
         }
     }
-    
+
     /// Get semantic tokens for LSP
     fn get_semantic_tokens(&mut self, language: &str, code: &str) -> Result<Vec<Value>, String> {
         let highlights = self.highlight_code(language, code)?;
-        
+
         let mut tokens = Vec::new();
         let mut prev_line = 0;
         let mut prev_col = 0;
-        
+
         for highlight in highlights {
             // Delta encoding as per LSP spec
             let delta_line = highlight.start_line - prev_line;
-            let delta_start = if delta_line == 0 { 
-                highlight.start_col - prev_col 
-            } else { 
-                highlight.start_col 
+            let delta_start = if delta_line == 0 {
+                highlight.start_col - prev_col
+            } else {
+                highlight.start_col
             };
-            
+
             let length = if highlight.start_line == highlight.end_line {
                 highlight.end_col - highlight.start_col
             } else {
                 // Multi-line tokens need special handling
-                code.lines().nth(highlight.start_line)
+                code.lines()
+                    .nth(highlight.start_line)
                     .map(|line| line.len() - highlight.start_col)
                     .unwrap_or(0)
             };
-            
+
             let token_type = match highlight.scope.as_str() {
                 "keyword" => 0,
                 "function" => 1,
@@ -321,7 +338,7 @@ impl SyntaxPlugin {
                 "punctuation" => 8,
                 _ => 9,
             };
-            
+
             tokens.push(json!({
                 "deltaLine": delta_line,
                 "deltaStart": delta_start,
@@ -329,11 +346,11 @@ impl SyntaxPlugin {
                 "tokenType": token_type,
                 "tokenModifiers": 0
             }));
-            
+
             prev_line = highlight.start_line;
             prev_col = highlight.start_col;
         }
-        
+
         Ok(tokens)
     }
 }
@@ -343,7 +360,7 @@ impl Plugin for SyntaxPlugin {
     fn id(&self) -> &str {
         "syntax-highlighter"
     }
-    
+
     fn metadata(&self) -> PluginMetadata {
         PluginMetadata {
             name: "Syntax Highlighter".to_string(),
@@ -359,23 +376,27 @@ impl Plugin for SyntaxPlugin {
             ],
         }
     }
-    
+
     async fn init(&mut self, context: PluginContext) -> Result<(), String> {
-        context.subscribe(vec![
-            "file_opened".to_string(),
-            "file_changed".to_string(),
-            "theme_changed".to_string(),
-        ]).await?;
-        
+        context
+            .subscribe(vec![
+                "file_opened".to_string(),
+                "file_changed".to_string(),
+                "theme_changed".to_string(),
+            ])
+            .await?;
+
         self.context = Some(context);
-        
+
         // Log available languages
-        println!("Syntax highlighter initialized with languages: {:?}", 
-            self.languages.keys().collect::<Vec<_>>());
-        
+        println!(
+            "Syntax highlighter initialized with languages: {:?}",
+            self.languages.keys().collect::<Vec<_>>()
+        );
+
         Ok(())
     }
-    
+
     async fn handle_event(&mut self, event: &Event) -> Result<(), String> {
         match event {
             // For now, we don't handle any specific events
@@ -384,13 +405,12 @@ impl Plugin for SyntaxPlugin {
         }
         Ok(())
     }
-    
+
     async fn handle_request(&mut self, method: &str, params: Value) -> Result<Value, String> {
         match method {
             "syntax.highlight" => {
-                let code = params["code"].as_str()
-                    .ok_or("Missing code parameter")?;
-                    
+                let code = params["code"].as_str().ok_or("Missing code parameter")?;
+
                 // Get language string (either directly specified or detected from file path)
                 let language_string = if let Some(lang) = params["language"].as_str() {
                     lang.to_string()
@@ -400,16 +420,15 @@ impl Plugin for SyntaxPlugin {
                 } else {
                     return Err("Missing language parameter".to_string());
                 };
-                
+
                 let language = language_string.as_str();
                 let highlights = self.highlight_code(language, code)?;
                 Ok(json!({ "highlights": highlights }))
             }
-            
+
             "syntax.semanticTokens" => {
-                let code = params["code"].as_str()
-                    .ok_or("Missing code parameter")?;
-                    
+                let code = params["code"].as_str().ok_or("Missing code parameter")?;
+
                 // Get language string (either directly specified or detected from file path)
                 let language_string = if let Some(lang) = params["language"].as_str() {
                     lang.to_string()
@@ -419,35 +438,35 @@ impl Plugin for SyntaxPlugin {
                 } else {
                     return Err("Missing language parameter".to_string());
                 };
-                
+
                 let language = language_string.as_str();
-                
+
                 let tokens = self.get_semantic_tokens(language, code)?;
-                Ok(json!({ 
+                Ok(json!({
                     "data": tokens,
                     "resultId": null
                 }))
             }
-            
+
             "syntax.getLanguage" => {
-                let file_path = params["file_path"].as_str()
+                let file_path = params["file_path"]
+                    .as_str()
                     .ok_or("Missing file_path parameter")?;
-                
-                let language = self.get_language_for_file(file_path)
+
+                let language = self
+                    .get_language_for_file(file_path)
                     .unwrap_or_else(|| "plaintext".to_string());
-                
+
                 Ok(json!({ "language": language }))
             }
-            
+
             "syntax.getSupportedLanguages" => {
                 let languages: Vec<_> = self.languages.keys().cloned().collect();
                 Ok(json!({ "languages": languages }))
             }
-            
-            "syntax.getTheme" => {
-                Ok(serde_json::to_value(&self.theme).unwrap())
-            }
-            
+
+            "syntax.getTheme" => Ok(serde_json::to_value(&self.theme).unwrap()),
+
             "syntax.setTheme" => {
                 if let Ok(new_theme) = serde_json::from_value::<ThemeColors>(params) {
                     self.theme = new_theme;
@@ -456,21 +475,21 @@ impl Plugin for SyntaxPlugin {
                     Err("Invalid theme format".to_string())
                 }
             }
-            
+
             "syntax.getFoldingRanges" => {
-                let code = params["code"].as_str()
-                    .ok_or("Missing code parameter")?;
-                let language = params["language"].as_str()
+                let code = params["code"].as_str().ok_or("Missing code parameter")?;
+                let language = params["language"]
+                    .as_str()
                     .ok_or("Missing language parameter")?;
-                
+
                 // TODO: Implement folding range detection
                 Ok(json!({ "ranges": [] }))
             }
-            
-            _ => Err(format!("Unknown method: {}", method))
+
+            _ => Err(format!("Unknown method: {}", method)),
         }
     }
-    
+
     async fn shutdown(&mut self) -> Result<(), String> {
         self.parsers.clear();
         Ok(())

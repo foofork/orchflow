@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
+import { mockSvelteEvents } from '@/test/svelte5-event-helper';
 import Dialog from './Dialog.svelte';
-import { createTypedMock, createSyncMock, createAsyncMock } from '@/test/mock-factory';
 
 describe('Dialog', () => {
   let user: ReturnType<typeof userEvent.setup>;
@@ -17,33 +17,46 @@ describe('Dialog', () => {
     cleanup.forEach(fn => fn());
   });
 
-  it('renders dialog when show is true', () => {
-    const { getByTestId, unmount } = render(Dialog, {
-      props: { show: true, title: 'Test Dialog', testMode: true },
-      target: document.body
+  it('renders dialog when show is true', async () => {
+    const { container, unmount } = render(Dialog, {
+      props: { show: true, title: 'Test Dialog', testMode: true }
     });
     cleanup.push(unmount);
     
-    expect(getByTestId('dialog')).toBeInTheDocument();
-    expect(getByTestId('dialog-content')).toBeInTheDocument();
+    // Wait for any async operations
+    await waitFor(() => {
+      // Check if the backdrop is rendered first
+      const backdrop = container.querySelector('[data-testid="dialog-backdrop"]');
+      expect(backdrop).toBeInTheDocument();
+    });
+    
+    // Now check for the dialog
+    const dialog = container.querySelector('[data-testid="dialog"]');
+    expect(dialog).toBeInTheDocument();
+    
+    const content = container.querySelector('[data-testid="dialog-content"]');
+    expect(content).toBeInTheDocument();
   });
 
   it('does not render dialog when show is false', () => {
     const { queryByTestId, unmount } = render(Dialog, {
-      props: { show: false, title: 'Test Dialog', testMode: true }, target: document.body
+      props: { show: false, title: 'Test Dialog' }
     });
     cleanup.push(unmount);
     
-    expect(queryByTestId('dialog')).not.toBeInTheDocument();
+    const dialog = queryByTestId('dialog');
+    expect(dialog).toBeFalsy();
   });
 
-  it('displays title when provided', () => {
+  it('displays title when provided', async () => {
     const { getByText, unmount } = render(Dialog, {
-      props: { show: true, title: 'Test Dialog', testMode: true }, target: document.body
+      props: { show: true, title: 'Test Dialog', testMode: true }
     });
     cleanup.push(unmount);
     
-    expect(getByText('Test Dialog')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(getByText('Test Dialog')).toBeInTheDocument();
+    });
   });
 
   it('renders content slot', () => {
@@ -57,7 +70,7 @@ describe('Dialog', () => {
     const textNode = document.createTextNode('Dialog content');
     dialogContent.appendChild(textNode);
     
-    expect(dialogContent).toHaveTextContent('Dialog content');
+    expect(dialogContent.textContent).toContain('Dialog content');
   });
 
   it('renders actions slot when provided', () => {
@@ -73,99 +86,85 @@ describe('Dialog', () => {
     expect(dialog).toBeInTheDocument();
   });
 
-  it('does not render actions container when no actions slot', () => {
+  it('does not render actions container when no actions slot', async () => {
     const { queryByTestId, unmount } = render(Dialog, {
-      props: { show: true, testMode: true }, target: document.body
+      props: { show: true, testMode: true }
     });
     cleanup.push(unmount);
     
-    expect(queryByTestId('dialog-actions')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(queryByTestId('dialog-actions')).not.toBeInTheDocument();
+    });
   });
 
   it('dispatches close event when close button is clicked', async () => {
-    const { getByTestId, component, unmount } = render(Dialog, {
-      props: { show: true, title: 'Test Dialog', testMode: true }, target: document.body
+    const handleClose = vi.fn();
+    const { getByTestId, unmount } = render(Dialog, {
+      props: { show: true, title: 'Test Dialog', testMode: true },
+      events: { close: handleClose }
     });
     cleanup.push(unmount);
-    
-    let closeEvent = false;
-    component.$on('close', () => {
-      closeEvent = true;
-    });
     
     const closeButton = getByTestId('dialog-close');
     await fireEvent.click(closeButton);
     
-    expect(closeEvent).toBe(true);
+    expect(handleClose).toHaveBeenCalled();
   });
 
   it('dispatches close event when Escape key is pressed', async () => {
-    const { getByTestId, component, unmount } = render(Dialog, {
-      props: { show: true, title: 'Test Dialog', testMode: true }, target: document.body
+    const handleClose = vi.fn();
+    const { getByTestId, unmount } = render(Dialog, {
+      props: { show: true, title: 'Test Dialog', testMode: true },
+      events: { close: handleClose }
     });
     cleanup.push(unmount);
     
-    let closeEvent = false;
-    component.$on('close', () => {
-      closeEvent = true;
-    });
+    const backdrop = getByTestId('dialog-backdrop');
+    await fireEvent.keyDown(backdrop, { key: 'Escape' });
     
-    const dialog = getByTestId('dialog');
-    await fireEvent.keyDown(dialog, { key: 'Escape' });
-    
-    expect(closeEvent).toBe(true);
+    expect(handleClose).toHaveBeenCalled();
   });
 
   it('does not close on Escape when closeOnEscape is false', async () => {
-    const { getByTestId, component, unmount } = render(Dialog, {
-      props: { show: true, title: 'Test Dialog', testMode: true, closeOnEscape: false }, target: document.body
+    const handleClose = vi.fn();
+    const { getByTestId, unmount } = render(Dialog, {
+      props: { show: true, title: 'Test Dialog', testMode: true, closeOnEscape: false },
+      events: { close: handleClose }
     });
     cleanup.push(unmount);
     
-    let closeEvent = false;
-    component.$on('close', () => {
-      closeEvent = true;
-    });
+    const backdrop = getByTestId('dialog-backdrop');
+    await fireEvent.keyDown(backdrop, { key: 'Escape' });
     
-    const dialog = getByTestId('dialog');
-    await fireEvent.keyDown(dialog, { key: 'Escape' });
-    
-    expect(closeEvent).toBe(false);
+    expect(handleClose).not.toHaveBeenCalled();
   });
 
   it('dispatches close event when backdrop is clicked', async () => {
-    const { getByTestId, component, unmount } = render(Dialog, {
-      props: { show: true, title: 'Test Dialog', testMode: true }, target: document.body
+    const handleClose = vi.fn();
+    const { getByTestId, unmount } = render(Dialog, {
+      props: { show: true, title: 'Test Dialog', testMode: true },
+      events: { close: handleClose }
     });
     cleanup.push(unmount);
-    
-    let closeEvent = false;
-    component.$on('close', () => {
-      closeEvent = true;
-    });
     
     const backdrop = getByTestId('dialog-backdrop');
     await fireEvent.click(backdrop);
     
-    expect(closeEvent).toBe(true);
+    expect(handleClose).toHaveBeenCalled();
   });
 
   it('does not close on backdrop click when closeOnBackdrop is false', async () => {
-    const { getByTestId, component, unmount } = render(Dialog, {
+    const handleClose = vi.fn();
+    const { getByTestId, unmount } = render(Dialog, {
       props: { show: true, title: 'Test Dialog', testMode: true, closeOnBackdrop: false },
-      target: document.body
+      events: { close: handleClose }
     });
     cleanup.push(unmount);
-    
-    let closeEvent = false;
-    component.$on('close', () => {
-      closeEvent = true;
-    });
     
     const backdrop = getByTestId('dialog-backdrop');
     await fireEvent.click(backdrop);
     
-    expect(closeEvent).toBe(false);
+    expect(handleClose).not.toHaveBeenCalled();
   });
 
   it('applies custom width and height', () => {

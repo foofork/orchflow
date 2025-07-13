@@ -3,6 +3,7 @@ import { render, fireEvent, waitFor, screen } from '@testing-library/svelte';
 import FileTree from './FileTree.svelte';
 import type { TreeNode } from '$lib/types';
 import { createTypedMock, createVoidMock } from '@/test/mock-factory';
+import { mockSvelteEvents } from '@/test/svelte5-event-helper';
 
 describe('FileTree', () => {
   let cleanup: Array<() => void> = [];
@@ -159,8 +160,10 @@ describe('FileTree', () => {
       
       const selectHandler = createVoidMock<[CustomEvent]>();
       const openFileHandler = createVoidMock<[CustomEvent]>();
-      component.$on('select', selectHandler);
-      component.$on('openFile', openFileHandler);
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('select', selectHandler);
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('openFile', openFileHandler);
       
       const nodeItem = container.querySelector('.node-item') as HTMLElement;
       await fireEvent.click(nodeItem);
@@ -199,7 +202,8 @@ describe('FileTree', () => {
       cleanup.push(unmount);
       
       const expandHandler = createVoidMock<[CustomEvent]>();
-      component.$on('expand', expandHandler);
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('expand', expandHandler);
       
       const nodeItem = container.querySelector('.node-item') as HTMLElement;
       await fireEvent.click(nodeItem);
@@ -215,7 +219,8 @@ describe('FileTree', () => {
       cleanup.push(unmount);
       
       const contextMenuHandler = createVoidMock<[CustomEvent]>();
-      component.$on('contextMenu', contextMenuHandler);
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('contextMenu', contextMenuHandler);
       
       const nodeItem = container.querySelector('.node-item') as HTMLElement;
       await fireEvent.contextMenu(nodeItem, { clientX: 100, clientY: 200 });
@@ -291,7 +296,8 @@ describe('FileTree', () => {
       cleanup.push(unmount);
       
       const selectHandler = createVoidMock<[CustomEvent]>();
-      component.$on('select', selectHandler);
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('select', selectHandler);
       
       const nodeItem = container.querySelector('.node-item') as HTMLElement;
       await fireEvent.keyDown(nodeItem, { key: 'ArrowRight' });
@@ -414,7 +420,8 @@ describe('FileTree', () => {
       cleanup.push(unmount);
       
       const openFileHandler = createVoidMock<[CustomEvent]>();
-      component.$on('openFile', openFileHandler);
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('openFile', openFileHandler);
       
       // Find and click the nested file
       const nodeItems = container.querySelectorAll('.node-item');

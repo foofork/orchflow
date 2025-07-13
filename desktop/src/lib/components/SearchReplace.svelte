@@ -323,7 +323,7 @@
           <select 
             id="search-history-select"
             class="history-select" 
-            on:change={(e) => searchPattern = e.target?.value || ''}
+            on:change={(e) => searchPattern = (e.target as HTMLSelectElement)?.value || ''}
             title="Search history"
             aria-label="Search history"
           >
@@ -491,7 +491,7 @@
         id="saved-searches-select"
         class="saved-searches"
         on:change={(e) => {
-          const search = savedSearches.find(s => s.name === e.target?.value);
+          const search = savedSearches.find(s => s.name === (e.target as HTMLSelectElement)?.value);
           if (search) loadSavedSearch(search);
         }}
         aria-label="Load saved search"

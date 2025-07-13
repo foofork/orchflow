@@ -107,7 +107,7 @@ async function findTestFiles(dir, files = []) {
 }
 
 async function validateTestPatterns() {
-  console.log('🔍 Validating test patterns...\n');
+  console.warn('🔍 Validating test patterns...\n');
   
   const srcDir = path.join(__dirname, '..', 'src');
   const testFiles = await findTestFiles(srcDir);
@@ -168,36 +168,36 @@ async function validateTestPatterns() {
     
     if (fileIssues.length === 0) {
       passedFiles++;
-      console.log(`✅ ${relativePath}`);
+      console.warn(`✅ ${relativePath}`);
     } else if (!hasErrors) {
       passedFiles++;
-      console.log(`✅ ${relativePath} (with warnings)`);
+      console.warn(`✅ ${relativePath} (with warnings)`);
       fileIssues.forEach(issue => {
         const icon = issue.type === 'error' ? '  ❌' : '  ⚠️';
         const count = issue.count ? ` (${issue.count} occurrences)` : '';
-        console.log(`${icon} ${issue.message}${count}`);
+        console.warn(`${icon} ${issue.message}${count}`);
       });
     } else {
-      console.log(`❌ ${relativePath}`);
+      console.warn(`❌ ${relativePath}`);
       fileIssues.forEach(issue => {
         const icon = issue.type === 'error' ? '  ❌' : '  ⚠️';
         const count = issue.count ? ` (${issue.count} occurrences)` : '';
-        console.log(`${icon} ${issue.message}${count}`);
+        console.warn(`${icon} ${issue.message}${count}`);
       });
       issues.push({ file: relativePath, issues: fileIssues });
     }
   }
   
-  console.log('\n📊 Summary:');
-  console.log(`Total test files: ${totalFiles}`);
-  console.log(`Passed validation: ${passedFiles}`);
-  console.log(`Failed validation: ${totalFiles - passedFiles}`);
+  console.warn('\n📊 Summary:');
+  console.warn(`Total test files: ${totalFiles}`);
+  console.warn(`Passed validation: ${passedFiles}`);
+  console.warn(`Failed validation: ${totalFiles - passedFiles}`);
   
   if (issues.length > 0) {
-    console.log('\n❌ Validation failed');
+    console.warn('\n❌ Validation failed');
     process.exit(1);
   } else {
-    console.log('\n✅ All tests follow the new patterns!');
+    console.warn('\n✅ All tests follow the new patterns!');
   }
 }
 

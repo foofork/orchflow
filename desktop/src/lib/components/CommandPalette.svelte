@@ -362,7 +362,7 @@
             No commands found for "{searchQuery}"
           </div>
         {:else}
-          {#each filteredCommands as command, index}
+          {#each filteredCommands as command, index (command.id || command.label)}
             <button
               class="command-item"
               class:selected={index === selectedIndex}

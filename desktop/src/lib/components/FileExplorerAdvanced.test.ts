@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import FileExplorerAdvanced from './FileExplorerAdvanced.svelte';
 import { mockInvoke, createMockFile } from '../../test/utils';
 import { createTypedMock } from '@/test/mock-factory';
+import { mockSvelteEvents } from '@/test/svelte5-event-helper';
 
 describe('FileExplorerAdvanced', () => {
   let user: ReturnType<typeof userEvent.setup>;
@@ -173,7 +174,8 @@ describe('FileExplorerAdvanced', () => {
     let selectedFile = null;
     const { getByText, component } = renderFileExplorer();
     
-    component.$on('select', (event: CustomEvent) => {
+    const mockComponent = mockSvelteEvents(component);
+    mockComponent.$on('select', (event: CustomEvent) => {
       selectedFile = event.detail;
     });
     
@@ -277,7 +279,8 @@ describe('FileExplorerAdvanced', () => {
     let newFileEvent = null;
     const { getByTitle, component } = renderFileExplorer();
     
-    component.$on('newFile', (event: CustomEvent) => {
+    const mockComponent = mockSvelteEvents(component);
+    mockComponent.$on('newFile', (event: CustomEvent) => {
       newFileEvent = event.detail;
     });
     
@@ -297,7 +300,8 @@ describe('FileExplorerAdvanced', () => {
     let newFolderEvent = null;
     const { getByTitle, component } = renderFileExplorer();
     
-    component.$on('newFolder', (event: CustomEvent) => {
+    const mockComponent = mockSvelteEvents(component);
+    mockComponent.$on('newFolder', (event: CustomEvent) => {
       newFolderEvent = event.detail;
     });
     
@@ -317,7 +321,8 @@ describe('FileExplorerAdvanced', () => {
     let renameEvent = null;
     const { component, container } = renderFileExplorer();
     
-    component.$on('rename', (event: CustomEvent) => {
+    const mockComponent = mockSvelteEvents(component);
+    mockComponent.$on('rename', (event: CustomEvent) => {
       renameEvent = event.detail;
     });
     
@@ -345,7 +350,8 @@ describe('FileExplorerAdvanced', () => {
     let deleteEvent = null;
     const { component, container } = renderFileExplorer();
     
-    component.$on('delete', (event: CustomEvent) => {
+    const mockComponent = mockSvelteEvents(component);
+    mockComponent.$on('delete', (event: CustomEvent) => {
       deleteEvent = event.detail;
     });
     

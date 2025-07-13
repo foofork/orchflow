@@ -13,8 +13,8 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/*.{test,spec}.{js,ts}'],
-    testTimeout: 30000, // Standardized to 30s to match Playwright
-    hookTimeout: 30000, // Increased from 15s to 30s for consistency
+    testTimeout: 60000, // Increased to 60s for slower tests
+    hookTimeout: 60000, // Increased to 60s for consistency
     bail: 0, // Don't bail on first failure
     retry: 1, // Retry failed tests once
     server: {

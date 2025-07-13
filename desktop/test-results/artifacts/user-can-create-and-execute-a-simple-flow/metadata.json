@@ -1,0 +1,13 @@
+{
+  "name": "user can create and execute a simple flow",
+  "file": "tests/e2e/smoke/app-launch.test.ts",
+  "started": "2025-07-13T10:19:51.329Z",
+  "environment": {
+    "node": "v22.16.0",
+    "platform": "linux",
+    "ci": false
+  },
+  "completed": "2025-07-13T10:19:51.493Z",
+  "duration": 167,
+  "status": "fail"
+}

@@ -83,9 +83,8 @@ export function renderWithStores(
   });
 }
 
-export const mockInvoke = (responses: Record<string, any> = {}) => {
-  const tauriApi = require('@tauri-apps/api');
-  const tauriInvoke = require('@tauri-apps/api/core');
+export const mockInvoke = async (responses: Record<string, any> = {}) => {
+  const { invoke } = await import('@tauri-apps/api/core');
   
   // Default responses for common commands
   const defaultResponses: Record<string, any> = {
@@ -129,14 +128,12 @@ export const mockInvoke = (responses: Record<string, any> = {}) => {
     return null;
   };
   
-  if (tauriApi.invoke && typeof tauriApi.invoke.mockImplementation === 'function') {
-    tauriApi.invoke.mockImplementation(mockImpl);
-  }
-  if (tauriInvoke.invoke && typeof tauriInvoke.invoke.mockImplementation === 'function') {
-    tauriInvoke.invoke.mockImplementation(mockImpl);
+  // Mock the invoke function if it has a mockImplementation method (e.g., when using vi.mock)
+  if (invoke && typeof (invoke as any).mockImplementation === 'function') {
+    (invoke as any).mockImplementation(mockImpl);
   }
   
-  return tauriApi.invoke || tauriInvoke.invoke;
+  return invoke;
 };
 
 export const createMockFile = (name: string, path: string, type: 'file' | 'directory' = 'file') => ({

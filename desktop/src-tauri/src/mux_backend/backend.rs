@@ -1,44 +1,44 @@
-use async_trait::async_trait;
-use serde::{Deserialize, Serialize};
-use chrono::{DateTime, Utc};
 use crate::error::OrchflowError;
+use async_trait::async_trait;
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
 /// Error types for multiplexer operations
 #[derive(Debug, thiserror::Error)]
 pub enum MuxError {
     #[error("Session creation failed: {0}")]
     SessionCreationFailed(String),
-    
+
     #[error("Session not found: {0}")]
     SessionNotFound(String),
-    
+
     #[error("Pane not found: {0}")]
     PaneNotFound(String),
-    
+
     #[error("Command execution failed: {0}")]
     CommandFailed(String),
-    
+
     #[error("Backend not available: {0}")]
     BackendUnavailable(String),
-    
+
     #[error("Operation not supported by backend: {0}")]
     NotSupported(String),
-    
+
     #[error("Invalid state: {0}")]
     InvalidState(String),
-    
+
     #[error("Connection error: {0}")]
     ConnectionError(String),
-    
+
     #[error("Parse error: {0}")]
     ParseError(String),
-    
+
     #[error("IO error: {0}")]
     IoError(#[from] std::io::Error),
-    
+
     #[error("Serialization error: {0}")]
     SerializationError(#[from] serde_json::Error),
-    
+
     #[error("Other error: {0}")]
     Other(String),
 }
@@ -51,52 +51,52 @@ impl MuxError {
             _ => self,
         }
     }
-    
+
     /// Create a session creation failed error
     pub fn session_creation_failed<S: Into<String>>(msg: S) -> Self {
         MuxError::SessionCreationFailed(msg.into())
     }
-    
+
     /// Create a session not found error
     pub fn session_not_found<S: Into<String>>(session_id: S) -> Self {
         MuxError::SessionNotFound(session_id.into())
     }
-    
+
     /// Create a pane not found error
     pub fn pane_not_found<S: Into<String>>(pane_id: S) -> Self {
         MuxError::PaneNotFound(pane_id.into())
     }
-    
+
     /// Create a command failed error
     pub fn command_failed<S: Into<String>>(msg: S) -> Self {
         MuxError::CommandFailed(msg.into())
     }
-    
+
     /// Create a backend unavailable error
     pub fn backend_unavailable<S: Into<String>>(msg: S) -> Self {
         MuxError::BackendUnavailable(msg.into())
     }
-    
+
     /// Create a not supported error
     pub fn not_supported<S: Into<String>>(operation: S) -> Self {
         MuxError::NotSupported(operation.into())
     }
-    
+
     /// Create an invalid state error
     pub fn invalid_state<S: Into<String>>(msg: S) -> Self {
         MuxError::InvalidState(msg.into())
     }
-    
+
     /// Create a connection error
     pub fn connection_error<S: Into<String>>(msg: S) -> Self {
         MuxError::ConnectionError(msg.into())
     }
-    
+
     /// Create a parse error
     pub fn parse_error<S: Into<String>>(msg: S) -> Self {
         MuxError::ParseError(msg.into())
     }
-    
+
     /// Create an other error
     pub fn other<S: Into<String>>(msg: S) -> Self {
         MuxError::Other(msg.into())
@@ -194,37 +194,37 @@ pub enum SplitType {
 pub trait MuxBackend: Send + Sync {
     /// Create a new session with the given name
     async fn create_session(&self, name: &str) -> Result<String, MuxError>;
-    
+
     /// Create a new pane in the specified session
     async fn create_pane(&self, session_id: &str, split: SplitType) -> Result<String, MuxError>;
-    
+
     /// Send keystrokes to a specific pane
     async fn send_keys(&self, pane_id: &str, keys: &str) -> Result<(), MuxError>;
-    
+
     /// Capture the current contents of a pane
     async fn capture_pane(&self, pane_id: &str) -> Result<String, MuxError>;
-    
+
     /// List all sessions
     async fn list_sessions(&self) -> Result<Vec<Session>, MuxError>;
-    
+
     /// Kill a session and all its panes
     async fn kill_session(&self, session_id: &str) -> Result<(), MuxError>;
-    
+
     /// Kill a specific pane
     async fn kill_pane(&self, pane_id: &str) -> Result<(), MuxError>;
-    
+
     /// Resize a pane
     async fn resize_pane(&self, pane_id: &str, size: PaneSize) -> Result<(), MuxError>;
-    
+
     /// Select (focus) a pane
     async fn select_pane(&self, pane_id: &str) -> Result<(), MuxError>;
-    
+
     /// List all panes in a session
     async fn list_panes(&self, session_id: &str) -> Result<Vec<Pane>, MuxError>;
-    
+
     /// Attach to a session
     async fn attach_session(&self, session_id: &str) -> Result<(), MuxError>;
-    
+
     /// Detach from a session
     async fn detach_session(&self, session_id: &str) -> Result<(), MuxError>;
 }
@@ -233,18 +233,28 @@ pub trait MuxBackend: Send + Sync {
 #[async_trait]
 pub trait MuxBackendExt: MuxBackend {
     /// Set resource limits for a pane (muxd only)
-    async fn set_resource_limits(&self, _pane_id: &str, _limits: ResourceLimits) -> Result<(), MuxError> {
-        Err(MuxError::NotSupported("Resource limits not supported by this backend".to_string()))
+    async fn set_resource_limits(
+        &self,
+        _pane_id: &str,
+        _limits: ResourceLimits,
+    ) -> Result<(), MuxError> {
+        Err(MuxError::NotSupported(
+            "Resource limits not supported by this backend".to_string(),
+        ))
     }
-    
+
     /// Subscribe to pane events (muxd only)
     async fn subscribe_events(&self, _pane_id: &str) -> Result<EventStream, MuxError> {
-        Err(MuxError::NotSupported("Event subscription not supported by this backend".to_string()))
+        Err(MuxError::NotSupported(
+            "Event subscription not supported by this backend".to_string(),
+        ))
     }
-    
+
     /// Get performance metrics for a pane (muxd only)
     async fn get_metrics(&self, _pane_id: &str) -> Result<PaneMetrics, MuxError> {
-        Err(MuxError::NotSupported("Metrics not supported by this backend".to_string()))
+        Err(MuxError::NotSupported(
+            "Metrics not supported by this backend".to_string(),
+        ))
     }
 }
 

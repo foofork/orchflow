@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render } from '@testing-library/svelte';
 import { createSvelteComponentMock } from '../../test/setup-mocks';
 import { createTypedMock } from '@/test/mock-factory';
+import { mockSvelteEvents } from '@/test/svelte5-event-helper';
 import CommandConfirmationDialog from './CommandConfirmationDialog.svelte';
 
 // Mock child components with proper Svelte component interface
@@ -64,7 +65,7 @@ describe('CommandConfirmationDialog Unit Tests', () => {
 
   describe('Event Handler Registration', () => {
     it('allows registering confirm event handler', () => {
-      const mockConfirm = createTypedMock<[CustomEvent], void>();
+      const mockConfirm = vi.fn();
       const { component, unmount } = render(CommandConfirmationDialog, {
         props: {
           open: true,
@@ -75,11 +76,12 @@ describe('CommandConfirmationDialog Unit Tests', () => {
       });
       cleanup.push(unmount);
 
-      expect(() => component.$on('confirm', mockConfirm)).not.toThrow();
+      const mockComponent = mockSvelteEvents(component);
+      expect(() => mockComponent.$on('confirm', mockConfirm)).not.toThrow();
     });
 
     it('allows registering cancel event handler', () => {
-      const mockCancel = createTypedMock<[CustomEvent], void>();
+      const mockCancel = vi.fn();
       const { component, unmount } = render(CommandConfirmationDialog, {
         props: {
           open: true,
@@ -90,11 +92,12 @@ describe('CommandConfirmationDialog Unit Tests', () => {
       });
       cleanup.push(unmount);
 
-      expect(() => component.$on('cancel', mockCancel)).not.toThrow();
+      const mockComponent = mockSvelteEvents(component);
+      expect(() => mockComponent.$on('cancel', mockCancel)).not.toThrow();
     });
 
     it('allows registering bypass event handler', () => {
-      const mockBypass = createTypedMock<[CustomEvent], void>();
+      const mockBypass = vi.fn();
       const { component, unmount } = render(CommandConfirmationDialog, {
         props: {
           open: true,
@@ -105,7 +108,8 @@ describe('CommandConfirmationDialog Unit Tests', () => {
       });
       cleanup.push(unmount);
 
-      expect(() => component.$on('bypass', mockBypass)).not.toThrow();
+      const mockComponent = mockSvelteEvents(component);
+      expect(() => mockComponent.$on('bypass', mockBypass)).not.toThrow();
     });
   });
 
@@ -195,7 +199,8 @@ describe('CommandConfirmationDialog Unit Tests', () => {
       });
       cleanup.push(unmount);
 
-      expect(() => component.$set({ open: true })).not.toThrow();
+      const mockComponent = mockSvelteEvents(component);
+      expect(() => mockComponent.$set({ open: true })).not.toThrow();
     });
 
     it('allows updating command', () => {
@@ -209,7 +214,8 @@ describe('CommandConfirmationDialog Unit Tests', () => {
       });
       cleanup.push(unmount);
 
-      expect(() => component.$set({ command: 'updated command' })).not.toThrow();
+      const mockComponent = mockSvelteEvents(component);
+      expect(() => mockComponent.$set({ command: 'updated command' })).not.toThrow();
     });
 
     it('allows updating warning', () => {
@@ -229,7 +235,8 @@ describe('CommandConfirmationDialog Unit Tests', () => {
         message: 'Updated warning'
       };
 
-      expect(() => component.$set({ warning: updatedWarning })).not.toThrow();
+      const mockComponent = mockSvelteEvents(component);
+      expect(() => mockComponent.$set({ warning: updatedWarning })).not.toThrow();
     });
   });
 });

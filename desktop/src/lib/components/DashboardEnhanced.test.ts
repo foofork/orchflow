@@ -26,7 +26,7 @@ const connectedStore = isConnected as unknown as Writable<boolean>;
 
 describe('DashboardEnhanced Component', () => {
   let cleanup: Array<() => void> = [];
-  const mockOnSelectPane = createTypedMock<[pane: any], void>();
+  const mockOnSelectPane = createTypedMock<(pane: any) => void>();
   
   beforeEach(() => {
     vi.clearAllMocks();

@@ -1,6 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-import { withTimeout, withRetry, exponentialBackoff, TIMEOUT_CONFIG } from '$lib/utils/timeout';
+import { withTimeout, exponentialBackoff, TIMEOUT_CONFIG } from '$lib/utils/timeout';
 
 // ===== Types matching Rust structures =====
 
@@ -8,7 +7,7 @@ export interface Session {
   id: string;
   name: string;
   panes: string[];
-  layout?: any;
+  layout?: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }
@@ -97,9 +96,9 @@ export type Action =
   | { type: 'ReplaceInFile'; path: string; search: string; replace: string; options?: SearchOptions }
   
   // Plugin management
-  | { type: 'LoadPlugin'; id: string; config?: any }
+  | { type: 'LoadPlugin'; id: string; config?: Record<string, unknown> }
   | { type: 'UnloadPlugin'; id: string }
-  | { type: 'ExecutePluginCommand'; plugin_id: string; command: string; args?: any }
+  | { type: 'ExecutePluginCommand'; plugin_id: string; command: string; args?: Record<string, unknown> }
   
   // Terminal streaming
   | { type: 'CreateStreamingTerminal'; terminal_id: string; shell?: string; rows?: number; cols?: number }
@@ -147,15 +146,15 @@ export type ManagerEvent =
   // Plugin events
   | { type: 'PluginLoaded'; plugin_id: string }
   | { type: 'PluginUnloaded'; plugin_id: string }
-  | { type: 'PluginEvent'; plugin_id: string; event_type: string; data?: any }
+  | { type: 'PluginEvent'; plugin_id: string; event_type: string; data?: Record<string, unknown> }
   
   // Custom events
-  | { type: 'Custom'; event_type: string; data?: any };
+  | { type: 'Custom'; event_type: string; data?: Record<string, unknown> };
 
 // ===== Manager Client =====
 
 export class ManagerClient {
-  private eventListeners: Map<string, UnlistenFn[]> = new Map();
+  private eventListeners: Map<string, (() => void)[]> = new Map();
   private eventHandlers: Map<string, Set<(event: ManagerEvent) => void>> = new Map();
   
   // Use centralized timeout utility for all Tauri calls
@@ -233,7 +232,7 @@ export class ManagerClient {
     return await invoke('search_command_history', { pattern, pane_id: paneId });
   }
 
-  async listDirectory(path: string): Promise<any> {
+  async listDirectory(path: string): Promise<Record<string, unknown>> {
     return await invoke('list_directory', { path });
   }
 
@@ -298,7 +297,7 @@ export class ManagerClient {
     return result.output;
   }
 
-  async loadPlugin(pluginId: string, config?: any): Promise<void> {
+  async loadPlugin(pluginId: string, config?: Record<string, unknown>): Promise<void> {
     await this.execute({ type: 'LoadPlugin', id: pluginId, config });
   }
 

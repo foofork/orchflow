@@ -10,6 +10,7 @@ import {
 } from '../../test/utils/component-test-utils';
 import { createMockContext } from '../../test/utils/test-fixtures';
 import { createTypedMock, createSyncMock, createAsyncMock } from '@/test/mock-factory';
+import { mockSvelteEvents } from '@/test/svelte5-event-helper';
 
 describe('Sidebar', () => {
   let mockProps: any;
@@ -147,9 +148,10 @@ describe('Sidebar', () => {
         refresh: createSyncMock<[], void>()
       };
 
-      component.$on('newFile', eventHandlers.newFile);
-      component.$on('newFolder', eventHandlers.newFolder);
-      component.$on('refresh', eventHandlers.refresh);
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('newFile', eventHandlers.newFile);
+      mockComponent.$on('newFolder', eventHandlers.newFolder);
+      mockComponent.$on('refresh', eventHandlers.refresh);
 
       const buttons = container.querySelectorAll('.sidebar-actions .action-btn');
       
@@ -174,8 +176,9 @@ describe('Sidebar', () => {
         gitCommit: createSyncMock<[], void>()
       };
 
-      component.$on('gitRefresh', eventHandlers.gitRefresh);
-      component.$on('gitCommit', eventHandlers.gitCommit);
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('gitRefresh', eventHandlers.gitRefresh);
+      mockComponent.$on('gitCommit', eventHandlers.gitCommit);
 
       const buttons = container.querySelectorAll('.sidebar-actions .action-btn');
       
@@ -195,8 +198,9 @@ describe('Sidebar', () => {
       const openFileHandler = createSyncMock<[CustomEvent], void>();
       const shareHandler = createSyncMock<[CustomEvent], void>();
       
-      component.$on('openFile', openFileHandler);
-      component.$on('share', shareHandler);
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('openFile', openFileHandler);
+      mockComponent.$on('share', shareHandler);
 
       // Simulate events from FileExplorerEnhanced
       const fileExplorer = document.querySelector('[data-testid="file-explorer"]');
@@ -301,7 +305,8 @@ describe('Sidebar', () => {
       cleanup.push(unmount);
       
       const newFileHandler = createSyncMock<[CustomEvent], void>();
-      component.$on('newFile', newFileHandler);
+      const mockComponent = mockSvelteEvents(component);
+      mockComponent.$on('newFile', newFileHandler);
       
       const firstButton = container.querySelector('.action-btn');
       expect(firstButton).toBeTruthy();

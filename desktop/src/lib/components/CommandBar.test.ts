@@ -48,7 +48,7 @@ describe('CommandBar', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Mock window.prompt
-    window.prompt = createTypedMock<[string], string | null>() as any;
+    window.prompt = vi.fn() as any;
   });
 
   afterEach(() => {
@@ -214,7 +214,7 @@ describe('CommandBar', () => {
     });
 
     it('should create session when executing "create session" command', async () => {
-      window.prompt = createTypedMock<[string], string | null>().mockReturnValue('My Session') as any;
+      window.prompt = vi.fn().mockReturnValue('My Session') as any;
       vi.mocked(manager.createSession).mockResolvedValue({ 
         id: 'new-session',
         name: 'My Session',

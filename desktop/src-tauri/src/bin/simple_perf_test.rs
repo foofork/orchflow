@@ -1,5 +1,5 @@
+use orchflow::manager::{Action, PaneType, ShellType};
 use std::time::{Duration, Instant};
-use orchflow::manager::{Action, ShellType, PaneType};
 
 #[derive(Debug)]
 struct BenchmarkResult {
@@ -30,16 +30,16 @@ where
 {
     let mut times = Vec::with_capacity(iterations as usize);
     let start = Instant::now();
-    
+
     for _ in 0..iterations {
         times.push(f());
     }
-    
+
     let total_time = start.elapsed();
     let avg_time = total_time / iterations;
     let min_time = *times.iter().min().unwrap();
     let max_time = *times.iter().max().unwrap();
-    
+
     BenchmarkResult {
         name,
         iterations,
@@ -53,11 +53,13 @@ where
 fn main() {
     println!("OrchFlow Performance Benchmarks");
     println!("================================");
-    
+
     // Benchmark: Action Serialization/Deserialization
     {
         let actions = vec![
-            Action::CreateSession { name: "test".to_string() },
+            Action::CreateSession {
+                name: "test".to_string(),
+            },
             Action::CreatePane {
                 session_id: "session-1".to_string(),
                 pane_type: PaneType::Terminal,
@@ -73,13 +75,16 @@ fn main() {
                 session_id: "session-1".to_string(),
                 name: Some("Test Session".to_string()),
             },
-            Action::GetFileTree { path: None, max_depth: Some(3) },
+            Action::GetFileTree {
+                path: None,
+                max_depth: Some(3),
+            },
             Action::SearchFiles {
                 pattern: "TODO".to_string(),
                 path: None,
             },
         ];
-        
+
         let result = run_benchmark("Action Serialization", 10000, || {
             let start = Instant::now();
             for action in &actions {
@@ -88,11 +93,12 @@ fn main() {
             start.elapsed()
         });
         result.print();
-        
-        let serialized: Vec<String> = actions.iter()
+
+        let serialized: Vec<String> = actions
+            .iter()
             .map(|a| serde_json::to_string(a).unwrap())
             .collect();
-        
+
         let result = run_benchmark("Action Deserialization", 10000, || {
             let start = Instant::now();
             for json in &serialized {
@@ -102,7 +108,7 @@ fn main() {
         });
         result.print();
     }
-    
+
     // Benchmark: Struct Creation
     {
         let result = run_benchmark("ShellType Detection", 100000, || {
@@ -111,7 +117,7 @@ fn main() {
             start.elapsed()
         });
         result.print();
-        
+
         let result = run_benchmark("PaneType Creation", 100000, || {
             let start = Instant::now();
             let _ = PaneType::Terminal;
@@ -119,7 +125,7 @@ fn main() {
         });
         result.print();
     }
-    
+
     // Benchmark: String Operations
     {
         let test_strings = vec![
@@ -128,7 +134,7 @@ fn main() {
             "grep -r 'TODO' src/",
             "cargo build --release",
         ];
-        
+
         let result = run_benchmark("Command String Processing", 10000, || {
             let start = Instant::now();
             for cmd in &test_strings {
@@ -138,7 +144,7 @@ fn main() {
         });
         result.print();
     }
-    
+
     println!("\n\nBenchmark Summary");
     println!("=================");
     println!("All benchmarks completed successfully.");

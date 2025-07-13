@@ -55,7 +55,7 @@ export async function setup() {
     }
     
     // Increase memory limits for stress tests
-    const v8 = require('v8');
+    const v8 = await import('v8');
     const heapSize = v8.getHeapStatistics().heap_size_limit / 1024 / 1024;
     console.log(`📊 V8 Heap Size Limit: ${heapSize.toFixed(2)} MB\n`);
   }
@@ -92,8 +92,8 @@ async function generatePerformanceReport() {
       node: process.version,
       platform: process.platform,
       arch: process.arch,
-      cpus: require('os').cpus().length,
-      memory: require('os').totalmem() / 1024 / 1024 / 1024 // GB
+      cpus: (await import('os')).cpus().length,
+      memory: (await import('os')).totalmem() / 1024 / 1024 / 1024 // GB
     },
     summary: {
       totalTests: results.length,

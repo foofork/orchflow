@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import SearchReplace from './SearchReplace.svelte';
 import { mockInvoke } from '../../test/utils';
 import { createTypedMock } from '@/test/mock-factory';
+import { mockSvelteEvents } from '@/test/svelte5-event-helper';
 
 describe('SearchReplace', () => {
   let user: ReturnType<typeof userEvent.setup>;
@@ -253,7 +254,8 @@ describe('SearchReplace', () => {
     });
     
     let openFileEvent = null;
-    component.$on('openFile', (event: CustomEvent) => {
+    const mockComponent = mockSvelteEvents(component);
+    mockComponent.$on('openFile', (event: CustomEvent) => {
       openFileEvent = event.detail;
     });
     

@@ -1,0 +1,13 @@
+{
+  "name": "responsive design works",
+  "file": "tests/e2e/smoke/app-launch.test.ts",
+  "started": "2025-07-13T10:19:51.161Z",
+  "environment": {
+    "node": "v22.16.0",
+    "platform": "linux",
+    "ci": false
+  },
+  "completed": "2025-07-13T10:19:51.300Z",
+  "duration": 138,
+  "status": "fail"
+}

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
 import { tauriAPI, fileSystemMock, storeMocks } from '../test/setup-integration';
 
@@ -52,8 +52,8 @@ describe('Flow Management Integration', () => {
   });
 
   it('should load and display existing flows', async () => {
-    // Setup mock data
-    tauriAPI.invoke.mockResolvedValueOnce([
+    // Setup mock data  
+    vi.mocked(tauriAPI.invoke).mockResolvedValueOnce([
       { id: 1, name: 'Flow 1', description: 'First flow' },
       { id: 2, name: 'Flow 2', description: 'Second flow' }
     ]);
@@ -79,7 +79,7 @@ describe('Flow Management Integration', () => {
       ]
     };
     
-    tauriAPI.invoke.mockImplementation(async (cmd, args) => {
+    vi.mocked(tauriAPI.invoke).mockImplementation(async (cmd: string, args?: any) => {
       if (cmd === 'run_flow') {
         return { id: args.flowId, status: 'running' };
       }
@@ -118,7 +118,7 @@ describe('Flow Management Integration', () => {
     };
     
     // Mock file operations
-    tauriAPI.invoke.mockImplementation(async (cmd, args) => {
+    vi.mocked(tauriAPI.invoke).mockImplementation(async (cmd: string, args?: any) => {
       if (cmd === 'run_flow') {
         // Simulate file creation during flow execution
         fileSystemMock._setFile(args.steps[0].path, args.steps[0].content);
@@ -156,7 +156,7 @@ describe('Flow Management Integration', () => {
 
   it('should handle error states gracefully', async () => {
     // Setup API to fail
-    tauriAPI.invoke.mockRejectedValueOnce(new Error('API Error'));
+    vi.mocked(tauriAPI.invoke).mockRejectedValueOnce(new Error('API Error'));
     
     render(MockFlowManager);
     
@@ -185,7 +185,7 @@ describe('Flow Management Integration', () => {
     });
     
     // Verify state is maintained
-    expect(nameInput.value).toBe('State Test Flow');
+    expect((nameInput as HTMLInputElement).value).toBe('State Test Flow');
     
     // Run the flow
     const runButton = screen.getByText('Run Flow');

@@ -21,7 +21,7 @@ import {
 import { writable } from 'svelte/store';
 
 // Mock the metrics service
-vi.mock('$lib/services/metrics', () => {
+vi.mock('$lib/services/metrics', async () => {
   const mockMetrics = {
     timestamp: Date.now(),
     cpu: { usage: 45.5, temperature: 65, cores: 8, frequency: 2400 },
