@@ -119,20 +119,47 @@ impl MuxBackend for TmuxBackend {
             session_id, split
         );
         let manager = self.tmux_manager.lock().await;
-        // TmuxManager's create_pane takes session and optional command
-        // TODO: Handle split type properly
-        if !matches!(split, SplitType::None) {
-            warn!(
-                "Split type {:?} not yet implemented, using default split",
-                split
-            );
+        
+        match split {
+            SplitType::None => {
+                // Use the existing create_pane method for simple pane creation
+                let pane = manager.create_pane(session_id, None).map_err(|e| {
+                    error!("Failed to create pane in session '{}': {:?}", session_id, e);
+                    Self::convert_error(e)
+                })?;
+                info!("Successfully created pane: {}", pane.id);
+                Ok(pane.id)
+            }
+            SplitType::Horizontal | SplitType::Vertical => {
+                // For split types, we need to find an existing pane to split
+                // First, get the current panes in the session to find a target
+                let target_pane = self.tmux_command(vec![
+                    "list-panes", 
+                    "-t", session_id, 
+                    "-F", "#{pane_id}"
+                ]).await.map_err(|e| {
+                    error!("Failed to list panes in session '{}': {:?}", session_id, e);
+                    e
+                })?;
+                
+                // Use the first pane as target (or session if no panes exist)
+                let target = if target_pane.is_empty() {
+                    session_id.to_string()
+                } else {
+                    target_pane.lines().next().unwrap_or(session_id).to_string()
+                };
+                
+                // Use split_pane for horizontal/vertical splits
+                let horizontal = matches!(split, SplitType::Horizontal);
+                let split_result = manager.split_pane(&target, horizontal, None, None).map_err(|e| {
+                    error!("Failed to split pane in session '{}': {:?}", session_id, e);
+                    Self::convert_error(e)
+                })?;
+                
+                info!("Successfully created split pane: {}", split_result.pane_id);
+                Ok(split_result.pane_id)
+            }
         }
-        let pane = manager.create_pane(session_id, None).map_err(|e| {
-            error!("Failed to create pane in session '{}': {:?}", session_id, e);
-            Self::convert_error(e)
-        })?;
-        info!("Successfully created pane: {}", pane.id);
-        Ok(pane.id)
     }
 
     async fn send_keys(&self, pane_id: &str, keys: &str) -> Result<(), MuxError> {
