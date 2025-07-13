@@ -85,7 +85,7 @@
     </div>
   {:else}
     <div class="module-list">
-      {#each modules as module}
+      {#each modules as module (module.id)}
         <div class="module-card">
           <div class="module-header">
             <div class="module-title">
@@ -116,7 +116,7 @@
               <div class="module-permissions">
                 <span class="label">Permissions:</span>
                 <div class="permission-list">
-                  {#each module.permissions as permission}
+                  {#each module.permissions as permission (permission)}
                     <span class="permission" title={permission}>
                       {getPermissionIcon(permission)}
                     </span>
@@ -129,7 +129,7 @@
           {#if module.dependencies.length > 0}
             <div class="module-dependencies">
               <span class="label">Dependencies:</span>
-              {#each module.dependencies as dep}
+              {#each module.dependencies as dep (dep.name)}
                 <span class="dependency">{dep.name}@{dep.version}</span>
               {/each}
             </div>

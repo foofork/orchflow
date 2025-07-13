@@ -4,11 +4,11 @@ import { vi } from 'vitest';
  * Mock Tauri window API
  */
 export function createMockWindow() {
-  const listeners = new Map<string, Set<Function>>();
+  const listeners = new Map<string, Set<(...args: any[]) => void>>();
   
   return {
     appWindow: {
-      listen: vi.fn((event: string, handler: Function) => {
+      listen: vi.fn((event: string, handler: (...args: any[]) => void) => {
         if (!listeners.has(event)) {
           listeners.set(event, new Set());
         }
@@ -79,7 +79,7 @@ export function createMockWindow() {
   
   const mockWindow = {
     appWindow: {
-      listen: vi.fn((event: string, handler: Function) => {
+      listen: vi.fn((event: string, handler: (...args: any[]) => void) => {
         if (!listeners.has(event)) {
           listeners.set(event, new Set());
         }

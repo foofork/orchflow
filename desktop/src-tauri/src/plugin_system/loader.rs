@@ -106,6 +106,7 @@ impl PluginLoader {
             updated_at: chrono::Utc::now(),
             state: PluginState::Installed,
             error: None,
+            activation_events: manifest.activation_events.clone(),
         };
         
         // Load plugin based on type
@@ -184,11 +185,46 @@ impl PluginLoader {
         main_path: &Path,
         manifest: &PluginManifest,
     ) -> Result<Box<dyn Plugin>> {
-        // TODO: Implement WASM loading
-        Err(OrchflowError::Plugin {
-            plugin_id: metadata.id.clone(),
-            reason: "WebAssembly plugins not yet supported".to_string(),
-        })
+        use wasmtime::*;
+        
+        // Read WASM binary
+        let wasm_bytes = tokio::fs::read(main_path).await
+            .map_err(|e| OrchflowError::Plugin {
+                plugin_id: metadata.id.clone(),
+                reason: format!("Failed to read WASM file: {}", e),
+            })?;
+        
+        // Create Wasmtime engine and store
+        let engine = Engine::default();
+        let mut store = Store::new(&engine, ());
+        
+        // Compile the WASM module
+        let module = Module::from_binary(&engine, &wasm_bytes)
+            .map_err(|e| OrchflowError::Plugin {
+                plugin_id: metadata.id.clone(),
+                reason: format!("Failed to compile WASM module: {}", e),
+            })?;
+        
+        // Create instance
+        let instance = Instance::new(&mut store, &module, &[])
+            .map_err(|e| OrchflowError::Plugin {
+                plugin_id: metadata.id.clone(),
+                reason: format!("Failed to instantiate WASM module: {}", e),
+            })?;
+        
+        // Create WASM runtime implementation
+        let wasm_runtime = WasmRuntimeImpl::new(engine, store, module, instance)?;
+        
+        // Create plugin instance
+        let plugin = BasePlugin::new(
+            metadata,
+            PluginRuntime::WebAssembly {
+                module: Box::new(wasm_runtime),
+            },
+        );
+        
+        info!("Loaded WASM plugin: {} v{}", manifest.name, manifest.version);
+        Ok(Box::new(plugin))
     }
     
     /// Load native plugin
@@ -198,11 +234,52 @@ impl PluginLoader {
         main_path: &Path,
         manifest: &PluginManifest,
     ) -> Result<Box<dyn Plugin>> {
-        // TODO: Implement native plugin loading
-        Err(OrchflowError::Plugin {
-            plugin_id: metadata.id.clone(),
-            reason: "Native plugins not yet supported".to_string(),
-        })
+        use libloading::{Library, Symbol};
+        
+        // Load the dynamic library
+        let library = unsafe { Library::new(main_path) }
+            .map_err(|e| OrchflowError::Plugin {
+                plugin_id: metadata.id.clone(),
+                reason: format!("Failed to load native library: {}", e),
+            })?;
+        
+        // Look for plugin initialization function
+        // Standard plugin exports: orchflow_plugin_init, plugin_init, or init
+        let init_fn_result = unsafe {
+            library.get::<Symbol<extern "C" fn() -> *const std::os::raw::c_char>>(b"orchflow_plugin_init")
+                .or_else(|_| library.get::<Symbol<extern "C" fn() -> *const std::os::raw::c_char>>(b"plugin_init"))
+                .or_else(|_| library.get::<Symbol<extern "C" fn() -> *const std::os::raw::c_char>>(b"init"))
+        };
+        
+        // Call initialization function if it exists
+        if let Ok(init_fn) = init_fn_result {
+            let result_ptr = init_fn();
+            if !result_ptr.is_null() {
+                let result_cstr = unsafe { std::ffi::CStr::from_ptr(result_ptr) };
+                if let Ok(result_str) = result_cstr.to_str() {
+                    if result_str != "ok" && !result_str.is_empty() {
+                        return Err(OrchflowError::Plugin {
+                            plugin_id: metadata.id.clone(),
+                            reason: format!("Plugin initialization failed: {}", result_str),
+                        });
+                    }
+                }
+            }
+        }
+        
+        // Create native runtime implementation
+        let native_runtime = NativeRuntimeImpl::new(library, manifest.permissions.clone())?;
+        
+        // Create plugin instance
+        let plugin = BasePlugin::new(
+            metadata,
+            PluginRuntime::Native {
+                library: Box::new(native_runtime),
+            },
+        );
+        
+        info!("Loaded native plugin: {} v{}", manifest.name, manifest.version);
+        Ok(Box::new(plugin))
     }
     
     /// Get loaded plugins
@@ -296,6 +373,150 @@ impl crate::plugin_system::plugin::JavaScriptRuntime for JavaScriptRuntimeImpl {
         );
         
         self.eval(&code)
+    }
+}
+
+/// WebAssembly runtime implementation using Wasmtime
+struct WasmRuntimeImpl {
+    engine: wasmtime::Engine,
+    store: wasmtime::Store<()>,
+    module: wasmtime::Module,
+    instance: wasmtime::Instance,
+}
+
+impl WasmRuntimeImpl {
+    fn new(
+        engine: wasmtime::Engine,
+        store: wasmtime::Store<()>,
+        module: wasmtime::Module,
+        instance: wasmtime::Instance,
+    ) -> Result<Self> {
+        Ok(Self {
+            engine,
+            store,
+            module,
+            instance,
+        })
+    }
+}
+
+impl crate::plugin_system::plugin::WasmModule for WasmRuntimeImpl {
+    fn call(&mut self, export: &str, args: &[wasmtime::Val]) -> Result<Vec<wasmtime::Val>> {
+        // Get the exported function
+        let func = self.instance
+            .get_func(&mut self.store, export)
+            .ok_or_else(|| OrchflowError::Plugin {
+                plugin_id: "wasm".to_string(),
+                reason: format!("Export '{}' not found", export),
+            })?;
+        
+        // Call the function
+        let mut results = vec![wasmtime::Val::I32(0); func.ty(&self.store).results().len()];
+        func.call(&mut self.store, args, &mut results)
+            .map_err(|e| OrchflowError::Plugin {
+                plugin_id: "wasm".to_string(),
+                reason: format!("WASM function call failed: {}", e),
+            })?;
+        
+        Ok(results)
+    }
+}
+
+/// Native library runtime implementation using libloading
+struct NativeRuntimeImpl {
+    library: libloading::Library,
+    permissions: Vec<crate::plugin_system::manifest::PluginPermission>,
+}
+
+impl NativeRuntimeImpl {
+    fn new(
+        library: libloading::Library,
+        permissions: Vec<crate::plugin_system::manifest::PluginPermission>,
+    ) -> Result<Self> {
+        Ok(Self {
+            library,
+            permissions,
+        })
+    }
+    
+    /// Check if the plugin has required permission
+    fn check_permission(&self, required: &str) -> bool {
+        // Check if plugin has the required permission
+        self.permissions.iter().any(|perm| {
+            match perm {
+                crate::plugin_system::manifest::PluginPermission::FileSystem => required == "filesystem",
+                crate::plugin_system::manifest::PluginPermission::Network => required == "network", 
+                crate::plugin_system::manifest::PluginPermission::Terminal => required == "terminal",
+                crate::plugin_system::manifest::PluginPermission::System => required == "system",
+            }
+        })
+    }
+}
+
+impl crate::plugin_system::plugin::NativeLibrary for NativeRuntimeImpl {
+    fn call(&self, function: &str, args: serde_json::Value) -> Result<serde_json::Value> {
+        use libloading::Symbol;
+        
+        // Look for the function with different naming conventions
+        let function_result = unsafe {
+            // Try exact name first
+            self.library.get::<Symbol<extern "C" fn(*const std::os::raw::c_char) -> *const std::os::raw::c_char>>(function.as_bytes())
+                // Try with orchflow_ prefix
+                .or_else(|_| {
+                    let prefixed_name = format!("orchflow_{}", function);
+                    self.library.get::<Symbol<extern "C" fn(*const std::os::raw::c_char) -> *const std::os::raw::c_char>>(prefixed_name.as_bytes())
+                })
+                // Try with plugin_ prefix
+                .or_else(|_| {
+                    let prefixed_name = format!("plugin_{}", function);
+                    self.library.get::<Symbol<extern "C" fn(*const std::os::raw::c_char) -> *const std::os::raw::c_char>>(prefixed_name.as_bytes())
+                })
+        };
+        
+        match function_result {
+            Ok(func) => {
+                // Convert JSON args to C string
+                let args_str = serde_json::to_string(&args)
+                    .map_err(|e| OrchflowError::Plugin {
+                        plugin_id: "native".to_string(),
+                        reason: format!("Failed to serialize arguments: {}", e),
+                    })?;
+                
+                let args_cstr = std::ffi::CString::new(args_str)
+                    .map_err(|e| OrchflowError::Plugin {
+                        plugin_id: "native".to_string(),
+                        reason: format!("Failed to create C string: {}", e),
+                    })?;
+                
+                // Call the function
+                let result_ptr = func(args_cstr.as_ptr());
+                
+                if result_ptr.is_null() {
+                    return Ok(serde_json::Value::Null);
+                }
+                
+                // Convert result back to JSON
+                let result_cstr = unsafe { std::ffi::CStr::from_ptr(result_ptr) };
+                let result_str = result_cstr.to_str()
+                    .map_err(|e| OrchflowError::Plugin {
+                        plugin_id: "native".to_string(),
+                        reason: format!("Invalid UTF-8 in result: {}", e),
+                    })?;
+                
+                // Parse JSON result
+                serde_json::from_str(result_str)
+                    .map_err(|e| OrchflowError::Plugin {
+                        plugin_id: "native".to_string(),
+                        reason: format!("Failed to parse result JSON: {}", e),
+                    })
+            }
+            Err(_) => {
+                Err(OrchflowError::Plugin {
+                    plugin_id: "native".to_string(),
+                    reason: format!("Function '{}' not found in native plugin", function),
+                })
+            }
+        }
     }
 }
 

@@ -12,6 +12,7 @@ pub mod pty_manager;
 mod simple_tests;
 pub mod state;
 
+pub use buffer::{ScrollbackBuffer, ScrollbackLine};
 pub use ipc_trait::{IpcChannel, TauriIpcChannel};
 pub use protocol::{ControlMessage, TerminalInput, TerminalMetadata};
 pub use pty_manager::{PtyHandle, PtyManager};
@@ -26,6 +27,7 @@ pub struct TerminalStreamManager {
     ipc_channel: Arc<dyn IpcChannel>,
     terminals: Arc<RwLock<std::collections::HashMap<String, TerminalState>>>,
     pty_handles: Arc<RwLock<std::collections::HashMap<String, PtyHandle>>>,
+    scrollback_buffers: Arc<RwLock<std::collections::HashMap<String, ScrollbackBuffer>>>,
 }
 
 impl TerminalStreamManager {
@@ -38,6 +40,7 @@ impl TerminalStreamManager {
             ipc_channel,
             terminals: Arc::new(RwLock::new(std::collections::HashMap::new())),
             pty_handles: Arc::new(RwLock::new(std::collections::HashMap::new())),
+            scrollback_buffers: Arc::new(RwLock::new(std::collections::HashMap::new())),
         }
     }
 
@@ -73,6 +76,13 @@ impl TerminalStreamManager {
             .write()
             .await
             .insert(terminal_id.clone(), pty_handle.clone());
+
+        // Create scrollback buffer for this terminal
+        let scrollback_buffer = ScrollbackBuffer::with_default_size();
+        self.scrollback_buffers
+            .write()
+            .await
+            .insert(terminal_id.clone(), scrollback_buffer);
 
         // Start streaming
         self.ipc_channel
@@ -228,6 +238,66 @@ impl TerminalStreamManager {
         .await?;
 
         Ok(())
+    }
+
+    /// Add output to terminal scrollback buffer
+    pub async fn add_terminal_output(&self, terminal_id: &str, data: &[u8]) -> Result<(), crate::error::OrchflowError> {
+        if let Some(scrollback_buffer) = self.scrollback_buffers.read().await.get(terminal_id) {
+            scrollback_buffer.add_output(data).await;
+            Ok(())
+        } else {
+            Err(crate::error::OrchflowError::TerminalError {
+                operation: "add_terminal_output".to_string(),
+                reason: format!("Terminal {} scrollback buffer not found", terminal_id),
+            })
+        }
+    }
+
+    /// Search terminal scrollback buffer
+    pub async fn search_terminal_scrollback(
+        &self,
+        terminal_id: &str,
+        pattern: &str,
+        case_sensitive: bool,
+    ) -> Result<Vec<(usize, ScrollbackLine)>, crate::error::OrchflowError> {
+        if let Some(scrollback_buffer) = self.scrollback_buffers.read().await.get(terminal_id) {
+            Ok(scrollback_buffer.search(pattern, case_sensitive).await)
+        } else {
+            Err(crate::error::OrchflowError::TerminalError {
+                operation: "search_terminal_scrollback".to_string(),
+                reason: format!("Terminal {} scrollback buffer not found", terminal_id),
+            })
+        }
+    }
+
+    /// Get terminal scrollback lines
+    pub async fn get_terminal_scrollback(
+        &self,
+        terminal_id: &str,
+        start: usize,
+        count: usize,
+    ) -> Result<Vec<ScrollbackLine>, crate::error::OrchflowError> {
+        if let Some(scrollback_buffer) = self.scrollback_buffers.read().await.get(terminal_id) {
+            Ok(scrollback_buffer.get_lines(start, count).await)
+        } else {
+            Err(crate::error::OrchflowError::TerminalError {
+                operation: "get_terminal_scrollback".to_string(),
+                reason: format!("Terminal {} scrollback buffer not found", terminal_id),
+            })
+        }
+    }
+
+    /// Clear terminal scrollback buffer
+    pub async fn clear_terminal_scrollback(&self, terminal_id: &str) -> Result<(), crate::error::OrchflowError> {
+        if let Some(scrollback_buffer) = self.scrollback_buffers.read().await.get(terminal_id) {
+            scrollback_buffer.clear().await;
+            Ok(())
+        } else {
+            Err(crate::error::OrchflowError::TerminalError {
+                operation: "clear_terminal_scrollback".to_string(),
+                reason: format!("Terminal {} scrollback buffer not found", terminal_id),
+            })
+        }
     }
 }
 

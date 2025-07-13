@@ -154,7 +154,7 @@ class TestMigrator {
     });
 
     // Filter out candidates that already have integration tests
-    this.migrationQueue = this.migrationQueue.filter(_candidate => {
+    this.migrationQueue = this.migrationQueue.filter(candidate => {
       const integrationTestPath = this.getIntegrationTestPath(candidate.path);
       const exists = existsSync(join(projectRoot, integrationTestPath));
       
@@ -197,10 +197,10 @@ class TestMigrator {
       try {
         await this.migrateTest(_candidate);
       } catch (_error) {
-        console.error(`❌ Failed to migrate ${candidate.path}:`, error.message);
+        console.error(`❌ Failed to migrate ${_candidate.path}:`, _error.message);
         this.migrationResults.failed.push({
-          ...candidate,
-          error: error.message
+          ..._candidate,
+          error: _error.message
         });
       }
     }

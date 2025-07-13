@@ -97,12 +97,12 @@ class TestAuditor {
     try {
       scanDirectory(join(projectRoot, 'tests/e2e'), 'e2e');
     } catch (error) {
-      console.log('ℹ️  No E2E tests directory found');
+      console.warn('ℹ️  No E2E tests directory found');
     }
   }
 
   scanSourceFiles() {
-    console.log('📂 Scanning source files...');
+    console.warn('📂 Scanning source files...');
     
     const scanDirectory = (dir) => {
       try {
@@ -262,7 +262,7 @@ class TestAuditor {
   }
 
   identifyMigrationCandidates() {
-    console.log('🔄 Identifying migration candidates...');
+    console.warn('🔄 Identifying migration candidates...');
     
     // Find unit tests that should be integration tests
     const candidates = this.unitTests.filter(test => {
@@ -306,7 +306,7 @@ class TestAuditor {
   }
 
   analyzeCoverageGaps() {
-    console.log('📊 Analyzing coverage gaps...');
+    console.warn('📊 Analyzing coverage gaps...');
     
     const untestedFiles = this.sourceFiles.filter(file => !file.hasTestFile.hasAnyTest);
     const complexFilesWithoutTests = this.sourceFiles.filter(file => 
@@ -326,7 +326,7 @@ class TestAuditor {
   }
 
   calculateQualityMetrics() {
-    console.log('📈 Calculating quality metrics...');
+    console.warn('📈 Calculating quality metrics...');
     
     const totalTests = this.unitTests.length + this.integrationTests.length + this.e2eTests.length;
     const avgTestComplexity = totalTests > 0 ? 

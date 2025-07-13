@@ -299,6 +299,100 @@ impl SyntaxPlugin {
         }
     }
 
+    /// Get folding ranges for code blocks
+    fn get_folding_ranges(&mut self, language: &str, code: &str) -> Result<Vec<Value>, String> {
+        let lang = self
+            .languages
+            .get(language)
+            .ok_or_else(|| format!("Language not supported: {}", language))?;
+
+        // Get or create parser for language
+        let parser = self.parsers.entry(language.to_string()).or_insert_with(|| {
+            let mut parser = Parser::new();
+            parser.set_language(lang).unwrap();
+            parser
+        });
+
+        let tree = parser.parse(code, None).ok_or("Failed to parse code")?;
+        let mut ranges = Vec::new();
+
+        // Walk the tree and find foldable nodes
+        let cursor = tree.walk();
+        self.find_folding_ranges(cursor.node(), code, &mut ranges);
+
+        Ok(ranges)
+    }
+
+    /// Find foldable ranges in the syntax tree
+    fn find_folding_ranges(&self, node: Node, source: &str, ranges: &mut Vec<Value>) {
+        let node_kind = node.kind();
+        let start_pos = node.start_position();
+        let end_pos = node.end_position();
+
+        // Only consider nodes that span multiple lines
+        if end_pos.row > start_pos.row {
+            let is_foldable = match node_kind {
+                // Block-like structures
+                "block" | "compound_statement" | "statement_block" |
+                // Function definitions
+                "function_item" | "function_declaration" | "method_definition" |
+                "impl_item" | "trait_item" | "mod_item" |
+                // Control structures
+                "if_expression" | "match_expression" | "for_expression" | "while_expression" | "loop_expression" |
+                // Data structures
+                "struct_item" | "enum_item" | "union_item" |
+                // Arrays and objects
+                "array_expression" | "object_expression" | "array_literal" | "object_literal" |
+                // Modules and namespaces
+                "module" | "namespace_declaration" |
+                // Classes (for languages that have them)
+                "class_declaration" | "class_definition" | "interface_declaration" |
+                // Multi-line comments
+                "block_comment" | "multiline_comment" |
+                // Import/export blocks
+                "use_list" | "use_declaration" |
+                // Generic blocks that have braces
+                "declaration_list" | "field_declaration_list" | "variant_list" |
+                // Lambda/closure expressions
+                "closure_expression" | "lambda_expression" |
+                // Try/catch blocks
+                "try_expression" | "catch_clause" |
+                // Switch/match arms
+                "match_arm_list" | "switch_statement" => true,
+                
+                _ => false,
+            };
+
+            if is_foldable {
+                // For LSP folding ranges, we need start and end lines
+                // Some editors expect the end line to be the last line with content
+                let folding_range = json!({
+                    "startLine": start_pos.row,
+                    "startCharacter": start_pos.column,
+                    "endLine": end_pos.row,
+                    "endCharacter": end_pos.column,
+                    "kind": self.get_folding_kind(node_kind)
+                });
+                
+                ranges.push(folding_range);
+            }
+        }
+
+        // Recursively check children
+        for child in node.children(&mut node.walk()) {
+            self.find_folding_ranges(child, source, ranges);
+        }
+    }
+
+    /// Get the folding range kind for LSP
+    fn get_folding_kind(&self, node_kind: &str) -> &'static str {
+        match node_kind {
+            "block_comment" | "multiline_comment" => "comment",
+            "use_list" | "use_declaration" => "imports",
+            _ => "region", // Default to region for code blocks
+        }
+    }
+
     /// Get semantic tokens for LSP
     fn get_semantic_tokens(&mut self, language: &str, code: &str) -> Result<Vec<Value>, String> {
         let highlights = self.highlight_code(language, code)?;
@@ -399,8 +493,21 @@ impl Plugin for SyntaxPlugin {
 
     async fn handle_event(&mut self, event: &Event) -> Result<(), String> {
         match event {
-            // For now, we don't handle any specific events
-            // TODO: Add proper event handling when needed
+            // Handle file-related events that require syntax highlighting
+            Event::FileOpened { path, pane_id } => {
+                self.handle_file_opened(path, pane_id).await?;
+            }
+            Event::FileChanged { path } => {
+                self.handle_file_changed(path).await?;
+            }
+            Event::FileSaved { path } => {
+                self.handle_file_saved(path).await?;
+            }
+            // Handle other events that might affect syntax highlighting
+            Event::PaneResized { pane_id, width, height } => {
+                self.handle_pane_resized(pane_id, *width, *height).await?;
+            }
+            // Ignore events that don't affect syntax highlighting
             _ => {}
         }
         Ok(())
@@ -477,13 +584,13 @@ impl Plugin for SyntaxPlugin {
             }
 
             "syntax.getFoldingRanges" => {
-                let _code = params["code"].as_str().ok_or("Missing code parameter")?;
-                let _language = params["language"]
+                let code = params["code"].as_str().ok_or("Missing code parameter")?;
+                let language = params["language"]
                     .as_str()
                     .ok_or("Missing language parameter")?;
 
-                // TODO: Implement folding range detection
-                Ok(json!({ "ranges": [] }))
+                let ranges = self.get_folding_ranges(language, code)?;
+                Ok(json!({ "ranges": ranges }))
             }
 
             _ => Err(format!("Unknown method: {}", method)),
@@ -492,6 +599,61 @@ impl Plugin for SyntaxPlugin {
 
     async fn shutdown(&mut self) -> Result<(), String> {
         self.parsers.clear();
+        Ok(())
+    }
+}
+
+// Additional implementation for event handling helpers
+impl SyntaxPlugin {
+    /// Handle file opened event - set up syntax highlighting for the file
+    async fn handle_file_opened(&mut self, path: &str, pane_id: &str) -> Result<(), String> {
+        tracing::info!("Setting up syntax highlighting for file: {} in pane: {}", path, pane_id);
+        
+        // Detect language from file extension
+        if let Some(language) = self.get_language_for_file(path) {
+            tracing::debug!("Detected language '{}' for file: {}", language, path);
+            
+            // Store the file-pane association for future reference
+            // This could be used to track which files are open in which panes
+            // For now, we just log the association
+            tracing::debug!("File '{}' opened in pane '{}' with language '{}'", path, pane_id, language);
+        } else {
+            tracing::debug!("No syntax highlighting available for file: {}", path);
+        }
+        
+        Ok(())
+    }
+
+    /// Handle file changed event - refresh syntax highlighting if needed
+    async fn handle_file_changed(&mut self, path: &str) -> Result<(), String> {
+        tracing::debug!("File changed, may need to refresh syntax highlighting: {}", path);
+        
+        // For now, we just log the change
+        // In a full implementation, this might trigger re-highlighting
+        // if the file is currently being displayed
+        
+        Ok(())
+    }
+
+    /// Handle file saved event - update syntax highlighting if needed
+    async fn handle_file_saved(&mut self, path: &str) -> Result<(), String> {
+        tracing::debug!("File saved, updating syntax highlighting: {}", path);
+        
+        // For now, we just log the save
+        // In a full implementation, this might trigger re-highlighting
+        // to catch any syntax changes
+        
+        Ok(())
+    }
+
+    /// Handle pane resized event - adjust syntax highlighting display if needed
+    async fn handle_pane_resized(&mut self, pane_id: &str, width: u32, height: u32) -> Result<(), String> {
+        tracing::debug!("Pane '{}' resized to {}x{}, may need to adjust syntax highlighting display", pane_id, width, height);
+        
+        // For now, we just log the resize
+        // In a full implementation, this might trigger re-rendering
+        // of syntax highlighting to fit the new pane size
+        
         Ok(())
     }
 }

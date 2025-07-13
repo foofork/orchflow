@@ -65,8 +65,20 @@ impl PluginManager {
     
     /// Check if plugin should be auto-activated
     async fn should_auto_activate(&self, plugin_id: &str) -> bool {
-        // TODO: Check manifest for activation events
-        false
+        // Get the plugin from the loader and check its activation events
+        let plugins = self.plugins.read().await;
+        if let Some(plugin) = plugins.get(plugin_id) {
+            let plugin_lock = plugin.read().await;
+            let metadata = plugin_lock.metadata();
+            
+            // Check if plugin has onStartup activation event or wildcard
+            metadata.activation_events.iter().any(|event| {
+                event == "onStartup" || event == "*"
+            })
+        } else {
+            // If plugin not loaded yet, try to get activation events from manifest on disk
+            self.check_manifest_for_startup_activation(plugin_id).await
+        }
     }
     
     /// Install a plugin from path
@@ -287,10 +299,81 @@ impl PluginManager {
         Ok(())
     }
     
+    /// Check manifest on disk for startup activation events
+    async fn check_manifest_for_startup_activation(&self, plugin_id: &str) -> bool {
+        let plugin_path = self.plugin_dir.join(plugin_id);
+        let manifest_path = plugin_path.join("plugin.json");
+        
+        match PluginManifest::from_file(&manifest_path).await {
+            Ok(manifest) => {
+                manifest.activation_events.iter().any(|event| {
+                    event == "onStartup" || event == "*"
+                })
+            }
+            Err(_) => false,
+        }
+    }
+    
     /// Get plugins that should be activated for an event
     async fn get_plugins_for_event(&self, event: &str) -> Vec<String> {
-        // TODO: Check plugin manifests for activation events
-        Vec::new()
+        let mut matching_plugins = Vec::new();
+        let plugins = self.plugins.read().await;
+        
+        for (plugin_id, plugin) in plugins.iter() {
+            let plugin_lock = plugin.read().await;
+            let metadata = plugin_lock.metadata();
+            
+            // Check if plugin should be activated for this event
+            if self.should_activate_for_event(&metadata.activation_events, event) {
+                matching_plugins.push(plugin_id.clone());
+            }
+        }
+        
+        matching_plugins
+    }
+    
+    /// Check if activation events match the given event
+    fn should_activate_for_event(&self, activation_events: &[String], event: &str) -> bool {
+        activation_events.iter().any(|activation_event| {
+            // Handle wildcard activation
+            if activation_event == "*" {
+                return true;
+            }
+            
+            // Handle exact matches
+            if activation_event == event {
+                return true;
+            }
+            
+            // Handle pattern-based activation events
+            match event {
+                e if e.starts_with("onCommand:") => {
+                    activation_event.starts_with("onCommand:") && 
+                    (activation_event == e || activation_event == "onCommand:")
+                }
+                e if e.starts_with("onLanguage:") => {
+                    activation_event.starts_with("onLanguage:") &&
+                    (activation_event == e || activation_event == "onLanguage:")
+                }
+                e if e.starts_with("onFileSystem:") => {
+                    activation_event.starts_with("onFileSystem:") &&
+                    (activation_event == e || activation_event == "onFileSystem:")
+                }
+                e if e.starts_with("onView:") => {
+                    activation_event.starts_with("onView:") &&
+                    (activation_event == e || activation_event == "onView:")
+                }
+                e if e.starts_with("onUri:") => {
+                    activation_event.starts_with("onUri:") &&
+                    (activation_event == e || activation_event == "onUri:")
+                }
+                e if e.starts_with("onWebviewPanel:") => {
+                    activation_event.starts_with("onWebviewPanel:") &&
+                    (activation_event == e || activation_event == "onWebviewPanel:")
+                }
+                _ => false,
+            }
+        })
     }
     
     /// Subscribe plugin to events

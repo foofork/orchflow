@@ -3,12 +3,23 @@ mod tests {
     use super::*;
     use crate::error::Result;
     use crate::terminal_stream::{TerminalState, TerminalStreamManager};
+    use std::collections::HashMap;
+    use std::sync::Arc;
+    use tokio::sync::RwLock;
 
     // Mock app handle for tests
-    fn mock_app_handle() -> tauri::AppHandle {
-        // This won't work in unit tests as Tauri requires runtime
-        // We'll need to use integration tests or feature flags
-        unimplemented!("Tauri app handle requires runtime context")
+    fn mock_app_handle() -> Option<tauri::AppHandle> {
+        // Return None for unit tests - this indicates no Tauri runtime available
+        // Tests that need an AppHandle should be integration tests or use feature flags
+        None
+    }
+    
+    /// Create mock components for testing terminal functionality
+    /// without requiring a full TerminalStreamManager
+    fn create_test_components() -> (Arc<RwLock<HashMap<String, TerminalState>>>, String) {
+        let terminals = Arc::new(RwLock::new(HashMap::new()));
+        let test_id = "test_terminal_123".to_string();
+        (terminals, test_id)
     }
 
     #[test]
@@ -29,6 +40,41 @@ mod tests {
 
         assert_eq!(state.cols, 100);
         assert_eq!(state.rows, 30);
+    }
+    
+    #[tokio::test]
+    async fn test_terminal_state_management() {
+        let (terminals, test_id) = create_test_components();
+        
+        // Test adding a terminal state
+        {
+            let mut terminals_lock = terminals.write().await;
+            let state = TerminalState::new(test_id.clone(), 80, 24);
+            terminals_lock.insert(test_id.clone(), state);
+        }
+        
+        // Test retrieving the terminal state
+        {
+            let terminals_lock = terminals.read().await;
+            let state = terminals_lock.get(&test_id).expect("Terminal should exist");
+            assert_eq!(state.id, test_id);
+            assert_eq!(state.cols, 80);
+            assert_eq!(state.rows, 24);
+            assert!(state.active);
+        }
+        
+        // Test removing the terminal state
+        {
+            let mut terminals_lock = terminals.write().await;
+            let removed = terminals_lock.remove(&test_id);
+            assert!(removed.is_some());
+        }
+        
+        // Verify terminal is gone
+        {
+            let terminals_lock = terminals.read().await;
+            assert!(!terminals_lock.contains_key(&test_id));
+        }
     }
 }
 

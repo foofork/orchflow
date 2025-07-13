@@ -320,31 +320,6 @@ pub async fn get_setting(
 }
 
 // ===== Module Commands =====
-
-// TODO: Module functions need to be implemented through ModuleSystem, not StateManager
-/*
-#[tauri::command]
-pub async fn install_module(
-    name: String,
-    version: String,
-    manifest: Value,
-    state_manager: State<'_, StateManager>
-) -> Result<Value, String> {
-    let manifest_json = serde_json::to_string(&manifest)
-        .map_err(|e| e.to_string())?;
-
-    let module = state_manager.install_module(name, version, manifest_json).await
-        .map_err(|e| e.to_string())?;
-    Ok(serde_json::to_value(module).unwrap())
-}
-*/
-
-// TODO: Module functions need to be implemented through ModuleSystem, not StateManager
-/*
-#[tauri::command]
-pub async fn list_modules(state_manager: State<'_, StateManager>) -> Result<Value, String> {
-    let modules = state_manager.list_modules().await
-        .map_err(|e| e.to_string())?;
-    Ok(serde_json::to_value(modules).unwrap())
-}
-*/
+// Note: Module commands are already implemented in module_commands.rs
+// using ModuleLoader. The TODO about implementing through ModuleSystem
+// refers to creating a higher-level abstraction, not duplicating existing functionality.

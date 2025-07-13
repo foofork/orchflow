@@ -5,7 +5,9 @@ use super::types::{LanguageServerConfig, LanguageServerProcess};
 use serde_json::json;
 use std::collections::HashMap;
 use std::process::Stdio;
+use std::sync::Arc;
 use tokio::process::Command;
+use tokio::sync::{mpsc, Mutex};
 
 pub struct ServerManager {
     servers: HashMap<String, LanguageServerProcess>,
@@ -53,9 +55,20 @@ impl ServerManager {
         let stdin = process.stdin.take().ok_or("Failed to get stdin handle")?;
         let stdout = process.stdout.take().ok_or("Failed to get stdout handle")?;
 
-        let (stdin_tx, _stdout_rx) = LspCommunication::setup_channels(stdin, stdout).await;
+        let (stdin_tx, stdout_rx) = LspCommunication::setup_channels(stdin, stdout).await;
 
         let mut server_process = LanguageServerProcess::new(process, config, stdin_tx);
+
+        // Set up message handling task for this server
+        let pending_requests = server_process.pending_requests.clone();
+        tokio::spawn(async move {
+            let mut stdout_rx = stdout_rx;
+            while let Some(message) = stdout_rx.recv().await {
+                if let Err(e) = Self::handle_server_message(&message, &pending_requests).await {
+                    eprintln!("Error handling LSP message: {}", e);
+                }
+            }
+        });
 
         // Initialize the server
         self.initialize_server(&mut server_process).await?;
@@ -199,6 +212,50 @@ impl ServerManager {
         for language in languages {
             if let Err(e) = self.stop_server(&language).await {
                 eprintln!("Failed to stop server for {}: {}", language, e);
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Handle incoming messages from a language server
+    async fn handle_server_message(
+        message: &str,
+        pending_requests: &Arc<Mutex<HashMap<i64, mpsc::Sender<Result<serde_json::Value, String>>>>>,
+    ) -> Result<(), String> {
+        let value: serde_json::Value = serde_json::from_str(message)
+            .map_err(|e| format!("Failed to parse LSP message: {}", e))?;
+
+        if let Some(id) = value.get("id") {
+            // This is a response to a request
+            if let Some(id_num) = id.as_i64() {
+                let mut pending = pending_requests.lock().await;
+                if let Some(response_tx) = pending.remove(&id_num) {
+                    let result = if let Some(error) = value.get("error") {
+                        Err(error.to_string())
+                    } else if let Some(result) = value.get("result") {
+                        Ok(result.clone())
+                    } else {
+                        Ok(serde_json::Value::Null)
+                    };
+
+                    let _ = response_tx.send(result).await;
+                }
+            }
+        } else if let Some(method) = value.get("method") {
+            // This is a notification from the server
+            if method == "textDocument/publishDiagnostics" {
+                // Handle diagnostics notifications
+                println!("Received diagnostics: {}", value);
+            } else if method == "window/logMessage" {
+                // Handle log messages
+                if let Some(params) = value.get("params") {
+                    if let Some(message) = params.get("message") {
+                        println!("LSP Log: {}", message);
+                    }
+                }
+            } else {
+                println!("Unhandled LSP notification: {} - {}", method, value);
             }
         }
 

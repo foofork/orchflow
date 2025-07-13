@@ -302,6 +302,11 @@ async fn main() {
             // Test parser commands
             test_parser_commands::parse_and_store_test_output,
             test_parser_commands::get_supported_test_frameworks,
+            test_parser_commands::get_test_runs,
+            test_parser_commands::get_test_run_summary,
+            test_parser_commands::get_test_results,
+            test_parser_commands::get_test_statistics,
+            test_parser_commands::cleanup_test_data,
             // Trash commands
             trash_commands::list_trash,
             trash_commands::get_trash_from_directory,

@@ -1,0 +1,13 @@
+{
+  "name": "desktop layout adapts to different window sizes",
+  "file": "tests/e2e/smoke/app-launch.test.ts",
+  "started": "2025-07-13T22:06:41.485Z",
+  "environment": {
+    "node": "v22.16.0",
+    "platform": "linux",
+    "ci": false
+  },
+  "completed": "2025-07-13T22:06:51.404Z",
+  "duration": 9920,
+  "status": "pass"
+}

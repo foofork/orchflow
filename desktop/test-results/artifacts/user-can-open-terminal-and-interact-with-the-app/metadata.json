@@ -1,0 +1,10 @@
+{
+  "name": "user can open terminal and interact with the app",
+  "file": "tests/e2e/smoke/app-launch.test.ts",
+  "started": "2025-07-13T22:07:32.800Z",
+  "environment": {
+    "node": "v22.16.0",
+    "platform": "linux",
+    "ci": false
+  }
+}

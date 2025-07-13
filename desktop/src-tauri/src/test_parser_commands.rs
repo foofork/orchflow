@@ -70,8 +70,10 @@ pub async fn parse_and_store_test_output(
     let mut failed = 0;
     let mut skipped = 0;
 
-    // Process test results without database storage for now
-    for result in parsed_results {
+    // Process test results and store them
+    let mut result_keys = Vec::new();
+    
+    for result in &parsed_results {
         total += 1;
         match &result.status {
             TestStatus::Passed => passed += 1,
@@ -80,7 +82,7 @@ pub async fn parse_and_store_test_output(
             TestStatus::Pending => skipped += 1,
         }
 
-        // TODO: Store test results using SimpleStateStore key-value store
+        // Store individual test results with structured keys
         let result_key = format!("test_result:{}:{}", request.run_id, result.test_name);
         let result_data = serde_json::to_string(&result).map_err(|e| {
             crate::error::OrchflowError::ValidationError {
@@ -91,7 +93,79 @@ pub async fn parse_and_store_test_output(
 
         if let Err(e) = state.set(&result_key, &result_data).await {
             eprintln!("Warning: Failed to store test result: {}", e);
+        } else {
+            result_keys.push(result_key);
         }
+    }
+
+    // Store test run summary
+    let summary_key = format!("test_summary:{}", request.run_id);
+    let summary = TestRunSummary {
+        run_id: request.run_id.clone(),
+        suite_id: request.suite_id.clone(),
+        framework: request.framework.clone(),
+        timestamp: chrono::Utc::now(),
+        total_tests: total,
+        passed_tests: passed,
+        failed_tests: failed,
+        skipped_tests: skipped,
+        duration_ms: parsed_results.iter()
+            .filter_map(|r| r.duration_ms)
+            .sum::<i32>(),
+    };
+
+    let summary_data = serde_json::to_string(&summary).map_err(|e| {
+        crate::error::OrchflowError::ValidationError {
+            field: "test_summary".to_string(),
+            reason: format!("Failed to serialize test summary: {}", e),
+        }
+    })?;
+
+    if let Err(e) = state.set(&summary_key, &summary_data).await {
+        eprintln!("Warning: Failed to store test summary: {}", e);
+    }
+
+    // Store test run list entry
+    let run_list_key = "test_runs";
+    let mut runs = get_test_runs_list(&state).await.unwrap_or_default();
+    runs.push(TestRunEntry {
+        run_id: request.run_id.clone(),
+        suite_id: request.suite_id.clone(),
+        framework: request.framework.clone(),
+        timestamp: chrono::Utc::now(),
+        total_tests: total,
+        passed_tests: passed,
+        failed_tests: failed,
+        skipped_tests: skipped,
+    });
+
+    // Keep only last 100 runs
+    if runs.len() > 100 {
+        runs = runs.into_iter().rev().take(100).rev().collect();
+    }
+
+    let runs_data = serde_json::to_string(&runs).map_err(|e| {
+        crate::error::OrchflowError::ValidationError {
+            field: "test_runs".to_string(),
+            reason: format!("Failed to serialize test runs: {}", e),
+        }
+    })?;
+
+    if let Err(e) = state.set(run_list_key, &runs_data).await {
+        eprintln!("Warning: Failed to store test runs list: {}", e);
+    }
+
+    // Store test result keys index
+    let keys_index_key = format!("test_result_keys:{}", request.run_id);
+    let keys_data = serde_json::to_string(&result_keys).map_err(|e| {
+        crate::error::OrchflowError::ValidationError {
+            field: "test_result_keys".to_string(),
+            reason: format!("Failed to serialize test result keys: {}", e),
+        }
+    })?;
+
+    if let Err(e) = state.set(&keys_index_key, &keys_data).await {
+        eprintln!("Warning: Failed to store test result keys index: {}", e);
     }
 
     Ok(ParseTestSummary {
@@ -104,6 +178,31 @@ pub async fn parse_and_store_test_output(
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ParseTestSummary {
+    pub total_tests: i32,
+    pub passed_tests: i32,
+    pub failed_tests: i32,
+    pub skipped_tests: i32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TestRunSummary {
+    pub run_id: String,
+    pub suite_id: String,
+    pub framework: String,
+    pub timestamp: chrono::DateTime<chrono::Utc>,
+    pub total_tests: i32,
+    pub passed_tests: i32,
+    pub failed_tests: i32,
+    pub skipped_tests: i32,
+    pub duration_ms: i32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TestRunEntry {
+    pub run_id: String,
+    pub suite_id: String,
+    pub framework: String,
+    pub timestamp: chrono::DateTime<chrono::Utc>,
     pub total_tests: i32,
     pub passed_tests: i32,
     pub failed_tests: i32,
@@ -344,4 +443,220 @@ pub struct TestFrameworkInfo {
     pub language: String,
     pub file_patterns: Vec<String>,
     pub command: String,
+}
+
+// Test result retrieval commands
+
+/// Get test run history
+#[tauri::command]
+pub async fn get_test_runs(
+    state: State<'_, Arc<crate::simple_state_store::SimpleStateStore>>,
+    limit: Option<i32>,
+) -> Result<Vec<TestRunEntry>> {
+    let runs = get_test_runs_list(&state).await.unwrap_or_default();
+    
+    let limit = limit.unwrap_or(20) as usize;
+    Ok(runs.into_iter().rev().take(limit).collect())
+}
+
+/// Get detailed test run summary
+#[tauri::command]
+pub async fn get_test_run_summary(
+    state: State<'_, Arc<crate::simple_state_store::SimpleStateStore>>,
+    run_id: String,
+) -> Result<Option<TestRunSummary>> {
+    let summary_key = format!("test_summary:{}", run_id);
+    
+    match state.get(&summary_key).await {
+        Ok(Some(data)) => {
+            match serde_json::from_str::<TestRunSummary>(&data) {
+                Ok(summary) => Ok(Some(summary)),
+                Err(e) => Err(crate::error::OrchflowError::ValidationError {
+                    field: "test_summary".to_string(),
+                    reason: format!("Failed to deserialize test summary: {}", e),
+                }),
+            }
+        }
+        Ok(None) => Ok(None),
+        Err(e) => Err(crate::error::OrchflowError::DatabaseError {
+            operation: "get_test_run_summary".to_string(),
+            reason: e.to_string(),
+        }),
+    }
+}
+
+/// Get individual test results for a run
+#[tauri::command]
+pub async fn get_test_results(
+    state: State<'_, Arc<crate::simple_state_store::SimpleStateStore>>,
+    run_id: String,
+    status_filter: Option<String>,
+) -> Result<Vec<ParsedTestResult>> {
+    let mut results = Vec::new();
+    
+    // Get all keys with the prefix (simulated since SimpleStateStore doesn't have prefix search)
+    // We'll iterate through common test name patterns or store an index
+    let keys = get_test_result_keys(&state, &run_id).await?;
+    
+    for key in keys {
+        if let Ok(Some(data)) = state.get(&key).await {
+            if let Ok(result) = serde_json::from_str::<ParsedTestResult>(&data) {
+                // Apply status filter if provided
+                if let Some(ref filter) = status_filter {
+                    if result.status.to_string() != filter.to_lowercase() {
+                        continue;
+                    }
+                }
+                results.push(result);
+            }
+        }
+    }
+    
+    Ok(results)
+}
+
+/// Get test statistics for a date range
+#[tauri::command]
+pub async fn get_test_statistics(
+    state: State<'_, Arc<crate::simple_state_store::SimpleStateStore>>,
+    days: Option<i32>,
+) -> Result<TestStatistics> {
+    let runs = get_test_runs_list(&state).await.unwrap_or_default();
+    let days = days.unwrap_or(7);
+    let cutoff_date = chrono::Utc::now() - chrono::Duration::days(days as i64);
+    
+    let recent_runs: Vec<_> = runs.iter()
+        .filter(|run| run.timestamp > cutoff_date)
+        .collect();
+    
+    let total_runs = recent_runs.len();
+    let total_tests: i32 = recent_runs.iter().map(|r| r.total_tests).sum();
+    let total_passed: i32 = recent_runs.iter().map(|r| r.passed_tests).sum();
+    let total_failed: i32 = recent_runs.iter().map(|r| r.failed_tests).sum();
+    let total_skipped: i32 = recent_runs.iter().map(|r| r.skipped_tests).sum();
+    
+    let pass_rate = if total_tests > 0 {
+        (total_passed as f64 / total_tests as f64) * 100.0
+    } else {
+        0.0
+    };
+    
+    Ok(TestStatistics {
+        total_runs: total_runs as i32,
+        total_tests,
+        total_passed,
+        total_failed,
+        total_skipped,
+        pass_rate,
+        period_days: days,
+    })
+}
+
+/// Delete old test data
+#[tauri::command]
+pub async fn cleanup_test_data(
+    state: State<'_, Arc<crate::simple_state_store::SimpleStateStore>>,
+    days_to_keep: Option<i32>,
+) -> Result<i32> {
+    let days_to_keep = days_to_keep.unwrap_or(30);
+    let cutoff_date = chrono::Utc::now() - chrono::Duration::days(days_to_keep as i64);
+    
+    let runs = get_test_runs_list(&state).await.unwrap_or_default();
+    let mut deleted_count = 0;
+    let mut kept_runs = Vec::new();
+    
+    for run in runs {
+        if run.timestamp > cutoff_date {
+            kept_runs.push(run);
+        } else {
+            // Delete test results for this run
+            let result_keys = get_test_result_keys(&state, &run.run_id).await?;
+            for key in result_keys {
+                if state.delete(&key).await.is_ok() {
+                    deleted_count += 1;
+                }
+            }
+            
+            // Delete summary
+            let summary_key = format!("test_summary:{}", run.run_id);
+            if state.delete(&summary_key).await.is_ok() {
+                deleted_count += 1;
+            }
+        }
+    }
+    
+    // Update runs list
+    let runs_data = serde_json::to_string(&kept_runs).map_err(|e| {
+        crate::error::OrchflowError::ValidationError {
+            field: "test_runs".to_string(),
+            reason: format!("Failed to serialize test runs: {}", e),
+        }
+    })?;
+    
+    state.set("test_runs", &runs_data).await.map_err(|e| {
+        crate::error::OrchflowError::DatabaseError {
+            operation: "cleanup_test_data".to_string(),
+            reason: e.to_string(),
+        }
+    })?;
+    
+    Ok(deleted_count)
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TestStatistics {
+    pub total_runs: i32,
+    pub total_tests: i32,
+    pub total_passed: i32,
+    pub total_failed: i32,
+    pub total_skipped: i32,
+    pub pass_rate: f64,
+    pub period_days: i32,
+}
+
+// Helper functions
+
+async fn get_test_runs_list(
+    state: &Arc<crate::simple_state_store::SimpleStateStore>
+) -> Result<Vec<TestRunEntry>> {
+    match state.get("test_runs").await {
+        Ok(Some(data)) => {
+            serde_json::from_str::<Vec<TestRunEntry>>(&data).map_err(|e| {
+                crate::error::OrchflowError::ValidationError {
+                    field: "test_runs".to_string(),
+                    reason: format!("Failed to deserialize test runs: {}", e),
+                }
+            })
+        }
+        Ok(None) => Ok(Vec::new()),
+        Err(e) => Err(crate::error::OrchflowError::DatabaseError {
+            operation: "get_test_runs_list".to_string(),
+            reason: e.to_string(),
+        }),
+    }
+}
+
+async fn get_test_result_keys(
+    state: &Arc<crate::simple_state_store::SimpleStateStore>,
+    run_id: &str,
+) -> Result<Vec<String>> {
+    // Since SimpleStateStore doesn't have prefix search, we need to maintain an index
+    // For now, we'll use a simple approach by storing the keys list
+    let index_key = format!("test_result_keys:{}", run_id);
+    
+    match state.get(&index_key).await {
+        Ok(Some(data)) => {
+            serde_json::from_str::<Vec<String>>(&data).map_err(|e| {
+                crate::error::OrchflowError::ValidationError {
+                    field: "test_result_keys".to_string(),
+                    reason: format!("Failed to deserialize test result keys: {}", e),
+                }
+            })
+        }
+        Ok(None) => Ok(Vec::new()),
+        Err(e) => Err(crate::error::OrchflowError::DatabaseError {
+            operation: "get_test_result_keys".to_string(),
+            reason: e.to_string(),
+        }),
+    }
 }

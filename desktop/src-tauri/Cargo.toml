@@ -104,6 +104,7 @@ futures = "0.3"
 # Plugin System
 wasmtime = "25.0"
 deno_core = "0.311"
+libloading = "0.8"
 
 # Diagnostics
 codespan-reporting = "0.11"

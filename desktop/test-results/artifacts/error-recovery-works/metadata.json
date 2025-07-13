@@ -1,13 +1,17 @@
 {
   "name": "error recovery works",
   "file": "tests/e2e/smoke/app-launch.test.ts",
-  "started": "2025-07-13T10:19:51.161Z",
+  "started": "2025-07-13T21:39:32.935Z",
   "environment": {
     "node": "v22.16.0",
     "platform": "linux",
     "ci": false
   },
-  "completed": "2025-07-13T10:19:51.306Z",
-  "duration": 144,
-  "status": "fail"
+  "completed": "2025-07-13T21:39:41.417Z",
+  "duration": 8501,
+  "status": "fail",
+  "errors": {
+    "message": "page.waitForLoadState: Target page, context or browser has been closed",
+    "stack": "page.waitForLoadState: Target page, context or browser has been closed\n    at Function.waitForNetworkIdle (/workspaces/orchflow/desktop/tests/e2e/helpers/utils/wait-strategies.ts:13:16)\n    at /workspaces/orchflow/desktop/tests/e2e/smoke/app-launch.test.ts:188:26\n    at /workspaces/orchflow/desktop/node_modules/@vitest/runner/dist/chunk-hooks.js:752:20"
+  }
 }

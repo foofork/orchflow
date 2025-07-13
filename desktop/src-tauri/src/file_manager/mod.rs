@@ -23,6 +23,9 @@ use std::sync::{Arc, Mutex};
 use trash::TrashManager;
 use tree::FileTreeCache;
 
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
+
 pub struct FileManager {
     root_path: PathBuf,
     cache: FileTreeCache,
@@ -277,7 +280,7 @@ impl FileManager {
                     .modified()
                     .ok()
                     .map(|t| chrono::DateTime::<chrono::Utc>::from(t)),
-                permissions: None, // TODO: Get actual permissions
+                permissions: Some(format!("{:o}", get_file_permissions(&metadata))),
             });
         }
 
@@ -437,5 +440,30 @@ impl Clone for FileManager {
             gitignore_patterns: self.gitignore_patterns.clone(),
             max_file_size: self.max_file_size,
         }
+    }
+}
+
+/// Get file permissions from metadata
+fn get_file_permissions(metadata: &std::fs::Metadata) -> u32 {
+    #[cfg(unix)]
+    {
+        // On Unix systems, extract the permission bits
+        metadata.permissions().mode() & 0o777
+    }
+    
+    #[cfg(windows)]
+    {
+        // On Windows, map readonly attribute to permission bits
+        if metadata.permissions().readonly() {
+            0o444 // Read-only
+        } else {
+            0o644 // Read-write for owner, read-only for others
+        }
+    }
+    
+    #[cfg(not(any(unix, windows)))]
+    {
+        // Default for other systems
+        0o644
     }
 }

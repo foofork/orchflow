@@ -18,6 +18,7 @@ pub struct PluginMetadata {
     pub description: String,
     pub author: PluginAuthor,
     pub permissions: Vec<String>,
+    pub activation_events: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -153,5 +154,30 @@ impl PluginManager {
                 plugin_id: plugin_id.to_string(),
             })
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_plugin_metadata_with_activation_events() {
+        let metadata = PluginMetadata {
+            id: "test.plugin".to_string(),
+            name: "Test Plugin".to_string(),
+            version: "1.0.0".to_string(),
+            description: "A test plugin".to_string(),
+            author: PluginAuthor {
+                name: "Test Author".to_string(),
+                email: None,
+            },
+            permissions: vec!["filesystem:read".to_string()],
+            activation_events: vec!["onStartup".to_string(), "onCommand:test".to_string()],
+        };
+        
+        assert_eq!(metadata.id, "test.plugin");
+        assert_eq!(metadata.activation_events.len(), 2);
+        assert!(metadata.activation_events.contains(&"onStartup".to_string()));
     }
 }

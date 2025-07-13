@@ -1,13 +1,13 @@
 {
   "name": "local storage is initialized correctly",
   "file": "tests/e2e/smoke/app-launch.test.ts",
-  "started": "2025-07-13T10:19:51.193Z",
+  "started": "2025-07-13T22:07:16.290Z",
   "environment": {
     "node": "v22.16.0",
     "platform": "linux",
     "ci": false
   },
-  "completed": "2025-07-13T10:19:51.338Z",
-  "duration": 145,
-  "status": "fail"
+  "completed": "2025-07-13T22:07:24.327Z",
+  "duration": 8039,
+  "status": "pass"
 }

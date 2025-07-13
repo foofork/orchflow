@@ -154,13 +154,16 @@ const storeMocks = {
   }, { output: '', isRunning: false }, { tags: ['integration', 'store'] })
 };
 
-// Replace module mocks for integration tests
+// Replace module mocks for integration tests with direct mocks
 vi.mock('@tauri-apps/api/core', () => ({
-  invoke: tauriAPI.invoke,
+  invoke: vi.fn(),
   convertFileSrc: vi.fn((src: string) => src),
   transformCallback: vi.fn(),
   isTauri: vi.fn(() => true),
 }));
+
+// Configure the mocked invoke function in beforeEach
+let mockInvoke: any;
 
 vi.mock('@tauri-apps/plugin-fs', () => fileSystemMock);
 
@@ -169,12 +172,21 @@ vi.mock('@tauri-apps/plugin-shell', () => ({
 }));
 
 // Setup hooks for integration tests
-beforeEach(() => {
+import { beforeEach, afterEach } from 'vitest';
+
+beforeEach(async () => {
   // Clear file system before each test
   fileSystemMock._clear();
   
   // Reset all mocks
   mockRegistry.reset();
+  
+  // Configure the mocked invoke function with our implementation
+  const { invoke } = await vi.importMock<typeof import('@tauri-apps/api/core')>('@tauri-apps/api/core');
+  mockInvoke = invoke;
+  
+  // Set up the invoke mock with our integration implementation
+  mockInvoke.mockImplementation(tauriAPI.invoke);
   
   // Create snapshot for test isolation
   mockRegistry.createSnapshot('integration-test');
@@ -193,3 +205,6 @@ export {
   terminalMock,
   storeMocks
 };
+
+// Export the mock invoke function for test access
+export const getMockInvoke = () => mockInvoke;

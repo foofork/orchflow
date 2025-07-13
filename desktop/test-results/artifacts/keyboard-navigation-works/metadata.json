@@ -1,13 +1,13 @@
 {
   "name": "keyboard navigation works",
   "file": "tests/e2e/smoke/app-launch.test.ts",
-  "started": "2025-07-13T10:19:51.303Z",
+  "started": "2025-07-13T22:07:24.331Z",
   "environment": {
     "node": "v22.16.0",
     "platform": "linux",
     "ci": false
   },
-  "completed": "2025-07-13T10:19:51.485Z",
-  "duration": 184,
-  "status": "fail"
+  "completed": "2025-07-13T22:07:32.795Z",
+  "duration": 8463,
+  "status": "pass"
 }

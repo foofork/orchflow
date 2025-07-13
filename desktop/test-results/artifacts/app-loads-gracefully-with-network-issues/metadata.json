@@ -1,0 +1,17 @@
+{
+  "name": "app loads gracefully with network issues",
+  "file": "tests/e2e/smoke/app-launch.test.ts",
+  "started": "2025-07-13T22:07:00.378Z",
+  "environment": {
+    "node": "v22.16.0",
+    "platform": "linux",
+    "ci": false
+  },
+  "completed": "2025-07-13T22:07:16.286Z",
+  "duration": 15912,
+  "status": "fail",
+  "errors": {
+    "message": "\u001b[31mTimed out 5000ms waiting for \u001b[39mexpect(locator).toBeVisible()\n\nLocator: locator('.app')\nExpected: visible\nReceived: <element(s) not found>\nCall log:\n\u001b[2m  - Expect \"to.be.visible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.app')\u001b[22m\n",
+    "stack": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39mexpect(locator).toBeVisible()\n\nLocator: locator('.app')\nExpected: visible\nReceived: <element(s) not found>\nCall log:\n\u001b[2m  - Expect \"to.be.visible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.app')\u001b[22m\n\n    at Proxy.<anonymous> (/workspaces/orchflow/desktop/node_modules/playwright/lib/matchers/expect.js:221:24)\n    at /workspaces/orchflow/desktop/tests/e2e/smoke/app-launch.test.ts:177:42\n    at Module.withTestContext (/workspaces/orchflow/desktop/tests/e2e/helpers/test-context.ts:417:12)\n    at /workspaces/orchflow/desktop/tests/e2e/smoke/app-launch.test.ts:165:5\n    at file:///workspaces/orchflow/desktop/node_modules/@vitest/runner/dist/chunk-hooks.js:752:20"
+  }
+}

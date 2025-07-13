@@ -286,3 +286,39 @@ pub struct PaneMetrics {
     pub io_read_bytes: u64,
     pub io_write_bytes: u64,
 }
+
+/// Events emitted to the UI for mux operations
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum MuxUIEvent {
+    /// Pane produced output
+    PaneOutput {
+        pane_id: String,
+        data: String,
+        timestamp: DateTime<Utc>,
+    },
+    /// Pane process exited
+    PaneExit {
+        pane_id: String,
+        exit_code: Option<i32>,
+        timestamp: DateTime<Utc>,
+    },
+    /// Session created
+    SessionCreated {
+        session_id: String,
+        name: String,
+        timestamp: DateTime<Utc>,
+    },
+    /// Pane created
+    PaneCreated {
+        pane_id: String,
+        session_id: String,
+        timestamp: DateTime<Utc>,
+    },
+    /// Error occurred
+    MuxError {
+        error: String,
+        context: Option<String>,
+        timestamp: DateTime<Utc>,
+    },
+}

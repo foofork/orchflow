@@ -1,0 +1,17 @@
+{
+  "name": "user can navigate between app views",
+  "file": "tests/e2e/smoke/app-launch.test.ts",
+  "started": "2025-07-13T22:02:00.020Z",
+  "environment": {
+    "node": "v22.16.0",
+    "platform": "linux",
+    "ci": false
+  },
+  "completed": "2025-07-13T22:02:02.479Z",
+  "duration": 2459,
+  "status": "fail",
+  "errors": {
+    "message": "page.goto: net::ERR_EMPTY_RESPONSE at http://localhost:5319/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5319/\", waiting until \"load\"\u001b[22m\n",
+    "stack": "page.goto: net::ERR_EMPTY_RESPONSE at http://localhost:5319/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5319/\", waiting until \"load\"\u001b[22m\n\n    at /workspaces/orchflow/desktop/tests/e2e/smoke/app-launch.test.ts:279:18\n    at Module.withTestContext (/workspaces/orchflow/desktop/tests/e2e/helpers/test-context.ts:417:12)\n    at /workspaces/orchflow/desktop/tests/e2e/smoke/app-launch.test.ts:277:5\n    at /workspaces/orchflow/desktop/node_modules/@vitest/runner/dist/chunk-hooks.js:752:20"
+  }
+}

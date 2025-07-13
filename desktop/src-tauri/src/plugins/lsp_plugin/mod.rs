@@ -100,9 +100,31 @@ impl Plugin for LspPlugin {
             // Plugin-specific methods
             "lsp/listServers" => {
                 // Return list of running language servers
-                Ok(serde_json::json!({
-                    "servers": [] // TODO: Get from handlers
-                }))
+                if let Some(handlers) = &self.handlers {
+                    let running_servers = handlers.server_manager.running_servers();
+                    let server_info: Vec<serde_json::Value> = running_servers
+                        .iter()
+                        .filter_map(|language| {
+                            handlers.server_manager.get_server(language).map(|server| {
+                                serde_json::json!({
+                                    "language": language,
+                                    "name": server.config.name,
+                                    "command": server.config.command,
+                                    "initialized": server.initialized,
+                                    "file_extensions": server.config.file_extensions
+                                })
+                            })
+                        })
+                        .collect();
+                    
+                    Ok(serde_json::json!({
+                        "servers": server_info
+                    }))
+                } else {
+                    Ok(serde_json::json!({
+                        "servers": []
+                    }))
+                }
             }
 
             "lsp/getDiagnostics" => {
@@ -139,5 +161,102 @@ impl Plugin for LspPlugin {
 impl Default for LspPlugin {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_lsp_plugin_creation() {
+        let plugin = LspPlugin::new();
+        assert_eq!(plugin.id(), "lsp_plugin");
+        assert!(plugin.context.is_none());
+        assert!(plugin.handlers.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_lsp_plugin_metadata() {
+        let plugin = LspPlugin::new();
+        let metadata = plugin.metadata();
+        
+        assert_eq!(metadata.name, "LSP Plugin");
+        assert_eq!(metadata.version, "1.0.0");
+        assert_eq!(metadata.author, "Orchflow Team");
+        assert!(metadata.capabilities.contains(&"completion".to_string()));
+        assert!(metadata.capabilities.contains(&"hover".to_string()));
+        assert!(metadata.capabilities.contains(&"diagnostics".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_handle_get_diagnostics_with_no_handlers() {
+        let mut plugin = LspPlugin::new();
+        
+        let params = serde_json::json!({
+            "file": "test.rs"
+        });
+
+        let result = plugin.handle_request("lsp/getDiagnostics", params).await;
+        assert!(result.is_ok());
+        
+        let response = result.unwrap();
+        assert_eq!(response["file"], "test.rs");
+        assert!(response["diagnostics"].is_array());
+    }
+
+    #[tokio::test]
+    async fn test_list_servers_with_no_handlers() {
+        let mut plugin = LspPlugin::new();
+        
+        let result = plugin.handle_request("lsp/listServers", serde_json::json!({})).await;
+        assert!(result.is_ok());
+        
+        let response = result.unwrap();
+        assert!(response["servers"].is_array());
+        assert_eq!(response["servers"].as_array().unwrap().len(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_unknown_method() {
+        let mut plugin = LspPlugin::new();
+        
+        let result = plugin.handle_request("unknown/method", serde_json::json!({})).await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Unknown method: unknown/method"));
+    }
+
+    #[tokio::test]
+    async fn test_textdocument_method_without_handlers() {
+        let mut plugin = LspPlugin::new();
+        
+        let params = serde_json::json!({
+            "textDocument": {
+                "uri": "file:///test.rs"
+            }
+        });
+
+        let result = plugin.handle_request("textDocument/completion", params).await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("LSP handlers not initialized"));
+    }
+
+    #[tokio::test]
+    async fn test_workspace_method_without_handlers() {
+        let mut plugin = LspPlugin::new();
+        
+        let params = serde_json::json!({
+            "query": "symbol"
+        });
+
+        let result = plugin.handle_request("workspace/symbol", params).await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("LSP handlers not initialized"));
+    }
+
+    #[tokio::test]
+    async fn test_plugin_default() {
+        let plugin = LspPlugin::default();
+        assert_eq!(plugin.id(), "lsp_plugin");
     }
 }

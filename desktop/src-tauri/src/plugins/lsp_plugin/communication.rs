@@ -216,4 +216,41 @@ impl LspCommunication {
         }
         Ok(())
     }
+
+    /// Handle publishDiagnostics notification from language server
+    async fn handle_publish_diagnostics(
+        &self,
+        params: &Value,
+        diagnostics_map: &DiagnosticsMap,
+    ) -> Result<(), String> {
+        use lsp_types::PublishDiagnosticsParams;
+
+        // Parse the publishDiagnostics params
+        let publish_diagnostics: PublishDiagnosticsParams = serde_json::from_value(params.clone())
+            .map_err(|e| format!("Failed to parse diagnostics: {}", e))?;
+
+        // Convert URI to file path
+        let file_path = publish_diagnostics
+            .uri
+            .to_file_path()
+            .map_err(|_| "Invalid file URI in diagnostics")?
+            .to_string_lossy()
+            .to_string();
+
+        let diagnostics_count = publish_diagnostics.diagnostics.len();
+        
+        // Store diagnostics for this file
+        {
+            let mut diagnostics = diagnostics_map.lock().await;
+            diagnostics.insert(file_path.clone(), publish_diagnostics.diagnostics);
+        }
+
+        println!(
+            "Stored {} diagnostics for file: {}",
+            diagnostics_count,
+            file_path
+        );
+
+        Ok(())
+    }
 }

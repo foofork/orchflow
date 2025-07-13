@@ -405,4 +405,93 @@ mod tests {
         assert_eq!(&data[0..5], b"56789");
         assert_eq!(&data[5..10], b"ABCDE");
     }
+
+    #[tokio::test]
+    async fn test_scrollback_search_case_sensitive() {
+        let buffer = ScrollbackBuffer::new(100);
+        
+        // Add test data
+        buffer.add_output(b"Hello World\n").await;
+        buffer.add_output(b"hello world\n").await;
+        buffer.add_output(b"HELLO WORLD\n").await;
+        buffer.add_output(b"Testing search functionality\n").await;
+        
+        // Case sensitive search
+        let results = buffer.search("Hello", true).await;
+        assert_eq!(results.len(), 1);
+        assert!(String::from_utf8_lossy(&results[0].1.content).contains("Hello World"));
+        
+        // Case insensitive search
+        let results = buffer.search("hello", false).await;
+        assert_eq!(results.len(), 3);
+    }
+
+    #[tokio::test]
+    async fn test_scrollback_search_pattern_matching() {
+        let buffer = ScrollbackBuffer::new(100);
+        
+        // Add test data with different patterns
+        buffer.add_output(b"Error: File not found\n").await;
+        buffer.add_output(b"Warning: Deprecated function\n").await;
+        buffer.add_output(b"Info: Processing complete\n").await;
+        buffer.add_output(b"Error: Permission denied\n").await;
+        
+        // Search for errors
+        let error_results = buffer.search("Error:", true).await;
+        assert_eq!(error_results.len(), 2);
+        
+        // Search for warnings
+        let warning_results = buffer.search("Warning:", true).await;
+        assert_eq!(warning_results.len(), 1);
+        
+        // Search for non-existent pattern
+        let no_results = buffer.search("Debug:", true).await;
+        assert_eq!(no_results.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_scrollback_get_lines_range() {
+        let buffer = ScrollbackBuffer::new(100);
+        
+        // Add numbered lines
+        for i in 0..10 {
+            let line = format!("Line {}\n", i);
+            buffer.add_output(line.as_bytes()).await;
+        }
+        
+        // Get specific range
+        let lines = buffer.get_lines(2, 3).await;
+        assert_eq!(lines.len(), 3);
+        assert!(String::from_utf8_lossy(&lines[0].content).contains("Line 2"));
+        assert!(String::from_utf8_lossy(&lines[1].content).contains("Line 3"));
+        assert!(String::from_utf8_lossy(&lines[2].content).contains("Line 4"));
+        
+        // Get last lines
+        let last_lines = buffer.get_last_lines(3).await;
+        assert_eq!(last_lines.len(), 3);
+        assert!(String::from_utf8_lossy(&last_lines[2].content).contains("Line 9"));
+    }
+
+    #[tokio::test]
+    async fn test_scrollback_clear_functionality() {
+        let buffer = ScrollbackBuffer::new(100);
+        
+        // Add some data
+        buffer.add_output(b"Test line 1\n").await;
+        buffer.add_output(b"Test line 2\n").await;
+        
+        // Verify data exists
+        let lines_before = buffer.get_lines(0, 10).await;
+        assert_eq!(lines_before.len(), 2);
+        assert!(buffer.total_size().await > 0);
+        
+        // Clear buffer
+        buffer.clear().await;
+        
+        // Verify data is cleared
+        let lines_after = buffer.get_lines(0, 10).await;
+        assert_eq!(lines_after.len(), 0);
+        assert_eq!(buffer.total_size().await, 0);
+        assert_eq!(buffer.line_count().await, 0);
+    }
 }

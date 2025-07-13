@@ -1,13 +1,17 @@
 {
   "name": "application handles deep links",
   "file": "tests/e2e/smoke/app-launch.test.ts",
-  "started": "2025-07-13T10:19:51.002Z",
+  "started": "2025-07-13T22:16:47.597Z",
   "environment": {
     "node": "v22.16.0",
     "platform": "linux",
     "ci": false
   },
-  "completed": "2025-07-13T10:19:51.192Z",
-  "duration": 191,
-  "status": "fail"
+  "completed": "2025-07-13T22:20:21.855Z",
+  "duration": 227211,
+  "status": "fail",
+  "errors": {
+    "message": "Test timed out in 180000ms.\nIf this is a long-running test, pass a timeout value as the last argument or configure it globally with \"testTimeout\".",
+    "stack": "Error: STACK_TRACE_ERROR\n    at task (file:///workspaces/orchflow/desktop/node_modules/@vitest/runner/dist/chunk-hooks.js:638:27)\n    at Object.<anonymous> (file:///workspaces/orchflow/desktop/node_modules/@vitest/runner/dist/chunk-hooks.js:662:16)\n    at Object.<anonymous> (file:///workspaces/orchflow/desktop/node_modules/@vitest/runner/dist/chunk-hooks.js:458:28)\n    at Module.chain (file:///workspaces/orchflow/desktop/node_modules/@vitest/runner/dist/chunk-hooks.js:369:14)\n    at /workspaces/orchflow/desktop/tests/e2e/smoke/app-launch.test.ts:94:3\n    at file:///workspaces/orchflow/desktop/node_modules/@vitest/runner/dist/chunk-hooks.js:734:40\n    at runWithSuite (file:///workspaces/orchflow/desktop/node_modules/@vitest/runner/dist/chunk-hooks.js:1849:8)\n    at Object.collect (file:///workspaces/orchflow/desktop/node_modules/@vitest/runner/dist/chunk-hooks.js:734:10)\n    at Object.collect (file:///workspaces/orchflow/desktop/node_modules/@vitest/runner/dist/chunk-hooks.js:738:54)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at collectTests (file:///workspaces/orchflow/desktop/node_modules/@vitest/runner/dist/chunk-hooks.js:1179:25)\n    at startTests (file:///workspaces/orchflow/desktop/node_modules/@vitest/runner/dist/chunk-hooks.js:1817:17)\n    at file:///workspaces/orchflow/desktop/node_modules/vitest/dist/chunks/runBaseTests.9Ij9_de-.js:117:26\n    at withEnv (file:///workspaces/orchflow/desktop/node_modules/vitest/dist/chunks/runBaseTests.9Ij9_de-.js:84:3)\n    at run (file:///workspaces/orchflow/desktop/node_modules/vitest/dist/chunks/runBaseTests.9Ij9_de-.js:109:2)"
+  }
 }

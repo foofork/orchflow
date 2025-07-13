@@ -9,6 +9,9 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
+
 #[derive(Clone)]
 pub struct FileTreeCache {
     cache: Arc<RwLock<HashMap<PathBuf, FileNode>>>,
@@ -205,7 +208,7 @@ impl FileTreeCache {
             node_type,
             size: metadata.len(),
             modified,
-            permissions: 0o644, // TODO: Get actual permissions
+            permissions: get_file_permissions(&metadata),
             children: None,
             is_expanded: false,
             is_git_ignored,
@@ -284,5 +287,30 @@ impl FileTreeCache {
     pub async fn is_expanded(&self, path: &Path) -> bool {
         let expanded = self.expanded_dirs.read().await;
         expanded.contains(path)
+    }
+}
+
+/// Get file permissions from metadata
+fn get_file_permissions(metadata: &std::fs::Metadata) -> u32 {
+    #[cfg(unix)]
+    {
+        // On Unix systems, extract the permission bits
+        metadata.permissions().mode() & 0o777
+    }
+    
+    #[cfg(windows)]
+    {
+        // On Windows, map readonly attribute to permission bits
+        if metadata.permissions().readonly() {
+            0o444 // Read-only
+        } else {
+            0o644 // Read-write for owner, read-only for others
+        }
+    }
+    
+    #[cfg(not(any(unix, windows)))]
+    {
+        // Default for other systems
+        0o644
     }
 }

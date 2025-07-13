@@ -55,13 +55,16 @@ pub async fn create_terminal(
             reason: format!("Failed to parse pane: {}", e),
         })?;
 
+    // Check if this pane is the active pane for its session
+    let is_active = check_pane_is_active(&manager, &pane.session_id, &pane.id).await;
+
     Ok(TerminalInfo {
         id: pane.id,
         name: pane.title,
         shell_type: Some(ShellType::Bash), // Default to bash for now
         working_dir: pane.working_dir,
         session_id: pane.session_id,
-        is_active: false, // TODO: Track active terminal
+        is_active,
     })
 }
 
@@ -381,4 +384,12 @@ pub struct SearchResult {
     pub content: String,
     pub context_before: Vec<String>,
     pub context_after: Vec<String>,
+}
+
+/// Helper function to check if a pane is the active pane for its session
+async fn check_pane_is_active(manager: &Manager, session_id: &str, pane_id: &str) -> bool {
+    match manager.state_manager.get_session(session_id).await {
+        Some(session) => session.active_pane.as_ref().map(|s| s.as_str()) == Some(pane_id),
+        None => false, // If we can't get the session, assume not active
+    }
 }

@@ -1,10 +1,11 @@
-use super::{MuxBackend, MuxError, Pane, PaneSize, Session, SplitType};
+use super::{MuxBackend, MuxError, MuxUIEvent, Pane, PaneSize, Session, SplitType};
 use async_trait::async_trait;
 use futures_util::{SinkExt, StreamExt};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+use tauri::Emitter;
 use tokio::net::TcpStream;
 use tokio::sync::{mpsc, Mutex, RwLock};
 use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
@@ -22,11 +23,17 @@ pub struct MuxdBackend {
         Arc<Mutex<HashMap<u64, tokio::sync::oneshot::Sender<Result<Value, MuxError>>>>>,
     command_tx: mpsc::UnboundedSender<String>,
     event_tx: mpsc::UnboundedSender<Value>,
+    app_handle: Option<tauri::AppHandle>,
 }
 
 impl MuxdBackend {
-    /// Create a new MuxdBackend
+    /// Create a new MuxdBackend without UI event emission
     pub async fn new(url: String) -> Result<Self, MuxError> {
+        Self::new_with_app_handle(url, None).await
+    }
+
+    /// Create a new MuxdBackend with UI event emission
+    pub async fn new_with_app_handle(url: String, app_handle: Option<tauri::AppHandle>) -> Result<Self, MuxError> {
         let (command_tx, mut command_rx) = mpsc::unbounded_channel();
         let (event_tx, mut event_rx) = mpsc::unbounded_channel();
         let pending_requests: Arc<
@@ -100,6 +107,7 @@ impl MuxdBackend {
             request_id: AtomicU64::new(1),
             pending_requests,
             command_tx,
+            app_handle,
         };
 
         // Start event handler
@@ -154,8 +162,20 @@ impl MuxdBackend {
                     let data = params.get("data").and_then(|v| v.as_str());
 
                     if let (Some(pane_id), Some(data)) = (pane_id, data) {
-                        // TODO: Forward output to UI
                         debug!("Pane {} output: {}", pane_id, data);
+                        
+                        // Forward output to UI
+                        if let Some(app_handle) = &self.app_handle {
+                            let event = MuxUIEvent::PaneOutput {
+                                pane_id: pane_id.to_string(),
+                                data: data.to_string(),
+                                timestamp: chrono::Utc::now(),
+                            };
+                            
+                            if let Err(e) = app_handle.emit("mux-event", &event) {
+                                warn!("Failed to emit pane output event: {}", e);
+                            }
+                        }
                     }
                 }
             }
@@ -167,6 +187,19 @@ impl MuxdBackend {
                     if let Some(pane_id) = pane_id {
                         info!("Pane {} exited with code {:?}", pane_id, exit_code);
                         self.panes.write().await.remove(pane_id);
+                        
+                        // Forward exit event to UI
+                        if let Some(app_handle) = &self.app_handle {
+                            let event = MuxUIEvent::PaneExit {
+                                pane_id: pane_id.to_string(),
+                                exit_code: exit_code.map(|c| c as i32),
+                                timestamp: chrono::Utc::now(),
+                            };
+                            
+                            if let Err(e) = app_handle.emit("mux-event", &event) {
+                                warn!("Failed to emit pane exit event: {}", e);
+                            }
+                        }
                     }
                 }
             }
@@ -188,6 +221,7 @@ impl Clone for MuxdBackend {
             request_id: AtomicU64::new(self.request_id.load(Ordering::SeqCst)),
             pending_requests: self.pending_requests.clone(),
             command_tx: self.command_tx.clone(),
+            app_handle: self.app_handle.clone(),
         }
     }
 }
@@ -222,6 +256,20 @@ impl MuxBackend for MuxdBackend {
             .write()
             .await
             .insert(session_id.clone(), session);
+
+        // Emit session created event to UI
+        if let Some(app_handle) = &self.app_handle {
+            let event = MuxUIEvent::SessionCreated {
+                session_id: session_id.clone(),
+                name: name.to_string(),
+                timestamp: chrono::Utc::now(),
+            };
+            
+            if let Err(e) = app_handle.emit("mux-event", &event) {
+                warn!("Failed to emit session created event: {}", e);
+            }
+        }
+
         Ok(session_id)
     }
 
@@ -257,6 +305,20 @@ impl MuxBackend for MuxdBackend {
         };
 
         self.panes.write().await.insert(pane_id.clone(), pane);
+
+        // Emit pane created event to UI
+        if let Some(app_handle) = &self.app_handle {
+            let event = MuxUIEvent::PaneCreated {
+                pane_id: pane_id.clone(),
+                session_id: session_id.to_string(),
+                timestamp: chrono::Utc::now(),
+            };
+            
+            if let Err(e) = app_handle.emit("mux-event", &event) {
+                warn!("Failed to emit pane created event: {}", e);
+            }
+        }
+
         Ok(pane_id)
     }
 
@@ -455,5 +517,146 @@ impl MuxBackend for MuxdBackend {
         } else {
             Err(MuxError::SessionNotFound(session_id.to_string()))
         }
+    }
+}
+
+impl MuxdBackend {
+    /// Helper method to emit error events to the UI
+    fn emit_error(&self, error: &str, context: Option<String>) {
+        if let Some(app_handle) = &self.app_handle {
+            let event = MuxUIEvent::MuxError {
+                error: error.to_string(),
+                context,
+                timestamp: chrono::Utc::now(),
+            };
+            
+            if let Err(e) = app_handle.emit("mux-event", &event) {
+                warn!("Failed to emit error event: {} (original error: {})", e, error);
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+    use std::collections::HashMap;
+    use std::sync::Arc;
+    use tokio::sync::{mpsc, Mutex, RwLock};
+
+    // Create a test backend without actual WebSocket connection
+    fn create_test_backend() -> MuxdBackend {
+        let (command_tx, _) = mpsc::unbounded_channel();
+        let (event_tx, _) = mpsc::unbounded_channel();
+
+        MuxdBackend {
+            url: "ws://test".to_string(),
+            sessions: Arc::new(RwLock::new(HashMap::new())),
+            panes: Arc::new(RwLock::new(HashMap::new())),
+            request_id: AtomicU64::new(1),
+            pending_requests: Arc::new(Mutex::new(HashMap::new())),
+            command_tx,
+            event_tx,
+            app_handle: None,
+        }
+    }
+
+    #[tokio::test]
+    async fn test_pane_output_event_creation() {
+        // Test the event creation logic directly
+        let event = MuxUIEvent::PaneOutput {
+            pane_id: "test_pane".to_string(),
+            data: "Hello World\n".to_string(),
+            timestamp: chrono::Utc::now(),
+        };
+
+        // Verify event structure
+        match event {
+            MuxUIEvent::PaneOutput { pane_id, data, .. } => {
+                assert_eq!(pane_id, "test_pane");
+                assert_eq!(data, "Hello World\n");
+            }
+            _ => panic!("Expected PaneOutput event"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_pane_exit_event_creation() {
+        let event = MuxUIEvent::PaneExit {
+            pane_id: "test_pane".to_string(),
+            exit_code: Some(0),
+            timestamp: chrono::Utc::now(),
+        };
+
+        match event {
+            MuxUIEvent::PaneExit { pane_id, exit_code, .. } => {
+                assert_eq!(pane_id, "test_pane");
+                assert_eq!(exit_code, Some(0));
+            }
+            _ => panic!("Expected PaneExit event"),
+        }
+    }
+
+    #[test]
+    fn test_event_serialization() {
+        let event = MuxUIEvent::PaneOutput {
+            pane_id: "test".to_string(),
+            data: "output".to_string(),
+            timestamp: chrono::Utc::now(),
+        };
+
+        // Test that events can be serialized (important for Tauri emission)
+        let serialized = serde_json::to_string(&event);
+        assert!(serialized.is_ok());
+
+        let json_value = serde_json::to_value(&event);
+        assert!(json_value.is_ok());
+        
+        let json = json_value.unwrap();
+        assert_eq!(json["type"], "PaneOutput");
+        assert_eq!(json["pane_id"], "test");
+        assert_eq!(json["data"], "output");
+    }
+
+    #[tokio::test]
+    async fn test_handle_event_pane_exit() {
+        let backend = create_test_backend();
+        
+        // Add a test pane first
+        let pane = Pane {
+            id: "test_pane".to_string(),
+            session_id: "test_session".to_string(),
+            index: 0,
+            title: "test".to_string(),
+            active: true,
+            size: PaneSize { width: 80, height: 24 },
+        };
+        backend.panes.write().await.insert("test_pane".to_string(), pane);
+
+        let test_event = json!({
+            "method": "pane.exit",
+            "params": {
+                "pane_id": "test_pane",
+                "exit_code": 0
+            }
+        });
+
+        backend.handle_event(test_event).await;
+
+        // Verify pane was removed
+        let panes = backend.panes.read().await;
+        assert!(!panes.contains_key("test_pane"));
+    }
+
+    #[test]
+    fn test_emit_error_helper() {
+        let backend = create_test_backend();
+        
+        // Test that emit_error doesn't panic when app_handle is None
+        backend.emit_error("Test error", Some("Test context".to_string()));
+        backend.emit_error("Another error", None);
+        
+        // No assertions needed - just verify it doesn't panic
     }
 }

@@ -21,7 +21,7 @@ mod tmux_integration_tests;
 #[cfg(test)]
 mod benchmarks;
 
-pub use backend::{MuxBackend, MuxError, Pane, PaneSize, Session, SplitType};
+pub use backend::{MuxBackend, MuxError, MuxUIEvent, Pane, PaneSize, Session, SplitType};
 pub use factory::create_mux_backend;
 
 #[cfg(test)]
