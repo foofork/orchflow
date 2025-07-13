@@ -22,26 +22,26 @@ export default defineConfig({
       'tests/e2e/**/*.d.ts'
     ],
     
-    // Timeouts
-    testTimeout: 120000, // 2 minutes per test
-    hookTimeout: 120000, // 2 minutes for hooks
+    // Timeouts - increased for sequential execution
+    testTimeout: 180000, // 3 minutes per test
+    hookTimeout: 180000, // 3 minutes for hooks
     
     // Setup files
     setupFiles: ['./tests/setup/e2e-setup.ts'],
     
-    // Parallel execution configuration
+    // Sequential execution for E2E tests to avoid resource conflicts
     pool: 'forks',
     poolOptions: {
       forks: {
-        singleFork: false,
+        singleFork: true,  // Force sequential execution
         isolate: true,
-        maxForks: 4,
+        maxForks: 1,       // Only one fork
         minForks: 1
       }
     },
     
-    // Max concurrent tests
-    maxConcurrency: 4,
+    // Max concurrent tests - limit to 1 for resource management
+    maxConcurrency: 1,
     
     // Reporters
     reporters: ['default', 'html', 'json'],
@@ -61,10 +61,10 @@ export default defineConfig({
     // Fail fast in CI
     bail: process.env.CI ? 5 : 0,
     
-    // Test sequence
+    // Test sequence - run sequentially to prevent resource conflicts
     sequence: {
       shuffle: false,
-      concurrent: true
+      concurrent: false  // Sequential execution
     },
     
     // Cache

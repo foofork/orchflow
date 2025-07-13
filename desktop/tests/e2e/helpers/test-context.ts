@@ -181,11 +181,22 @@ export class TestContext {
             // Plugin management
             case 'get_plugin_statuses':
             case 'load_plugin_statuses':
+            case 'get_plugins':
+            case 'load_plugins':
+            case 'list_plugins':
               // Return array that supports filter method
               const plugins = [
-                { name: 'test-plugin', status: 'active', version: '1.0.0' }
+                { 
+                  id: 'test-plugin',
+                  name: 'test-plugin', 
+                  status: 'active', 
+                  version: '1.0.0', 
+                  enabled: true,
+                  loaded: true
+                }
               ];
-              return plugins;
+              // Ensure it's a proper array with all methods
+              return Array.from(plugins);
             
             // Update management
             case 'check_for_updates':
@@ -213,12 +224,15 @@ export class TestContext {
             // File system operations
             case 'read_directory':
             case 'load_directory':
+            case 'read_file_tree':
+            case 'get_directory_entries':
               // Return array that supports sort method
               const entries = [
-                { name: 'test-file.txt', type: 'file', size: 1024 },
-                { name: 'test-folder', type: 'directory', size: 0 }
+                { name: 'test-file.txt', type: 'file', size: 1024, path: '/test-file.txt' },
+                { name: 'test-folder', type: 'directory', size: 0, path: '/test-folder' }
               ];
-              return entries;
+              // Ensure it's a proper array with all methods
+              return Array.from(entries);
             case 'read_file':
               return 'Mock file content';
             case 'write_file':
@@ -255,6 +269,8 @@ export class TestContext {
                 path: '/mock/workspace',
                 name: 'E2E Test Workspace'
               };
+            case 'get_current_dir':
+              return '/mock/workspace';
             
             default:
               console.warn(`[TauriMock] Unhandled command: ${cmd}`);
@@ -275,6 +291,30 @@ export class TestContext {
           invoke: mockInvoke,
           transformCallback: mockTransformCallback
         };
+        
+        // Mock Tauri plugin-fs module
+        if (!window.__TAURI_PLUGIN_FS__) {
+          window.__TAURI_PLUGIN_FS__ = {
+            readDir: async (path) => {
+              // Return array with proper structure for FileExplorer
+              const entries = [
+                { 
+                  name: 'test-file.txt', 
+                  path: `${path}/test-file.txt`,
+                  isDirectory: false,
+                  isFile: true
+                },
+                { 
+                  name: 'test-folder', 
+                  path: `${path}/test-folder`,
+                  isDirectory: true,
+                  isFile: false
+                }
+              ];
+              return Array.from(entries);
+            }
+          };
+        }
         
         // Mock Tauri app window API
         window.__TAURI_METADATA__ = {
