@@ -165,7 +165,7 @@ export function createMockPlugin(overrides: Partial<PluginInfo> = {}): PluginInf
     version: '1.0.0',
     author: 'Test Author',
     description: 'A test plugin',
-    // Note: path is not a valid PluginInfo property, removing
+    capabilities: [],
     loaded: false,
     ...overrides
   };

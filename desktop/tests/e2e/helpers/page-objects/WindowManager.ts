@@ -98,8 +98,8 @@ export class WindowManager extends BasePage {
    * Set up window event handlers
    */
   private setupWindowEventHandlers(window: Window) {
-    // Focus event
-    window.page.on('focus', () => {
+    // Focus event - using domcontentloaded as focus is not available
+    window.page.on('domcontentloaded', () => {
       this.focusListeners.forEach(listener => listener(window.id));
     });
     
@@ -196,7 +196,7 @@ export class WindowManager extends BasePage {
     const mainWindow = this.windows.values().next().value;
     
     for (const [windowId, window] of this.windows) {
-      if (windowId !== mainWindow.id) {
+      if (mainWindow && windowId !== mainWindow.id) {
         await window.page.close();
         this.windows.delete(windowId);
       }
@@ -292,6 +292,9 @@ export class WindowManager extends BasePage {
   private async getScreenSize(): Promise<{ width: number; height: number }> {
     // Get from first window
     const window = this.windows.values().next().value;
+    if (!window) {
+      throw new Error('No windows available to get screen size');
+    }
     return await window.page.evaluate(() => ({
       width: screen.availWidth,
       height: screen.availHeight

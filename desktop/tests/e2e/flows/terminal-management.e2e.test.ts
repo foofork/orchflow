@@ -41,7 +41,8 @@ describe('Terminal Management Flow', () => {
 
       // Assert
       expect(terminalId).toBeTruthy();
-      expect(await terminalPage.isTerminalActive(terminalId)).toBe(true);
+      expect(terminalId).not.toBeNull();
+      expect(await terminalPage.isTerminalActive(terminalId!)).toBe(true);
       expect(await terminalPage.getTerminalCount()).toBe(1);
     });
 
@@ -53,11 +54,13 @@ describe('Terminal Management Flow', () => {
 
       // Assert
       expect(await terminalPage.getTerminalCount()).toBe(3);
-      expect(await terminalPage.isTerminalActive(terminal3)).toBe(true);
+      expect(terminal3).not.toBeNull();
+      expect(await terminalPage.isTerminalActive(terminal3!)).toBe(true);
       
       // Verify tab switching
-      await terminalPage.switchToTerminal(terminal1);
-      expect(await terminalPage.isTerminalActive(terminal1)).toBe(true);
+      expect(terminal1).not.toBeNull();
+      await terminalPage.switchToTerminal(terminal1!);
+      expect(await terminalPage.isTerminalActive(terminal1!)).toBe(true);
     });
 
     test('should set custom terminal titles', async () => {
@@ -66,10 +69,11 @@ describe('Terminal Management Flow', () => {
       
       // Act
       const terminalId = await terminalPage.createNewTerminal();
-      await terminalPage.setTerminalTitle(terminalId, customTitle);
+      expect(terminalId).not.toBeNull();
+      await terminalPage.setTerminalTitle(terminalId!, customTitle);
 
       // Assert
-      expect(await terminalPage.getTerminalTitle(terminalId)).toBe(customTitle);
+      expect(await terminalPage.getTerminalTitle(terminalId!)).toBe(customTitle);
     });
 
     test('should handle terminal creation limits', async () => {
@@ -95,37 +99,44 @@ describe('Terminal Management Flow', () => {
     test('should split terminal horizontally', async () => {
       // Arrange
       const terminal1 = await terminalPage.createNewTerminal();
+      expect(terminal1).not.toBeNull();
 
       // Act
-      const terminal2 = await terminalPage.splitTerminal(terminal1, 'horizontal');
+      const terminal2 = await terminalPage.splitTerminal(terminal1!, 'horizontal');
 
       // Assert
       expect(terminal2).toBeTruthy();
-      expect(await terminalPage.areTerminalsSplit(terminal1, terminal2)).toBe(true);
-      expect(await terminalPage.getSplitDirection(terminal1, terminal2)).toBe('horizontal');
+      expect(terminal2).not.toBeNull();
+      expect(await terminalPage.areTerminalsSplit(terminal1!, terminal2!)).toBe(true);
+      expect(await terminalPage.getSplitDirection(terminal1!, terminal2!)).toBe('horizontal');
     });
 
     test('should split terminal vertically', async () => {
       // Arrange
       const terminal1 = await terminalPage.createNewTerminal();
+      expect(terminal1).not.toBeNull();
 
       // Act
-      const terminal2 = await terminalPage.splitTerminal(terminal1, 'vertical');
+      const terminal2 = await terminalPage.splitTerminal(terminal1!, 'vertical');
 
       // Assert
       expect(terminal2).toBeTruthy();
-      expect(await terminalPage.areTerminalsSplit(terminal1, terminal2)).toBe(true);
-      expect(await terminalPage.getSplitDirection(terminal1, terminal2)).toBe('vertical');
+      expect(terminal2).not.toBeNull();
+      expect(await terminalPage.areTerminalsSplit(terminal1!, terminal2!)).toBe(true);
+      expect(await terminalPage.getSplitDirection(terminal1!, terminal2!)).toBe('vertical');
     });
 
     test('should support nested splits', async () => {
       // Arrange
       const terminal1 = await terminalPage.createNewTerminal();
+      expect(terminal1).not.toBeNull();
       
       // Act - Create complex split layout
-      const terminal2 = await terminalPage.splitTerminal(terminal1, 'horizontal');
-      const terminal3 = await terminalPage.splitTerminal(terminal2, 'vertical');
-      const terminal4 = await terminalPage.splitTerminal(terminal1, 'vertical');
+      const terminal2 = await terminalPage.splitTerminal(terminal1!, 'horizontal');
+      expect(terminal2).not.toBeNull();
+      const terminal3 = await terminalPage.splitTerminal(terminal2!, 'vertical');
+      expect(terminal3).not.toBeNull();
+      const terminal4 = await terminalPage.splitTerminal(terminal1!, 'vertical');
 
       // Assert
       expect(await terminalPage.getTerminalCount()).toBe(4);
@@ -135,13 +146,15 @@ describe('Terminal Management Flow', () => {
     test('should resize split panels', async () => {
       // Arrange
       const terminal1 = await terminalPage.createNewTerminal();
-      const terminal2 = await terminalPage.splitTerminal(terminal1, 'horizontal');
+      expect(terminal1).not.toBeNull();
+      const terminal2 = await terminalPage.splitTerminal(terminal1!, 'horizontal');
+      expect(terminal2).not.toBeNull();
 
       // Act
-      await terminalPage.resizeSplitPanel(terminal1, terminal2, 70); // 70% for terminal1
+      await terminalPage.resizeSplitPanel(terminal1!, terminal2!, 70); // 70% for terminal1
 
       // Assert
-      const sizes = await terminalPage.getSplitSizes(terminal1, terminal2);
+      const sizes = await terminalPage.getSplitSizes(terminal1!, terminal2!);
       expect(sizes.panel1).toBeCloseTo(70, 1);
       expect(sizes.panel2).toBeCloseTo(30, 1);
     });
@@ -151,35 +164,38 @@ describe('Terminal Management Flow', () => {
     test('should execute commands', async () => {
       // Arrange
       const terminalId = await terminalPage.createNewTerminal();
+      expect(terminalId).not.toBeNull();
 
       // Act
-      await terminalPage.executeCommand(terminalId, 'echo "Hello World"');
+      await terminalPage.executeCommand(terminalId!, 'echo "Hello World"');
 
       // Assert
-      const output = await terminalPage.getTerminalOutput(terminalId);
+      const output = await terminalPage.getTerminalOutput(terminalId!);
       expect(output).toContain('Hello World');
     });
 
     test('should clear terminal output', async () => {
       // Arrange
       const terminalId = await terminalPage.createNewTerminal();
-      await terminalPage.executeCommand(terminalId, 'echo "Test output"');
+      expect(terminalId).not.toBeNull();
+      await terminalPage.executeCommand(terminalId!, 'echo "Test output"');
 
       // Act
-      await terminalPage.clearTerminal(terminalId);
+      await terminalPage.clearTerminal(terminalId!);
 
       // Assert
-      const output = await terminalPage.getTerminalOutput(terminalId);
+      const output = await terminalPage.getTerminalOutput(terminalId!);
       expect(output.trim()).toBe('');
     });
 
     test('should copy terminal output', async () => {
       // Arrange
       const terminalId = await terminalPage.createNewTerminal();
-      await terminalPage.executeCommand(terminalId, 'echo "Copy this text"');
+      expect(terminalId).not.toBeNull();
+      await terminalPage.executeCommand(terminalId!, 'echo "Copy this text"');
 
       // Act
-      await terminalPage.selectAllOutput(terminalId);
+      await terminalPage.selectAllOutput(terminalId!);
       await terminalPage.copySelection();
 
       // Assert
@@ -190,32 +206,34 @@ describe('Terminal Management Flow', () => {
     test('should paste into terminal', async () => {
       // Arrange
       const terminalId = await terminalPage.createNewTerminal();
+      expect(terminalId).not.toBeNull();
       const textToPaste = 'ls -la';
 
       // Act
       await terminalPage.setClipboardContent(textToPaste);
-      await terminalPage.pasteIntoTerminal(terminalId);
+      await terminalPage.pasteIntoTerminal(terminalId!);
 
       // Assert
-      const currentInput = await terminalPage.getCurrentInput(terminalId);
+      const currentInput = await terminalPage.getCurrentInput(terminalId!);
       expect(currentInput).toBe(textToPaste);
     });
 
     test('should handle terminal scrolling', async () => {
       // Arrange
       const terminalId = await terminalPage.createNewTerminal();
+      expect(terminalId).not.toBeNull();
       
       // Generate long output
       for (let i = 0; i < 100; i++) {
-        await terminalPage.executeCommand(terminalId, `echo "Line ${i}"`);
+        await terminalPage.executeCommand(terminalId!, `echo "Line ${i}"`);
       }
 
       // Act
-      await terminalPage.scrollToBottom(terminalId);
-      const bottomVisible = await terminalPage.isTextVisible(terminalId, 'Line 99');
+      await terminalPage.scrollToBottom(terminalId!);
+      const bottomVisible = await terminalPage.isTextVisible(terminalId!, 'Line 99');
       
-      await terminalPage.scrollToTop(terminalId);
-      const topVisible = await terminalPage.isTextVisible(terminalId, 'Line 0');
+      await terminalPage.scrollToTop(terminalId!);
+      const topVisible = await terminalPage.isTextVisible(terminalId!, 'Line 0');
 
       // Assert
       expect(bottomVisible).toBe(true);
@@ -227,26 +245,28 @@ describe('Terminal Management Flow', () => {
     test('should close terminal with confirmation', async () => {
       // Arrange
       const terminalId = await terminalPage.createNewTerminal();
-      await terminalPage.executeCommand(terminalId, 'sleep 1000'); // Long running process
+      expect(terminalId).not.toBeNull();
+      await terminalPage.executeCommand(terminalId!, 'sleep 1000'); // Long running process
 
       // Act
-      await terminalPage.closeTerminal(terminalId);
+      await terminalPage.closeTerminal(terminalId!);
 
       // Assert
       expect(await terminalPage.isConfirmationDialogVisible()).toBe(true);
       await terminalPage.confirmDialog();
-      expect(await terminalPage.isTerminalExists(terminalId)).toBe(false);
+      expect(await terminalPage.isTerminalExists(terminalId!)).toBe(false);
     });
 
     test('should close terminal without confirmation when idle', async () => {
       // Arrange
       const terminalId = await terminalPage.createNewTerminal();
+      expect(terminalId).not.toBeNull();
 
       // Act
-      await terminalPage.closeTerminal(terminalId);
+      await terminalPage.closeTerminal(terminalId!);
 
       // Assert
-      expect(await terminalPage.isTerminalExists(terminalId)).toBe(false);
+      expect(await terminalPage.isTerminalExists(terminalId!)).toBe(false);
       expect(await terminalPage.getTerminalCount()).toBe(0);
     });
 
@@ -266,18 +286,20 @@ describe('Terminal Management Flow', () => {
     test('should restore closed terminal', async () => {
       // Arrange
       const terminalId = await terminalPage.createNewTerminal();
+      expect(terminalId).not.toBeNull();
       const title = 'Important Terminal';
-      await terminalPage.setTerminalTitle(terminalId, title);
-      await terminalPage.executeCommand(terminalId, 'echo "Important work"');
+      await terminalPage.setTerminalTitle(terminalId!, title);
+      await terminalPage.executeCommand(terminalId!, 'echo "Important work"');
 
       // Act
-      await terminalPage.closeTerminal(terminalId);
+      await terminalPage.closeTerminal(terminalId!);
       const restoredId = await terminalPage.restoreLastClosedTerminal();
 
       // Assert
       expect(restoredId).toBeTruthy();
-      expect(await terminalPage.getTerminalTitle(restoredId)).toBe(title);
-      const output = await terminalPage.getTerminalOutput(restoredId);
+      expect(restoredId).not.toBeNull();
+      expect(await terminalPage.getTerminalTitle(restoredId!)).toBe(title);
+      const output = await terminalPage.getTerminalOutput(restoredId!);
       expect(output).toContain('Important work');
     });
   });
@@ -286,6 +308,7 @@ describe('Terminal Management Flow', () => {
     test('should change terminal font size', async () => {
       // Arrange
       const terminalId = await terminalPage.createNewTerminal();
+      expect(terminalId).not.toBeNull();
 
       // Act
       await terminalPage.openTerminalSettings();
@@ -293,13 +316,14 @@ describe('Terminal Management Flow', () => {
       await terminalPage.applySettings();
 
       // Assert
-      const fontSize = await terminalPage.getTerminalFontSize(terminalId);
+      const fontSize = await terminalPage.getTerminalFontSize(terminalId!);
       expect(fontSize).toBe(16);
     });
 
     test('should change terminal theme', async () => {
       // Arrange
       const terminalId = await terminalPage.createNewTerminal();
+      expect(terminalId).not.toBeNull();
 
       // Act
       await terminalPage.openTerminalSettings();
@@ -307,7 +331,7 @@ describe('Terminal Management Flow', () => {
       await terminalPage.applySettings();
 
       // Assert
-      const theme = await terminalPage.getTerminalTheme(terminalId);
+      const theme = await terminalPage.getTerminalTheme(terminalId!);
       expect(theme).toBe('solarized-dark');
     });
 
@@ -318,9 +342,10 @@ describe('Terminal Management Flow', () => {
       await terminalPage.applySettings();
       
       const terminalId = await terminalPage.createNewTerminal();
+      expect(terminalId).not.toBeNull();
 
       // Assert
-      const shell = await terminalPage.getTerminalShell(terminalId);
+      const shell = await terminalPage.getTerminalShell(terminalId!);
       expect(shell).toBe('/bin/zsh');
     });
   });
@@ -329,12 +354,13 @@ describe('Terminal Management Flow', () => {
     test('should search within terminal output', async () => {
       // Arrange
       const terminalId = await terminalPage.createNewTerminal();
-      await terminalPage.executeCommand(terminalId, 'echo "Find this text"');
-      await terminalPage.executeCommand(terminalId, 'echo "Other output"');
-      await terminalPage.executeCommand(terminalId, 'echo "Find this too"');
+      expect(terminalId).not.toBeNull();
+      await terminalPage.executeCommand(terminalId!, 'echo "Find this text"');
+      await terminalPage.executeCommand(terminalId!, 'echo "Other output"');
+      await terminalPage.executeCommand(terminalId!, 'echo "Find this too"');
 
       // Act
-      await terminalPage.openSearch(terminalId);
+      await terminalPage.openSearch(terminalId!);
       const matches = await terminalPage.searchInTerminal('Find this');
 
       // Assert
@@ -345,11 +371,12 @@ describe('Terminal Management Flow', () => {
     test('should navigate search results', async () => {
       // Arrange
       const terminalId = await terminalPage.createNewTerminal();
-      await terminalPage.executeCommand(terminalId, 'echo "match 1"');
-      await terminalPage.executeCommand(terminalId, 'echo "match 2"');
+      expect(terminalId).not.toBeNull();
+      await terminalPage.executeCommand(terminalId!, 'echo "match 1"');
+      await terminalPage.executeCommand(terminalId!, 'echo "match 2"');
 
       // Act
-      await terminalPage.openSearch(terminalId);
+      await terminalPage.openSearch(terminalId!);
       await terminalPage.searchInTerminal('match');
       
       const firstMatch = await terminalPage.getCurrentSearchMatch();
@@ -366,18 +393,19 @@ describe('Terminal Management Flow', () => {
     test('should handle large output efficiently', async () => {
       // Arrange
       const terminalId = await terminalPage.createNewTerminal();
+      expect(terminalId).not.toBeNull();
       const startTime = Date.now();
 
       // Act - Generate large output
-      await terminalPage.executeCommand(terminalId, 'seq 1 10000');
+      await terminalPage.executeCommand(terminalId!, 'seq 1 10000');
 
       // Assert
       const renderTime = Date.now() - startTime;
       expect(renderTime).toBeLessThan(5000); // Should render within 5 seconds
       
       // Terminal should remain responsive
-      await terminalPage.executeCommand(terminalId, 'echo "Still responsive"');
-      const output = await terminalPage.getTerminalOutput(terminalId);
+      await terminalPage.executeCommand(terminalId!, 'echo "Still responsive"');
+      const output = await terminalPage.getTerminalOutput(terminalId!);
       expect(output).toContain('Still responsive');
     });
 

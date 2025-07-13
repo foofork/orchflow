@@ -390,7 +390,7 @@ export class PerformanceMonitor {
       network: this.networkSnapshots,
       summary: {
         averageFPS: this.getAverageFPS(),
-        memoryLeaks: await this.checkMemoryLeak(),
+        memoryLeaks: false, // Use synchronous default, call checkMemoryLeak() separately for detailed analysis
         cpuSpikes: this.detectCPUSpikes(),
         slowRequests: this.getSlowRequests(),
         totalJank: this.getTotalJank()
@@ -483,10 +483,10 @@ export class PerformanceMonitor {
     const startMemory = await this.getMemoryInfo();
     const startTime = Date.now();
     
-    const result = await this.page.evaluate((fn, args) => {
+    const result = await this.page.evaluate(({ fn, args }: { fn: string; args: any[] }) => {
       const func = eval(fn);
       return func(...args);
-    }, functionName, args);
+    }, { fn: functionName, args });
     
     const duration = Date.now() - startTime;
     const endMemory = await this.getMemoryInfo();

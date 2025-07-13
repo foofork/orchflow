@@ -117,7 +117,7 @@ describe('MockRegistry', () => {
     });
 
     it('should apply logging decorator', () => {
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
       const mockFn = vi.fn();
       
       const decorated = mockRegistry.register('test-fn', 'function', mockFn, {

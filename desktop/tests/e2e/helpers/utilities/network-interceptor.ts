@@ -401,7 +401,7 @@ export class NetworkInterceptor {
     });
   }
 
-  async getAverageResponseTime(pattern?: string | RegExp): number {
+  async getAverageResponseTime(pattern?: string | RegExp): Promise<number> {
     const calls = pattern ? this.getAllAPICalls(pattern) : this.logs;
     
     if (calls.length === 0) return 0;
@@ -410,7 +410,7 @@ export class NetworkInterceptor {
     return totalTime / calls.length;
   }
 
-  async getSlowAPIs(threshold = 1000): NetworkLog[] {
+  async getSlowAPIs(threshold = 1000): Promise<NetworkLog[]> {
     return this.logs.filter(log => log.duration > threshold);
   }
 }
