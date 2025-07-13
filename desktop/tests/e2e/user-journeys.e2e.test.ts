@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { Page, Browser, chromium } from 'playwright';
+import type { Page, Browser, chromium } from 'playwright';
 
 describe('Critical User Journeys E2E', () => {
   let browser: Browser;

@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest';
-import { chromium, type Browser, type Page } from 'playwright';
+import type { chromium, type Browser, type Page } from 'playwright';
 import { PortManager } from '../../scripts/port-manager.js';
 
 /**

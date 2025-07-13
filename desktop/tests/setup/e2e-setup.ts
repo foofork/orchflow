@@ -1,175 +1,242 @@
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import { PortManager } from '../../scripts/port-manager.js';
-
-const execAsync = promisify(exec);
-
 /**
- * E2E Test Setup
- * 
- * Handles application server startup and teardown for E2E tests
+ * E2E Test Environment Setup
+ * Configures the test environment for E2E tests
  */
 
-let devServerProcess: any = null;
-let portManager: PortManager;
-let testPort: number;
+import { beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
+import { PortManager } from '../../scripts/port-manager.js';
+import * as fs from 'fs/promises';
+import * as path from 'path';
 
-export async function setupE2EEnvironment() {
+// Global test configuration
+globalThis.E2E_CONFIG = {
+  headless: process.env.CI === 'true',
+  slowMo: parseInt(process.env.E2E_SLOWMO || '0'),
+  video: process.env.E2E_VIDEO === 'true',
+  trace: process.env.E2E_TRACE === 'true',
+  screenshots: process.env.E2E_SCREENSHOTS !== 'false',
+  defaultTimeout: 30000,
+  baseUrl: process.env.E2E_BASE_URL || 'http://localhost'
+};
+
+// Port manager instance
+let portManager: PortManager;
+
+// Setup before all tests
+beforeAll(async () => {
   console.log('🚀 Setting up E2E test environment...');
   
   // Initialize port manager
-  portManager = new PortManager();
+  portManager = PortManager.getInstance();
   await portManager.init();
   
-  // Get a dedicated port for E2E tests
-  testPort = await portManager.findAvailablePort('e2e');
-  console.log(`📡 Using port ${testPort} for E2E tests`);
+  // Clean up stale port locks
+  await portManager.cleanupStaleLocks();
   
-  // Set environment variables
-  process.env.PORT = testPort.toString();
-  process.env.NODE_ENV = 'test';
-  process.env.PLAYWRIGHT_PORT = testPort.toString();
-  process.env.PLAYWRIGHT_BASE_URL = `http://localhost:${testPort}`;
+  // Create test result directories
+  const dirs = [
+    './test-results',
+    './test-results/screenshots',
+    './test-results/videos',
+    './test-results/traces',
+    './test-results/state',
+    './test-results/reports'
+  ];
   
-  // Start the development server
-  try {
-    console.log('🔧 Starting development server...');
-    
-    const { spawn } = await import('child_process');
-    devServerProcess = spawn('npm', ['run', 'dev:e2e'], {
-      env: {
-        ...process.env,
-        PORT: testPort.toString()
-      },
-      stdio: ['pipe', 'pipe', 'pipe']
-    });
-    
-    // Handle server output
-    devServerProcess.stdout.on('data', (data: Buffer) => {
-      const output = data.toString();
-      if (output.includes('Local:') || output.includes('ready')) {
-        console.log('✅ Development server ready');
-      }
-    });
-    
-    devServerProcess.stderr.on('data', (data: Buffer) => {
-      const error = data.toString();
-      if (!error.includes('EADDRINUSE') && !error.includes('Warning')) {
-        console.error('❌ Server error:', error);
-      }
-    });
-    
-    // Wait for server to start
-    await waitForServer(testPort);
-    console.log(`✅ E2E server running on port ${testPort}`);
-    
-  } catch (error) {
-    console.error('❌ Failed to start development server:', error);
-    throw error;
+  for (const dir of dirs) {
+    await fs.mkdir(dir, { recursive: true });
   }
-}
+  
+  // Set up test data directory
+  const testDataDir = './test-data';
+  await fs.mkdir(testDataDir, { recursive: true });
+  
+  // Log test configuration
+  console.log('📋 E2E Test Configuration:');
+  console.log(`  - Headless: ${globalThis.E2E_CONFIG.headless}`);
+  console.log(`  - Video Recording: ${globalThis.E2E_CONFIG.video}`);
+  console.log(`  - Trace Recording: ${globalThis.E2E_CONFIG.trace}`);
+  console.log(`  - Screenshots: ${globalThis.E2E_CONFIG.screenshots}`);
+  console.log(`  - Base URL: ${globalThis.E2E_CONFIG.baseUrl}`);
+  
+  // Set up global error handlers
+  process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection in E2E test:', reason);
+  });
+  
+  process.on('uncaughtException', (error) => {
+    console.error('Uncaught Exception in E2E test:', error);
+  });
+});
 
-export async function teardownE2EEnvironment() {
-  console.log('🧹 Tearing down E2E test environment...');
-  
-  // Kill the development server
-  if (devServerProcess) {
-    try {
-      devServerProcess.kill('SIGTERM');
-      
-      // Wait a bit for graceful shutdown
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Force kill if still running
-      if (!devServerProcess.killed) {
-        devServerProcess.kill('SIGKILL');
-      }
-      
-      console.log('✅ Development server stopped');
-    } catch (error) {
-      console.warn('⚠️ Error stopping server:', error);
-    }
-  }
-  
-  // Release the port
-  if (portManager && testPort) {
-    await portManager.releasePort(testPort);
-    console.log(`✅ Released port ${testPort}`);
-  }
-  
-  // Clean up any remaining processes
-  try {
-    await execAsync(`pkill -f "vite.*dev.*port.*${testPort}" || true`);
-    await execAsync(`lsof -ti:${testPort} | xargs kill -9 || true`);
-  } catch (error) {
-    // Ignore errors - processes might not exist
-  }
-  
-  console.log('✅ E2E environment cleanup complete');
-}
-
-async function waitForServer(port: number, maxAttempts = 30): Promise<void> {
-  const net = await import('net');
-  
-  for (let i = 0; i < maxAttempts; i++) {
-    try {
-      await new Promise<void>((resolve, reject) => {
-        const socket = new net.Socket();
-        
-        socket.setTimeout(1000);
-        
-        socket.on('connect', () => {
-          socket.destroy();
-          resolve();
-        });
-        
-        socket.on('timeout', () => {
-          socket.destroy();
-          reject(new Error('Timeout'));
-        });
-        
-        socket.on('error', () => {
-          socket.destroy();
-          reject(new Error('Connection failed'));
-        });
-        
-        socket.connect(port, 'localhost');
-      });
-      
-      // Server is ready
-      return;
-      
-    } catch (error) {
-      // Wait before next attempt
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    }
-  }
-  
-  throw new Error(`Server on port ${port} did not start within ${maxAttempts} seconds`);
-}
-
-// Global setup and teardown hooks
-beforeAll(async () => {
-  await setupE2EEnvironment();
-}, 60000); // 60 second timeout for setup
-
+// Cleanup after all tests
 afterAll(async () => {
-  await teardownE2EEnvironment();
-}, 30000); // 30 second timeout for teardown
+  console.log('🧹 Cleaning up E2E test environment...');
+  
+  // Release all allocated ports
+  if (portManager) {
+    await portManager.releaseAll();
+  }
+  
+  // Generate test summary if in CI
+  if (process.env.CI) {
+    await generateTestSummary();
+  }
+  
+  console.log('✅ E2E test environment cleanup complete');
+});
 
-// Cleanup on process exit
-process.on('exit', () => {
-  if (devServerProcess && !devServerProcess.killed) {
-    devServerProcess.kill('SIGKILL');
+// Setup before each test
+beforeEach(async ({ task }) => {
+  // Log test start
+  console.log(`\n🧪 Starting test: ${task.name}`);
+  
+  // Clear any previous test artifacts for this test
+  const testName = task.name.replace(/[^a-zA-Z0-9]/g, '-');
+  const testArtifactsDir = `./test-results/artifacts/${testName}`;
+  
+  try {
+    await fs.rm(testArtifactsDir, { recursive: true, force: true });
+  } catch {
+    // Directory might not exist
+  }
+  
+  await fs.mkdir(testArtifactsDir, { recursive: true });
+  
+  // Store test metadata
+  const metadata = {
+    name: task.name,
+    file: task.file?.name,
+    started: new Date().toISOString(),
+    environment: {
+      node: process.version,
+      platform: process.platform,
+      ci: process.env.CI || false
+    }
+  };
+  
+  await fs.writeFile(
+    path.join(testArtifactsDir, 'metadata.json'),
+    JSON.stringify(metadata, null, 2)
+  );
+});
+
+// Cleanup after each test
+afterEach(async ({ task }) => {
+  const duration = Date.now() - task.result?.startTime || 0;
+  const status = task.result?.state || 'unknown';
+  
+  console.log(`\n📊 Test completed: ${task.name}`);
+  console.log(`   Status: ${status}`);
+  console.log(`   Duration: ${duration}ms`);
+  
+  // Update test metadata with results
+  const testName = task.name.replace(/[^a-zA-Z0-9]/g, '-');
+  const testArtifactsDir = `./test-results/artifacts/${testName}`;
+  const metadataPath = path.join(testArtifactsDir, 'metadata.json');
+  
+  try {
+    const metadata = JSON.parse(await fs.readFile(metadataPath, 'utf-8'));
+    metadata.completed = new Date().toISOString();
+    metadata.duration = duration;
+    metadata.status = status;
+    
+    if (task.result?.error) {
+      metadata.error = {
+        message: task.result.error.message,
+        stack: task.result.error.stack
+      };
+    }
+    
+    await fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2));
+  } catch {
+    // Metadata might not exist if test setup failed
   }
 });
 
-process.on('SIGINT', async () => {
-  await teardownE2EEnvironment();
-  process.exit(0);
-});
+/**
+ * Generate test summary report
+ */
+async function generateTestSummary() {
+  try {
+    const resultsPath = './test-results/e2e-results.json';
+    const results = JSON.parse(await fs.readFile(resultsPath, 'utf-8'));
+    
+    const summary = {
+      totalTests: results.numTotalTests || 0,
+      passed: results.numPassedTests || 0,
+      failed: results.numFailedTests || 0,
+      skipped: results.numPendingTests || 0,
+      duration: results.duration || 0,
+      timestamp: new Date().toISOString(),
+      testSuites: results.testResults?.map((suite: any) => ({
+        name: suite.name,
+        tests: suite.assertionResults?.length || 0,
+        passed: suite.assertionResults?.filter((t: any) => t.status === 'passed').length || 0,
+        failed: suite.assertionResults?.filter((t: any) => t.status === 'failed').length || 0,
+        duration: suite.duration || 0
+      })) || []
+    };
+    
+    await fs.writeFile(
+      './test-results/summary.json',
+      JSON.stringify(summary, null, 2)
+    );
+    
+    // Print summary to console
+    console.log('\n📊 E2E Test Summary:');
+    console.log(`   Total Tests: ${summary.totalTests}`);
+    console.log(`   ✅ Passed: ${summary.passed}`);
+    console.log(`   ❌ Failed: ${summary.failed}`);
+    console.log(`   ⏭️  Skipped: ${summary.skipped}`);
+    console.log(`   ⏱️  Duration: ${(summary.duration / 1000).toFixed(2)}s`);
+  } catch (error) {
+    console.error('Failed to generate test summary:', error);
+  }
+}
 
-process.on('SIGTERM', async () => {
-  await teardownE2EEnvironment();
-  process.exit(0);
-});
+/**
+ * Custom test helpers
+ */
+export const testHelpers = {
+  /**
+   * Wait for a condition with timeout
+   */
+  async waitFor(
+    condition: () => boolean | Promise<boolean>,
+    options: { timeout?: number; interval?: number; message?: string } = {}
+  ): Promise<void> {
+    const { timeout = 10000, interval = 100, message = 'Condition not met' } = options;
+    const startTime = Date.now();
+    
+    while (Date.now() - startTime < timeout) {
+      if (await condition()) {
+        return;
+      }
+      await new Promise(resolve => setTimeout(resolve, interval));
+    }
+    
+    throw new Error(`${message} (timeout: ${timeout}ms)`);
+  },
+  
+  /**
+   * Create a unique test ID
+   */
+  createTestId(): string {
+    return `test-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+  },
+  
+  /**
+   * Get test artifact directory
+   */
+  getTestArtifactDir(testName: string): string {
+    const safeName = testName.replace(/[^a-zA-Z0-9]/g, '-');
+    return `./test-results/artifacts/${safeName}`;
+  }
+};
+
+// Make test helpers globally available
+globalThis.testHelpers = testHelpers;
+
+// Export for TypeScript
+export {};
