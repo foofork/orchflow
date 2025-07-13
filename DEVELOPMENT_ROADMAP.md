@@ -86,33 +86,19 @@
      - [x] Create placeholder icon files
      - [ ] Clean up unused imports
 
-4. **Unit Test Suite** ✅ Successfully Restored
-   - **Status**: >90% pass rate achieved for critical components
-   - **Results**: 
-     - ✅ Manager Store: 32/32 tests (100%)
-     - ✅ Metrics Service: 17/17 tests (100%)
-     - ✅ StatusBarEnhanced: 25/25 tests (100%)
-     - ✅ Dialog Component: 17/17 tests (100%)
-     - ✅ Total: 91/91 tests passing (100%) on fixed components
-   - **Issues Fixed**:
-     - [x] CodeMirror Compartment mock (class structure)
-     - [x] Web Animations API mock (circular reference)
-     - [x] Test timeout configurations
-     - [x] ShareDialog recentPackages initialization
-     - [x] WebSocket mocks for jsdom environment
-     - [x] Transform errors from top-level await
-     - [x] Dialog/Modal component rendering issues
-     - [x] vi.mock hoisting issues with Tauri APIs
-     - [x] Svelte 5 event handling in tests
-   - **Technical Improvements**:
-     - [x] Standardized Tauri API mocking patterns
-     - [x] Enhanced mock factory functions
-     - [x] Fixed import path resolution issues
-     - [x] Improved component event testing
-
 ### 🟡 P1 - High Priority
 
-5. **Integration Test Suite** 🔄 Major Progress
+5. **Terminal-Related TODOs and Dead Code** 🔄 Active Work
+   - **Status**: High-priority terminal functionality improvements
+   - **Remaining Items**:
+     - [ ] Implement proper timestamp parsing from muxd backend responses
+     - [ ] Complete migration of command history to new SimpleStateStore API  
+     - [ ] Fix commented out terminal streaming integration test
+   - **Recently Completed**:
+     - [x] Fix session ID management in terminal handlers and security audit logging ✅
+     - [x] Implement proper split type handling in tmux backend ✅
+
+6. **Integration Test Suite** 🔄 Major Progress
    - **Status**: 13 passed | 14 failed (27 total)
    - **Results**:
      - ✅ 48% pass rate (up from 25%)
@@ -144,15 +130,52 @@
 
 ### 🟢 P2 - Medium Priority
 
-7. **Test Coverage Enhancement**
-   - [ ] Implement TDD for all new features
-   - [ ] Increase coverage to >90%
-   - [ ] Add missing test categories
+7. **Backend API Completion** 🆕 High Value
+   - **Status**: Frontend ready, missing backend implementations
+   - **Core Manager API Missing Methods**:
+     - [ ] `executePluginCommand()` - Plugin command execution
+     - [ ] `getOutput()` - Terminal output streaming
+     - [ ] Tab management integration
+     - [ ] Neovim editor integration methods
+   - **Impact**: Frontend functionality blocked waiting for backend
 
-8. **Performance Optimization**
-   - [ ] Address throughput issues in performance tests
-   - [ ] Optimize build times
-   - [ ] Reduce bundle sizes
+8. **Frontend User Experience** 🆕 Medium Value
+   - **Status**: UI polish and user feedback systems
+   - **Missing Components**:
+     - [ ] Error notification/toast system
+     - [ ] Code formatting support in CodeMirror editor
+     - [ ] Tooltip component for security indicators
+     - [ ] Real-time security event WebSocket/SSE connection
+   - **Impact**: Improved developer experience and user feedback
+
+9. **File Management Features** 🆕 High Value
+   - **Status**: Core functionality gaps
+   - **Missing Features**:
+     - [ ] File restore from trash functionality
+     - [ ] Drag & drop operations in file explorer
+   - **Impact**: Essential file management capabilities
+
+10. **Legacy Code Cleanup** 🆕 Technical Debt
+    - **Status**: Architectural modernization needed
+    - **High Priority Items**:
+      - [ ] Remove legacy AppState (migrate to StateManager)
+      - [ ] Complete command history migration to SimpleStateStore API
+      - [ ] Fix security audit context (missing session IDs)
+    - **Medium Priority Items**:
+      - [ ] Improve cross-platform system metrics
+      - [ ] Complete Neovim RPC implementation
+      - [ ] Enhanced timestamp parsing from muxd backend
+    - **Impact**: Code maintainability and architecture modernization
+
+11. **Test Coverage Enhancement**
+    - [ ] Implement TDD for all new features
+    - [ ] Increase coverage to >90%
+    - [ ] Add missing test categories
+
+12. **Performance Optimization**
+    - [ ] Address throughput issues in performance tests
+    - [ ] Optimize build times
+    - [ ] Reduce bundle sizes
 
 ---
 

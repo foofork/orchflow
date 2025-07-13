@@ -18,11 +18,20 @@ pub async fn send_keys(manager: &Manager, pane_id: &str, keys: &str) -> Result<V
 }
 
 pub async fn run_command(manager: &Manager, pane_id: &str, command: &str) -> Result<Value, String> {
+    // Get session ID from pane info
+    let session_id = if let Some(pane) = manager.state_manager.get_pane(pane_id).await {
+        pane.session_id
+    } else {
+        // Fallback to empty string if pane not found (shouldn't happen in normal operation)
+        tracing::warn!("Could not find pane {} for command history", pane_id);
+        String::new()
+    };
+
     // Store command in history
     let entry = crate::command_history::CommandEntry {
         id: uuid::Uuid::new_v4().to_string(),
         pane_id: pane_id.to_string(),
-        session_id: String::new(), // TODO: Get from pane info
+        session_id,
         command: command.to_string(),
         timestamp: chrono::Utc::now(),
         working_dir: None,
