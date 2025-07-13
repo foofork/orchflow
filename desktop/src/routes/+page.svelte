@@ -452,7 +452,7 @@
                 title: "Settings",
                 config: $settings,
                 show: true,
-                onSave: (e) => settings.update(() => e.detail),
+                onSave: (e: any) => settings.update(() => e.detail),
                 onClose: () => closeCurrentTab()
               }}
               placeholder="Loading Settings..."
@@ -509,17 +509,33 @@
               title={secondaryTab.title || 'Terminal'}
             />
           {:else if secondaryTab.type === 'file'}
-            <NeovimEditor 
-              filePath={secondaryTab.metadata?.filePath}
-              title={secondaryTab.title}
-              instanceId={secondaryTab.metadata?.instanceId}
+            <LazyComponent 
+              loader={NeovimEditor}
+              props={{
+                filePath: secondaryTab.metadata?.filePath,
+                title: secondaryTab.title,
+                instanceId: secondaryTab.metadata?.instanceId
+              }}
+              placeholder="Loading Editor..."
             />
           {:else if secondaryTab.type === 'dashboard'}
-            <DashboardEnhanced />
+            <LazyComponent 
+              loader={DashboardEnhanced}
+              props={{}}
+              placeholder="Loading Dashboard..."
+            />
           {:else if secondaryTab.type === 'test'}
-            <TestResultsView sessionId={$activeSession?.id || ''} />
+            <LazyComponent 
+              loader={TestResultsView}
+              props={{ sessionId: $activeSession?.id || '' }}
+              placeholder="Loading Test Results..."
+            />
           {:else if secondaryTab.type === 'plugins'}
-            <PluginManager />
+            <LazyComponent 
+              loader={PluginManager}
+              props={{}}
+              placeholder="Loading Plugin Manager..."
+            />
           {/if}
         </div>
       {/if}

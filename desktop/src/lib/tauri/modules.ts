@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 
 export interface ModuleManifest {
+  id: string;
   name: string;
   version: string;
   description: string;
