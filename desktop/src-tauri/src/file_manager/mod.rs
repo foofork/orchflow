@@ -362,6 +362,43 @@ impl FileManager {
         self.trash_manager.empty_trash().await
     }
 
+    /// Restore a file from trash by ID
+    pub async fn restore_from_trash(&self, item_id: &str) -> Result<PathBuf> {
+        let restore_path = self.trash_manager.restore_from_trash(item_id).await?;
+        
+        // Invalidate cache for the restored path
+        self.cache.invalidate_path(&restore_path).await;
+        
+        // If the restored path has a parent, invalidate the parent directory too
+        if let Some(parent) = restore_path.parent() {
+            self.cache.invalidate_path(parent).await;
+        }
+        
+        Ok(restore_path)
+    }
+
+    /// Find a trashed item by ID
+    pub async fn find_trashed_item(&self, item_id: &str) -> Option<trash::TrashedItem> {
+        self.trash_manager.find_trashed_item(item_id).await
+    }
+
+    /// Restore multiple files from trash
+    pub async fn restore_multiple_from_trash(&self, item_ids: Vec<String>) -> Result<Vec<(String, Result<PathBuf>)>> {
+        let results = self.trash_manager.restore_multiple_from_trash(item_ids).await?;
+        
+        // Invalidate cache for all restored paths
+        for (_, result) in &results {
+            if let Ok(restore_path) = result {
+                self.cache.invalidate_path(restore_path).await;
+                if let Some(parent) = restore_path.parent() {
+                    self.cache.invalidate_path(parent).await;
+                }
+            }
+        }
+        
+        Ok(results)
+    }
+
     // ===== Git Operations =====
 
     /// Check if a path is ignored by git

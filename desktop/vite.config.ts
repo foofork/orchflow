@@ -24,6 +24,19 @@ export default defineConfig({
     middlewareMode: false,
     headers: {
       'Keep-Alive': 'timeout=30, max=1000'
+    },
+    // Watch configuration to exclude Tauri directories
+    watch: {
+      ignored: [
+        '**/src-tauri/target/**',
+        '**/node_modules/**',
+        '**/.git/**',
+        '**/dist/**',
+        '**/build/**'
+      ]
+    },
+    fs: {
+      allow: ['..']
     }
   },
   

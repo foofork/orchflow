@@ -367,10 +367,17 @@ impl MuxBackend for MuxdBackend {
                 session_data.get("session_id").and_then(|v| v.as_str()),
                 session_data.get("name").and_then(|v| v.as_str()),
             ) {
+                // Parse created_at timestamp from response
+                let created_at = session_data
+                    .get("created_at")
+                    .or_else(|| session_data.get("created"))
+                    .and_then(Self::parse_timestamp)
+                    .unwrap_or_else(chrono::Utc::now);
+
                 let session = Session {
                     id: id.to_string(),
                     name: name.to_string(),
-                    created_at: chrono::Utc::now(), // TODO: Parse from response
+                    created_at,
                     window_count: session_data
                         .get("pane_count")
                         .and_then(|v| v.as_u64())
@@ -521,6 +528,39 @@ impl MuxBackend for MuxdBackend {
 }
 
 impl MuxdBackend {
+    /// Parse timestamp from various formats that muxd might send
+    fn parse_timestamp(value: &Value) -> Option<chrono::DateTime<chrono::Utc>> {
+        if let Some(s) = value.as_str() {
+            // Try ISO/RFC3339 format first
+            chrono::DateTime::parse_from_rfc3339(s)
+                .ok()
+                .map(|dt| dt.with_timezone(&chrono::Utc))
+                .or_else(|| {
+                    // Try parsing as Unix timestamp string
+                    s.parse::<i64>().ok().and_then(|ts| {
+                        let ts_ms = if ts > 1_000_000_000_000 { ts } else { ts * 1000 };
+                        chrono::DateTime::from_timestamp_millis(ts_ms)
+                    })
+                })
+        } else if let Some(n) = value.as_i64() {
+            // Unix timestamp as number
+            let ts_ms = if n > 1_000_000_000_000 { n } else { n * 1000 };
+            chrono::DateTime::from_timestamp_millis(ts_ms)
+        } else if let Some(obj) = value.as_object() {
+            // Timestamp object with secs/nanos fields
+            let secs = obj.get("secs")
+                .or_else(|| obj.get("secs_since_epoch"))
+                .and_then(|s| s.as_i64())?;
+            let nanos = obj.get("nanos")
+                .or_else(|| obj.get("nanos_since_epoch"))
+                .and_then(|n| n.as_u64())
+                .unwrap_or(0);
+            chrono::DateTime::from_timestamp(secs, nanos as u32)
+        } else {
+            None
+        }
+    }
+
     /// Helper method to emit error events to the UI
     fn emit_error(&self, error: &str, context: Option<String>) {
         if let Some(app_handle) = &self.app_handle {

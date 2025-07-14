@@ -66,7 +66,7 @@ describe('TerminalPanel Component', () => {
 
     // Setup default mock responses
     const { invoke } = await import('@tauri-apps/api/core');
-    vi.mocked(invoke).mockImplementation(async (cmd: string, args?: any) => {
+    vi.mocked(invoke).mockImplementation(async (cmd: string, _args?: any) => {
       const responses: Record<string, any> = {
         create_streaming_terminal: { 
           terminalId: 'term-3',

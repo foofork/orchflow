@@ -2,7 +2,7 @@
   import { createEventDispatcher } from 'svelte';
   import { terminalSecurityStore } from '$lib/stores/terminalSecurity';
   import Icon from './Icon.svelte';
-  // import Tooltip from './Tooltip.svelte'; // TODO: Create Tooltip component
+  import Tooltip from './Tooltip.svelte';
   
   export let terminalId: string;
   export let compact: boolean = false;
@@ -65,7 +65,11 @@
 <div class="terminal-security-indicator" class:compact>
   {#if compact}
     <!-- Compact mode - just icon with tooltip -->
-    <!-- <Tooltip content={`Security: ${tierConfig.name} - ${tierConfig.description}`}> -->
+    <Tooltip 
+      content={`Security: ${tierConfig.name} - ${tierConfig.description}`}
+      variant="security"
+      placement="bottom"
+    >
       <button
         class="security-badge compact {tierConfig.bgColor} {tierConfig.color}"
         on:click={handleClick}
@@ -76,7 +80,7 @@
           <span class="alert-dot"></span>
         {/if}
       </button>
-    <!-- </Tooltip> -->
+    </Tooltip>
   {:else}
     <!-- Full mode - detailed display -->
     <div class="security-panel">
@@ -94,7 +98,7 @@
       <!-- Quick tier selector -->
       <div class="tier-selector">
         {#each Object.entries(securityTiers) as [tier, config] (tier)}
-          <!-- <Tooltip content={config.description}> -->
+          <Tooltip content={config.description} placement="top">
             <button
               class="tier-option"
               class:active={currentTier === parseInt(tier)}
@@ -103,7 +107,7 @@
             >
               <Icon name={config.icon} size="tiny" class={config.color} />
             </button>
-          <!-- </Tooltip> -->
+          </Tooltip>
         {/each}
       </div>
       

@@ -22,6 +22,7 @@
   export let wordWrap = true;
   export let height = '400px';
   export let variant: 'default' | 'compact' | 'comfortable' = 'default';
+  export let showFormatButton = true;
   
   const dispatch = createEventDispatcher();
   
@@ -30,6 +31,7 @@
   let loading = true;
   let error: string | null = null;
   let themeUnsubscribe: (() => void) | null = null;
+  let formatting = false;
   
   // Compartments for reactive configurations
   const readOnlyCompartment = new Compartment();
@@ -79,7 +81,15 @@
           ...historyKeymap,
           ...completionKeymap,
           ...lintKeymap,
-          indentWithTab
+          indentWithTab,
+          // Custom format keybinding
+          {
+            key: 'Shift-Alt-f',
+            run: () => {
+              format();
+              return true;
+            }
+          }
         ])
       ];
 
@@ -171,10 +181,96 @@
     return view;
   }
   
-  export function format() {
-    // CodeMirror doesn't have built-in formatting
-    // You could integrate prettier here if needed
-    console.warn('Formatting not implemented');
+  export async function format() {
+    if (!view || formatting) return;
+
+    formatting = true;
+    try {
+      const doc = view.state.doc.toString();
+      let formatted: string;
+
+      // Format based on language
+      switch (language) {
+        case 'javascript':
+        case 'typescript':
+          formatted = await formatWithPrettier(doc, 'javascript');
+          break;
+        case 'json':
+          try {
+            // For JSON, use native JSON.parse/stringify for basic formatting
+            formatted = JSON.stringify(JSON.parse(doc), null, 2);
+          } catch {
+            // If invalid JSON, try prettier
+            formatted = await formatWithPrettier(doc, 'json');
+          }
+          break;
+        case 'yaml':
+          formatted = await formatWithPrettier(doc, 'yaml');
+          break;
+        case 'rust':
+          // For Rust, we could integrate rustfmt in the future
+          formatted = doc;
+          break;
+        case 'python':
+          // For Python, we could integrate black/autopep8 in the future
+          formatted = doc;
+          break;
+        default:
+          formatted = doc;
+      }
+
+      if (formatted !== doc) {
+        view.dispatch({
+          changes: {
+            from: 0,
+            to: view.state.doc.length,
+            insert: formatted,
+          },
+          selection: { anchor: 0 }
+        });
+        dispatch('format', { language, original: doc, formatted });
+      }
+    } catch (error) {
+      console.error('Formatting failed:', error);
+      dispatch('formatError', { error: error instanceof Error ? error.message : String(error) });
+    } finally {
+      formatting = false;
+    }
+  }
+
+  async function formatWithPrettier(code: string, parser: string): Promise<string> {
+    try {
+      // Dynamic import of prettier to keep bundle size down
+      const prettier = await import('prettier/standalone');
+      const plugins = await Promise.all([
+        import('prettier/plugins/babel'),
+        import('prettier/plugins/estree'),
+        import('prettier/plugins/typescript'),
+        import('prettier/plugins/yaml')
+      ]);
+
+      const parserMap: Record<string, string> = {
+        'javascript': 'babel',
+        'typescript': 'typescript',
+        'json': 'json',
+        'yaml': 'yaml'
+      };
+
+      return await prettier.format(code, {
+        parser: parserMap[parser] || 'babel',
+        plugins: plugins.map(p => p.default),
+        semi: true,
+        singleQuote: true,
+        tabWidth: 2,
+        trailingComma: 'es5',
+        printWidth: 80,
+        bracketSpacing: true,
+        arrowParens: 'avoid',
+      });
+    } catch (error) {
+      console.error('Prettier formatting failed:', error);
+      return code; // Return original if formatting fails
+    }
   }
   
   export function setLanguage(lang: string) {
@@ -205,7 +301,15 @@
           ...historyKeymap,
           ...completionKeymap,
           ...lintKeymap,
-          indentWithTab
+          indentWithTab,
+          // Custom format keybinding
+          {
+            key: 'Shift-Alt-f',
+            run: () => {
+              format();
+              return true;
+            }
+          }
         ])
       ];
 
@@ -217,6 +321,25 @@
 </script>
 
 <div class="codemirror-editor-container" style="height: {height}">
+  {#if showFormatButton && !readOnly}
+    <div class="editor-toolbar">
+      <button
+        class="format-button"
+        on:click={format}
+        disabled={formatting || loading}
+        title="Format Code (Shift+Alt+F)"
+        aria-label="Format code"
+      >
+        {#if formatting}
+          <div class="format-spinner"></div>
+        {:else}
+          <div class="format-icon">⚡</div>
+        {/if}
+        Format
+      </button>
+    </div>
+  {/if}
+  
   {#if loading}
     <div class="loading">
       <div class="spinner"></div>
@@ -238,6 +361,54 @@
     border-radius: var(--radius-sm);
     overflow: hidden;
     background: var(--editor-bg);
+  }
+
+  .editor-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    padding: 8px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    gap: 8px;
+  }
+
+  .format-button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--accent);
+    color: var(--accent-fg);
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: var(--font-body-xs);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--duration-fast) var(--ease-out);
+  }
+
+  .format-button:hover:not(:disabled) {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+  }
+
+  .format-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .format-icon {
+    font-size: 14px;
+  }
+
+  .format-spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin var(--duration-normal) linear infinite;
   }
   
   .editor-mount {

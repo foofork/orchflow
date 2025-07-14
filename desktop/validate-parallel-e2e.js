@@ -291,7 +291,7 @@ class E2EParallelValidator {
       testName,
       port,
       killed: false,
-      kill: (signal) => {
+      kill: (_signal) => {
         console.log(`  Terminating ${testName} on port ${port}`);
         this.portManager.releasePort(port);
         return true;

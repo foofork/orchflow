@@ -14,6 +14,8 @@
   let error = '';
   let loading = false;
   let contextMenu: { x: number; y: number; node: TreeNode } | null = null;
+  let statusMessage = '';
+  let statusType: 'info' | 'success' | 'error' | null = null;
   
   // Dialog states
   let showNewFileDialog = false;
@@ -319,6 +321,94 @@
     }
     closeContextMenu();
   }
+
+  // Utility function to show status messages
+  function showStatus(message: string, type: 'info' | 'success' | 'error' = 'info', duration = 3000) {
+    statusMessage = message;
+    statusType = type;
+    
+    setTimeout(() => {
+      statusMessage = '';
+      statusType = null;
+    }, duration);
+  }
+
+  // Drag and drop handlers
+  async function handleFileDrop(event: CustomEvent) {
+    const { source, destination, operation } = event.detail;
+    
+    // Show loading status
+    showStatus(`${operation === 'copy' ? 'Copying' : 'Moving'} ${source.name}...`, 'info', 0);
+    
+    try {
+      if (!browser || !('__TAURI__' in window)) {
+        console.log('Mock drag and drop:', { source, destination, operation });
+        showStatus(`Mock ${operation}: ${source.name} → ${destination.name}`, 'success');
+        return;
+      }
+
+      const { invoke } = await import('@tauri-apps/api/core');
+      
+      // Call appropriate backend command based on operation
+      if (operation === 'copy') {
+        await invoke('copy_files', {
+          files: [source.path],
+          destination: destination.path
+        });
+        showStatus(`Copied ${source.name} to ${destination.name}`, 'success');
+        console.log(`Copied ${source.name} to ${destination.path}`);
+      } else {
+        await invoke('move_files', {
+          files: [source.path],
+          destination: destination.path
+        });
+        showStatus(`Moved ${source.name} to ${destination.name}`, 'success');
+        console.log(`Moved ${source.name} to ${destination.path}`);
+      }
+      
+      // Refresh the tree to show the changes
+      await handleRefresh();
+      
+      // Dispatch success event
+      dispatch('fileOperation', {
+        operation,
+        source: source.path,
+        destination: destination.path,
+        success: true
+      });
+      
+    } catch (err) {
+      const errorMsg = `Failed to ${operation} ${source.name}: ${err}`;
+      console.error(errorMsg);
+      showStatus(errorMsg, 'error', 5000);
+      
+      // Dispatch error event
+      dispatch('fileOperation', {
+        operation,
+        source: source.path,
+        destination: destination.path,
+        success: false,
+        error: err
+      });
+    }
+  }
+
+  function handleDropError(event: CustomEvent) {
+    const { error: dropError, destination } = event.detail;
+    const errorMsg = `Drop failed: ${dropError.message || dropError}`;
+    console.error('Drop error:', dropError);
+    showStatus(errorMsg, 'error', 5000);
+  }
+
+  function handleDragStart(event: CustomEvent) {
+    // Optional: Handle drag start for any global state updates
+    dispatch('dragStart', event.detail);
+  }
+
+  function handleDragEnd(event: CustomEvent) {
+    // Optional: Handle drag end for any global state updates
+    dispatch('dragEnd', event.detail);
+  }
 </script>
 
 <div class="file-explorer-enhanced">
@@ -371,8 +461,22 @@
           on:openFile={handleOpenFile}
           on:expand={handleExpand}
           on:contextMenu={handleContextMenu}
+          on:dragStart={handleDragStart}
+          on:dragEnd={handleDragEnd}
+          on:fileDrop={handleFileDrop}
+          on:dropError={handleDropError}
         />
       {/each}
+    </div>
+  {/if}
+  
+  <!-- Status bar -->
+  {#if statusMessage}
+    <div class="status-bar" class:success={statusType === 'success'} class:error={statusType === 'error'} class:info={statusType === 'info'}>
+      <span class="status-icon">
+        {#if statusType === 'success'}✓{:else if statusType === 'error'}⚠{:else}ℹ{/if}
+      </span>
+      <span class="status-text">{statusMessage}</span>
     </div>
   {/if}
 </div>
@@ -733,5 +837,63 @@
   
   .btn-danger:hover {
     background: var(--error-hover);
+  }
+
+  /* Status bar styles */
+  .status-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 8px 12px;
+    background: var(--bg-tertiary);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    z-index: 10;
+    animation: slideUp 0.2s ease-out;
+  }
+
+  @keyframes slideUp {
+    from {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  .status-bar.success {
+    background: var(--success);
+    color: white;
+    border-top-color: var(--success);
+  }
+
+  .status-bar.error {
+    background: var(--error);
+    color: white;
+    border-top-color: var(--error);
+  }
+
+  .status-bar.info {
+    background: var(--accent);
+    color: white;
+    border-top-color: var(--accent);
+  }
+
+  .status-icon {
+    font-size: 14px;
+  }
+
+  .status-text {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 </style>

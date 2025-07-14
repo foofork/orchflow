@@ -272,9 +272,39 @@ export const terminalSecurity = {
   
   // Subscribe to security events
   subscribeToSecurityEvents(): () => void {
-    // TODO: Implement WebSocket or SSE connection for real-time security events
+    // Import and use the security event manager
+    import('$lib/services/securityEvents').then(({ securityEventManager, enableAutoConnect }) => {
+      // Enable auto-connection if not already connected
+      enableAutoConnect();
+      
+      // Subscribe to security events
+      return securityEventManager.subscribe((event) => {
+        // Handle security events in the context of terminal security
+        if (event.type === 'alert' && event.terminalId) {
+          terminalContexts.update(contexts => {
+            const context = contexts[event.terminalId!];
+            if (context) {
+              const alert: SecurityAlert = {
+                id: crypto.randomUUID(),
+                timestamp: new Date(event.timestamp),
+                severity: event.severity,
+                message: event.data.message || 'Security event received',
+                terminalId: event.terminalId,
+                actionRequired: event.severity === 'critical' || event.severity === 'error'
+              };
+              
+              context.alerts = [...(context.alerts || []), alert];
+            }
+            return contexts;
+          });
+        }
+      });
+    }).catch(error => {
+      console.error('Failed to subscribe to security events:', error);
+    });
+
     return () => {
-      // Cleanup
+      // Cleanup handled by the security event manager
     };
   },
   

@@ -13,18 +13,8 @@ const MAX_COMMAND_LENGTH: usize = 4096;
 #[path = "command_history_tests.rs"]
 mod tests;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CommandEntry {
-    pub id: String,
-    pub pane_id: String,
-    pub session_id: String,
-    pub command: String,
-    pub timestamp: DateTime<Utc>,
-    pub working_dir: Option<String>,
-    pub exit_code: Option<i32>,
-    pub duration_ms: Option<u64>,
-    pub shell_type: Option<String>,
-}
+// Re-export CommandEntry from SimpleStateStore types
+pub use crate::simple_state_store::CommandEntry;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CommandStats {
@@ -75,7 +65,7 @@ impl CommandHistory {
             .await
             .map_err(|e| OrchflowError::DatabaseError {
                 operation: "save_command_history".to_string(),
-                reason: e,
+                reason: e.to_string(),
             })?;
 
         // Update stats cache
@@ -89,33 +79,31 @@ impl CommandHistory {
 
     /// Enforce the maximum history size by removing oldest entries
     async fn enforce_history_size_limit(&self) -> Result<()> {
-        let keys = self.store
-            .keys_with_prefix("command:")
+        let count = self.store
+            .count_command_history()
             .await
             .map_err(|e| OrchflowError::DatabaseError {
-                operation: "keys_with_prefix".to_string(),
+                operation: "count_command_history".to_string(),
                 reason: e.to_string(),
             })?;
 
-        if keys.len() > MAX_HISTORY_SIZE {
-            // Get all entries to sort by timestamp
-            let mut entries = Vec::new();
-            for key in &keys {
-                if let Ok(Some(data)) = self.store.get(key).await {
-                    if let Ok(entry) = serde_json::from_str::<CommandEntry>(&data) {
-                        entries.push((key.clone(), entry.timestamp));
-                    }
-                }
-            }
-
-            // Sort by timestamp (oldest first)
-            entries.sort_by_key(|(_, timestamp)| *timestamp);
-
-            // Delete oldest entries to stay within limit
-            let entries_to_delete = entries.len() - MAX_HISTORY_SIZE;
-            for (key, _) in entries.iter().take(entries_to_delete) {
-                let _ = self.store.delete(key).await;
-            }
+        if count > MAX_HISTORY_SIZE {
+            let entries_to_delete = count - MAX_HISTORY_SIZE;
+            let ids = self.store
+                .get_oldest_command_entries(entries_to_delete)
+                .await
+                .map_err(|e| OrchflowError::DatabaseError {
+                    operation: "get_oldest_command_entries".to_string(),
+                    reason: e.to_string(),
+                })?;
+            
+            let _ = self.store
+                .delete_command_entries_by_ids(&ids)
+                .await
+                .map_err(|e| OrchflowError::DatabaseError {
+                    operation: "delete_command_entries_by_ids".to_string(),
+                    reason: e.to_string(),
+                })?;
         }
 
         Ok(())
@@ -151,7 +139,7 @@ impl CommandHistory {
                 .await
                 .map_err(|e| OrchflowError::DatabaseError {
                     operation: "search_command_history".to_string(),
-                    reason: e,
+                    reason: e.to_string(),
                 })?;
             results.extend(db_results);
         }
@@ -206,7 +194,7 @@ impl CommandHistory {
                 .await
                 .map_err(|e| OrchflowError::DatabaseError {
                     operation: "get_command_stats".to_string(),
-                    reason: e,
+                    reason: e.to_string(),
                 })?;
 
         let mut cache = self.stats_cache.write().await;
@@ -225,7 +213,7 @@ impl CommandHistory {
             .await
             .map_err(|e| OrchflowError::DatabaseError {
                 operation: "delete_old_command_history".to_string(),
-                reason: e,
+                reason: e.to_string(),
             })?;
 
         // Clear memory cache of old entries
@@ -250,7 +238,7 @@ impl CommandHistory {
             .await
             .map_err(|e| OrchflowError::DatabaseError {
                 operation: "get_all_command_history".to_string(),
-                reason: e,
+                reason: e.to_string(),
             })?;
 
         serde_json::to_string_pretty(&entries).map_err(|e| OrchflowError::ValidationError {
@@ -278,191 +266,3 @@ impl CommandHistory {
     }
 }
 
-// Extension trait for SimpleStateStore - TODO: Complete migration to new API
-impl SimpleStateStore {
-    pub async fn save_command_history(
-        &self,
-        entry: CommandEntry,
-    ) -> std::result::Result<(), String> {
-        let key = format!("command_history:{}", entry.id);
-        let data = serde_json::to_string(&entry)
-            .map_err(|e| format!("Failed to serialize command entry: {e}"))?;
-
-        self.set(&key, &data)
-            .await
-            .map_err(|e| format!("Failed to save command history: {e}"))?;
-
-        Ok(())
-    }
-
-    pub async fn search_command_history(
-        &self,
-        query: &str,
-        pane_id: Option<&str>,
-        session_id: Option<&str>,
-        limit: usize,
-    ) -> std::result::Result<Vec<CommandEntry>, String> {
-        // Get all command history keys
-        let keys = self
-            .keys_with_prefix("command_history:")
-            .await
-            .map_err(|e| format!("Failed to get command history keys: {e}"))?;
-
-        let mut results = Vec::new();
-        let mut count = 0;
-
-        // Search through stored command entries
-        for key in keys {
-            if count >= limit {
-                break;
-            }
-
-            if let Ok(Some(data)) = self.get(&key).await {
-                if let Ok(entry) = serde_json::from_str::<CommandEntry>(&data) {
-                    // Filter by query, pane_id, and session_id
-                    let matches_query = entry.command.contains(query);
-                    let matches_pane = pane_id.is_none_or(|id| entry.pane_id == id);
-                    let matches_session = session_id.is_none_or(|id| entry.session_id == id);
-
-                    if matches_query && matches_pane && matches_session {
-                        results.push(entry);
-                        count += 1;
-                    }
-                }
-            }
-        }
-
-        // Sort by timestamp descending
-        results.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
-
-        Ok(results)
-    }
-
-    pub async fn get_command_stats(
-        &self,
-        limit: usize,
-    ) -> std::result::Result<Vec<CommandStats>, String> {
-        // Get all command history entries
-        let keys = self
-            .keys_with_prefix("command_history:")
-            .await
-            .map_err(|e| format!("Failed to get command history keys: {e}"))?;
-
-        let mut command_data: std::collections::HashMap<
-            String,
-            (usize, DateTime<Utc>, Vec<u64>, usize),
-        > = std::collections::HashMap::new();
-
-        // Collect data for each command
-        for key in keys {
-            if let Ok(Some(data)) = self.get(&key).await {
-                if let Ok(entry) = serde_json::from_str::<CommandEntry>(&data) {
-                    let (frequency, last_used, durations, successes) = command_data
-                        .entry(entry.command.clone())
-                        .or_insert((0, entry.timestamp, Vec::new(), 0));
-
-                    *frequency += 1;
-                    if entry.timestamp > *last_used {
-                        *last_used = entry.timestamp;
-                    }
-                    if let Some(duration) = entry.duration_ms {
-                        durations.push(duration);
-                    }
-                    if entry.exit_code == Some(0) {
-                        *successes += 1;
-                    }
-                }
-            }
-        }
-
-        // Convert to CommandStats and sort by frequency
-        let mut stats: Vec<CommandStats> = command_data
-            .into_iter()
-            .map(|(command, (frequency, last_used, durations, successes))| {
-                let average_duration_ms = if durations.is_empty() {
-                    None
-                } else {
-                    Some(durations.iter().sum::<u64>() / durations.len() as u64)
-                };
-                let success_rate = if frequency > 0 {
-                    (successes as f32 / frequency as f32) * 100.0
-                } else {
-                    0.0
-                };
-
-                CommandStats {
-                    command,
-                    frequency,
-                    last_used,
-                    average_duration_ms,
-                    success_rate,
-                }
-            })
-            .collect();
-
-        stats.sort_by(|a, b| b.frequency.cmp(&a.frequency));
-        stats.truncate(limit);
-
-        Ok(stats)
-    }
-
-    pub async fn delete_old_command_history(
-        &self,
-        cutoff: DateTime<Utc>,
-    ) -> std::result::Result<usize, String> {
-        // Get all command history keys
-        let keys = self
-            .keys_with_prefix("command_history:")
-            .await
-            .map_err(|e| format!("Failed to get command history keys: {e}"))?;
-
-        let mut deleted_count = 0;
-
-        for key in keys {
-            if let Ok(Some(data)) = self.get(&key).await {
-                if let Ok(entry) = serde_json::from_str::<CommandEntry>(&data) {
-                    if entry.timestamp < cutoff {
-                        if self.delete(&key).await.is_ok() {
-                            deleted_count += 1;
-                        }
-                    }
-                }
-            }
-        }
-
-        Ok(deleted_count)
-    }
-
-    pub async fn get_all_command_history(
-        &self,
-        pane_id: Option<&str>,
-        session_id: Option<&str>,
-    ) -> std::result::Result<Vec<CommandEntry>, String> {
-        // Get all command history keys
-        let keys = self
-            .keys_with_prefix("command_history:")
-            .await
-            .map_err(|e| format!("Failed to get command history keys: {e}"))?;
-
-        let mut results = Vec::new();
-
-        for key in keys {
-            if let Ok(Some(data)) = self.get(&key).await {
-                if let Ok(entry) = serde_json::from_str::<CommandEntry>(&data) {
-                    // Filter by pane_id and session_id if provided
-                    let matches_pane = pane_id.is_none_or(|id| entry.pane_id == id);
-                    let matches_session = session_id.is_none_or(|id| entry.session_id == id);
-
-                    if matches_pane && matches_session {
-                        results.push(entry);
-                    }
-                }
-            }
-        }
-
-        // Sort by timestamp descending
-        results.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
-
-        Ok(results)
-    }
-}

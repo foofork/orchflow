@@ -1,5 +1,6 @@
 <script lang="ts">
   import { manager, activeSession, plugins } from '$lib/stores/manager';
+  import { toastManager } from '$lib/stores/toast';
   
   let input = '';
   let suggestions: string[] = [];
@@ -36,28 +37,34 @@
         const session = $activeSession;
         if (session) {
           await manager.createTerminal(session.id, { name: 'Terminal' });
+          toastManager.success('Terminal created successfully');
         } else {
-          console.error('No active session');
+          toastManager.error('No active session available');
         }
       }
       else if (command === 'create session' || command === 'new session') {
         const name = prompt('Session name:') || 'New Session';
         await manager.createSession(name);
+        toastManager.success(`Session "${name}" created successfully`);
       }
       else if (command === 'list sessions') {
         await manager.refreshSessions();
+        toastManager.success('Sessions refreshed');
       }
       else if (command === 'list plugins') {
         await manager.refreshPlugins();
+        toastManager.success(`Found ${$plugins.length} plugins`);
         console.warn('Available plugins:', $plugins);
       }
       else if (command.startsWith('search ')) {
         const query = trimmedInput.substring(7);
         const results = await manager.searchProject(query);
+        toastManager.success(`Found ${results.length} search results for "${query}"`);
         console.warn('Search results:', results);
       }
       else if (command === 'get file tree' || command === 'file tree') {
         const tree = await manager.listDirectory('/');
+        toastManager.success('File tree loaded');
         console.warn('File tree:', tree);
       }
       else {
@@ -79,6 +86,9 @@
             // Send the command to the terminal
             if (pane) {
               await manager.sendInput(pane.id, command + '\n');
+              toastManager.success(`Executed command: ${command}`);
+            } else {
+              toastManager.error('Failed to create terminal for command execution');
             }
             console.warn('Created terminal with command:', command);
           }
@@ -90,7 +100,7 @@
       showSuggestions = false;
     } catch (error) {
       console.error('Failed to execute command:', error);
-      // TODO: Show error toast
+      toastManager.commandError(trimmedInput, error);
     } finally {
       loading = false;
     }

@@ -160,6 +160,44 @@ export class TestContext {
     
     // Install Tauri mock before navigating
     await page.addInitScript(() => {
+      // Mock WebSocket to prevent connection errors
+      class MockWebSocket {
+        url: string;
+        readyState: number = 1; // OPEN
+        onopen: any = null;
+        onclose: any = null;
+        onerror: any = null;
+        onmessage: any = null;
+        
+        constructor(url: string) {
+          this.url = url;
+          console.log(`[MockWebSocket] Creating WebSocket connection to ${url}`);
+          setTimeout(() => {
+            if (this.onopen) this.onopen(new Event('open'));
+          }, 0);
+        }
+        
+        send(data: any) {
+          console.log(`[MockWebSocket] Sending:`, data);
+        }
+        
+        close() {
+          this.readyState = 3; // CLOSED
+          if (this.onclose) this.onclose(new CloseEvent('close'));
+        }
+        
+        addEventListener(event: string, handler: any) {
+          if (event === 'open') this.onopen = handler;
+          else if (event === 'close') this.onclose = handler;
+          else if (event === 'error') this.onerror = handler;
+          else if (event === 'message') this.onmessage = handler;
+        }
+        
+        removeEventListener() {}
+      }
+      
+      (window as any).WebSocket = MockWebSocket;
+      
       // Install Tauri mock if not already present
       if (typeof window !== 'undefined' && !(window as any).__TAURI__) {
         const mockInvoke = async (cmd: string, args?: any) => {
@@ -263,6 +301,62 @@ export class TestContext {
                 exit_code: 0
               };
             
+            // Terminal streaming operations
+            case 'create_streaming_terminal':
+              return {
+                id: args?.terminal_id || 'mock-terminal-1',
+                title: `Terminal ${args?.terminal_id || '1'}`,
+                shell: args?.shell || '/bin/bash',
+                rows: args?.rows || 24,
+                cols: args?.cols || 80,
+                created_at: new Date().toISOString(),
+                last_activity: new Date().toISOString(),
+                process_id: Math.floor(Math.random() * 10000)
+              };
+            
+            case 'send_terminal_input':
+            case 'send_terminal_key':
+            case 'resize_streaming_terminal':
+            case 'clear_terminal_scrollback':
+            case 'stop_streaming_terminal':
+            case 'restart_terminal_process':
+            case 'broadcast_terminal_input':
+              return true;
+              
+            case 'get_terminal_state':
+              return {
+                id: args?.terminal_id || 'mock-terminal-1',
+                rows: 24,
+                cols: 80,
+                cursor: { x: 0, y: 0, visible: true, blinking: true },
+                mode: 'normal',
+                title: 'Terminal',
+                active: true,
+                last_activity: new Date().toISOString()
+              };
+              
+            case 'get_terminal_process_info':
+              return {
+                pid: 1234,
+                name: 'bash',
+                command: '/bin/bash',
+                status: { Running: null }
+              };
+              
+            case 'monitor_terminal_health':
+              return {
+                terminal_id: args?.terminal_id || 'mock-terminal-1',
+                status: { type: 'Healthy' },
+                process_info: {
+                  pid: 1234,
+                  name: 'bash',
+                  command: '/bin/bash',
+                  status: { Running: null }
+                },
+                last_activity: new Date().toISOString(),
+                uptime_seconds: 3600
+              };
+            
             // Workspace operations  
             case 'get_workspace_info':
               return {
@@ -270,7 +364,89 @@ export class TestContext {
                 name: 'E2E Test Workspace'
               };
             case 'get_current_dir':
-              return '/mock/workspace';
+              return '/home/user/projects';
+            
+            // Manager operations
+            case 'manager_execute':
+            case 'manager_subscribe':
+            case 'select_backend_pane':
+            case 'persist_state':
+              return true;
+              
+            case 'get_session':
+              return null;
+              
+            case 'get_panes':
+              return [];
+              
+            case 'get_pane':
+              return null;
+              
+            // File operations
+            case 'save_file':
+            case 'create_file':
+              return true;
+              
+            case 'list_directory':
+              return [
+                { name: 'file1.txt', path: `${args?.path || '.'}/file1.txt`, is_dir: false, size: 1024 },
+                { name: 'file2.js', path: `${args?.path || '.'}/file2.js`, is_dir: false, size: 2048 },
+                { name: 'subfolder', path: `${args?.path || '.'}/subfolder`, is_dir: true, size: 0 }
+              ];
+              
+            case 'watch_file':
+            case 'unwatch_file':
+              return true;
+              
+            // Command history
+            case 'get_command_history':
+            case 'search_command_history':
+              return [];
+              
+            // Module operations
+            case 'module_scan':
+            case 'module_list':
+              return [{ name: 'test-module', enabled: true, version: '1.0.0' }];
+              
+            case 'module_enable':
+            case 'module_execute':
+              return true;
+              
+            // Layout operations
+            case 'create_layout':
+            case 'get_layout':
+              return { id: 'layout-1', session_id: args?.sessionId || 'default', panes: [] };
+              
+            case 'split_layout_pane':
+            case 'close_layout_pane':
+            case 'resize_layout_pane':
+              return true;
+              
+            case 'get_layout_leaf_panes':
+              return [];
+              
+            // Test results
+            case 'get_test_history':
+              return [];
+              
+            // Security operations
+            case 'update_terminal_security_tier':
+            case 'trust_workspace':
+            case 'import_security_configuration':
+              return true;
+              
+            // Tmux operations
+            case 'tmux_create_session':
+            case 'tmux_list_sessions':
+            case 'tmux_create_pane':
+            case 'tmux_send_keys':
+            case 'tmux_capture_pane':
+            case 'tmux_resize_pane':
+            case 'tmux_kill_pane':
+              return true;
+              
+            case 'update_settings':
+              return {};
             
             default:
               console.warn(`[TauriMock] Unhandled command: ${cmd}`);
@@ -323,12 +499,32 @@ export class TestContext {
             currentWindow: () => ({
               label: 'main',
               isFullscreen: () => Promise.resolve(false),
-              setFullscreen: (fullscreen: boolean) => Promise.resolve(),
-              listen: (event: string, handler: any) => Promise.resolve(() => {}),
-              emit: (event: string, payload?: any) => Promise.resolve()
+              setFullscreen: (_fullscreen: boolean) => Promise.resolve(),
+              listen: (_event: string, _handler: any) => Promise.resolve(() => {}),
+              emit: (_event: string, _payload?: any) => Promise.resolve()
             })
           }
         };
+        
+        // Mock window.currentWindow directly for components that access it
+        if (!(window as any).currentWindow) {
+          (window as any).currentWindow = () => ({
+            label: 'main',
+            listen: (_event: string, _handler: any) => Promise.resolve(() => {}),
+            emit: (_event: string, _payload?: any) => Promise.resolve(),
+            setTitle: (title: string) => {
+              document.title = title;
+              return Promise.resolve();
+            },
+            show: () => Promise.resolve(),
+            hide: () => Promise.resolve(),
+            minimize: () => Promise.resolve(),
+            maximize: () => Promise.resolve(),
+            unmaximize: () => Promise.resolve(),
+            isMaximized: () => Promise.resolve(false),
+            close: () => Promise.resolve()
+          });
+        }
         console.log('[TauriMock] Tauri mock installed for E2E testing');
       }
     });

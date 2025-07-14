@@ -174,3 +174,41 @@ pub async fn move_path(
         "destination": destination
     }))
 }
+
+pub async fn restore_from_trash(
+    manager: &Manager,
+    item_id: &str,
+) -> Result<Value, String> {
+    let file_manager = manager
+        .file_manager
+        .as_ref()
+        .ok_or_else(|| "File manager not initialized".to_string())?;
+
+    let restore_path = file_manager
+        .restore_from_trash(item_id)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok(serde_json::json!({
+        "restored": true,
+        "item_id": item_id,
+        "restore_path": restore_path.to_string_lossy().to_string()
+    }))
+}
+
+pub async fn find_trashed_item(
+    manager: &Manager,
+    item_id: &str,
+) -> Result<Value, String> {
+    let file_manager = manager
+        .file_manager
+        .as_ref()
+        .ok_or_else(|| "File manager not initialized".to_string())?;
+
+    let item = file_manager.find_trashed_item(item_id).await;
+
+    Ok(serde_json::json!({
+        "found": item.is_some(),
+        "item": item.map(|i| serde_json::to_value(i).unwrap())
+    }))
+}

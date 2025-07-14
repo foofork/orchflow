@@ -10,6 +10,7 @@ mod simple_state_store;
 mod tmux;
 // mod state_commands; // REMOVED - legacy module replaced by unified_state_commands
 mod command_history;
+mod core_manager_commands;
 mod file_commands;
 mod file_manager;
 mod file_watcher;
@@ -316,6 +317,9 @@ async fn main() {
             trash_commands::cleanup_old_trash,
             trash_commands::empty_trash,
             trash_commands::get_trash_location,
+            trash_commands::restore_file_from_trash,
+            trash_commands::find_trashed_item,
+            trash_commands::restore_multiple_files_from_trash,
             // Git commands
             git_commands::get_file_git_status,
             git_commands::get_all_git_statuses,
@@ -332,6 +336,28 @@ async fn main() {
             git_commands::git_commit,
             git_commands::git_push,
             git_commands::git_pull,
+            // Core Manager API commands (NEW)
+            core_manager_commands::execute_plugin_command,
+            core_manager_commands::get_output,
+            core_manager_commands::stream_terminal_output,
+            core_manager_commands::stop_terminal_stream,
+            core_manager_commands::get_tabs,
+            core_manager_commands::create_tab,
+            core_manager_commands::switch_tab,
+            core_manager_commands::close_tab,
+            core_manager_commands::create_neovim_editor,
+            core_manager_commands::get_neovim_buffer,
+            core_manager_commands::execute_neovim_command,
+            core_manager_commands::register_plugin_commands,
+            core_manager_commands::get_plugin_commands,
+            core_manager_commands::list_registered_plugins,
+            // Neovim commands
+            neovim::nvim_create_instance,
+            neovim::nvim_open_file,
+            neovim::nvim_get_buffer,
+            neovim::nvim_set_buffer_content,
+            neovim::nvim_execute_command,
+            neovim::nvim_close_instance,
             // Utility commands
             get_current_dir,
         ])

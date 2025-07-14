@@ -78,7 +78,7 @@ beforeAll(async () => {
   console.log(`  - Base URL: ${globalThis.E2E_CONFIG.baseUrl}`);
   
   // Set up global error handlers
-  process.on('unhandledRejection', (reason, promise) => {
+  process.on('unhandledRejection', (reason, _promise) => {
     console.error('Unhandled Rejection in E2E test:', reason);
   });
   

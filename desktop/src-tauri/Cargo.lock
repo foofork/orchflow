@@ -3766,6 +3766,7 @@ dependencies = [
  "notify",
  "notify-debouncer-mini",
  "num_cpus",
+ "once_cell",
  "portable-pty",
  "regex",
  "reqwest 0.11.27",

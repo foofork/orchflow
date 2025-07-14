@@ -97,7 +97,7 @@ describe('Terminal I/O Performance Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Configure mock to simulate realistic latency
-    mockTauriInvoke.mockImplementation(async (cmd: string, args: any) => {
+    mockTauriInvoke.mockImplementation(async (_cmd: string, _args: any) => {
       // Simulate 0.5-3ms latency for terminal operations (optimized)
       await new Promise(resolve => setTimeout(resolve, Math.random() * 2.5 + 0.5));
       return { success: true };

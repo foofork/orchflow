@@ -1,8 +1,15 @@
 use crate::layout::*;
 use crate::manager::{Action, Manager as OrchflowManager, PaneType, ShellType};
-use crate::AppState;
 use tauri::Manager;
 use tauri::State;
+use std::collections::HashMap;
+use std::sync::Mutex;
+
+// Legacy AppState definition for backward compatibility
+#[derive(Debug)]
+pub struct AppState {
+    pub layouts: Mutex<HashMap<String, GridLayout>>,
+}
 
 #[tauri::command]
 pub async fn create_layout(

@@ -3,6 +3,7 @@
 // This module provides a comprehensive data access layer for orchflow's state management.
 // It handles sessions, panes, layouts, modules, and key-value storage with full CRUD operations.
 
+pub mod command_history;
 pub mod connection;
 pub mod keyvalue;
 pub mod layouts;
@@ -12,6 +13,7 @@ pub mod sessions;
 pub mod types;
 
 // Re-export main types for easy access
+pub use command_history::CommandHistoryRepository;
 pub use connection::{ConnectionManager, DatabaseStats};
 pub use keyvalue::KeyValueRepository;
 pub use layouts::LayoutRepository;
@@ -31,6 +33,7 @@ pub struct SimpleStateStore {
     layouts: LayoutRepository,
     modules: ModuleRepository,
     keyvalue: KeyValueRepository,
+    command_history: CommandHistoryRepository,
 }
 
 impl SimpleStateStore {
@@ -46,6 +49,10 @@ impl SimpleStateStore {
         let layouts = LayoutRepository::new(conn_manager.clone());
         let modules = ModuleRepository::new(conn_manager.clone());
         let keyvalue = KeyValueRepository::new(conn_manager.clone());
+        let command_history = CommandHistoryRepository::new(conn_manager.clone());
+        
+        // Initialize command history schema
+        command_history.initialize_schema()?;
 
         Ok(Self {
             conn_manager,
@@ -54,6 +61,7 @@ impl SimpleStateStore {
             layouts,
             modules,
             keyvalue,
+            command_history,
         })
     }
 
@@ -70,6 +78,10 @@ impl SimpleStateStore {
         let layouts = LayoutRepository::new(conn_manager.clone());
         let modules = ModuleRepository::new(conn_manager.clone());
         let keyvalue = KeyValueRepository::new(conn_manager.clone());
+        let command_history = CommandHistoryRepository::new(conn_manager.clone());
+        
+        // Initialize command history schema
+        command_history.initialize_schema()?;
 
         Ok(Self {
             conn_manager,
@@ -78,6 +90,7 @@ impl SimpleStateStore {
             layouts,
             modules,
             keyvalue,
+            command_history,
         })
     }
 
@@ -342,6 +355,91 @@ impl SimpleStateStore {
         // Delete session
         self.delete_session(session_id).await
     }
+
+    // ===== Command History Operations =====
+
+    /// Save a command entry to history
+    pub async fn save_command_history(&self, entry: CommandEntry) -> SqliteResult<()> {
+        self.command_history.save_command_entry(&entry).await
+    }
+
+    /// Search command history
+    pub async fn search_command_history(
+        &self,
+        query: &str,
+        pane_id: Option<&str>,
+        session_id: Option<&str>,
+        limit: usize,
+    ) -> SqliteResult<Vec<CommandEntry>> {
+        self.command_history
+            .search_commands(query, pane_id, session_id, limit)
+            .await
+    }
+
+    /// Get command statistics
+    pub async fn get_command_stats(
+        &self,
+        limit: usize,
+    ) -> SqliteResult<Vec<crate::command_history::CommandStats>> {
+        self.command_history.get_command_stats(limit).await
+    }
+
+    /// Delete old command history entries
+    pub async fn delete_old_command_history(
+        &self,
+        cutoff: chrono::DateTime<chrono::Utc>,
+    ) -> SqliteResult<usize> {
+        self.command_history.delete_old_entries(cutoff).await
+    }
+
+    /// Get all command history entries
+    pub async fn get_all_command_history(
+        &self,
+        pane_id: Option<&str>,
+        session_id: Option<&str>,
+    ) -> SqliteResult<Vec<CommandEntry>> {
+        self.command_history.get_all_entries(pane_id, session_id).await
+    }
+
+    /// Count command history entries
+    pub async fn count_command_history(&self) -> SqliteResult<usize> {
+        self.command_history.count_entries().await
+    }
+
+    /// Get oldest command history entries
+    pub async fn get_oldest_command_entries(&self, count: usize) -> SqliteResult<Vec<String>> {
+        self.command_history.get_oldest_entries(count).await
+    }
+
+    /// Delete command history entries by IDs
+    pub async fn delete_command_entries_by_ids(&self, ids: &[String]) -> SqliteResult<usize> {
+        self.command_history.delete_by_ids(ids).await
+    }
+
+    /// Migrate command history from key-value store to dedicated table
+    pub async fn migrate_command_history_from_keyvalue(&self) -> SqliteResult<usize> {
+        // Get all command history keys from key-value store
+        let keys = self.keys_with_prefix("command_history:").await?;
+        let mut migrated = 0;
+
+        for key in keys {
+            if let Ok(Some(data)) = self.get(&key).await {
+                if let Ok(entry) = serde_json::from_str::<CommandEntry>(&data) {
+                    // Check if already migrated
+                    if !self.command_history.entry_exists(&entry.id).await? {
+                        // Save to new table
+                        if self.save_command_history(entry).await.is_ok() {
+                            migrated += 1;
+                            // Delete from key-value store after successful migration
+                            let _ = self.delete(&key).await;
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(migrated)
+    }
 }
 
 // Helper struct for session details
@@ -362,6 +460,7 @@ impl Clone for SimpleStateStore {
             layouts: self.layouts.clone(),
             modules: self.modules.clone(),
             keyvalue: self.keyvalue.clone(),
+            command_history: self.command_history.clone(),
         }
     }
 }

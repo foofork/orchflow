@@ -1,17 +1,17 @@
 {
   "name": "user can navigate between app views",
   "file": "tests/e2e/smoke/app-launch.test.ts",
-  "started": "2025-07-13T22:02:00.020Z",
+  "started": "2025-07-14T14:32:26.817Z",
   "environment": {
     "node": "v22.16.0",
     "platform": "linux",
     "ci": false
   },
-  "completed": "2025-07-13T22:02:02.479Z",
-  "duration": 2459,
+  "completed": "2025-07-14T14:33:43.567Z",
+  "duration": 114467,
   "status": "fail",
   "errors": {
-    "message": "page.goto: net::ERR_EMPTY_RESPONSE at http://localhost:5319/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5319/\", waiting until \"load\"\u001b[22m\n",
-    "stack": "page.goto: net::ERR_EMPTY_RESPONSE at http://localhost:5319/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5319/\", waiting until \"load\"\u001b[22m\n\n    at /workspaces/orchflow/desktop/tests/e2e/smoke/app-launch.test.ts:279:18\n    at Module.withTestContext (/workspaces/orchflow/desktop/tests/e2e/helpers/test-context.ts:417:12)\n    at /workspaces/orchflow/desktop/tests/e2e/smoke/app-launch.test.ts:277:5\n    at /workspaces/orchflow/desktop/node_modules/@vitest/runner/dist/chunk-hooks.js:752:20"
+    "message": "No available ports found in e2e range (5300-5320)",
+    "stack": "Error: No available ports found in e2e range (5300-5320)\n    at PortManager.findAvailablePort (/workspaces/orchflow/desktop/scripts/port-manager.js:120:11)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at TestContext.setup (/workspaces/orchflow/desktop/tests/e2e/helpers/test-context.ts:47:17)\n    at Module.withTestContext (/workspaces/orchflow/desktop/tests/e2e/helpers/test-context.ts:615:5)\n    at /workspaces/orchflow/desktop/tests/e2e/smoke/app-launch.test.ts:281:5\n    at file:///workspaces/orchflow/desktop/node_modules/@vitest/runner/dist/chunk-hooks.js:752:20"
   }
 }

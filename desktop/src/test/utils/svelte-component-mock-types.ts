@@ -52,7 +52,7 @@ export class MockSvelteComponent implements SvelteComponentInternals {
       Object.assign(props, newProps);
     };
     
-    this.$on = (event: string, handler: Function) => {
+    this.$on = (_event: string, _handler: Function) => {
       return () => {}; // Return unsubscribe function
     };
     

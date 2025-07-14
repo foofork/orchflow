@@ -50,7 +50,7 @@ function createManagerStore() {
 
       // Set up event handlers
       eventUnsubscribers.push(
-        managerClient.onEvent('SessionCreated', (event) => {
+        managerClient.onEvent('SessionCreated', (_event) => {
           refreshSessions();
         }),
 
@@ -110,11 +110,11 @@ function createManagerStore() {
           }
         }),
 
-        managerClient.onEvent('PluginLoaded', (event) => {
+        managerClient.onEvent('PluginLoaded', (_event) => {
           refreshPlugins();
         }),
 
-        managerClient.onEvent('PluginUnloaded', (event) => {
+        managerClient.onEvent('PluginUnloaded', (_event) => {
           refreshPlugins();
         })
       );

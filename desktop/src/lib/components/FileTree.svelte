@@ -2,6 +2,7 @@
   import { createEventDispatcher } from 'svelte';
   import { slide } from 'svelte/transition';
   import type { TreeNode } from '$lib/types';
+  import { browser } from '$app/environment';
   
   export let node: TreeNode;
   export let level: number = 0;
@@ -9,6 +10,11 @@
   export let agents: Map<string, { status: string; pid?: number }> = new Map();
   
   const dispatch = createEventDispatcher();
+  
+  // Drag and drop state
+  let isDragging = false;
+  let isDragOver = false;
+  let dragCounter = 0; // Track drag enter/leave events
   
   function toggleNode() {
     if (!node.isDirectory) {
@@ -49,6 +55,150 @@
   function handleContextMenu(event: MouseEvent) {
     event.preventDefault();
     dispatch('contextMenu', { node, x: event.clientX, y: event.clientY });
+  }
+
+  // Drag and drop handlers
+  function handleDragStart(event: DragEvent) {
+    if (!event.dataTransfer) return;
+    
+    isDragging = true;
+    
+    // Set drag data
+    const dragData = {
+      path: node.path,
+      name: node.name,
+      isDirectory: node.isDirectory,
+      sourceType: 'file-tree'
+    };
+    
+    event.dataTransfer.setData('application/json', JSON.stringify(dragData));
+    event.dataTransfer.setData('text/plain', node.path);
+    event.dataTransfer.effectAllowed = 'copyMove';
+    
+    // Create custom drag image
+    const dragImage = document.createElement('div');
+    dragImage.textContent = `${getFileIcon()} ${node.name}`;
+    dragImage.style.cssText = `
+      position: absolute;
+      top: -1000px;
+      left: -1000px;
+      background: var(--bg-tertiary);
+      color: var(--fg-primary);
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      font-size: 13px;
+      font-family: var(--font-family);
+      white-space: nowrap;
+      z-index: 1000;
+    `;
+    document.body.appendChild(dragImage);
+    event.dataTransfer.setDragImage(dragImage, 0, 0);
+    
+    // Clean up drag image after drag starts
+    setTimeout(() => {
+      if (document.body.contains(dragImage)) {
+        document.body.removeChild(dragImage);
+      }
+    }, 0);
+    
+    dispatch('dragStart', { node });
+  }
+
+  function handleDragEnd(event: DragEvent) {
+    isDragging = false;
+    dispatch('dragEnd', { node });
+  }
+
+  function handleDragOver(event: DragEvent) {
+    // Only allow drop on directories
+    if (!node.isDirectory) return;
+    
+    event.preventDefault();
+    
+    if (event.dataTransfer) {
+      // Determine drop effect based on modifiers
+      const isCtrlPressed = event.ctrlKey || event.metaKey;
+      event.dataTransfer.dropEffect = isCtrlPressed ? 'copy' : 'move';
+    }
+  }
+
+  function handleDragEnter(event: DragEvent) {
+    if (!node.isDirectory) return;
+    
+    dragCounter++;
+    if (dragCounter === 1) {
+      isDragOver = true;
+    }
+    
+    event.preventDefault();
+  }
+
+  function handleDragLeave(event: DragEvent) {
+    if (!node.isDirectory) return;
+    
+    dragCounter--;
+    if (dragCounter === 0) {
+      isDragOver = false;
+    }
+  }
+
+  function handleDrop(event: DragEvent) {
+    if (!node.isDirectory || !event.dataTransfer) return;
+    
+    event.preventDefault();
+    isDragOver = false;
+    dragCounter = 0;
+    
+    try {
+      const jsonData = event.dataTransfer.getData('application/json');
+      if (jsonData) {
+        const dragData = JSON.parse(jsonData);
+        
+        // Enhanced validation
+        if (!dragData.path || !dragData.name) {
+          console.warn('Invalid drag data');
+          dispatch('dropError', { 
+            error: new Error('Invalid drag data'), 
+            destination: node 
+          });
+          return;
+        }
+        
+        // Prevent dropping on self or child directories
+        if (dragData.path === node.path) {
+          console.warn('Cannot drop item into itself');
+          dispatch('dropError', { 
+            error: new Error('Cannot drop item into itself'), 
+            destination: node 
+          });
+          return;
+        }
+        
+        // For directories, check if target is a subdirectory of the source
+        if (dragData.isDirectory && node.path.startsWith(dragData.path + '/')) {
+          console.warn('Cannot drop directory into its subdirectory');
+          dispatch('dropError', { 
+            error: new Error('Cannot drop directory into its subdirectory'), 
+            destination: node 
+          });
+          return;
+        }
+        
+        const isCtrlPressed = event.ctrlKey || event.metaKey;
+        const operation = isCtrlPressed ? 'copy' : 'move';
+        
+        dispatch('fileDrop', {
+          source: dragData,
+          destination: node,
+          operation,
+          event
+        });
+      }
+    } catch (error) {
+      console.error('Error handling drop:', error);
+      dispatch('dropError', { error, destination: node });
+    }
   }
   
   function getFileIcon(): string {
@@ -166,9 +316,18 @@
     class="node-item"
     class:selected={selectedPath === node.path}
     class:directory={node.isDirectory}
+    class:dragging={isDragging}
+    class:drag-over={isDragOver && node.isDirectory}
+    draggable="true"
     on:click={toggleNode}
     on:keydown={handleKeyDown}
     on:contextmenu={handleContextMenu}
+    on:dragstart={handleDragStart}
+    on:dragend={handleDragEnd}
+    on:dragover={handleDragOver}
+    on:dragenter={handleDragEnter}
+    on:dragleave={handleDragLeave}
+    on:drop={handleDrop}
     style="padding-left: {8 + level * 16}px"
     tabindex="0"
   >
@@ -208,6 +367,10 @@
           on:openFile
           on:expand
           on:contextMenu
+          on:dragStart
+          on:dragEnd
+          on:fileDrop
+          on:dropError
         />
       {/each}
     </div>
@@ -313,5 +476,94 @@
   
   .children {
     overflow: hidden;
+  }
+
+  /* Drag and drop styles */
+  .node-item.dragging {
+    opacity: 0.6;
+    transform: scale(0.98);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+  }
+
+  .node-item.drag-over {
+    background-color: var(--accent) !important;
+    color: var(--bg-primary) !important;
+    border: 2px dashed var(--accent);
+    border-radius: 4px;
+    box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.3);
+    animation: pulse-drop 1s ease-in-out infinite;
+  }
+
+  @keyframes pulse-drop {
+    0%, 100% {
+      box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.3);
+    }
+    50% {
+      box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.5);
+    }
+  }
+
+  .node-item.drag-over::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--accent);
+    opacity: 0.15;
+    border-radius: 4px;
+    pointer-events: none;
+  }
+
+  .node-item.drag-over::after {
+    content: 'Drop here';
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--bg-primary);
+    opacity: 0.8;
+    pointer-events: none;
+  }
+
+  /* Drag cursor and interactions */
+  .node-item[draggable="true"] {
+    cursor: grab;
+    transition: transform 0.1s ease;
+  }
+
+  .node-item[draggable="true"]:hover:not(.dragging):not(.drag-over) {
+    transform: translateX(2px);
+  }
+
+  .node-item[draggable="true"]:active {
+    cursor: grabbing;
+  }
+
+  /* Enhanced focus states for accessibility */
+  .node-item:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+    border-radius: 4px;
+  }
+
+  /* Loading state during drag operations */
+  .node-item.loading-drop {
+    pointer-events: none;
+    opacity: 0.7;
+  }
+
+  .node-item.loading-drop::after {
+    content: '⟳';
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    animation: spin 1s linear infinite;
+    color: var(--accent);
   }
 </style>

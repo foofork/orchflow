@@ -48,6 +48,9 @@ pub enum OrchflowError {
     #[error("State synchronization failed: {reason}")]
     StateSyncError { reason: String },
 
+    #[error("State operation failed: {operation} - {reason}")]
+    StateError { operation: String, reason: String },
+
     // ===== Backend/Mux Errors =====
     #[error("Backend operation failed: {operation} - {reason}")]
     BackendError { operation: String, reason: String },
@@ -83,6 +86,10 @@ pub enum OrchflowError {
 
     #[error("Command timeout: {command} timed out after {timeout_ms}ms")]
     CommandTimeout { command: String, timeout_ms: u64 },
+
+    // ===== Editor Errors =====
+    #[error("Editor operation failed: {operation} - {reason}")]
+    EditorError { operation: String, reason: String },
 
     // ===== File System Errors =====
     #[error("File operation failed: {operation} on {path} - {reason}")]
@@ -310,7 +317,8 @@ impl OrchflowError {
             | OrchflowError::LayoutNotFound { .. }
             | OrchflowError::InvalidSessionState { .. }
             | OrchflowError::StatePersistenceError { .. }
-            | OrchflowError::StateSyncError { .. } => ErrorCategory::State,
+            | OrchflowError::StateSyncError { .. }
+            | OrchflowError::StateError { .. } => ErrorCategory::State,
 
             OrchflowError::BackendError { .. }
             | OrchflowError::TmuxError { .. }
@@ -324,7 +332,8 @@ impl OrchflowError {
 
             OrchflowError::CommandError { .. }
             | OrchflowError::TerminalError { .. }
-            | OrchflowError::CommandTimeout { .. } => ErrorCategory::Terminal,
+            | OrchflowError::CommandTimeout { .. }
+            | OrchflowError::EditorError { .. } => ErrorCategory::Terminal,
 
             OrchflowError::FileOperationError { .. }
             | OrchflowError::FileError { .. }

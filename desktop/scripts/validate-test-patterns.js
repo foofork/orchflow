@@ -18,7 +18,7 @@ const TEST_PATTERN_RULES = [
     error: 'Use createTypedMock, createSyncMock, or createAsyncMock instead of vi.fn()',
     customValidator: (content, matches) => {
       // Filter out vi.fn() in comments and vi.mock blocks
-      return matches.filter(match => {
+      return matches.filter(_match => {
         const lines = content.split('\n');
         let inViMock = false;
         let viMockDepth = 0;

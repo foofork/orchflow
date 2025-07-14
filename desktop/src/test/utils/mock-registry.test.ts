@@ -191,7 +191,7 @@ describe('MockRegistry', () => {
     it('should create API mocks', () => {
       const api = createMock.api('test-api', {
         getData: () => ({ id: 1, name: 'test' }),
-        saveData: (data: any) => ({ success: true })
+        saveData: (_data: any) => ({ success: true })
       });
       
       expect(vi.isMockFunction(api.getData)).toBe(true);

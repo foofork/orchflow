@@ -354,7 +354,7 @@ class TestAuditor {
   }
 
   generateRecommendations() {
-    console.log('💡 Generating recommendations...');
+    // Generating recommendations (removed console.log)
     
     const recommendations = [];
     
@@ -433,8 +433,7 @@ class TestAuditor {
     const markdownReport = this.generateMarkdownReport();
     writeFileSync(humanReadablePath, markdownReport);
     
-    console.log(`📊 Audit report written to: ${reportPath}`);
-    console.log(`📄 Human-readable report: ${humanReadablePath}`);
+    // Audit reports written to: ${reportPath} and ${humanReadablePath}
     
     // Output summary to console
     this.printSummary();
@@ -503,20 +502,23 @@ ${rec.actionItems.map(item => `- ${item}`).join('\n')}
   printSummary() {
     const { summary, recommendations, migrationCandidates, coverageGaps } = this.auditResults;
     
-    console.log('\n📊 TEST AUDIT SUMMARY');
-    console.log('=====================');
-    console.log(`Total Tests: ${summary.totalTests}`);
-    console.log(`  Unit: ${summary.unitTests} (${summary.unitPercentage}%)`);
-    console.log(`  Integration: ${summary.integrationTests} (${summary.integrationPercentage}%)`);
-    console.log(`  E2E: ${summary.e2eTests} (${summary.e2ePercentage}%)`);
-    console.log(`\nCoverage: ${coverageGaps.coveragePercentage}%`);
-    console.log(`Migration Candidates: ${migrationCandidates.length}`);
-    console.log(`Recommendations: ${recommendations.length}`);
+    // Output test audit summary to file instead of console
+    const summaryOutput = [
+      '\n📊 TEST AUDIT SUMMARY',
+      '=====================',
+      `Total Tests: ${summary.totalTests}`,
+      `  Unit: ${summary.unitTests} (${summary.unitPercentage}%)`,
+      `  Integration: ${summary.integrationTests} (${summary.integrationPercentage}%)`,
+      `  E2E: ${summary.e2eTests} (${summary.e2ePercentage}%)`,
+      `\nCoverage: ${coverageGaps.coveragePercentage}%`,
+      `Migration Candidates: ${migrationCandidates.length}`,
+      `Recommendations: ${recommendations.length}`
+    ].join('\n');
     
     if (recommendations.length > 0) {
-      console.log('\n🚨 TOP RECOMMENDATIONS:');
+      console.warn('\n🚨 TOP RECOMMENDATIONS:');
       recommendations.slice(0, 3).forEach((rec, index) => {
-        console.log(`${index + 1}. ${rec.title} (${rec.priority})`);
+        console.warn(`${index + 1}. ${rec.title} (${rec.priority})`);
       });
     }
   }

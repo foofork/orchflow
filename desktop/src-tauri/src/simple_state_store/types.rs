@@ -1,6 +1,6 @@
 // Database entity types and structures
 
-use chrono::NaiveDateTime;
+use chrono::{DateTime, NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -114,4 +114,18 @@ pub struct UpdateModule {
     pub version: Option<String>,
     pub manifest: Option<String>,
     pub enabled: Option<bool>,
+}
+
+// Command History Types
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CommandEntry {
+    pub id: String,
+    pub pane_id: String,
+    pub session_id: String,
+    pub command: String,
+    pub timestamp: DateTime<Utc>,
+    pub working_dir: Option<String>,
+    pub exit_code: Option<i32>,
+    pub duration_ms: Option<u64>,
+    pub shell_type: Option<String>,
 }

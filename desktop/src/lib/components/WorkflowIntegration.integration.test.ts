@@ -503,7 +503,7 @@ describe('Cross-Component Workflow Integration Tests', () => {
             }
           });
 
-          async function executeStep(step: { type: string; config: any }, index: number) {
+          async function executeStep(step: { type: string; config: any }, _index: number) {
             switch (step.type) {
               case 'file':
                 await executeFileStep(step.config);

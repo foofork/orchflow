@@ -8,7 +8,7 @@ import { getCurrentWindow } from '@tauri-apps/api/window';
 describe('Tauri Native Integrations', () => {
   beforeAll(() => {
     // Mock Tauri APIs
-    mockIPC((cmd, args) => {
+    mockIPC((cmd, _args) => {
       switch (cmd) {
         case 'get_platform':
           return 'darwin';

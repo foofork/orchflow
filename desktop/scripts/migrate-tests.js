@@ -327,7 +327,7 @@ class TestMigrator {
     return updated;
   }
 
-  addIntegrationPatterns(content, candidate) {
+  addIntegrationPatterns(content, _candidate) {
     let enhanced = content;
     
     // If the test involves file operations, ensure it uses fileSystemMock

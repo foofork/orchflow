@@ -562,7 +562,7 @@ export const mockRegistry = MockRegistry.getInstance();
  */
 export function withMockRegistry<T extends Function>(
   target: T,
-  context?: ClassMethodDecoratorContext
+  _context?: ClassMethodDecoratorContext
 ): T {
   return function (this: any, ...args: any[]) {
     mockRegistry.createSnapshot('before-test');

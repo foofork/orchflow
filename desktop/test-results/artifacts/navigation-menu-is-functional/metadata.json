@@ -1,13 +1,17 @@
 {
   "name": "navigation menu is functional",
   "file": "tests/e2e/smoke/app-launch.test.ts",
-  "started": "2025-07-13T22:10:07.145Z",
+  "started": "2025-07-14T14:08:43.643Z",
   "environment": {
     "node": "v22.16.0",
     "platform": "linux",
     "ci": false
   },
-  "completed": "2025-07-13T22:12:26.860Z",
-  "duration": 139120,
-  "status": "pass"
+  "completed": "2025-07-14T14:08:53.072Z",
+  "duration": 9032,
+  "status": "fail",
+  "errors": {
+    "message": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5316/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5316/\", waiting until \"load\"\u001b[22m\n",
+    "stack": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5316/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5316/\", waiting until \"load\"\u001b[22m\n\n    at /workspaces/orchflow/desktop/tests/e2e/smoke/app-launch.test.ts:48:18\n    at Module.withTestContext (/workspaces/orchflow/desktop/tests/e2e/helpers/test-context.ts:616:12)\n    at /workspaces/orchflow/desktop/tests/e2e/smoke/app-launch.test.ts:46:5\n    at /workspaces/orchflow/desktop/node_modules/@vitest/runner/dist/chunk-hooks.js:752:20"
+  }
 }

@@ -81,12 +81,12 @@
     return Array.from(panes.values()).filter(p => p.session_id === sessionId);
   }
   
-  function getPaneStatusClass(pane: Pane): string {
+  function getPaneStatusClass(_pane: Pane): string {
     // For now, all panes are considered active
     return 'running';
   }
   
-  function getPaneStatusText(pane: Pane): string {
+  function getPaneStatusText(_pane: Pane): string {
     return 'Active';
   }
   

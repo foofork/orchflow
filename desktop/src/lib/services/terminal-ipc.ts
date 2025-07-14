@@ -4,6 +4,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn, emit } from '@tauri-apps/api/event';
 import { writable, type Writable } from 'svelte/store';
+import { parseMuxdTimestamp } from '$lib/utils/timestamp';
 
 export interface TerminalMetadata {
   id: string;
@@ -95,6 +96,20 @@ class TerminalIPCService {
         env: options.env
       });
       
+      // Parse timestamps from backend response
+      if (metadata.created_at) {
+        const parsedDate = parseMuxdTimestamp(metadata.created_at);
+        if (parsedDate) {
+          metadata.created_at = parsedDate.toISOString();
+        }
+      }
+      if (metadata.last_activity) {
+        const parsedDate = parseMuxdTimestamp(metadata.last_activity);
+        if (parsedDate) {
+          metadata.last_activity = parsedDate.toISOString();
+        }
+      }
+      
       this.terminals.set(options.terminalId, metadata);
       return metadata;
     } catch (error) {
@@ -147,6 +162,15 @@ class TerminalIPCService {
   async getState(terminalId: string): Promise<TerminalState | null> {
     try {
       const state = await invoke<TerminalState>('get_terminal_state', { terminal_id: terminalId });
+      
+      // Parse timestamp from backend response
+      if (state && state.last_activity) {
+        const parsedDate = parseMuxdTimestamp(state.last_activity);
+        if (parsedDate) {
+          state.last_activity = parsedDate.toISOString();
+        }
+      }
+      
       return state;
     } catch {
       return null;
@@ -170,9 +194,19 @@ class TerminalIPCService {
   }
   
   async getHealth(terminalId: string): Promise<TerminalHealth> {
-    return invoke<TerminalHealth>('monitor_terminal_health', {
+    const health = await invoke<TerminalHealth>('monitor_terminal_health', {
       terminal_id: terminalId
     });
+    
+    // Parse timestamp from backend response
+    if (health && health.last_activity) {
+      const parsedDate = parseMuxdTimestamp(health.last_activity);
+      if (parsedDate) {
+        health.last_activity = parsedDate.toISOString();
+      }
+    }
+    
+    return health;
   }
   
   async restartTerminal(terminalId: string): Promise<void> {
@@ -229,11 +263,21 @@ class TerminalIPCService {
       listen('terminal:state', (event: any) => {
         const payload = event.payload;
         if (payload.terminal_id === terminalId && payload.state) {
-          handlers.onStateChange!(payload.state);
+          const state = payload.state;
+          
+          // Parse timestamp from backend response
+          if (state.last_activity) {
+            const parsedDate = parseMuxdTimestamp(state.last_activity);
+            if (parsedDate) {
+              state.last_activity = parsedDate.toISOString();
+            }
+          }
+          
+          handlers.onStateChange!(state);
           
           // Update store
           this.terminalStates.update(states => {
-            states.set(terminalId, payload.state);
+            states.set(terminalId, state);
             return states;
           });
         }

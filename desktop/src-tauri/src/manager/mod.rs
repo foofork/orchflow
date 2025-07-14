@@ -146,6 +146,22 @@ impl Manager {
             }
         });
 
+        // Trigger command history migration in background
+        let store_clone = store.clone();
+        tokio::spawn(async move {
+            match store_clone.migrate_command_history_from_keyvalue().await {
+                Ok(count) if count > 0 => {
+                    tracing::info!("Successfully migrated {} command history entries", count);
+                }
+                Ok(_) => {
+                    tracing::debug!("No command history entries to migrate");
+                }
+                Err(e) => {
+                    tracing::error!("Failed to migrate command history: {}", e);
+                }
+            }
+        });
+
         manager
     }
 

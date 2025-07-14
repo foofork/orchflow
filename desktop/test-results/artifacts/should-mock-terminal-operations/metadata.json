@@ -1,0 +1,13 @@
+{
+  "name": "should mock terminal operations",
+  "file": "tests/e2e/smoke/mock-validation.test.ts",
+  "started": "2025-07-14T13:59:28.399Z",
+  "environment": {
+    "node": "v22.16.0",
+    "platform": "linux",
+    "ci": false
+  },
+  "completed": "2025-07-14T13:59:35.782Z",
+  "duration": 7383,
+  "status": "pass"
+}

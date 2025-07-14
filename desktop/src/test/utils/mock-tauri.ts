@@ -189,7 +189,7 @@ export function createMockFs() {
       return Promise.resolve(fileSystem.has(path));
     }),
     
-    createDir: vi.fn((path: string) => {
+    createDir: vi.fn((_path: string) => {
       // Mock directory creation
       return Promise.resolve();
     }),
@@ -199,7 +199,7 @@ export function createMockFs() {
       return Promise.resolve();
     }),
     
-    removeDir: vi.fn((path: string) => {
+    removeDir: vi.fn((_path: string) => {
       // Mock directory removal
       return Promise.resolve();
     }),
@@ -398,7 +398,7 @@ export function createMockShell() {
       return proc;
     }),
     
-    open: vi.fn((url: string) => Promise.resolve()),
+    open: vi.fn((_url: string) => Promise.resolve()),
     
     mockClear: () => {
       mockShell.Command.mockClear();

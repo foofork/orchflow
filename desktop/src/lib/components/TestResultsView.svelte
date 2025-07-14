@@ -67,7 +67,7 @@
     await loadTestHistory();
     
     // Listen for test updates
-    unlistenTestUpdate = await listen('test-update', (event) => {
+    unlistenTestUpdate = await listen('test-update', (_event) => {
       loadTestHistory();
     });
   });

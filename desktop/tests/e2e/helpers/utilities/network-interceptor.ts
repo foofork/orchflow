@@ -321,7 +321,7 @@ export class NetworkInterceptor {
     return match ? match[1] : 'anonymous';
   }
 
-  async exportHAR(path: string): Promise<void> {
+  async exportHAR(_path: string): Promise<void> {
     // Export network logs as HAR file
     const har = {
       log: {

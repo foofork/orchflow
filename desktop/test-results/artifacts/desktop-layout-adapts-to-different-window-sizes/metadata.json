@@ -1,13 +1,17 @@
 {
   "name": "desktop layout adapts to different window sizes",
   "file": "tests/e2e/smoke/app-launch.test.ts",
-  "started": "2025-07-13T22:06:41.485Z",
+  "started": "2025-07-14T14:10:25.109Z",
   "environment": {
     "node": "v22.16.0",
     "platform": "linux",
     "ci": false
   },
-  "completed": "2025-07-13T22:06:51.404Z",
-  "duration": 9920,
-  "status": "pass"
+  "completed": "2025-07-14T14:11:10.883Z",
+  "duration": 48294,
+  "status": "fail",
+  "errors": {
+    "message": "Dev server failed to start within 30000ms",
+    "stack": "Error: Dev server failed to start within 30000ms\n    at DevServerManager.waitForReady (/workspaces/orchflow/desktop/tests/e2e/helpers/dev-server.ts:112:13)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at DevServerManager.start (/workspaces/orchflow/desktop/tests/e2e/helpers/dev-server.ts:83:5)\n    at Module.createDevServer (/workspaces/orchflow/desktop/tests/e2e/helpers/dev-server.ts:170:3)\n    at TestContext.setup (/workspaces/orchflow/desktop/tests/e2e/helpers/test-context.ts:52:22)\n    at Module.withTestContext (/workspaces/orchflow/desktop/tests/e2e/helpers/test-context.ts:615:5)\n    at /workspaces/orchflow/desktop/tests/e2e/smoke/app-launch.test.ts:119:5\n    at file:///workspaces/orchflow/desktop/node_modules/@vitest/runner/dist/chunk-hooks.js:752:20"
+  }
 }

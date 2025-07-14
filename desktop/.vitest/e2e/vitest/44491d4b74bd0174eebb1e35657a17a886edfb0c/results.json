@@ -1,1 +1,1 @@
-{"version":"3.2.4","results":[["e2e:tests/e2e/smoke/app-launch.test.ts",{"duration":15866.324294999999,"failed":true}]]}
+{"version":"3.2.4","results":[["e2e:tests/e2e/smoke/app-launch.test.ts",{"duration":0,"failed":true}],["e2e:tests/e2e/smoke/mock-validation.test.ts",{"duration":53350.891620999995,"failed":true}]]}

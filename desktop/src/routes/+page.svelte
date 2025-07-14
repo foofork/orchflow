@@ -396,7 +396,7 @@
   <div class="main-content">
     <!-- Tab Bar -->
     <div class="tab-bar-container">
-      <TabBar {tabs} bind:activeTabId on:closeTab={(e) => closeCurrentTab()} />
+      <TabBar {tabs} bind:activeTabId on:closeTab={(_e) => closeCurrentTab()} />
       <div class="tab-actions">
         <button 
           class="split-button"

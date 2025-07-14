@@ -6,7 +6,7 @@ export class Terminal {
   cols = 80;
   element = document.createElement('div');
   
-  constructor(options?: any) {
+  constructor(_options?: any) {
     // Store options if needed
   }
   
@@ -20,17 +20,17 @@ export class Terminal {
   focus = vi.fn();
   blur = vi.fn();
   dispose = vi.fn();
-  onData = vi.fn((callback) => {
+  onData = vi.fn((_callback) => {
     // Return unsubscribe function
     return () => {};
   });
-  onResize = vi.fn((callback) => {
+  onResize = vi.fn((_callback) => {
     return () => {};
   });
-  onBinary = vi.fn((callback) => {
+  onBinary = vi.fn((_callback) => {
     return () => {};
   });
-  onTitleChange = vi.fn((callback) => {
+  onTitleChange = vi.fn((_callback) => {
     return () => {};
   });
   resize = vi.fn((cols: number, rows: number) => {

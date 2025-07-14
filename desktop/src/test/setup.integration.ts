@@ -17,7 +17,7 @@ vi.mock('@tauri-apps/api', () => {
   const eventListeners = new Map<string, Set<Function>>();
   
   return {
-    invoke: vi.fn((cmd: string, args?: any) => {
+    invoke: vi.fn((cmd: string, _args?: any) => {
       // Return more realistic responses for integration tests
       switch (cmd) {
         case 'get_sessions':

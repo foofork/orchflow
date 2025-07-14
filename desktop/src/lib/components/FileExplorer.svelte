@@ -2,6 +2,7 @@
   import { createEventDispatcher, onMount } from 'svelte';
   import { slide } from 'svelte/transition';
   import { browser } from '$app/environment';
+  import FileTree from './FileTree.svelte';
   
   const dispatch = createEventDispatcher();
   
@@ -178,6 +179,75 @@
       toggleNode(node);
     }
   }
+
+  // Drag and drop handlers
+  async function handleFileDrop(event: CustomEvent) {
+    const { source, destination, operation } = event.detail;
+    
+    try {
+      if (!browser || !('__TAURI__' in window)) {
+        console.log('Mock drag and drop:', { source, destination, operation });
+        return;
+      }
+
+      const { invoke } = await import('@tauri-apps/api/core');
+      
+      // Call appropriate backend command based on operation
+      if (operation === 'copy') {
+        await invoke('copy_files', {
+          files: [source.path],
+          destination: destination.path
+        });
+        console.log(`Copied ${source.name} to ${destination.path}`);
+      } else {
+        await invoke('move_files', {
+          files: [source.path],
+          destination: destination.path
+        });
+        console.log(`Moved ${source.name} to ${destination.path}`);
+      }
+      
+      // Refresh the tree to show the changes
+      await loadDirectory(rootPath);
+      
+      // Dispatch success event
+      dispatch('fileOperation', {
+        operation,
+        source: source.path,
+        destination: destination.path,
+        success: true
+      });
+      
+    } catch (err) {
+      console.error(`Failed to ${operation} file:`, err);
+      error = `Failed to ${operation} file: ${err}`;
+      
+      // Dispatch error event
+      dispatch('fileOperation', {
+        operation,
+        source: source.path,
+        destination: destination.path,
+        success: false,
+        error: err
+      });
+    }
+  }
+
+  function handleDropError(event: CustomEvent) {
+    const { error: dropError, destination } = event.detail;
+    console.error('Drop error:', dropError);
+    error = `Drop failed: ${dropError.message || dropError}`;
+  }
+
+  function handleDragStart(event: CustomEvent) {
+    // Optional: Handle drag start for any global state updates
+    dispatch('dragStart', event.detail);
+  }
+
+  function handleDragEnd(event: CustomEvent) {
+    // Optional: Handle drag end for any global state updates
+    dispatch('dragEnd', event.detail);
+  }
 </script>
 
 <div class="file-explorer">
@@ -188,74 +258,58 @@
   {:else}
     <div class="tree" role="tree" aria-label="File explorer tree">
       {#each tree as node}
-        <div class="tree-node">
-          <button
-            class="node-item"
-            class:selected={selectedPath === node.path}
-            class:directory={node.isDirectory}
-            on:click={() => toggleNode(node)}
-            on:keydown={(e) => handleKeyDown(e, node)}
-            style="padding-left: 8px"
-            aria-label="{node.isDirectory ? (node.expanded ? 'Collapse' : 'Expand') : 'Open'} {node.name}"
-            aria-expanded={node.isDirectory ? node.expanded : undefined}
-            type="button"
-          >
-            <span class="icon">{getFileIcon(node)}</span>
-            <span class="name">{node.name}</span>
-            {#if node.loading}
-              <span class="loading">⟳</span>
-            {/if}
-          </button>
-          
-          {#if node.isDirectory && node.expanded && node.children}
-            <div class="children" transition:slide={{ duration: 200 }}>
-              {#each node.children as child}
-                <div class="tree-node">
-                  <button
-                    class="node-item"
-                    class:selected={selectedPath === child.path}
-                    class:directory={child.isDirectory}
-                    on:click={() => toggleNode(child)}
-                    on:keydown={(e) => handleKeyDown(e, child)}
-                    style="padding-left: 24px"
-                    aria-label="{child.isDirectory ? (child.expanded ? 'Collapse' : 'Expand') : 'Open'} {child.name}"
-                    aria-expanded={child.isDirectory ? child.expanded : undefined}
-                    type="button"
-                  >
-                    <span class="icon">{getFileIcon(child)}</span>
-                    <span class="name">{child.name}</span>
-                    {#if child.loading}
-                      <span class="loading">⟳</span>
-                    {/if}
-                  </button>
+        <FileTree 
+          {node} 
+          level={0} 
+          selectedPath={selectedPath}
+          agents={new Map()}
+          on:select={(e) => selectedPath = e.detail}
+          on:openFile={(e) => dispatch('openFile', e.detail)}
+          on:expand={async (e) => {
+            const node = e.detail;
+            if (node.expanded && node.children?.length === 0) {
+              node.loading = true;
+              try {
+                const { readDir } = await import('@tauri-apps/plugin-fs');
+                const entries = await readDir(node.path);
+                const children = [];
+                
+                entries.sort((a, b) => {
+                  if (a.isDirectory && !b.isDirectory) return -1;
+                  if (!a.isDirectory && b.isDirectory) return 1;
+                  return a.name?.localeCompare(b.name || '') || 0;
+                });
+                
+                for (const entry of entries) {
+                  if (entry.name?.startsWith('.')) continue;
                   
-                  {#if child.isDirectory && child.expanded && child.children}
-                    <div class="children" transition:slide={{ duration: 200 }}>
-                      {#each child.children as grandchild}
-                        <div class="tree-node">
-                          <button
-                            class="node-item"
-                            class:selected={selectedPath === grandchild.path}
-                            class:directory={grandchild.isDirectory}
-                            on:click={() => toggleNode(grandchild)}
-                            on:keydown={(e) => handleKeyDown(e, grandchild)}
-                            style="padding-left: 40px"
-                            aria-label="{grandchild.isDirectory ? (grandchild.expanded ? 'Collapse' : 'Expand') : 'Open'} {grandchild.name}"
-                            aria-expanded={grandchild.isDirectory ? grandchild.expanded : undefined}
-                            type="button"
-                          >
-                            <span class="icon">{getFileIcon(grandchild)}</span>
-                            <span class="name">{grandchild.name}</span>
-                          </button>
-                        </div>
-                      {/each}
-                    </div>
-                  {/if}
-                </div>
-              {/each}
-            </div>
-          {/if}
-        </div>
+                  const { join } = await import('@tauri-apps/api/path');
+                  const fullPath = await join(node.path, entry.name);
+                  
+                  children.push({
+                    name: entry.name || 'Unknown',
+                    path: fullPath,
+                    isDirectory: entry.isDirectory,
+                    children: entry.isDirectory ? [] : undefined,
+                    expanded: false,
+                  });
+                }
+                
+                node.children = children;
+              } catch (err) {
+                console.error('Failed to expand directory:', err);
+              } finally {
+                node.loading = false;
+              }
+              tree = tree; // Trigger reactivity
+            }
+          }}
+          on:contextMenu={(e) => dispatch('contextMenu', e.detail)}
+          on:dragStart={handleDragStart}
+          on:dragEnd={handleDragEnd}
+          on:fileDrop={handleFileDrop}
+          on:dropError={handleDropError}
+        />
       {/each}
     </div>
   {/if}

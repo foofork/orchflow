@@ -132,3 +132,71 @@ pub async fn empty_trash(manager: State<'_, Manager>) -> Result<()> {
 pub fn get_trash_location() -> Option<String> {
     crate::file_manager::trash::get_trash_location().map(|path| path.to_string_lossy().to_string())
 }
+
+/// Restore a file from trash by ID
+#[tauri::command]
+pub async fn restore_file_from_trash(item_id: String, manager: State<'_, Manager>) -> Result<Value> {
+    if let Some(file_manager) = &manager.file_manager {
+        let restore_path = file_manager.restore_from_trash(&item_id).await?;
+        Ok(serde_json::json!({
+            "restored": true,
+            "item_id": item_id,
+            "restore_path": restore_path.to_string_lossy().to_string()
+        }))
+    } else {
+        Err(crate::error::OrchflowError::ConfigurationError {
+            component: "file_manager".to_string(),
+            reason: "File manager not initialized".to_string(),
+        })
+    }
+}
+
+/// Find a trashed item by ID
+#[tauri::command]
+pub async fn find_trashed_item(item_id: String, manager: State<'_, Manager>) -> Result<Option<Value>> {
+    if let Some(file_manager) = &manager.file_manager {
+        let item = file_manager.find_trashed_item(&item_id).await;
+        Ok(item.map(|i| serde_json::to_value(i).unwrap()))
+    } else {
+        Err(crate::error::OrchflowError::ConfigurationError {
+            component: "file_manager".to_string(),
+            reason: "File manager not initialized".to_string(),
+        })
+    }
+}
+
+/// Restore multiple files from trash
+#[tauri::command]
+pub async fn restore_multiple_files_from_trash(
+    item_ids: Vec<String>, 
+    manager: State<'_, Manager>
+) -> Result<Vec<Value>> {
+    if let Some(file_manager) = &manager.file_manager {
+        let results = file_manager.restore_multiple_from_trash(item_ids).await?;
+        
+        let json_results = results
+            .into_iter()
+            .map(|(item_id, result)| {
+                match result {
+                    Ok(restore_path) => serde_json::json!({
+                        "item_id": item_id,
+                        "success": true,
+                        "restore_path": restore_path.to_string_lossy().to_string()
+                    }),
+                    Err(error) => serde_json::json!({
+                        "item_id": item_id,
+                        "success": false,
+                        "error": error.to_string()
+                    })
+                }
+            })
+            .collect();
+            
+        Ok(json_results)
+    } else {
+        Err(crate::error::OrchflowError::ConfigurationError {
+            component: "file_manager".to_string(),
+            reason: "File manager not initialized".to_string(),
+        })
+    }
+}

@@ -52,7 +52,7 @@ export function createFileSystemAssertions(fileExplorer: FileExplorerPage): File
       expect(folders).toHaveLength(count);
     },
 
-    async toHaveFileWithContent(fileName: string, content: string | RegExp): Promise<void> {
+    async toHaveFileWithContent(fileName: string, _content: string | RegExp): Promise<void> {
       // This would need integration with the actual file system or editor
       // For now, we'll check if the file exists
       const exists = await fileExplorer.fileExists(fileName);
@@ -415,7 +415,7 @@ export async function assertSearchResults(
 export async function assertContextMenuOptions(
   fileExplorer: FileExplorerPage,
   target: { type: 'file' | 'folder' | 'empty'; name?: string },
-  expectedOptions: string[]
+  _expectedOptions: string[]
 ): Promise<void> {
   switch (target.type) {
     case 'file':

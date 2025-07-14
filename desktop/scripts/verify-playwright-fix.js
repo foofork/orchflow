@@ -19,37 +19,35 @@ async function verifyPlaywrightFix() {
     console.warn('2️⃣ Testing TypeScript compilation...');
     try {
       await execAsync('npx tsc --noEmit --project tsconfig.json');
-      console.log('✅ TypeScript compilation successful\n');
+      // TypeScript compilation successful
     } catch (error) {
-      console.log('⚠️ TypeScript warnings (expected):\n');
-      console.log(error.stdout || error.stderr);
-      console.log('');
+      console.warn('⚠️ TypeScript warnings (expected):\n');
+      console.warn(error.stdout || error.stderr);
     }
     
     // Step 3: Test Playwright config validation
-    console.log('3️⃣ Testing Playwright configuration...');
+    // Testing Playwright configuration...
     try {
       const { stdout } = await execAsync('npx playwright test --list 2>&1');
       if (stdout.includes('Configuration file must export')) {
         throw new Error('Configuration export issue');
       }
-      console.log('✅ Playwright configuration valid\n');
+      // Playwright configuration valid
     } catch (error) {
       if (error.message.includes('Configuration file must export')) {
         console.error('❌ Playwright configuration still has issues');
         throw error;
       } else {
-        console.log('✅ Playwright configuration valid (expected test listing output)\n');
+        // Playwright configuration valid (expected test listing output)
       }
     }
     
     // Step 4: Test port allocation
-    console.log('4️⃣ Testing port allocation...');
+    // Testing port allocation...
     await execAsync('node scripts/test-port-allocation.js');
-    console.log('');
     
     // Step 5: Simulate port conflict scenario
-    console.log('5️⃣ Testing port conflict handling...');
+    // Testing port conflict handling...
     
     // Start a server on port 5173 to simulate conflict
     const net = await import('net');
@@ -61,18 +59,18 @@ async function verifyPlaywrightFix() {
       conflictServer.listen(5173);
     });
     
-    console.log('   📌 Created conflict on port 5173');
+    // Created conflict on port 5173
     
     // Test that our system finds alternative port
     await execAsync('PLAYWRIGHT_PORT=5174 node scripts/test-port-allocation.js');
     
     // Clean up conflict server
     conflictServer.close();
-    console.log('   🧹 Cleaned up conflict server');
-    console.log('✅ Port conflict handling works\n');
+    // Cleaned up conflict server
+    // Port conflict handling works
     
     // Step 6: Quick Playwright dry run
-    console.log('6️⃣ Testing Playwright dry run...');
+    // Testing Playwright dry run...
     try {
       const playwrightProcess = spawn('npx', ['playwright', 'test', '--dry-run'], {
         stdio: 'pipe',
@@ -106,21 +104,20 @@ async function verifyPlaywrightFix() {
         }, 25000);
       });
       
-      console.log('✅ Playwright dry run successful\n');
+      // Playwright dry run successful
     } catch (error) {
-      console.log('⚠️ Playwright dry run had issues (might be expected):');
-      console.log(error.message);
-      console.log('');
+      console.warn('⚠️ Playwright dry run had issues (might be expected):');
+      console.warn(error.message);
     }
     
-    console.log('🎉 Playwright port conflict fix verification completed!');
-    console.log('\n📋 Summary of fixes:');
-    console.log('  ✅ Dynamic port allocation (5174+ fallback)');
-    console.log('  ✅ Proper cleanup scripts');
-    console.log('  ✅ Global setup/teardown hooks');
-    console.log('  ✅ TypeScript type definitions');
-    console.log('  ✅ Error handling for port conflicts');
-    console.log('  ✅ Socket file cleanup');
+    // Playwright port conflict fix verification completed!
+    // Summary of fixes:
+    //   ✅ Dynamic port allocation (5174+ fallback)
+    //   ✅ Proper cleanup scripts
+    //   ✅ Global setup/teardown hooks
+    //   ✅ TypeScript type definitions
+    //   ✅ Error handling for port conflicts
+    //   ✅ Socket file cleanup
     
   } catch (error) {
     console.error('❌ Verification failed:', error.message);

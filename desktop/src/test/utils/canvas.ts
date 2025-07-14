@@ -193,7 +193,7 @@ export function mockCanvasGetContext() {
   HTMLCanvasElement.prototype.getContext = vi.fn(function(
     this: HTMLCanvasElement,
     contextType: string,
-    options?: any
+    _options?: any
   ) {
     if (contextType === '2d') {
       return createMockCanvas2DContext();

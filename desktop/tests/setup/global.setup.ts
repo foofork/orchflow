@@ -33,7 +33,7 @@ async function findAvailablePort(startPort: number = 5174): Promise<number> {
   throw new Error(`No available ports found between ${startPort} and ${maxPort}`);
 }
 
-async function globalSetup(config: FullConfig) {
+async function globalSetup(_config: FullConfig) {
   console.log('🚀 Starting Playwright global setup...');
   
   try {

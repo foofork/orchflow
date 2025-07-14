@@ -213,7 +213,7 @@ describe('Terminal IPC Test Fixes', () => {
     const mockInvoke = createAsyncMock<[InvokeCommand, any?], any>();
     
     // Set up specific responses for different commands
-    mockInvoke.mockImplementation(async (cmd, args) => {
+    mockInvoke.mockImplementation(async (cmd, _args) => {
       switch (cmd) {
         case 'terminal:create':
           return { terminal_id: 'term-123', created_at: Date.now(), status: 'active' };

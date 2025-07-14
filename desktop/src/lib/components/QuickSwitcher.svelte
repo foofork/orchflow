@@ -3,6 +3,7 @@
   import { fade, fly } from 'svelte/transition';
   import { invoke } from '@tauri-apps/api/core';
   import Fuse from 'fuse.js';
+  import { parseTimestamp } from '$lib/utils/timestamp';
   
   const dispatch = createEventDispatcher();
   
@@ -199,7 +200,7 @@
               type: 'terminal',
               icon: '💻',
               description: pane.working_dir || 'Terminal',
-              lastAccessed: pane.last_activity ? new Date(pane.last_activity) : undefined,
+              lastAccessed: pane.last_activity ? parseTimestamp(pane.last_activity) || undefined : undefined,
               metadata: { sessionId: session.id, paneId: pane.id }
             });
           }

@@ -1,0 +1,17 @@
+{
+  "name": "should handle comprehensive test data setup",
+  "file": "tests/e2e/smoke/mock-validation.test.ts",
+  "started": "2025-07-14T13:59:57.619Z",
+  "environment": {
+    "node": "v22.16.0",
+    "platform": "linux",
+    "ci": false
+  },
+  "completed": "2025-07-14T14:00:08.425Z",
+  "duration": 10806,
+  "status": "fail",
+  "errors": {
+    "message": "expected undefined to be defined",
+    "stack": "AssertionError: expected undefined to be defined\n    at /workspaces/orchflow/desktop/tests/e2e/smoke/mock-validation.test.ts:253:26\n    at file:///workspaces/orchflow/desktop/node_modules/@vitest/runner/dist/chunk-hooks.js:752:20"
+  }
+}

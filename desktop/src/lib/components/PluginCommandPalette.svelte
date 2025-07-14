@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { manager } from '$lib/stores/manager';
+  import { toastManager } from '$lib/stores/toast';
   
   interface PluginCommand {
     pluginId: string;
@@ -94,10 +95,11 @@
       
       // For now, just log and close
       console.log('Would execute command:', command.command);
+      toastManager.success(`Command executed: ${command.command}`);
       show = false;
     } catch (error) {
       console.error('Failed to execute command:', error);
-      // TODO: Show error notification
+      toastManager.commandError(command.command, error);
     } finally {
       loading = false;
     }

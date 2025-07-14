@@ -432,7 +432,7 @@ export class WindowManager extends BasePage {
   /**
    * Check if window can be closed
    */
-  async canCloseWindow(windowId: string): Promise<boolean> {
+  async canCloseWindow(_windowId: string): Promise<boolean> {
     return this.windows.size > 1;
   }
 

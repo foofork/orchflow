@@ -27,10 +27,16 @@ impl TmuxBackend {
 
     /// Convert TmuxSession to Session
     fn convert_session(tmux_session: TmuxSession) -> Session {
+        // Parse created timestamp - tmux typically provides Unix timestamps
+        let created_at = tmux_session.created.parse::<i64>()
+            .ok()
+            .and_then(|ts| chrono::DateTime::from_timestamp(ts, 0))
+            .unwrap_or_else(chrono::Utc::now);
+
         Session {
             id: tmux_session.name.clone(), // Use name as ID for now
             name: tmux_session.name,
-            created_at: chrono::Utc::now(), // Parse from tmux_session.created if needed
+            created_at,
             window_count: tmux_session.windows.len(),
             attached: tmux_session.attached,
         }

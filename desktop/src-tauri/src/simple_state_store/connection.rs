@@ -202,6 +202,15 @@ impl ConnectionManager {
 
         Ok(result == "ok")
     }
+
+    /// Execute a function with a database connection
+    pub fn with_connection<F, R>(&self, f: F) -> SqliteResult<R>
+    where
+        F: FnOnce(&Connection) -> SqliteResult<R>,
+    {
+        let conn = self.conn.lock().unwrap();
+        f(&*conn)
+    }
 }
 
 #[derive(Debug)]

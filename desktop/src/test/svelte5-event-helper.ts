@@ -21,8 +21,8 @@ export function mockSvelteEvents<T = any>(component: T | undefined | null): Svel
   // Handle undefined or null component
   if (!component) {
     const emptyComponent = {
-      $on: (event: string, handler: (e: CustomEvent<any>) => void) => () => {},
-      $set: (props: Record<string, any>) => {}
+      $on: (_event: string, _handler: (e: CustomEvent<any>) => void) => () => {},
+      $set: (_props: Record<string, any>) => {}
     } as SvelteComponentWithEvents<T>;
     return emptyComponent;
   }

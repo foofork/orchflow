@@ -63,7 +63,7 @@ vi.mock('$lib/tauri/neovim', () => ({
 }));
 
 // Mock ResizeObserver
-global.ResizeObserver = vi.fn().mockImplementation((callback: ResizeObserverCallback) => ({
+global.ResizeObserver = vi.fn().mockImplementation((_callback: ResizeObserverCallback) => ({
   observe: vi.fn(),
   disconnect: vi.fn(),
   unobserve: vi.fn()

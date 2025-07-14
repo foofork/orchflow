@@ -132,7 +132,7 @@ const mockRequestAnimationFrame = createSyncMock<[FrameRequestCallback], number>
   return animationFrameId;
 });
 
-const mockCancelAnimationFrame = createSyncMock<[number], void>().mockImplementation((id) => {
+const mockCancelAnimationFrame = createSyncMock<[number], void>().mockImplementation((_id) => {
   // In a real scenario, we would map frame IDs to timeouts
   // For testing, we'll just clear all active timeouts
   activeTimeouts.forEach(timeout => clearTimeout(timeout));

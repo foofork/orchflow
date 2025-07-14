@@ -7,7 +7,6 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
-import CommandConfirmationDialog from './CommandConfirmationDialog.svelte';
 import { MockSvelteComponent } from '../../test/utils/svelte-component-mock-types';
 import { createTypedMock, createAsyncMock } from '@/test/mock-factory';
 import { mockSvelteEvents } from '@/test/svelte5-event-helper';
@@ -92,6 +91,9 @@ vi.mock('svelte/transition', () => ({
     css: () => ''
   })
 }));
+
+// Import after mocking
+import CommandConfirmationDialog from './CommandConfirmationDialog.svelte';
 
 describe('CommandConfirmationDialog', () => {
   let cleanup: Array<() => void> = [];

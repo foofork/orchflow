@@ -72,7 +72,7 @@ test.describe('Terminal Visual Regression', () => {
     }
   });
 
-  test('should capture terminal with different themes', async ({ page }) => {
+  test('should capture terminal with different themes', async ({ _page }) => {
     // This would require implementing theme switching in the UI
     // For now, we'll just capture the default theme
     // await percySnapshot(page, 'Terminal - Default Theme');

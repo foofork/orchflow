@@ -1,0 +1,17 @@
+{
+  "name": "should mock git operations",
+  "file": "tests/e2e/smoke/mock-validation.test.ts",
+  "started": "2025-07-14T14:00:11.101Z",
+  "environment": {
+    "node": "v22.16.0",
+    "platform": "linux",
+    "ci": false
+  },
+  "completed": "2025-07-14T14:00:14.086Z",
+  "duration": 2985,
+  "status": "fail",
+  "errors": {
+    "message": "page.goto: net::ERR_EMPTY_RESPONSE at http://localhost:5317/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5317/\", waiting until \"load\"\u001b[22m\n",
+    "stack": "page.goto: net::ERR_EMPTY_RESPONSE at http://localhost:5317/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5317/\", waiting until \"load\"\u001b[22m\n\n    at /workspaces/orchflow/desktop/tests/e2e/smoke/mock-validation.test.ts:298:16\n    at /workspaces/orchflow/desktop/node_modules/@vitest/runner/dist/chunk-hooks.js:752:20"
+  }
+}

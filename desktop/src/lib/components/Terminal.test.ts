@@ -47,7 +47,7 @@ vi.mock('$lib/stores/manager');
 // Mock xterm and addons with enhanced patterns
 vi.mock('@xterm/xterm', () => {
   return {
-    Terminal: createTypedMock<(options?: any) => typeof mockTerminalInstance>().mockImplementation((options?: any) => {
+    Terminal: createTypedMock<(options?: any) => typeof mockTerminalInstance>().mockImplementation((_options?: any) => {
       // Create a new mock terminal instance
       mockTerminalInstance = createMockTerminal();
       

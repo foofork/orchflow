@@ -78,17 +78,17 @@
     metricsHistory = metricsHistory;
   }
   
-  function getStatusIcon(pane: Pane) {
+  function getStatusIcon(_pane: Pane) {
     // All panes are currently considered active
     return '🟢';
   }
   
-  function getStatusColor(pane: Pane) {
+  function getStatusColor(_pane: Pane) {
     // All panes are currently considered active
     return 'var(--success)';
   }
   
-  function getStatusText(pane: Pane) {
+  function getStatusText(_pane: Pane) {
     return 'Active';
   }
   
