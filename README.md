@@ -182,12 +182,6 @@ See [API\_REFERENCE.md](API_REFERENCE.md).
 * **Neural Integration**: Native AI models (e.g., ruv-FANN)
 * **Cloud Sync**: Multi-device session synchronization
 
-## 🤝 Contributing
-
-We welcome contributions! Follow our [CONTRIBUTING guidelines](CONTRIBUTING.md):
-
-* Fork, branch, TDD, implement, PR.
-
 ## 🔒 Security & Privacy
 
 * Sandboxed file operations
