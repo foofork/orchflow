@@ -19,6 +19,13 @@ coverage/
 # Claude Flow and development tools
 .swarm/
 .hive-mind/
+.claude/
+.github/
+.swam/
+.roomodes
+claude-flow
+claude-flow.bat
+claude-flow.ps1
 memory/
 *.db
 *.db-shm
