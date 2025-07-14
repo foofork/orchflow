@@ -46,83 +46,198 @@ export default defineConfig({
   // Build optimizations
   build: {
     // Reduce chunk size warnings
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 500,
     
-    // Manual chunking for better caching
+    // Aggressive code splitting for smaller bundles
     rollupOptions: {
       output: {
-        manualChunks: (id) => {
-          if (id.includes('node_modules')) {
-            // Split vendor chunks for better caching
-            if (id.includes('codemirror')) {
-              return 'vendor-editor';
-            }
-            if (id.includes('xterm')) {
-              return 'vendor-terminal';
-            }
-            if (id.includes('svelte') || id.includes('@sveltejs')) {
-              return 'vendor-svelte';
-            }
-            if (id.includes('fuse.js')) {
-              return 'vendor-search';
-            }
-            if (id.includes('@tauri-apps')) {
-              return 'vendor-tauri';
-            }
-            // Group other vendor dependencies
-            return 'vendor';
+        // Let Vite handle automatic chunking
+        manualChunks: undefined,
+        // Smaller chunks for better caching
+        chunkFileNames: (chunkInfo) => {
+          const facadeModuleId = chunkInfo.facadeModuleId ? chunkInfo.facadeModuleId.split('/').pop() : '';
+          if (facadeModuleId.includes('.svelte')) {
+            return 'components/[name].[hash].js';
           }
-          // Return undefined for main chunk files to avoid empty chunks
-          return undefined;
+          return 'chunks/[name].[hash].js';
         },
-        // Optimize chunk generation with better settings
-        experimentalMinChunkSize: 10000
+        // Asset file names
+        assetFileNames: 'assets/[name].[hash][extname]',
+        // Entry file names
+        entryFileNames: 'app/[name].[hash].js',
+        // Enable compact output
+        compact: true,
+        // Improve code splitting
+        generatedCode: {
+          constBindings: true,
+          objectShorthand: true,
+          symbols: true
+        }
       },
-      // Enable better tree shaking
+      // Better tree shaking
       treeshake: {
-        moduleSideEffects: false,
+        moduleSideEffects: 'no-external',
         propertyReadSideEffects: false,
-        tryCatchDeoptimization: false
-      }
+        tryCatchDeoptimization: false,
+        unknownGlobalSideEffects: false
+      },
+      // External dependencies that shouldn't be bundled
+      external: []
     },
     
-    // Optimize deps
+    // CommonJS optimization
     commonjsOptions: {
       include: [/node_modules/],
-      transformMixedEsModules: true
+      transformMixedEsModules: true,
+      // Better tree-shaking for CommonJS
+      esmExternals: true,
+      requireReturnsDefault: 'auto'
     },
     
-    // Better minification options
-    minify: 'esbuild',
-    target: 'esnext',
-    sourcemap: false
+    // Use terser for better minification
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        ecma: 2020,
+        drop_console: true,
+        drop_debugger: true,
+        pure_funcs: ['console.log', 'console.info', 'console.debug', 'console.trace'],
+        passes: 3,
+        module: true,
+        toplevel: true,
+        // More aggressive optimizations
+        unsafe_arrows: true,
+        unsafe_comps: true,
+        unsafe_math: true,
+        unsafe_methods: true,
+        unsafe_proto: true,
+        unsafe_regexp: true
+      },
+      mangle: {
+        module: true,
+        toplevel: true,
+        // Mangle properties for even smaller output
+        properties: {
+          regex: /^_/
+        }
+      },
+      format: {
+        ecma: 2020,
+        comments: false,
+        ascii_only: true
+      },
+      module: true,
+      toplevel: true
+    },
+    
+    // Target modern browsers for smaller output
+    target: ['es2020', 'edge88', 'firefox78', 'chrome87', 'safari14'],
+    
+    // Disable source maps in production for smaller size
+    sourcemap: false,
+    
+    // Enable CSS code splitting
+    cssCodeSplit: true,
+    
+    // Asset inlining threshold (4KB)
+    assetsInlineLimit: 4096,
+    
+    // Report compressed size
+    reportCompressedSize: true,
+    
+    // Better module preload
+    modulePreload: {
+      polyfill: false
+    }
   },
   
   // Optimize dependencies
   optimizeDeps: {
-    include: ['svelte', '@sveltejs/kit', '@xterm/xterm', '@xterm/addon-fit', '@xterm/addon-web-links', '@xterm/addon-search'],
-    exclude: ['@tauri-apps/api', '@tauri-apps/plugin-fs', '@tauri-apps/plugin-shell'],
-    force: false, // Don't force re-optimization in development
-    entries: ['src/main.ts', 'src/app.html']
+    // Include only essential dependencies
+    include: [
+      'svelte'
+    ],
+    // Exclude heavy dependencies that should be lazy loaded
+    exclude: [
+      '@tauri-apps/api',
+      '@tauri-apps/plugin-fs',
+      '@tauri-apps/plugin-shell',
+      '@codemirror/state',
+      '@codemirror/view',
+      '@xterm/xterm'
+    ],
+    // Disable force optimization
+    force: false,
+    // Entry points for optimization
+    entries: ['src/app.html', 'src/routes/+page.svelte'],
+    // Enable esbuild optimizations
+    esbuildOptions: {
+      target: 'es2020',
+      supported: {
+        'top-level-await': true
+      }
+    }
   },
   
-  // Ensure worker files are handled correctly
+  // Worker optimization
   worker: {
-    format: 'es'
+    format: 'es',
+    rollupOptions: {
+      output: {
+        entryFileNames: 'workers/[name].[hash].js'
+      }
+    }
+  },
+  
+  // CSS optimization
+  css: {
+    devSourcemap: false,
+    // PostCSS optimization in production
+    postcss: process.env.NODE_ENV === 'production' ? {
+      plugins: [
+        {
+          postcssPlugin: 'optimize-css',
+          Once(root, { result }) {
+            // Remove unused CSS variables
+            root.walkDecls(decl => {
+              if (decl.prop.startsWith('--') && !decl.parent.selector.includes(':root')) {
+                decl.remove();
+              }
+            });
+          }
+        }
+      ]
+    } : undefined
   },
   
   // Performance optimizations
   esbuild: {
-    target: 'esnext',
+    target: 'es2020',
     platform: 'browser',
-    // Remove console logs in production
+    // Drop console and debugger in production
     drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : [],
-    // Optimize for smaller bundles
-    treeShaking: true
+    // Better tree shaking
+    treeShaking: true,
+    // Legal comments
+    legalComments: 'none',
+    // Pure functions for better tree shaking
+    pure: ['console.log', 'console.info', 'console.debug', 'console.trace'],
+    // Better minification
+    minifyIdentifiers: true,
+    minifySyntax: true,
+    minifyWhitespace: true
   },
   
   // Define configuration
   define: {
-    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development')
+    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
+    'import.meta.env.PROD': process.env.NODE_ENV === 'production',
+    'import.meta.env.DEV': process.env.NODE_ENV !== 'production'
+  },
+  
+  // JSON optimization
+  json: {
+    namedExports: true,
+    stringify: true
   }
 });

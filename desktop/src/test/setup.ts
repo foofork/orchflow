@@ -394,7 +394,7 @@ const originalImport = (global as any).import;
           }
         });
         
-        this.$on = vi.fn((event: string, handler: Function) => {
+        this.$on = vi.fn((event: string, handler: (...args: any[]) => void) => {
           if (!this.$$.callbacks[event]) {
             this.$$.callbacks[event] = [];
           }
@@ -418,7 +418,7 @@ const originalImport = (global as any).import;
             }
             // Trigger change event
             if (this.$$.callbacks.change) {
-              this.$$.callbacks.change.forEach((handler: Function) => {
+              this.$$.callbacks.change.forEach((handler: (...args: any[]) => void) => {
                 handler({ detail: newProps.value });
               });
             }

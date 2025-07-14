@@ -44,7 +44,7 @@ describe('Tauri Mock Validation', () => {
           settings,
           success: true
         };
-      } catch (error) {
+      } catch (error: any) {
         return { error: error.message };
       }
     });
@@ -92,7 +92,7 @@ describe('Tauri Mock Validation', () => {
           inputResult,
           success: true
         };
-      } catch (error) {
+      } catch (error: any) {
         return { error: error.message };
       }
     });
@@ -135,7 +135,7 @@ describe('Tauri Mock Validation', () => {
           createResult,
           success: true
         };
-      } catch (error) {
+      } catch (error: any) {
         return { error: error.message };
       }
     });
@@ -181,10 +181,10 @@ describe('Tauri Mock Validation', () => {
               success: false
             });
           }, 1000);
-        } catch (error) {
+        } catch (error: any) {
           resolve({
             connected: false,
-            error: error.message,
+            error: (error as Error).message,
             success: false
           });
         }
@@ -192,8 +192,8 @@ describe('Tauri Mock Validation', () => {
     });
 
     // The mock should handle WebSocket connections without errors
-    expect(result.success).toBe(true);
-    expect(result.connected).toBe(true);
+    expect((result as any).success).toBe(true);
+    expect((result as any).connected).toBe(true);
   });
 
   test('should mock window operations', async () => {
@@ -219,7 +219,7 @@ describe('Tauri Mock Validation', () => {
           currentWindowAvailable: !!currentWindow,
           success: true
         };
-      } catch (error) {
+      } catch (error: any) {
         return { error: error.message };
       }
     });
@@ -280,7 +280,7 @@ describe('Tauri Mock Validation', () => {
           pluginStatuses,
           success: true
         };
-      } catch (error) {
+      } catch (error: any) {
         return { error: error.message };
       }
     });
@@ -312,7 +312,7 @@ describe('Tauri Mock Validation', () => {
           commit,
           success: true
         };
-      } catch (error) {
+      } catch (error: any) {
         return { error: error.message };
       }
     });

@@ -193,7 +193,7 @@
           <div class="validation-errors">
             <h3>Validation Errors:</h3>
             <ul>
-              {#each validationErrors as error}
+              {#each validationErrors as error, index (index)}
                 <li>{error}</li>
               {/each}
             </ul>

@@ -238,7 +238,7 @@ describe('Tauri API Integration Tests', () => {
       terminalMock.spawn.mockImplementation(() => {
         const listeners = new Map();
         return {
-          on: (event: string, handler: Function) => {
+          on: (event: string, handler: (...args: any[]) => void) => {
             if (!listeners.has(event)) {
               listeners.set(event, new Set());
             }
@@ -247,7 +247,7 @@ describe('Tauri API Integration Tests', () => {
           write: (data: string) => {
             setTimeout(() => {
               if (data.includes('invalid-command')) {
-                listeners.get('error')?.forEach((handler: Function) => 
+                listeners.get('error')?.forEach((handler: (...args: any[]) => void) => 
                   handler(new Error('Command not found'))
                 );
               }

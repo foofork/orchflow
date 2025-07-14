@@ -49,7 +49,7 @@
       
       {#if !singleTerminalMode}
         <select bind:value={selectedLayout} on:change={changeLayout}>
-          {#each layoutOptions as option}
+          {#each layoutOptions as option (option.value)}
             <option value={option.value}>{option.label}</option>
           {/each}
         </select>

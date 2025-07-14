@@ -123,14 +123,14 @@ test.describe('Editor Visual Regression', () => {
       }
     });
 
-    test('should capture Neovim with file open', async ({ _page }) => {
+    test.skip('should capture Neovim with file open', async ({ page }) => {
       // This would require navigating to a file in Neovim
       // Implementation depends on your UI
       
       // await percySnapshot(page, 'Neovim Editor - With File');
     });
 
-    test('should capture Neovim in different modes', async ({ _page }) => {
+    test.skip('should capture Neovim in different modes', async ({ page }) => {
       const modes = ['normal', 'insert', 'visual', 'command'];
       
       for (const mode of modes) {

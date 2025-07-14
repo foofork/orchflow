@@ -241,7 +241,7 @@ export class WindowManager extends BasePage {
     const screenSize = await this.getScreenSize();
     
     switch (layout) {
-      case 'side-by-side':
+      case 'side-by-side': {
         const width = Math.floor(screenSize.width / windows.length);
         for (let i = 0; i < windows.length; i++) {
           await this.setWindowBounds(windows[i].id, {
@@ -252,8 +252,9 @@ export class WindowManager extends BasePage {
           });
         }
         break;
+      }
         
-      case 'stacked':
+      case 'stacked': {
         const height = Math.floor(screenSize.height / windows.length);
         for (let i = 0; i < windows.length; i++) {
           await this.setWindowBounds(windows[i].id, {
@@ -264,8 +265,9 @@ export class WindowManager extends BasePage {
           });
         }
         break;
+      }
         
-      case 'grid':
+      case 'grid': {
         const cols = Math.ceil(Math.sqrt(windows.length));
         const rows = Math.ceil(windows.length / cols);
         const cellWidth = Math.floor(screenSize.width / cols);
@@ -283,6 +285,7 @@ export class WindowManager extends BasePage {
           });
         }
         break;
+      }
     }
   }
 

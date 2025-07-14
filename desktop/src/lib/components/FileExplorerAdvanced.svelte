@@ -42,7 +42,7 @@
   let hasGit = false;
   let contextMenuPosition = { x: 0, y: 0 };
   let showContextMenu = false;
-  let unlisten: Function | null = null;
+  let unlisten: (() => void) | null = null;
   
   // File type icons
   const fileIcons: Record<string, string> = {
@@ -435,7 +435,7 @@
       </div>
     {:else}
       <div class="tree">
-        {#each getFlattenedTree(filteredTree) as item}
+        {#each getFlattenedTree(filteredTree) as item (item.node.path)}
           <div class="tree-node" class:selected={item.node.path === selectedPath}>
             <button
               class="node-content"

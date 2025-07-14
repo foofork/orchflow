@@ -419,7 +419,7 @@
 						{searchQuery ? 'No symbols match your search' : 'No symbols found'}
 					</div>
 				{:else}
-					{#each filteredSymbols as symbol, index}
+					{#each filteredSymbols as symbol, index (`${symbol.name}-${symbol.line}-${symbol.character}`)}
 						<button
 							on:click={() => goToSymbol(symbol)}
 							class="w-full text-left px-4 py-2 hover:bg-gray-700 transition-colors flex items-center gap-2

@@ -47,7 +47,7 @@ vi.mock('./PluginStatusBar.svelte', () => ({
     },
     element: document.createElement('div'),
     $set: createTypedMock<(props: any) => void>(),
-    $on: createTypedMock<(event: string, handler: Function) => void>(),
+    $on: createTypedMock<(event: string, handler: (...args: any[]) => void) => void>(),
     $destroy: createTypedMock<() => void>()
   }))
 }));

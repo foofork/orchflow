@@ -315,7 +315,7 @@
               
               {#if selectedFiles.length > 0}
                 <ul class="file-list">
-                  {#each selectedFiles as file, i}
+                  {#each selectedFiles as file, i (file)}
                     <li>
                       <span class="file-path">{file}</span>
                       <button 
@@ -405,7 +405,7 @@
           <div class="recent-section">
             <h3>Recent Packages</h3>
             <div class="package-list">
-              {#each recentPackages as pkg}
+              {#each recentPackages as pkg (pkg.id)}
                 <div class="package-item">
                   <div class="package-info">
                     <h4>{pkg.name}</h4>

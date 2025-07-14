@@ -158,8 +158,8 @@
           </tr>
         </thead>
         <tbody>
-          {#each sessions as session}
-            {#each getSessionPanes(session.id) as pane}
+          {#each sessions as session (session.id)}
+            {#each getSessionPanes(session.id) as pane (pane.id)}
               <tr>
                 <td>{session.name}</td>
                 <td>{pane.title}</td>
@@ -187,11 +187,11 @@
   {:else}
     <!-- Grid View -->
     <div class="grid-view">
-      {#each sessions as session}
+      {#each sessions as session (session.id)}
         <div class="session-group">
           <h3>{session.name}</h3>
           <div class="panes-grid">
-            {#each getSessionPanes(session.id) as pane}
+            {#each getSessionPanes(session.id) as pane (pane.id)}
               <button 
                 class="pane-card"
                 on:click={() => manager.focusPane(pane.id)}

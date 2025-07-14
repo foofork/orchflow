@@ -203,7 +203,7 @@
         {#if eventLog.length === 0}
           <div class="log-empty">Events will appear here when you use the quick switcher</div>
         {:else}
-          {#each eventLog as event}
+          {#each eventLog as event, index (index)}
             <div class="log-entry">{event}</div>
           {/each}
         {/if}

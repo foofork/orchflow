@@ -102,7 +102,7 @@ const fileSystemMock = createMock.module('fs-integration', () => {
 // Mock terminal with realistic behavior
 const terminalMock = createMock.api('terminal-integration', {
   spawn: vi.fn(() => {
-    const listeners = new Map<string, Set<Function>>();
+    const listeners = new Map<string, Set<(...args: any[]) => void>>();
     let processRunning = true;
     
     return {

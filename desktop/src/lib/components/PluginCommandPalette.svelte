@@ -177,7 +177,7 @@
       
       {#if filteredCommands.length > 0}
         <div class="commands-list">
-          {#each filteredCommands as command, index}
+          {#each filteredCommands as command, index (command.id)}
             <button
               class="command-item"
               class:selected={index === selectedIndex}

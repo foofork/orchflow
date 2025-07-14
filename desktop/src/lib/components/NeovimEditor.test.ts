@@ -11,6 +11,18 @@ import {
   createAsyncVoidMock,
   MockPatterns 
 } from '@/test/mock-factory';
+import type {
+  Terminal,
+  FitAddon,
+  TmuxClient,
+  NeovimClient,
+  NeovimClientConstructor,
+  UserEvent,
+  MockResizeObserver,
+  MockResizeObserverConstructor,
+  ResizeObserverCallback,
+  NeovimEditorComponent
+} from './NeovimEditor.types';
 
 // Mock XTerm
 const mockTerminal = {
@@ -20,21 +32,22 @@ const mockTerminal = {
   write: createVoidMock<[string]>(),
   writeln: createVoidMock<[string]>(),
   onData: vi.fn().mockReturnValue({ dispose: vi.fn() }),
-  loadAddon: createVoidMock<[addon: any]>(),
+  loadAddon: createVoidMock<[addon: FitAddon]>(),
   cols: 80,
   rows: 24
 };
 
-const mockFitAddon = {
-  fit: createVoidMock()
+const mockFitAddon: FitAddon = {
+  fit: createVoidMock(),
+  dispose: createVoidMock()
 };
 
 vi.mock('@xterm/xterm', () => ({
-  Terminal: createTypedMock<() => typeof mockTerminal>(() => mockTerminal)
+  Terminal: createTypedMock<() => Terminal>(() => mockTerminal)
 }));
 
 vi.mock('@xterm/addon-fit', () => ({
-  FitAddon: createTypedMock<() => typeof mockFitAddon>(() => mockFitAddon)
+  FitAddon: createTypedMock<() => FitAddon>(() => mockFitAddon)
 }));
 
 // Mock tmux client
@@ -51,15 +64,8 @@ vi.mock('$lib/tauri/tmux', () => ({
 // Mock Neovim client
 vi.mock('$lib/tauri/neovim', () => ({
   NeovimClient: {
-    create: createAsyncMock<[instanceId: string], {
-      openFile: any;
-      save: any;
-      getBufferContent: any;
-      getMode: any;
-      eval: any;
-      close: any;
-    }>()
-  }
+    create: createAsyncMock<[instanceId: string], NeovimClient>()
+  } as NeovimClientConstructor
 }));
 
 // Mock ResizeObserver
@@ -67,14 +73,14 @@ global.ResizeObserver = vi.fn().mockImplementation((_callback: ResizeObserverCal
   observe: vi.fn(),
   disconnect: vi.fn(),
   unobserve: vi.fn()
-})) as any;
+})) as unknown as MockResizeObserverConstructor;
 
 describe('NeovimEditor Component', () => {
   let cleanup: Array<() => void> = [];
-  let user: any;
-  let mockTmux: any;
-  let mockNeovimClient: any;
-  let MockNeovimClient: any;
+  let user: UserEvent;
+  let mockTmux: TmuxClient;
+  let mockNeovimClient: NeovimClient;
+  let MockNeovimClient: NeovimClientConstructor;
 
   beforeEach(async () => {
     user = userEvent.setup();
@@ -100,7 +106,7 @@ describe('NeovimEditor Component', () => {
       save: createAsyncVoidMock(),
       getBufferContent: createAsyncMock<[], string>('file content'),
       getMode: createAsyncMock<[], string>('n'),
-      eval: createAsyncMock<[command: string], any>(null),
+      eval: createAsyncMock<[command: string], unknown>(null),
       close: createAsyncVoidMock()
     };
     
@@ -278,7 +284,7 @@ describe('NeovimEditor Component', () => {
       
       await tick();
       
-      const resizeCallback = (global.ResizeObserver as any).mock.calls[0][0];
+      const resizeCallback = (global.ResizeObserver as unknown as MockResizeObserverConstructor).mock.calls[0][0];
       resizeCallback();
       
       await waitFor(() => {
@@ -407,7 +413,7 @@ describe('NeovimEditor Component', () => {
       
       await tick();
       
-      const resizeCallback = (global.ResizeObserver as any).mock.calls[0][0];
+      const resizeCallback = (global.ResizeObserver as unknown as MockResizeObserverConstructor).mock.calls[0][0];
       resizeCallback();
       
       vi.advanceTimersByTime(200);
@@ -469,7 +475,7 @@ describe('NeovimEditor Component', () => {
       
       await tick();
       
-      const resizeObserver = (global.ResizeObserver as any).mock.results[0].value;
+      const resizeObserver = (global.ResizeObserver as unknown as MockResizeObserverConstructor).mock.results[0].value as MockResizeObserver;
       
       await unmount();
       

@@ -26,7 +26,7 @@
     <h1>Terminal Panel Component Demo</h1>
     <div class="controls">
       <select bind:value={selectedLayout}>
-        {#each layoutOptions as option}
+        {#each layoutOptions as option (option.value)}
           <option value={option.value}>{option.label}</option>
         {/each}
       </select>

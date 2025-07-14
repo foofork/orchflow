@@ -63,7 +63,7 @@ beforeAll(() => {
             }
           });
           
-          this.$on = createTypedMock<(event: string, handler: Function) => () => void>((event: string, handler: Function) => {
+          this.$on = createTypedMock<(event: string, handler: (...args: any[]) => void) => () => void>((event: string, handler: (...args: any[]) => void) => {
             if (!this.$$.callbacks[event]) {
               this.$$.callbacks[event] = [];
             }
@@ -85,7 +85,7 @@ beforeAll(() => {
               editorContent.textContent = newProps.value;
               // Trigger change event
               if (this.$$.callbacks.change) {
-                this.$$.callbacks.change.forEach((handler: Function) => {
+                this.$$.callbacks.change.forEach((handler: (...args: any[]) => void) => {
                   handler({ detail: newProps.value });
                 });
               }

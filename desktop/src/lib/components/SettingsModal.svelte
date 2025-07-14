@@ -372,7 +372,7 @@
 					</div>
 					
 					<nav class="settings-nav">
-						{#each filteredTabs as tab}
+						{#each filteredTabs as tab (tab.id)}
 							<button
 								class="nav-item"
 								class:active={activeTab === tab.id}
@@ -395,7 +395,7 @@
 								<div class="setting-group">
 									<label for="theme-select">Theme</label>
 									<div class="theme-selector" id="theme-select">
-										{#each themes as theme}
+										{#each themes as theme (theme.value)}
 											<button
 												class="theme-option"
 												class:selected={localSettings.appearance.theme === theme.id}
@@ -411,7 +411,7 @@
 								<div class="setting-group">
 									<label for="accent-color-select">Accent Color</label>
 									<div class="color-selector" id="accent-color-select">
-										{#each accentColors as color}
+										{#each accentColors as color (color.value)}
 											<button
 												class="color-option"
 												class:selected={localSettings.appearance.accentColor === color.id}
@@ -443,7 +443,7 @@
 										bind:value={localSettings.appearance.fontFamily}
 										on:change={(e) => updateSetting('appearance', 'fontFamily', (e.target as HTMLInputElement).value)}
 									>
-										{#each fontFamilies as font}
+										{#each fontFamilies as font (font.value)}
 											<option value={font}>{font}</option>
 										{/each}
 									</select>
@@ -591,7 +591,7 @@
 										bind:value={localSettings.terminal.fontFamily}
 										on:change={(e) => updateSetting('terminal', 'fontFamily', (e.target as HTMLInputElement).value)}
 									>
-										{#each fontFamilies as font}
+										{#each fontFamilies as font (font.value)}
 											<option value={font}>{font}</option>
 										{/each}
 									</select>
@@ -752,7 +752,7 @@
 							<div class="settings-section">
 								<h2>Keyboard Shortcuts</h2>
 								
-								{#each Object.entries(localSettings.shortcuts) as [action, shortcut]}
+								{#each Object.entries(localSettings.shortcuts) as [action, shortcut] (action)}
 									<div class="setting-group shortcut-group">
 										<label for="shortcut-{action}">
 											{action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}

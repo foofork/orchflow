@@ -1,8 +1,4 @@
-<script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
-  import { fly, fade } from 'svelte/transition';
-  import { quadOut } from 'svelte/easing';
-
+<script context="module" lang="ts">
   export interface ToastMessage {
     id: string;
     type: 'success' | 'info' | 'warning' | 'error';
@@ -18,6 +14,12 @@
     variant?: 'primary' | 'secondary';
     handler: () => void;
   }
+</script>
+
+<script lang="ts">
+  import { onMount, onDestroy } from 'svelte';
+  import { fly, fade } from 'svelte/transition';
+  import { quadOut } from 'svelte/easing';
 
   export let toast: ToastMessage;
   export let onDismiss: (id: string) => void;
@@ -109,7 +111,7 @@
         
         {#if toast.actions && toast.actions.length > 0}
           <div class="toast-actions">
-            {#each toast.actions as action}
+            {#each toast.actions as action (action.label)}
               <button
                 class="toast-action {action.variant || 'secondary'}"
                 on:click={() => handleAction(action)}

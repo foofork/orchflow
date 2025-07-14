@@ -451,7 +451,7 @@
           </div>
         {:else}
           <div class="results-list">
-            {#each filteredItems as item, index}
+            {#each filteredItems as item, index (item.path)}
               <button
                 class="switch-item"
                 class:selected={index === selectedIndex}

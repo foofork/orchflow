@@ -78,7 +78,7 @@
   </div>
   
   <div class="event-list">
-    {#each events as event}
+    {#each events as event, index (index)}
       <div class="event event-{event.type}">
         <span class="timestamp">
           {formatTimestamp(event.timestamp, { relative: true })}

@@ -257,7 +257,7 @@
     <div class="empty">No files in directory</div>
   {:else}
     <div class="tree" role="tree" aria-label="File explorer tree">
-      {#each tree as node}
+      {#each tree as node (node.path)}
         <FileTree 
           {node} 
           level={0} 

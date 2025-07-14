@@ -220,7 +220,7 @@
     </div>
   {:else}
     <div class="settings-grid">
-      {#each settings as setting}
+      {#each settings as setting (setting.id)}
         <button 
           class="setting-card"
           on:click={() => openConfig(setting)}

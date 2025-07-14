@@ -51,7 +51,7 @@ class TestMigrator {
         const auditReport = JSON.parse(readFileSync(auditReportPath, 'utf8'));
         this.migrationQueue = auditReport.migrationCandidates || [];
         console.warn(`📊 Loaded ${this.migrationQueue.length} candidates from audit report`);
-      } catch (_error) {
+      } catch {
         console.warn('⚠️  Could not load audit report, performing manual analysis...');
         await this.performManualAnalysis();
       }
@@ -196,7 +196,7 @@ class TestMigrator {
     for (const _candidate of this.migrationQueue) {
       try {
         await this.migrateTest(_candidate);
-      } catch (_error) {
+      } catch {
         console.error(`❌ Failed to migrate ${_candidate.path}:`, _error.message);
         this.migrationResults.failed.push({
           ..._candidate,

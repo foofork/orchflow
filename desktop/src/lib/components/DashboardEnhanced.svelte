@@ -259,7 +259,7 @@
             </tr>
           </thead>
           <tbody>
-            {#each allPanes as pane}
+            {#each allPanes as pane (pane.id)}
               {@const metrics = paneMetrics.get(pane.id)}
               {@const history = metricsHistory.get(pane.id)}
               <tr>
@@ -324,7 +324,7 @@
     {:else}
       <!-- Card View -->
       <div class="agent-grid">
-        {#each allPanes as pane}
+        {#each allPanes as pane (pane.id)}
           {@const metrics = paneMetrics.get(pane.id)}
           {@const history = metricsHistory.get(pane.id)}
           <div class="agent-card">

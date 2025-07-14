@@ -117,7 +117,7 @@
     {:else if filteredExtensions.length === 0}
       <div class="empty">No extensions found</div>
     {:else}
-      {#each filteredExtensions as extension}
+      {#each filteredExtensions as extension (extension.id)}
         <div class="extension-item" class:installed={extension.installed}>
           <div class="extension-header">
             <div class="extension-info">

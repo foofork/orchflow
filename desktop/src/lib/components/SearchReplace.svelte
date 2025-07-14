@@ -328,7 +328,7 @@
             aria-label="Search history"
           >
             <option value="">History</option>
-            {#each searchHistory as pattern}
+            {#each searchHistory as pattern, index (index)}
               <option value={pattern}>{pattern}</option>
             {/each}
           </select>
@@ -433,7 +433,7 @@
         </div>
         
         <div class="results-list">
-          {#each searchResults.results as result}
+          {#each searchResults.results as result (result.file)}
             <div class="file-result">
               <label class="file-header">
                 <input
@@ -447,7 +447,7 @@
               </label>
               
               <div class="matches">
-                {#each result.matches.slice(0, 5) as match}
+                {#each result.matches.slice(0, 5) as match, index (`${result.file}-${index}`)}
                   <div class="match-line">
                     <span class="line-number">{match.line_number}:</span>
                     <pre class="line-text">{match.line_text}</pre>
@@ -469,7 +469,7 @@
       <div class="replace-preview">
         <h3>Replace Preview</h3>
         <div class="preview-list">
-          {#each replacePreview as preview}
+          {#each replacePreview as preview (preview.file)}
             <div class="preview-item" class:error={!preview.success}>
               <span class="file-path">{preview.path}</span>
               {#if preview.success}
@@ -497,7 +497,7 @@
         aria-label="Load saved search"
       >
         <option value="">Load saved search...</option>
-        {#each savedSearches as search}
+        {#each savedSearches as search (search.id)}
           <option value={search.name}>{search.name}</option>
         {/each}
       </select>

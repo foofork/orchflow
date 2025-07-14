@@ -235,13 +235,14 @@
       case 'splitVertical':
         handleSplitView('vertical');
         break;
-      case 'toggleFullscreen':
+      case 'toggleFullscreen': {
         if (isTauri) {
           const { appWindow } = await import('@tauri-apps/api/window');
           const isFullscreen = await appWindow.isFullscreen();
           await appWindow.setFullscreen(!isFullscreen);
         }
         break;
+      }
         
       // Settings actions
       case 'openSettings':
@@ -252,18 +253,20 @@
         break;
         
       // Navigation
-      case 'nextTab':
+      case 'nextTab': {
         const currentIndex = $tabs.findIndex(t => t.id === $activeTab?.id);
         if (currentIndex < $tabs.length - 1) {
           activeTab.set($tabs[currentIndex + 1]);
         }
         break;
-      case 'prevTab':
+      }
+      case 'prevTab': {
         const currentIdx = $tabs.findIndex(t => t.id === $activeTab?.id);
         if (currentIdx > 0) {
           activeTab.set($tabs[currentIdx - 1]);
         }
         break;
+      }
         
       // Misc actions
       case 'reload':

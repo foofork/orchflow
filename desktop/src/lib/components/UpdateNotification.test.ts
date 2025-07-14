@@ -2,14 +2,24 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createTypedMock, createAsyncMock, createSyncMock } from '@/test/mock-factory';
 import UpdateNotification from './UpdateNotification.svelte';
+import type { UnlistenFn } from '@tauri-apps/api/event';
+import type {
+  UpdateStatus,
+  UpdateProgress,
+  UpdateEvent,
+  UpdateEventHandler,
+  UpdateAvailableEvent,
+  UpdateProgressEvent,
+  UpdateErrorEvent
+} from './UpdateNotification.types';
 
 // Cleanup array for proper test cleanup
 let cleanup: Array<() => void> = [];
 
 // Mock the Tauri modules using factory functions to avoid hoisting issues
 // Create mock functions
-const mockInvoke = vi.fn().mockResolvedValue('1.0.0');
-const mockListen = vi.fn().mockResolvedValue(() => {});
+const mockInvoke = vi.fn<[cmd: string, args?: unknown], Promise<unknown>>().mockResolvedValue('1.0.0');
+const mockListen = vi.fn<[event: string, handler: UpdateEventHandler], Promise<UnlistenFn>>().mockResolvedValue(() => {});
 
 vi.mock('@tauri-apps/api/core', () => ({
   invoke: mockInvoke
@@ -83,14 +93,14 @@ describe('UpdateNotification', () => {
   });
 
   it('should show notification when update is available', async () => {
-    let updateAvailableHandler: Function = () => {};
+    let updateAvailableHandler: UpdateEventHandler = () => {};
     
     const { listen } = await import('@tauri-apps/api/event');
-    vi.mocked(listen).mockImplementation((event: string, handler: Function) => {
+    vi.mocked(listen).mockImplementation((event: string, handler: UpdateEventHandler) => {
       if (event === 'update-available') {
         updateAvailableHandler = handler;
       }
-      return Promise.resolve(() => {});
+      return Promise.resolve((() => {}) as UnlistenFn);
     });
     
     const { unmount, component } = render(UpdateNotification);
@@ -109,7 +119,7 @@ describe('UpdateNotification', () => {
       pub_date: '2024-01-01'
     };
     
-    updateAvailableHandler(createEventMock('update-available', { payload: updateStatus }));
+    updateAvailableHandler(createEventMock('update-available', { payload: updateStatus }) as UpdateAvailableEvent);
     
     await waitFor(() => {
       const notification = document.querySelector('.update-notification');
@@ -118,13 +128,13 @@ describe('UpdateNotification', () => {
   });
 
   it('should handle download button click', async () => {
-    let updateAvailableHandler: Function = () => {};
+    let updateAvailableHandler: UpdateEventHandler = () => {};
     
-    mockListen.mockImplementation((event: string, handler: Function) => {
+    mockListen.mockImplementation((event: string, handler: UpdateEventHandler) => {
       if (event === 'update-available') {
         updateAvailableHandler = handler;
       }
-      return Promise.resolve(() => {});
+      return Promise.resolve((() => {}) as UnlistenFn);
     });
     
     const { unmount } = render(UpdateNotification);
@@ -142,7 +152,7 @@ describe('UpdateNotification', () => {
       notes: 'New features'
     };
     
-    updateAvailableHandler(createEventMock('update-available', { payload: updateStatus }));
+    updateAvailableHandler(createEventMock('update-available', { payload: updateStatus }) as UpdateAvailableEvent);
     
     await waitFor(() => {
       const downloadBtn = document.querySelector('.update-btn.primary');
@@ -159,13 +169,13 @@ describe('UpdateNotification', () => {
   });
 
   it('should handle close button click', async () => {
-    let updateAvailableHandler: Function = () => {};
+    let updateAvailableHandler: UpdateEventHandler = () => {};
     
-    mockListen.mockImplementation((event: string, handler: Function) => {
+    mockListen.mockImplementation((event: string, handler: UpdateEventHandler) => {
       if (event === 'update-available') {
         updateAvailableHandler = handler;
       }
-      return Promise.resolve(() => {});
+      return Promise.resolve((() => {}) as UnlistenFn);
     });
     
     const { unmount } = render(UpdateNotification);
@@ -179,7 +189,7 @@ describe('UpdateNotification', () => {
     // Trigger update available
     updateAvailableHandler(createEventMock('update-available', { 
       payload: { available: true, version: '2.0.0' }
-    }));
+    }) as UpdateAvailableEvent);
     
     await waitFor(() => {
       const closeBtn = document.querySelector('.close-btn');
@@ -197,14 +207,14 @@ describe('UpdateNotification', () => {
   });
 
   it('should display version information correctly', async () => {
-    let updateAvailableHandler: Function = () => {};
+    let updateAvailableHandler: UpdateEventHandler = () => {};
     
     mockInvoke.mockResolvedValueOnce('1.0.0'); // Current version
-    mockListen.mockImplementation((event: string, handler: Function) => {
+    mockListen.mockImplementation((event: string, handler: UpdateEventHandler) => {
       if (event === 'update-available') {
         updateAvailableHandler = handler;
       }
-      return Promise.resolve(() => {});
+      return Promise.resolve((() => {}) as UnlistenFn);
     });
     
     const { unmount } = render(UpdateNotification);
@@ -221,7 +231,7 @@ describe('UpdateNotification', () => {
         version: '2.0.0',
         pub_date: '2024-01-01'
       }
-    }));
+    }) as UpdateAvailableEvent);
     
     await waitFor(() => {
       const versionInfo = document.querySelector('.version-info');
@@ -231,16 +241,16 @@ describe('UpdateNotification', () => {
   });
 
   it('should show progress during download', async () => {
-    let updateAvailableHandler: Function = () => {};
-    let progressHandler: Function = () => {};
+    let updateAvailableHandler: UpdateEventHandler = () => {};
+    let progressHandler: UpdateEventHandler = () => {};
     
-    mockListen.mockImplementation((event: string, handler: Function) => {
+    mockListen.mockImplementation((event: string, handler: UpdateEventHandler) => {
       if (event === 'update-available') {
         updateAvailableHandler = handler;
       } else if (event === 'update-progress') {
         progressHandler = handler;
       }
-      return Promise.resolve(() => {});
+      return Promise.resolve((() => {}) as UnlistenFn);
     });
     
     const { unmount } = render(UpdateNotification);
@@ -253,7 +263,7 @@ describe('UpdateNotification', () => {
     // Show update notification
     updateAvailableHandler(createEventMock('update-available', {
       payload: { available: true, version: '2.0.0' }
-    }));
+    }) as UpdateAvailableEvent);
     
     // Start download
     const downloadBtn = await waitFor(() => {
@@ -267,7 +277,7 @@ describe('UpdateNotification', () => {
     // Simulate progress update
     progressHandler(createEventMock('update-progress', {
       payload: { downloaded: 50, total: 100, percentage: 50 }
-    }));
+    }) as UpdateProgressEvent);
     
     await waitFor(() => {
       const progressText = document.querySelector('.progress-text');
@@ -276,16 +286,16 @@ describe('UpdateNotification', () => {
   });
 
   it('should handle download errors', async () => {
-    let updateAvailableHandler: Function = () => {};
-    let errorHandler: Function = () => {};
+    let updateAvailableHandler: UpdateEventHandler = () => {};
+    let errorHandler: UpdateEventHandler = () => {};
     
-    mockListen.mockImplementation((event: string, handler: Function) => {
+    mockListen.mockImplementation((event: string, handler: UpdateEventHandler) => {
       if (event === 'update-available') {
         updateAvailableHandler = handler;
       } else if (event === 'update-error') {
         errorHandler = handler;
       }
-      return Promise.resolve(() => {});
+      return Promise.resolve((() => {}) as UnlistenFn);
     });
     
     const { unmount } = render(UpdateNotification);
@@ -298,12 +308,12 @@ describe('UpdateNotification', () => {
     // Show update notification
     updateAvailableHandler(createEventMock('update-available', {
       payload: { available: true, version: '2.0.0' }
-    }));
+    }) as UpdateAvailableEvent);
     
     // Simulate error
     errorHandler(createEventMock('update-error', {
       payload: 'Download failed'
-    }));
+    }) as UpdateErrorEvent);
     
     await waitFor(() => {
       const errorMessage = document.querySelector('.error-message');
@@ -313,9 +323,12 @@ describe('UpdateNotification', () => {
 });
 
 // Helper function to create mock event objects
-function createEventMock(type: string, properties: any = {}) {
+function createEventMock<T extends UpdateEvent['type']>(
+  type: T,
+  properties: Omit<Extract<UpdateEvent, { type: T }>, 'type'> = {} as Omit<Extract<UpdateEvent, { type: T }>, 'type'>
+): Extract<UpdateEvent, { type: T }> {
   return {
     type,
     ...properties
-  };
+  } as Extract<UpdateEvent, { type: T }>;
 }

@@ -112,7 +112,7 @@
 <div class="plugin-status-bar">
   <div class="separator" />
   
-  {#each plugins as plugin}
+  {#each plugins as plugin (plugin.id)}
     <button
       class="plugin-item"
       class:error={plugin.status === 'error'}

@@ -560,7 +560,7 @@ export const mockRegistry = MockRegistry.getInstance();
 /**
  * Test helper decorators
  */
-export function withMockRegistry<T extends Function>(
+export function withMockRegistry<T extends (...args: any[]) => any>(
   target: T,
   _context?: ClassMethodDecoratorContext
 ): T {

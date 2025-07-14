@@ -273,7 +273,7 @@
           event.preventDefault();
           showSearchBar = !showSearchBar;
           break;
-        case 'Tab':
+        case 'Tab': {
           event.preventDefault();
           // Cycle through terminals
           const terms = $terminalsStore;
@@ -285,6 +285,7 @@
             activateTerminal(terms[nextIndex].id);
           }
           break;
+        }
       }
       
       // Number keys to switch terminals
@@ -382,7 +383,7 @@
 <div class="terminal-panel" on:keydown={handleTerminalKey}>
   <div class="terminal-header">
     <div class="terminal-tabs" role="tablist" aria-label="Terminal tabs">
-      {#each $terminalsStore as terminal}
+      {#each $terminalsStore as terminal (terminal.id)}
         <div class="terminal-tab-container">
           <button
           class="terminal-tab"
@@ -488,7 +489,7 @@
       {#if showNewTerminalMenu}
         <div class="new-terminal-menu">
           <div class="menu-title">New Terminal</div>
-          {#each $availableShells as shell}
+          {#each $availableShells as shell (shell.command)}
             <button
               class="menu-item"
               on:click={() => {
@@ -607,7 +608,7 @@
   {#if showGroupsMenu}
     <div class="groups-menu">
       <div class="menu-title">Terminal Groups</div>
-      {#each $terminalGroupsStore as group}
+      {#each $terminalGroupsStore as group (group.id)}
         <button
           class="menu-item"
           on:click={() => {
@@ -627,7 +628,7 @@
   {#if showQuickCommandsMenu}
     <div class="quick-commands-menu">
       <div class="menu-title">Quick Commands</div>
-      {#each quickCommands as cmd}
+      {#each quickCommands as cmd (cmd.label)}
         <button
           class="menu-item"
           on:click={() => {
@@ -651,7 +652,7 @@
   {#if showLayoutMenu}
     <div class="layout-menu">
       <div class="menu-title">Layout Options</div>
-      {#each supportedLayouts as layoutOption}
+      {#each supportedLayouts as layoutOption (layoutOption.id)}
         <button
           class="menu-item"
           class:active={layout === layoutOption}

@@ -126,7 +126,7 @@
         <button class="close-button" on:click={() => showNotifications = false}>×</button>
       </div>
       <div class="notifications-list">
-        {#each notifications as notification}
+        {#each notifications as notification (notification.id)}
           <div class="notification-item {notification.type}">
             <span class="notification-icon">{getNotificationIcon(notification.type)}</span>
             <span class="notification-message">{notification.message}</span>

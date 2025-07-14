@@ -1,14 +1,28 @@
 import { vi } from 'vitest';
+import type {
+  EventHandler,
+  Position,
+  Size,
+  MockWindow,
+  MockFileSystem,
+  MockDialog,
+  MockShell,
+  MockClipboard,
+  MockInvoke,
+  MockTauri,
+  MockProcess,
+  InvokeHandler
+} from './mock-tauri.types';
 
 /**
  * Mock Tauri window API
  */
-export function createMockWindow() {
-  const listeners = new Map<string, Set<(...args: any[]) => void>>();
+export function createMockWindow(): MockWindow {
+  const listeners = new Map<string, Set<EventHandler>>();
   
   return {
     appWindow: {
-      listen: vi.fn((event: string, handler: (...args: any[]) => void) => {
+      listen: vi.fn((event: string, handler: EventHandler) => {
         if (!listeners.has(event)) {
           listeners.set(event, new Set());
         }
@@ -20,7 +34,7 @@ export function createMockWindow() {
         });
       }),
       
-      emit: vi.fn((event: string, payload?: any) => {
+      emit: vi.fn((event: string, payload?: unknown) => {
         const handlers = listeners.get(event);
         if (handlers) {
           handlers.forEach(handler => handler({ payload }));
@@ -58,7 +72,7 @@ export function createMockWindow() {
       mockClear: () => {
         Object.values(mockWindow.appWindow).forEach(fn => {
           if (typeof fn === 'function' && 'mockClear' in fn) {
-            (fn as any).mockClear();
+            (fn as MockedFunction<unknown[], unknown>).mockClear();
           }
         });
       },
@@ -68,7 +82,7 @@ export function createMockWindow() {
         mockWindow.appWindow.mockClear();
       },
       
-      triggerEvent: (event: string, payload?: any) => {
+      triggerEvent: (event: string, payload?: unknown) => {
         const handlers = listeners.get(event);
         if (handlers) {
           handlers.forEach(handler => handler({ payload }));
@@ -79,7 +93,7 @@ export function createMockWindow() {
   
   const mockWindow = {
     appWindow: {
-      listen: vi.fn((event: string, handler: (...args: any[]) => void) => {
+      listen: vi.fn((event: string, handler: EventHandler) => {
         if (!listeners.has(event)) {
           listeners.set(event, new Set());
         }
@@ -90,7 +104,7 @@ export function createMockWindow() {
         });
       }),
       
-      emit: vi.fn((event: string, payload?: any) => {
+      emit: vi.fn((event: string, payload?: unknown) => {
         const handlers = listeners.get(event);
         if (handlers) {
           handlers.forEach(handler => handler({ payload }));
@@ -128,7 +142,7 @@ export function createMockWindow() {
       mockClear: () => {
         Object.values(mockWindow.appWindow).forEach(fn => {
           if (typeof fn === 'function' && 'mockClear' in fn) {
-            (fn as any).mockClear();
+            (fn as MockedFunction<unknown[], unknown>).mockClear();
           }
         });
       },
@@ -138,7 +152,7 @@ export function createMockWindow() {
         mockWindow.appWindow.mockClear();
       },
       
-      triggerEvent: (event: string, payload?: any) => {
+      triggerEvent: (event: string, payload?: unknown) => {
         const handlers = listeners.get(event);
         if (handlers) {
           handlers.forEach(handler => handler({ payload }));
@@ -153,7 +167,7 @@ export function createMockWindow() {
 /**
  * Mock Tauri file system API
  */
-export function createMockFs() {
+export function createMockFs(): MockFileSystem {
   const fileSystem = new Map<string, string | Uint8Array>();
   
   return {
@@ -224,7 +238,7 @@ export function createMockFs() {
     mockClear: () => {
       Object.values(mockFs).forEach(fn => {
         if (typeof fn === 'function' && 'mockClear' in fn) {
-          (fn as any).mockClear();
+          (fn as MockedFunction<unknown[], unknown>).mockClear();
         }
       });
     },
@@ -303,7 +317,7 @@ export function createMockFs() {
     mockClear: () => {
       Object.values(mockFs).forEach(fn => {
         if (typeof fn === 'function' && 'mockClear' in fn) {
-          (fn as any).mockClear();
+          (fn as MockedFunction<unknown[], unknown>).mockClear();
         }
       });
     },
@@ -327,7 +341,7 @@ export function createMockFs() {
 /**
  * Mock Tauri dialog API
  */
-export function createMockDialog() {
+export function createMockDialog(): MockDialog {
   return {
     open: vi.fn(() => Promise.resolve(null as string | string[] | null)),
     save: vi.fn(() => Promise.resolve(null as string | null)),
@@ -366,8 +380,8 @@ export function createMockDialog() {
 /**
  * Mock Tauri shell API
  */
-export function createMockShell() {
-  const processes = new Map<number, any>();
+export function createMockShell(): MockShell {
+  const processes = new Map<number, MockProcess>();
   let nextPid = 1;
   
   return {
@@ -464,7 +478,7 @@ export function createMockShell() {
 /**
  * Mock Tauri clipboard API
  */
-export function createMockClipboard() {
+export function createMockClipboard(): MockClipboard {
   let clipboardContent = '';
   
   return {
@@ -513,10 +527,10 @@ export function createMockClipboard() {
 /**
  * Mock Tauri invoke function
  */
-export function createMockInvoke() {
-  const handlers = new Map<string, Function>();
+export function createMockInvoke(): MockInvoke {
+  const handlers = new Map<string, InvokeHandler>();
   
-  const mockInvoke = vi.fn((command: string, args?: any) => {
+  const mockInvoke = vi.fn((command: string, args?: unknown) => {
     const handler = handlers.get(command);
     if (handler) {
       return handler(args);
@@ -524,7 +538,7 @@ export function createMockInvoke() {
     return Promise.reject(new Error(`No handler for command: ${command}`));
   });
 
-  (mockInvoke as any).mockImplementation = (command: string, handler: Function) => {
+  (mockInvoke as MockInvoke).mockImplementation = (command: string, handler: InvokeHandler) => {
     handlers.set(command, handler);
   };
 
@@ -532,11 +546,11 @@ export function createMockInvoke() {
   const originalMockClear = vi.mocked(mockInvoke).mockClear;
   const originalMockReset = vi.mocked(mockInvoke).mockReset;
 
-  (mockInvoke as any).mockClear = () => {
+  (mockInvoke as MockInvoke).mockClear = () => {
     originalMockClear();
   };
 
-  (mockInvoke as any).mockReset = () => {
+  (mockInvoke as MockInvoke).mockReset = () => {
     handlers.clear();
     originalMockReset();
   };

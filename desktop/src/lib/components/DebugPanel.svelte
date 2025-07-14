@@ -122,7 +122,7 @@
       bind:value={selectedConfig}
       disabled={isDebugging}
     >
-      {#each configurations as config}
+      {#each configurations as config (config.name)}
         <option value={config}>{config.name}</option>
       {/each}
     </select>
@@ -189,7 +189,7 @@
       <div class="debug-section">
         <h4>Call Stack</h4>
         <div class="call-stack">
-          {#each callStack as frame, i}
+          {#each callStack as frame, i (i)}
             <div class="stack-frame" class:current={i === 0}>
               {frame}
             </div>
@@ -200,7 +200,7 @@
       <div class="debug-section">
         <h4>Variables</h4>
         <div class="variables">
-          {#each Object.entries(variables) as [name, value]}
+          {#each Object.entries(variables) as [name, value] (name)}
             <div class="variable">
               <span class="var-name">{name}:</span>
               <span class="var-value">{JSON.stringify(value)}</span>
@@ -212,7 +212,7 @@
       <div class="debug-section">
         <h4>Breakpoints</h4>
         <div class="breakpoints">
-          {#each breakpoints as bp}
+          {#each breakpoints as bp (`${bp.file}:${bp.line}`)}
             <div class="breakpoint">
               <span class="bp-location">{bp}</span>
               <button

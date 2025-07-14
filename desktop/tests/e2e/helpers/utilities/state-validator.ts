@@ -188,12 +188,13 @@ export class StateValidator {
     const tagName = await locator.evaluate(el => el.tagName.toLowerCase());
     
     switch (tagName) {
-      case 'input':
+      case 'input': {
         const type = await locator.getAttribute('type');
         if (type === 'checkbox' || type === 'radio') {
           return await locator.isChecked();
         }
         return await locator.inputValue();
+      }
       
       case 'textarea':
         return await locator.inputValue();

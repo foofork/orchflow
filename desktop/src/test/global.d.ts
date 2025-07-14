@@ -17,37 +17,37 @@ declare global {
 
   // Additional Tauri types
   interface Window {
-    __TAURI_IPC__?: MockedFunction<(...args: any[]) => any>;
+    __TAURI_IPC__?: MockedFunction<(...args: unknown[]) => unknown>;
     __TAURI_METADATA__?: {
-      __windows: any[];
+      __windows: { label: string }[];
       __currentWindow: { label: string };
     };
   }
 
   // Mock component types for tests
   interface MockSvelteComponent {
-    $set: Mock<[props: any], void>;
-    $on: Mock<[event: string, handler: Function], () => void>;
+    $set: Mock<[props: Record<string, unknown>], void>;
+    $on: Mock<[event: string, handler: (...args: unknown[]) => void], () => void>;
     $destroy: Mock<[], void>;
     $$: {
       fragment: {
         c: Mock<[], void>;
         m: Mock<[target: HTMLElement, anchor?: Node], void>;
-        p: Mock<[ctx: any[], dirty: number[]], void>;
+        p: Mock<[ctx: unknown[], dirty: number[]], void>;
         d: Mock<[detaching: boolean], void>;
       };
-      ctx: any[];
-      props: Record<string, any>;
+      ctx: unknown[];
+      props: Record<string, unknown>;
       update: Mock<[], void>;
-      not_equal: (a: any, b: any) => boolean;
-      bound: Record<string, any>;
-      on_mount: Function[];
-      on_destroy: Function[];
-      on_disconnect: Function[];
-      before_update: Function[];
-      after_update: Function[];
-      context: Map<any, any>;
-      callbacks: Record<string, Function[]>;
+      not_equal: (a: unknown, b: unknown) => boolean;
+      bound: Record<string, unknown>;
+      on_mount: Array<(...args: unknown[]) => void>;
+      on_destroy: Array<(...args: unknown[]) => void>;
+      on_disconnect: Array<(...args: unknown[]) => void>;
+      before_update: Array<(...args: unknown[]) => void>;
+      after_update: Array<(...args: unknown[]) => void>;
+      context: Map<string, unknown>;
+      callbacks: Record<string, Array<(...args: unknown[]) => void>>;
       dirty: number[];
       skip_bound: boolean;
       root: HTMLElement;
@@ -78,7 +78,7 @@ declare global {
 
   // Canvas mock types
   interface MockCanvasRenderingContext2D extends Partial<CanvasRenderingContext2D> {
-    [key: string]: any;
+    [key: string]: unknown;
   }
 
   // ResizeObserver types

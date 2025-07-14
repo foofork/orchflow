@@ -184,9 +184,9 @@ describe('Message Passing Benchmarks', () => {
   }
   
   class MessageBus {
-    private handlers = new Map<string, Function[]>();
+    private handlers = new Map<string, Array<(...args: any[]) => void>>();
     
-    on(type: string, handler: Function) {
+    on(type: string, handler: (...args: any[]) => void) {
       const handlers = this.handlers.get(type) || [];
       handlers.push(handler);
       this.handlers.set(type, handlers);

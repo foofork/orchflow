@@ -16,6 +16,7 @@
   // Lazy-loaded components
   import LazyComponent from '$lib/components/LazyComponent.svelte';
   import { preloadComponents } from '$lib/utils/lazyLoad';
+  import { initializePreloading, smartPreloader } from '$lib/utils/preload';
   
   // Component loaders for lazy loading
   const DashboardEnhanced = () => import('$lib/components/DashboardEnhanced.svelte');
@@ -68,11 +69,26 @@
     'ctrl+s': () => saveCurrentFile(),
     'ctrl+w': () => closeCurrentTab(),
     'ctrl+shift+e': () => activeView = 'explorer',
-    'ctrl+shift+g': () => showGitPanel = true,
-    'ctrl+shift+o': () => showSymbolOutline = true,
-    'ctrl+shift+x': () => activeView = 'plugins',
-    'ctrl+shift+d': () => activeView = 'debug',
-    'ctrl+,': () => showSettingsModal = true,
+    'ctrl+shift+g': () => {
+      smartPreloader.recordUsage('git');
+      showGitPanel = true;
+    },
+    'ctrl+shift+o': () => {
+      smartPreloader.recordUsage('editor');
+      showSymbolOutline = true;
+    },
+    'ctrl+shift+x': () => {
+      smartPreloader.recordUsage('plugins');
+      activeView = 'plugins';
+    },
+    'ctrl+shift+d': () => {
+      smartPreloader.recordUsage('debug');
+      activeView = 'debug';
+    },
+    'ctrl+,': () => {
+      smartPreloader.recordUsage('settings');
+      showSettingsModal = true;
+    },
   };
   
   let showCommandPalette = false;
@@ -88,6 +104,9 @@
       if (!$activeSession) {
         await manager.createSession('Default Session');
       }
+      
+      // Initialize smart preloading
+      initializePreloading();
       
       // Preload commonly used components in the background
       preloadComponents([
@@ -160,6 +179,9 @@
     if (!$activeSession) {
       await manager.createSession('Default Session');
     }
+    
+    // Track component usage
+    smartPreloader.recordUsage('terminal');
     
     const pane = await manager.createTerminal($activeSession!.id, {
       name: 'Terminal'
@@ -320,7 +342,7 @@
       case 'splitVertical':
         handleSplitView('vertical');
         break;
-      case 'toggleFullscreen':
+      case 'toggleFullscreen': {
         if (isTauri) {
           const { getCurrentWindow } = await import('@tauri-apps/api/window');
           const appWindow = getCurrentWindow();
@@ -328,6 +350,7 @@
           await appWindow.setFullscreen(!isFullscreen);
         }
         break;
+      }
         
       // Settings actions
       case 'openSettings':
@@ -338,18 +361,20 @@
         break;
         
       // Navigation
-      case 'nextTab':
+      case 'nextTab': {
         const currentIndex = tabs.findIndex(t => t.id === activeTabId);
         if (currentIndex < tabs.length - 1) {
           activeTabId = tabs[currentIndex + 1].id;
         }
         break;
-      case 'prevTab':
+      }
+      case 'prevTab': {
         const currentIdx = tabs.findIndex(t => t.id === activeTabId);
         if (currentIdx > 0) {
           activeTabId = tabs[currentIdx - 1].id;
         }
         break;
+      }
         
       // Misc actions
       case 'reload':

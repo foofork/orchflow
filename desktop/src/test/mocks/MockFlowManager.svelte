@@ -119,7 +119,7 @@
   
   <div class="flows-section">
     <h3>Existing Flows</h3>
-    {#each flows as flow}
+    {#each flows as flow (flow.id)}
       <div class="flow-item">
         <span>{flow.name}</span>
         <p>{flow.description}</p>

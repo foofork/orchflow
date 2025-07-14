@@ -16,8 +16,8 @@ export function createTauriMock(config: TauriMockConfig = {}) {
   ];
   const mockSettings = config.settings || {};
   const mockTerminals = new Map();
-  const mockSessions = [];
-  const mockPanes = [];
+  const mockSessions: any[] = [];
+  const mockPanes: any[] = [];
 
   // Mock Tauri invoke function
   const mockInvoke = async (cmd: string, args?: any) => {
@@ -28,7 +28,7 @@ export function createTauriMock(config: TauriMockConfig = {}) {
       case 'get_flows':
         return mockFlows;
       
-      case 'create_flow':
+      case 'create_flow': {
         const newFlow = { 
           id: mockFlows.length + 1, 
           ...args,
@@ -36,22 +36,25 @@ export function createTauriMock(config: TauriMockConfig = {}) {
         };
         mockFlows.push(newFlow);
         return newFlow;
+      }
       
-      case 'update_flow':
+      case 'update_flow': {
         const flowIndex = mockFlows.findIndex(f => f.id === args.id);
         if (flowIndex >= 0) {
           mockFlows[flowIndex] = { ...mockFlows[flowIndex], ...args };
           return mockFlows[flowIndex];
         }
         throw new Error(`Flow ${args.id} not found`);
+      }
       
-      case 'delete_flow':
+      case 'delete_flow': {
         const deleteIndex = mockFlows.findIndex(f => f.id === args.id);
         if (deleteIndex >= 0) {
           mockFlows.splice(deleteIndex, 1);
           return true;
         }
         return false;
+      }
       
       case 'run_flow':
         return {
@@ -61,7 +64,7 @@ export function createTauriMock(config: TauriMockConfig = {}) {
         };
       
       // Terminal management
-      case 'create_streaming_terminal':
+      case 'create_streaming_terminal': {
         const terminal = {
           id: args.terminal_id,
           title: `Terminal ${args.terminal_id}`,
@@ -74,6 +77,7 @@ export function createTauriMock(config: TauriMockConfig = {}) {
         };
         mockTerminals.set(args.terminal_id, terminal);
         return terminal;
+      }
       
       case 'send_terminal_input':
       case 'send_terminal_key':
@@ -83,7 +87,7 @@ export function createTauriMock(config: TauriMockConfig = {}) {
         }
         return false;
       
-      case 'resize_streaming_terminal':
+      case 'resize_streaming_terminal': {
         if (mockTerminals.has(args.terminal_id)) {
           const resizeTerminal = mockTerminals.get(args.terminal_id);
           resizeTerminal.rows = args.rows;
@@ -91,12 +95,13 @@ export function createTauriMock(config: TauriMockConfig = {}) {
           return true;
         }
         return false;
+      }
       
       case 'clear_terminal_scrollback':
       case 'stop_streaming_terminal':
         return mockTerminals.delete(args.terminal_id);
       
-      case 'get_terminal_state':
+      case 'get_terminal_state': {
         const stateTerminal = mockTerminals.get(args.terminal_id);
         if (!stateTerminal) return null;
         return {
@@ -109,6 +114,7 @@ export function createTauriMock(config: TauriMockConfig = {}) {
           active: true,
           last_activity: stateTerminal.last_activity
         };
+      }
       
       case 'get_terminal_output':
         return 'Mock terminal output\n';
@@ -313,7 +319,7 @@ export function createTauriMock(config: TauriMockConfig = {}) {
     
     // Event system mock
     event: {
-      listen: (event: string, _handler: Function) => {
+      listen: (event: string, _handler: (...args: any[]) => void) => {
         console.log(`[TauriMock] Event listener registered: ${event}`);
         return Promise.resolve(() => {});
       },

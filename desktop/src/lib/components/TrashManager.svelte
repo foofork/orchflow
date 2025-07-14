@@ -341,7 +341,7 @@
         </div>
         
         <div class="table-body">
-          {#each filteredItems as item}
+          {#each filteredItems as item (item.id)}
             <div class="table-row" class:selected={selectedItems.has(item.id)}>
               <div class="col-checkbox">
                 <input

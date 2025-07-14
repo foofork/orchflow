@@ -7,10 +7,10 @@ const config = {
   
   kit: {
     adapter: adapter({
-      fallback: 'index.html'
+      strict: false
     }),
     prerender: {
-      entries: []
+      entries: ['*']
     },
     alias: {
       '@': 'src',

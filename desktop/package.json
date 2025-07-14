@@ -9,6 +9,8 @@
     "dev:e2e": "PORT=$(node scripts/port-manager.js e2e) && vite dev --port $PORT",
     "dev:visual": "PORT=$(node scripts/port-manager.js visual) && vite dev --port $PORT",
     "build": "vite build",
+    "build:analyze": "npm run build && node scripts/analyze-bundle.js",
+    "verify:optimizations": "node scripts/verify-optimizations.js",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
@@ -80,15 +82,15 @@
     "@stryker-mutator/vitest-runner": "^9.0.1",
     "@sveltejs/adapter-static": "^3.0.8",
     "@sveltejs/kit": "^2.22.5",
-    "@sveltejs/vite-plugin-svelte": "^4.0.0-next.6",
+    "@sveltejs/vite-plugin-svelte": "^5.1.1",
     "@tauri-apps/cli": "^2.1.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/svelte": "^5.2.8",
     "@testing-library/user-event": "^14.6.1",
     "@types/uuid": "^10.0.0",
     "@types/ws": "^8.5.9",
-    "@typescript-eslint/eslint-plugin": "^8.36.0",
-    "@typescript-eslint/parser": "^8.36.0",
+    "@typescript-eslint/eslint-plugin": "^8.37.0",
+    "@typescript-eslint/parser": "^8.37.0",
     "@vitest/coverage-v8": "^3.2.4",
     "@vitest/ui": "^3.2.4",
     "eslint": "^9.31.0",
@@ -98,13 +100,14 @@
     "globals": "^16.3.0",
     "happy-dom": "^18.0.1",
     "jsdom": "^26.1.0",
-    "svelte": "^5.0.0",
+    "svelte": "^5.35.7",
     "svelte-check": "^3.6.0",
+    "terser": "^5.43.1",
     "tslib": "^2.4.1",
     "typescript": "^5.8.3",
-    "typescript-eslint": "^8.36.0",
+    "typescript-eslint": "^8.37.0",
     "uuid": "^11.0.6",
-    "vite": "^5.4.0",
+    "vite": "^6.3.5",
     "vitest": "^3.2.4"
   },
   "dependencies": {
@@ -139,6 +142,6 @@
   "type": "module",
   "overrides": {
     "cookie": "^0.7.0",
-    "@sveltejs/vite-plugin-svelte": "^4.0.0-next.6"
+    "@sveltejs/vite-plugin-svelte": "^5.1.1"
   }
 }

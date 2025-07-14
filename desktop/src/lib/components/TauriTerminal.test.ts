@@ -31,7 +31,7 @@ const mockTerminal = {
   writeln: createSyncMock<[string], void>(),
   clear: createSyncMock<[], void>(),
   onData: createSyncMock<[(data: string) => void], { dispose: () => void }>({ dispose: createSyncMock<[], void>() }),
-  onResize: createSyncMock<[Function], { dispose: Function }>({ dispose: createSyncMock<[], void>() }),
+  onResize: createSyncMock<[(...args: any[]) => void], { dispose: () => void }>({ dispose: createSyncMock<[], void>() }),
   dispose: createSyncMock<[], void>(),
   resize: createSyncMock<[number, number], void>(),
   focus: createSyncMock<[], void>(),
@@ -143,10 +143,10 @@ describe('TauriTerminal', () => {
 
     it('should set up resize observer', async () => {
       const mockObserve = createSyncMock<[Element], void>();
-      const MockResizeObserver = createSyncMock<[Function], {
-        observe: Function;
-        unobserve: Function;
-        disconnect: Function;
+      const MockResizeObserver = createSyncMock<[(...args: any[]) => void], {
+        observe: (...args: any[]) => void;
+        unobserve: (...args: any[]) => void;
+        disconnect: () => void;
       }>({
         observe: mockObserve,
         unobserve: createSyncMock<[Element], void>(),

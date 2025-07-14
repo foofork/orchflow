@@ -14,7 +14,7 @@ import { vi } from 'vitest';
 
 // More complete Tauri API mocks for integration testing
 vi.mock('@tauri-apps/api', () => {
-  const eventListeners = new Map<string, Set<Function>>();
+  const eventListeners = new Map<string, Set<(...args: any[]) => void>>();
   
   return {
     invoke: vi.fn((cmd: string, _args?: any) => {
@@ -43,7 +43,7 @@ vi.mock('@tauri-apps/api', () => {
             listeners.forEach(fn => fn({ event, payload }));
           }
         }),
-        listen: vi.fn((event: string, handler: Function) => {
+        listen: vi.fn((event: string, handler: (...args: any[]) => void) => {
           if (!eventListeners.has(event)) {
             eventListeners.set(event, new Set());
           }

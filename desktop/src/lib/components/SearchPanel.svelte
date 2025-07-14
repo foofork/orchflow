@@ -157,7 +157,7 @@
       <div class="no-results">No results found</div>
     {:else if searchResults.length > 0}
       <div class="results-count">{searchResults.length} results</div>
-      {#each searchResults as result}
+      {#each searchResults as result (result.file)}
         <button
           class="result-item"
           on:click={() => openResult(result)}

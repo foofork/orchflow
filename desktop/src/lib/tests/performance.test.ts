@@ -86,7 +86,7 @@ vi.mock('@tauri-apps/api/core', () => ({
 }));
 
 vi.mock('@tauri-apps/api/event', () => ({
-  listen: createAsyncMock<[event: string, handler: Function], () => void>(),
+  listen: createAsyncMock<[event: string, handler: (...args: any[]) => void], () => void>(),
   emit: createAsyncMock<[event: string, payload?: any], void>()
 }));
 

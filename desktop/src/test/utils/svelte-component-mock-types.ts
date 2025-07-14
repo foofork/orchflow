@@ -1,35 +1,54 @@
 import type { SvelteComponent } from 'svelte';
 
+// Type definitions for Svelte component mocking
+export type SvelteLifecycleCallback = () => void;
+export type SvelteEventHandler = (...args: unknown[]) => void;
+export type SvelteEventUnsubscriber = () => void;
+export type SvelteFragment = {
+  c: () => void; // create
+  m: (target: Element, anchor?: Element | null) => void; // mount
+  p: (ctx: unknown[], dirty: number[]) => void; // update
+  d: (detaching: boolean) => void; // destroy
+} | null;
+
 // Svelte component internal types for mocking
 export interface SvelteComponentInternals {
   $$: {
-    fragment: any;
-    ctx: any[];
-    props: Record<string, any>;
+    fragment: SvelteFragment;
+    ctx: unknown[];
+    props: Record<string, unknown>;
     update: () => void;
-    dirty: any[];
-    after_update: any[];
-    before_update: any[];
-    context: Map<any, any>;
-    callbacks: Record<string, any>;
+    dirty: number[];
+    after_update: SvelteLifecycleCallback[];
+    before_update: SvelteLifecycleCallback[];
+    context: Map<string, unknown>;
+    callbacks: Record<string, SvelteEventHandler[]>;
     skip_bound: boolean;
-    root: any;
-    on_mount: any[];
-    on_destroy: any[];
+    root: Element | null;
+    on_mount: SvelteLifecycleCallback[];
+    on_destroy: SvelteLifecycleCallback[];
   };
-  $set: (props: any) => void;
-  $on: (event: string, handler: Function) => () => void;
+  $set: (props: Record<string, unknown>) => void;
+  $on: (event: string, handler: SvelteEventHandler) => SvelteEventUnsubscriber;
   $destroy: () => void;
+}
+
+// Constructor options for mock Svelte components
+export interface MockSvelteComponentOptions {
+  target?: Element | null;
+  props?: Record<string, unknown>;
+  anchor?: Element | null;
+  intro?: boolean;
 }
 
 // Base class for mock Svelte components
 export class MockSvelteComponent implements SvelteComponentInternals {
   $$: SvelteComponentInternals['$$'];
-  $set: (props: any) => void;
-  $on: (event: string, handler: Function) => () => void;
+  $set: (props: Record<string, unknown>) => void;
+  $on: (event: string, handler: SvelteEventHandler) => SvelteEventUnsubscriber;
   $destroy: () => void;
   
-  constructor(options: { target?: any; props?: any } = {}) {
+  constructor(options: MockSvelteComponentOptions = {}) {
     const { target, props = {} } = options;
     
     this.$$ = {
@@ -48,11 +67,11 @@ export class MockSvelteComponent implements SvelteComponentInternals {
       on_destroy: []
     };
     
-    this.$set = (newProps: any) => {
+    this.$set = (newProps: Record<string, unknown>) => {
       Object.assign(props, newProps);
     };
     
-    this.$on = (_event: string, _handler: Function) => {
+    this.$on = (_event: string, _handler: SvelteEventHandler): SvelteEventUnsubscriber => {
       return () => {}; // Return unsubscribe function
     };
     

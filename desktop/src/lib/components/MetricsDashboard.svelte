@@ -250,7 +250,7 @@
 				<div class="info-card">
 					<h4>Top Processes</h4>
 					<div class="process-list">
-						{#each metrics.processes.slice(0, 5) as process}
+						{#each metrics.processes.slice(0, 5) as process (process.pid)}
 							<div class="process-row">
 								<span class="process-name">{process.name}</span>
 								<span class="process-cpu">{process.cpu.toFixed(1)}%</span>

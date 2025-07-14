@@ -205,7 +205,7 @@
         <div class="empty">No test runs yet</div>
       {:else}
         <div class="run-list">
-          {#each testHistory as run}
+          {#each testHistory as run (run.id)}
             <button 
               class="run-item"
               class:selected={selectedRun?.id === run.id}
@@ -308,11 +308,11 @@
                   {showFailedOnly ? 'No failed tests' : 'No test results'}
                 </div>
               {:else}
-                {#each Object.entries(groupedResults) as [file, results]}
+                {#each Object.entries(groupedResults) as [file, results] (file)}
                   <div class="file-group" transition:slide>
                     <h4>{file}</h4>
                     <div class="test-list">
-                      {#each results as result}
+                      {#each results as result (result.name)}
                         <div 
                           class="test-item"
                           class:passed={result.status === 'passed'}
@@ -402,7 +402,7 @@
                     <div class="coverage-col">Functions</div>
                     <div class="coverage-col">Statements</div>
                   </div>
-                  {#each testCoverage as coverage}
+                  {#each testCoverage as coverage (coverage.file)}
                     <div class="table-row">
                       <div class="file-col">{coverage.file_path}</div>
                       <div class="coverage-col">
