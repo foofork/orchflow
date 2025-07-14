@@ -13,7 +13,7 @@ Orchflow is a lightweight, **tmux-based, terminal-first IDE** combining powerful
 
 ## 🚀 Key Features
 
-* **Native Performance**: Instant startup (<100ms), minimal memory (\~10MB)
+* **Native Performance**: Instant startup (<100ms), minimal memory (~10MB)
 * **Tmux Multiplexing**: Powerful session management via `muxd`
 * **Embedded Neovim**: Full editing capabilities with Neovim integration
 * **Extensible Plugins**: Expand with custom JavaScript/TypeScript plugins
@@ -160,7 +160,7 @@ muxd start | muxd status | muxd stop
 * Plugin management
 * Neovim interaction
 
-See [API\_REFERENCE.md](API_REFERENCE.md).
+See [API_REFERENCE.md](docs/API_REFERENCE.md).
 
 ## 🎯 Who Benefits Most?
 
