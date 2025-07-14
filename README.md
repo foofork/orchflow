@@ -1,372 +1,211 @@
 # Orchflow
 
-> A high-performance terminal-first IDE designed as the foundation for AI-powered development orchestration
+> **High-performance, tmux-based Terminal-First IDE Designed for AI-Powered Development Orchestration**
 
 [![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/rust-1.75%2B-orange.svg)](https://www.rust-lang.org/)
 [![TypeScript](https://img.shields.io/badge/typescript-5.0%2B-blue.svg)](https://www.typescriptlang.org/)
 [![Tauri](https://img.shields.io/badge/tauri-2.0-yellow.svg)](https://tauri.app/)
 
-## What is Orchflow?
+---
 
-Orchflow is a **terminal-first IDE** that combines powerful terminal management and code editing in a fast desktop application. It's architected as the foundation for future AI-powered development orchestration, providing the infrastructure needed for AI agents to eventually work alongside developers through intelligent terminal orchestration.
+Orchflow is a lightweight, **tmux-based, terminal-first IDE** combining powerful terminal management, Neovim integration, and a plugin-driven architecture designed specifically to enable AI-powered development orchestration.
 
-### Key Features
+## 🚀 Key Features
 
-- **🚀 Native Performance** - Sub-100ms startup, ~10MB base memory usage
-- **🖥️ Terminal Multiplexing** - Advanced session management with muxd daemon
-- **📝 Neovim Integration** - Embedded Neovim for powerful text editing  
-- **🔌 Plugin Architecture** - Extend functionality with JavaScript/TypeScript plugins
-- **💾 Session Persistence** - Never lose your work with automatic state saving
-- **🤖 AI-Ready Infrastructure** - Architecture designed for future AI agent integration
+* **Native Performance**: Instant startup (<100ms), minimal memory (\~10MB)
+* **Tmux Multiplexing**: Powerful session management via `muxd`
+* **Embedded Neovim**: Full editing capabilities with Neovim integration
+* **Extensible Plugins**: Expand with custom JavaScript/TypeScript plugins
+* **Persistent Sessions**: Auto-save sessions and restore seamlessly
+* **AI-Ready**: Infrastructure optimized for future AI agent integrations
 
-## Core Components
+## 🛠️ Core Components
 
-### 1. Desktop Application (Tauri)
-- **Entry Point**: `desktop/src-tauri/src/main.rs`
-- **Technology**: Rust backend with Tauri framework, SvelteKit frontend
-- **Purpose**: Provides a native desktop application with system-level capabilities
+### Desktop Application (Tauri)
 
-### 2. Terminal Multiplexer Daemon (muxd)
-- **Entry Point**: `muxd/src/main.rs`
-- **Technology**: Rust async service using tokio
-- **Commands**:
-  - `muxd start` - Start the daemon (foreground or background)
-  - `muxd stop` - Stop the daemon
-  - `muxd status` - Check daemon status
-- **Features**: Session persistence, terminal pane control, WebSocket API on port 50505
+* **Rust Backend**, **SvelteKit Frontend**
+* Native performance and system-level integration
 
-## User-Facing Features
+### Tmux Multiplexer Daemon (`muxd`)
+
+* **Rust Async Daemon** (tokio-based)
+* Commands: `start`, `stop`, `status`
+* WebSocket API for terminal control (port 50505)
+
+## ✨ User-Facing Features
 
 ### Terminal Management
-- **Multiple Sessions**: Create and manage multiple terminal sessions
-- **Tmux Integration**: Full tmux backend for session persistence
-- **Real-time Streaming**: WebSocket-based terminal output streaming
-- **Session Templates**: Save and restore terminal layouts
-- **Terminal Groups**: Organize terminals into logical groups
+
+* Multiple session support (tmux-powered)
+* Real-time streaming with WebSocket
+* Session templates and group organization
 
 ### Code Editing
-- **Neovim Integration**: Embedded Neovim instances for powerful text editing
-- **Buffer Management**: Seamless file operations within Neovim
-- **Mode Detection**: Track and respond to Neovim modes
-- **Command Execution**: Run Neovim commands programmatically
+
+* Embedded Neovim instances
+* Intelligent buffer and mode management
+* Programmatic Neovim command execution
 
 ### File Management
-- **Tree Explorer**: Hierarchical file navigation with expand/collapse
-- **File Operations**: Create, delete, rename, move, copy files and directories
-- **Trash Support**: Safe deletion with restore capability
-- **File Watching**: Real-time updates when files change
-- **Git Integration**: Visual indicators for file status
 
-### User Interface Components
-- **Activity Bar**: Quick access to different application views
-- **Sidebar**: Contains file explorer, search, and git panels
-- **Tab Bar**: Manage open files and terminals
-- **Status Bar**: System status, notifications, and metrics
-- **Command Palette**: Quick command execution (Ctrl/Cmd+P)
-- **Settings Modal**: Configure application preferences
-- **Plugin Manager**: Install and manage extensions
+* Hierarchical file explorer
+* Real-time file watching and Git integration
+* Trash support for safe deletion
+
+### User Interface
+
+* Activity bar, sidebar, tabs, and command palette
+* Customizable settings and plugin manager
 
 ### Plugin System
-- **JavaScript/TypeScript Plugins**: Extend functionality with custom code
-- **Command Registration**: Add new commands to the command palette
-- **Event System**: React to application events
-- **Manifest Validation**: Ensure plugin compatibility
 
-## Architecture
+* Easy plugin creation in JavaScript/TypeScript
+* Event-driven extensibility and command registration
+
+## 📐 Architecture Overview
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Frontend (SvelteKit)                      │
-│  ┌─────────────┐  ┌──────────────┐  ┌─────────────────┐   │
-│  │   Routes    │  │  Components  │  │     Stores      │   │
-│  └──────┬──────┘  └──────┬───────┘  └────────┬────────┘   │
-│         └─────────────────┴────────────────────┴────────┐  │
-│                          API Layer                       │  │
-│                   (WebSocket + Tauri IPC)                │  │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-┌──────────────────────────┼──────────────────────────────────┐
-│                    Tauri Backend                             │
-│         Manager Service · Terminal Service · File Service    │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-┌──────────────────────────┼──────────────────────────────────┐
-│                    Muxd Server                               │
-│      Session Management · PTY Control · State Persistence    │
-└──────────────────────────────────────────────────────────────┘
+Frontend (SvelteKit)
+├── Routes · Components · Stores
+└── API Layer (WebSocket + Tauri IPC)
+          │
+Tauri Backend (Rust)
+├── Manager · Terminal · File Services
+└── muxd Server (Session & PTY Management via tmux)
 ```
 
-## Technology Stack
+## 💻 Technology Stack
 
-### Frontend
-- **Framework**: SvelteKit 2.22.5
-- **UI Library**: Svelte 5.35.7
-- **Terminal**: xterm.js 5.5.0
-- **Editor**: CodeMirror 6
-- **Build Tool**: Vite 6.3.5
+**Frontend:**
 
-### Backend
-- **Core**: Rust with Tauri 2.0
-- **Async Runtime**: tokio 1.46
-- **Web Server**: axum 0.7
-- **Database**: SQLite (via rusqlite 0.31)
-- **Terminal Handling**: portable-pty 0.8
-- **WebSocket**: tokio-tungstenite 0.24
+* SvelteKit, xterm.js, CodeMirror, Vite
 
-## Installation
+**Backend:**
+
+* Rust (Tauri), tokio, axum, SQLite, portable-pty, tmux
+
+## 📦 Installation
 
 ### Prerequisites
 
-- **Node.js** 20.0+ and npm 9.0+
-- **Rust** 1.75+ (via [rustup](https://rustup.rs/))
-- **Git** 2.30+
-- **tmux** 3.0+ (for terminal multiplexing)
-
-#### Platform-specific Requirements
+* Node.js 20+, Rust 1.75+, Git 2.30+, tmux 3.0+
 
 <details>
-<summary>macOS</summary>
+<summary><strong>Platform-specific setup</strong></summary>
+
+**macOS**:
 
 ```bash
-# Install Xcode Command Line Tools
 xcode-select --install
-
-# Install tmux via Homebrew
 brew install tmux
 ```
-</details>
 
-<details>
-<summary>Linux</summary>
+**Linux (Ubuntu)**:
 
-Ubuntu/Debian:
 ```bash
 sudo apt update
 sudo apt install -y libwebkit2gtk-4.0-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev tmux build-essential pkg-config libssl-dev
 ```
 
-Fedora:
-```bash
-sudo dnf install -y webkit2gtk3-devel gtk3-devel libappindicator-gtk3-devel librsvg2-devel tmux gcc pkg-config openssl-devel
-```
+**Windows**:
 
-Arch:
-```bash
-sudo pacman -S webkit2gtk gtk3 libayatana-appindicator librsvg tmux base-devel pkg-config openssl
-```
+* Visual Studio 2022 with C++ build tools
+* Windows SDK, WebView2, Git Bash/WSL2
+
 </details>
 
-<details>
-<summary>Windows</summary>
-
-- Visual Studio 2022 with C++ build tools
-- Windows SDK
-- WebView2 (usually pre-installed on Windows 10/11)
-- Git Bash or WSL2 for tmux support
-</details>
-
-### Building from Source
+### Build & Run
 
 ```bash
-# Clone the repository
 git clone https://github.com/yourusername/orchflow.git
-cd orchflow
-
-# Install dependencies
-cd desktop
+cd orchflow/desktop
 npm install
 
-# Build the application
+# Production build
 npm run tauri:build
 
-# Or run in development mode
+# Development
 npm run tauri:dev
 ```
 
-## Usage
+## 🚦 Usage Quickstart
 
-### Starting Orchflow
+### Orchflow Desktop
 
 ```bash
-# Run the desktop application
 ./target/release/orchflow
-
-# Or start in development mode
-npm run tauri:dev
 ```
 
-### Terminal Multiplexer (muxd)
-
-The muxd daemon provides advanced terminal management:
+### Tmux Multiplexer (`muxd`)
 
 ```bash
-# Start the daemon
-muxd start
-
-# Check status
-muxd status
-
-# Stop the daemon
-muxd stop
+muxd start | muxd status | muxd stop
 ```
 
-### Core Operations
+### Common Shortcuts
 
-- **Create Session**: `Ctrl/Cmd + N` - New terminal session
-- **Switch Sessions**: `Ctrl/Cmd + [1-9]` - Quick session switching
-- **Command Palette**: `Ctrl/Cmd + P` - Access all commands
-- **File Explorer**: `Ctrl/Cmd + E` - Toggle file tree
-- **Settings**: `Ctrl/Cmd + ,` - Open preferences
+* **New Session**: `Ctrl/Cmd + N`
+* **Switch Session**: `Ctrl/Cmd + [1-9]`
+* **Command Palette**: `Ctrl/Cmd + P`
+* **File Explorer**: `Ctrl/Cmd + E`
+* **Settings**: `Ctrl/Cmd + ,`
 
-## API Reference
+## 📖 API Reference
 
-Orchflow provides a comprehensive API with 227+ command handlers:
+227+ comprehensive command handlers for:
 
-### Key APIs
+* Session and terminal control
+* Complete file system operations
+* Plugin management
+* Neovim interaction
 
-- **Session Management** - Create, delete, rename, and switch sessions
-- **Terminal Operations** - Full PTY control with streaming I/O
-- **File Operations** - Complete file system access with trash support
-- **Git Integration** - Status, diff, commit, push/pull operations
-- **Plugin System** - Load and execute custom plugins
-- **Neovim Integration** - Embedded editor control
+See [API\_REFERENCE.md](API_REFERENCE.md).
 
-See [API_REFERENCE.md](API_REFERENCE.md) for complete documentation.
+## 🎯 Who Benefits Most?
 
-## Who Would Use Orchflow?
+* Terminal power users
+* Neovim and tmux enthusiasts
+* Developers seeking performance and extensibility
+* Teams adopting AI-driven workflows
 
-Based on the discovered functionality, Orchflow is designed for:
+## 🌟 Differentiators
 
-1. **Terminal Power Users**: Developers who prefer terminal-based workflows but want modern IDE conveniences
-2. **Tmux Users**: Those seeking a graphical interface for tmux with enhanced features
-3. **Neovim Users**: Developers wanting Neovim with integrated file management and terminals
-4. **Performance-Conscious Developers**: Those needing a fast, lightweight IDE alternative
-5. **Future AI Development**: Teams preparing infrastructure for AI-assisted development workflows
+* Tmux-based workflow, native speed, robust session persistence
+* Purpose-built AI orchestration infrastructure
+* Fully extensible through plugins
 
-## Key Differentiators
+## 🔮 Future Roadmap
 
-1. **Terminal-First Design**: Built around terminal workflows, not adapted from traditional IDEs
-2. **Native Performance**: Rust backend ensures minimal resource usage
-3. **Session Persistence**: Never lose terminal state between restarts
-4. **AI-Ready Architecture**: Infrastructure prepared for future AI orchestration
-5. **Extensible Design**: Plugin system for custom functionality
+* **AI Agent Integration**: Terminal orchestration by intelligent agents
+* **Swarm Coordination**: Multi-agent parallel workflows
+* **Neural Integration**: Native AI models (e.g., ruv-FANN)
+* **Cloud Sync**: Multi-device session synchronization
 
-## Development
+## 🤝 Contributing
 
-### Project Structure
+We welcome contributions! Follow our [CONTRIBUTING guidelines](CONTRIBUTING.md):
 
-```
-orchflow/
-├── desktop/          # Tauri desktop application
-│   ├── src/         # Frontend (SvelteKit)
-│   └── src-tauri/   # Backend (Rust)
-├── muxd/            # Terminal multiplexer daemon
-├── lua/             # Neovim integration
-└── docs/            # Documentation
-```
+* Fork, branch, TDD, implement, PR.
 
-### Running Tests
+## 🔒 Security & Privacy
 
-```bash
-# Frontend tests
-cd desktop
-npm run test:unit
+* Sandboxed file operations
+* Local-only WebSocket connections
+* Plugin isolation, zero telemetry
 
-# Backend tests
-cd desktop/src-tauri
-cargo test
+## 📜 Licensing
 
-# Muxd tests
-cd muxd
-cargo test
-```
+MIT and Apache 2.0 dual-license. [License details](LICENSE).
 
-### Code Quality Standards
-
-- **Zero TypeScript Errors** ✅
-- **Zero ESLint Errors** ✅
-- **Zero Rust Compilation Errors** ✅
-- **>90% Test Coverage** (target)
-- **TDD Mandatory** - Write tests first
-
-## Performance Characteristics
-
-Orchflow is designed for speed:
-
-- **Startup Target**: <100ms (optimized Rust backend)
-- **Memory Usage**: ~10MB baseline
-- **Build Time**: <60 seconds
-- **Real-time Updates**: WebSocket latency <10ms locally
-
-## Data Storage
-
-- **Configuration**: SQLite database for settings and state
-- **Session Data**: Persistent storage of terminal sessions
-- **Command History**: Searchable command history across sessions
-- **Test Results**: Storage and retrieval of test execution data
-- **Plugin Data**: Isolated storage for plugin configurations
-
-## Roadmap
-
-### Current Focus (Q1 2025)
-
-- [ ] UI Overhaul
-- [x] Core infrastructure complete
-- [x] 227+ API endpoints implemented
-
-### Future Plans
-
-- **AI Agent Integration** - Enable AI agents to spawn and control terminals
-- **Swarm Coordination** - Multi-agent orchestration capabilities
-- **Neural Network Integration** - Direct AI model integration (evaluating ruv-FANN)
-- **Cloud Sync** - Session synchronization across devices
-
-## Contributing
-
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-### Development Process
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Write tests first (TDD)
-4. Implement your feature
-5. Ensure all tests pass
-6. Submit a Pull Request
-
-## Security
-
-- Sandboxed file operations through Tauri
-- Localhost-only WebSocket connections
-- Plugin isolation with permission model
-- No telemetry or data collection
-
-## License
-
-This project is dual-licensed under MIT and Apache 2.0. See [LICENSE](LICENSE) for details.
-
-## Acknowledgments
+## 🙌 Acknowledgments
 
 Built with:
-- [Tauri](https://tauri.app/) - Native app framework
-- [SvelteKit](https://kit.svelte.dev/) - Frontend framework
-- [Tokio](https://tokio.rs/) - Async runtime
-- [xterm.js](https://xtermjs.org/) - Terminal emulator
 
-## Status
-
-⚠️ **Pre-release Software**: Orchflow is under active development. APIs and features may change. Not recommended for production use yet.
-
-### Current State
-- Core infrastructure: ✅ Complete
-- Terminal management: ✅ Working
-- File operations: ✅ Implemented
-- Plugin system: ✅ Functional
-- AI integration: 🚧 In development
+* [Tauri](https://tauri.app/), [SvelteKit](https://kit.svelte.dev/), [Tokio](https://tokio.rs/), [xterm.js](https://xtermjs.org/)
 
 ---
 
-**Vision**: Create the foundation for AI-powered development where agents and developers work together seamlessly through intelligent terminal orchestration.
+**⚠️ Status: Pre-release Software.** APIs/features may evolve. Not yet production-ready.
 
-For more information, see our [documentation](docs/).
+**Vision:** Seamless AI-driven terminal orchestration empowering human-agent collaboration.
