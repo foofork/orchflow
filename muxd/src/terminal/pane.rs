@@ -2,6 +2,7 @@ use crate::error::{MuxdError, Result};
 use crate::protocol::{PaneId, PaneType};
 use crate::protocol::types::PaneSize;
 use crate::terminal::pty::Pty;
+use crate::terminal::cursor::{CursorPosition, AnsiParser};
 use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use parking_lot::RwLock;
@@ -29,6 +30,11 @@ pub struct Pane {
     title: Arc<RwLock<Option<String>>>,
     working_dir: Arc<RwLock<Option<String>>>,
     exit_code: Arc<RwLock<Option<i32>>>,
+    
+    // Cursor tracking
+    cursor_position: Arc<RwLock<CursorPosition>>,
+    saved_cursor_position: Arc<RwLock<Option<CursorPosition>>>,
+    ansi_parser: AnsiParser,
 }
 
 impl Pane {
@@ -50,6 +56,9 @@ impl Pane {
             title: Arc::new(RwLock::new(None)),
             working_dir: Arc::new(RwLock::new(None)),
             exit_code: Arc::new(RwLock::new(None)),
+            cursor_position: Arc::new(RwLock::new(CursorPosition::default())),
+            saved_cursor_position: Arc::new(RwLock::new(None)),
+            ansi_parser: AnsiParser::new(),
         }
     }
     
@@ -270,6 +279,101 @@ impl Pane {
                 }
             }
         });
+    }
+
+    // Cursor position methods
+    pub fn get_cursor_position(&self) -> CursorPosition {
+        *self.cursor_position.read()
+    }
+
+    pub fn set_cursor_position(&self, position: CursorPosition) {
+        *self.cursor_position.write() = position;
+    }
+
+    pub fn save_cursor_position(&self) {
+        let current = *self.cursor_position.read();
+        *self.saved_cursor_position.write() = Some(current);
+    }
+
+    pub fn restore_cursor_position(&self) -> Result<()> {
+        let saved = *self.saved_cursor_position.read();
+        if let Some(saved_pos) = saved {
+            *self.cursor_position.write() = saved_pos;
+            Ok(())
+        } else {
+            Err(MuxdError::InvalidState {
+                reason: "No saved cursor position available".to_string(),
+            })
+        }
+    }
+
+    pub async fn query_cursor_position(&self) -> Result<()> {
+        if let Some(pty) = self.pty.read().as_ref() {
+            let query = b"\x1b[6n";
+            pty.write(query)?;
+            Ok(())
+        } else {
+            Err(MuxdError::InvalidState {
+                reason: "PTY not available for cursor query".to_string(),
+            })
+        }
+    }
+
+    pub fn process_output_for_cursor(&self, data: &[u8]) -> Result<Vec<crate::terminal::cursor::CursorEvent>> {
+        let mut cursor = self.cursor_position.write();
+        let events = self.ansi_parser.parse_and_update(data, &mut cursor)?;
+        
+        for event in &events {
+            match event {
+                crate::terminal::cursor::CursorEvent::Save(_) => {
+                    *self.saved_cursor_position.write() = Some(*cursor);
+                }
+                crate::terminal::cursor::CursorEvent::Restore(_) => {
+                    if let Some(saved) = *self.saved_cursor_position.read() {
+                        *cursor = saved;
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        Ok(events)
+    }
+
+    pub fn extract_cursor_report(&self, data: &[u8]) -> Result<Option<CursorPosition>> {
+        self.ansi_parser.parse_cursor_report(data)
+    }
+
+    pub fn update_cursor_from_report(&self, position: CursorPosition) {
+        *self.cursor_position.write() = position;
+    }
+
+    pub fn get_cursor_relative(&self) -> Result<(f32, f32)> {
+        let cursor = *self.cursor_position.read();
+        let size = *self.size.read();
+        
+        if size.rows == 0 || size.cols == 0 {
+            return Err(MuxdError::InvalidState {
+                reason: "Pane size cannot be zero".to_string(),
+            });
+        }
+
+        let rel_row = (cursor.row as f32) / (size.rows as f32);
+        let rel_col = (cursor.col as f32) / (size.cols as f32);
+        
+        Ok((rel_row, rel_col))
+    }
+
+    pub fn is_cursor_in_bounds(&self) -> bool {
+        let cursor = *self.cursor_position.read();
+        let size = *self.size.read();
+        
+        cursor.row <= size.rows && cursor.col <= size.cols
+    }
+
+    pub fn reset_cursor(&self) {
+        *self.cursor_position.write() = CursorPosition::default();
+        *self.saved_cursor_position.write() = None;
     }
 }
 

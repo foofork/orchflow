@@ -1,5 +1,7 @@
-pub mod pty;
+pub mod cursor;
 pub mod pane;
+pub mod pty;
 
-pub use pty::*;
+pub use cursor::*;
 pub use pane::*;
+pub use pty::*;
