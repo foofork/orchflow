@@ -146,7 +146,7 @@ const tests = [
   }
 ];
 
-console.log('🔍 Verifying Bundle Optimizations...\n');
+console.warn('🔍 Verifying Bundle Optimizations...\n');
 
 let passed = 0;
 let total = tests.length;
@@ -155,27 +155,27 @@ tests.forEach((test, index) => {
   const result = test.check();
   const status = result.passed ? '✅' : '❌';
   
-  console.log(`${index + 1}. ${status} ${test.name}`);
-  console.log(`   ${result.message}\n`);
+  console.warn(`${index + 1}. ${status} ${test.name}`);
+  console.warn(`   ${result.message}\n`);
   
   if (result.passed) {
     passed++;
   }
 });
 
-console.log('='.repeat(60));
-console.log(`Results: ${passed}/${total} tests passed`);
+console.warn('='.repeat(60));
+console.warn(`Results: ${passed}/${total} tests passed`);
 
 if (passed === total) {
-  console.log('🎉 All optimizations verified successfully!');
+  console.warn('🎉 All optimizations verified successfully!');
 } else {
-  console.log('⚠️  Some optimizations need attention.');
+  console.warn('⚠️  Some optimizations need attention.');
 }
 
-console.log('\nNext steps:');
-console.log('1. Run "npm run build:analyze" to see bundle sizes');
-console.log('2. Monitor loading performance in development');
-console.log('3. Test lazy loading functionality');
-console.log('4. Check network tab for proper chunk loading');
+console.warn('\nNext steps:');
+console.warn('1. Run "npm run build:analyze" to see bundle sizes');
+console.warn('2. Monitor loading performance in development');
+console.warn('3. Test lazy loading functionality');
+console.warn('4. Check network tab for proper chunk loading');
 
 process.exit(passed === total ? 0 : 1);

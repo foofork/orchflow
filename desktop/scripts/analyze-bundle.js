@@ -113,7 +113,7 @@ function analyzeBundle(dir) {
     console.warn(`⚠️  Found ${emptyChunks.length} very small chunks (<1KB). Consider consolidating.`);
   }
   
-  const largeVendorChunks = (typeof vendorChunks !== 'undefined') ? vendorChunks.filter(f => f.size > 100 * 1024) : [];
+  const largeVendorChunks = vendorChunks ? vendorChunks.filter(f => f.size > 100 * 1024) : [];
   if (largeVendorChunks.length > 0) {
     console.warn('⚠️  Large vendor chunks detected. Consider:');
     console.warn('   - Splitting vendor chunks by usage frequency');
@@ -122,15 +122,15 @@ function analyzeBundle(dir) {
   
   console.warn('\n✅ Optimization Status:');
   console.warn(`   - Code splitting: ${chunks.length > 5 ? '✓ Active' : '✗ Limited'}`);
-  console.warn(`   - Vendor separation: ${(typeof vendorChunks !== 'undefined') ? vendorChunks.length > 0 ? '✓ Enabled' : '✗ Disabled' : '✗ Disabled'}`);
-  console.warn(`   - Component chunking: ${(typeof componentChunks !== 'undefined') ? componentChunks.length > 0 ? '✓ Active' : '✗ Inactive' : '✗ Inactive'}`);
+  console.warn(`   - Vendor separation: ${vendorChunks && vendorChunks.length > 0 ? '✓ Enabled' : '✗ Disabled'}`);
+  console.warn(`   - Component chunking: ${componentChunks && componentChunks.length > 0 ? '✓ Active' : '✗ Inactive'}`);
 }
 
 // Check if build directory exists
 try {
   statSync(buildDir);
   analyzeBundle(buildDir);
-} catch (_error) {
+} catch {
   console.error('Build directory not found. Please run "npm run build" first.');
   process.exit(1);
 }

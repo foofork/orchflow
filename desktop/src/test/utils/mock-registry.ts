@@ -375,7 +375,7 @@ export const mockDecorators = {
     return (mock: T) => {
       const original = mock;
       return vi.fn((...args) => {
-        console.log(`[MockRegistry] ${name} called with:`, args);
+        console.warn(`[MockRegistry] ${name} called with:`, args);
         return original(...args);
       }) as T;
     };

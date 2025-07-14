@@ -21,7 +21,7 @@ export function createTauriMock(config: TauriMockConfig = {}) {
 
   // Mock Tauri invoke function
   const mockInvoke = async (cmd: string, args?: any) => {
-    console.log(`[TauriMock] invoke called: ${cmd}`, args);
+    console.warn(`[TauriMock] invoke called: ${cmd}`, args);
     
     switch (cmd) {
       // Flow management
@@ -320,11 +320,11 @@ export function createTauriMock(config: TauriMockConfig = {}) {
     // Event system mock
     event: {
       listen: (event: string, _handler: (...args: any[]) => void) => {
-        console.log(`[TauriMock] Event listener registered: ${event}`);
+        console.warn(`[TauriMock] Event listener registered: ${event}`);
         return Promise.resolve(() => {});
       },
       emit: (event: string, payload?: any) => {
-        console.log(`[TauriMock] Event emitted: ${event}`, payload);
+        console.warn(`[TauriMock] Event emitted: ${event}`, payload);
         return Promise.resolve();
       }
     },
@@ -371,11 +371,11 @@ export function createTauriMock(config: TauriMockConfig = {}) {
     window: {
       appWindow: {
         listen: (event: string, _handler: (...args: any[]) => any) => {
-          console.log(`[TauriMock] Window listener registered: ${event}`);
+          console.warn(`[TauriMock] Window listener registered: ${event}`);
           return Promise.resolve(() => {});
         },
         emit: (event: string, payload?: any) => {
-          console.log(`[TauriMock] Window event emitted: ${event}`, payload);
+          console.warn(`[TauriMock] Window event emitted: ${event}`, payload);
           return Promise.resolve();
         },
         setTitle: (title: string) => {
@@ -392,11 +392,11 @@ export function createTauriMock(config: TauriMockConfig = {}) {
       },
       currentWindow: () => ({
         listen: (event: string, _handler: (...args: any[]) => any) => {
-          console.log(`[TauriMock] Current window listener registered: ${event}`);
+          console.warn(`[TauriMock] Current window listener registered: ${event}`);
           return Promise.resolve(() => {});
         },
         emit: (event: string, payload?: any) => {
-          console.log(`[TauriMock] Current window event emitted: ${event}`, payload);
+          console.warn(`[TauriMock] Current window event emitted: ${event}`, payload);
           return Promise.resolve();
         },
         setTitle: (title: string) => {
@@ -427,14 +427,14 @@ export function installTauriMock(config: TauriMockConfig = {}) {
     transformCallback: mock.transformCallback
   };
 
-  console.log('[TauriMock] Tauri mock installed');
+  console.warn('[TauriMock] Tauri mock installed');
   return mock;
 }
 
 export function uninstallTauriMock() {
   delete (window as any).__TAURI__;
   delete (window as any).__TAURI_INTERNALS__;
-  console.log('[TauriMock] Tauri mock uninstalled');
+  console.warn('[TauriMock] Tauri mock uninstalled');
 }
 
 // Auto-install detection script
@@ -445,6 +445,6 @@ if (typeof window !== 'undefined' && !window.__TAURI__) {
   ${createTauriMock.toString()}
   
   window.__tauriMock = installTauriMock();
-  console.log('[TauriMock] Auto-installed Tauri mock for E2E testing');
+  console.warn('[TauriMock] Auto-installed Tauri mock for E2E testing');
 }
 `;
