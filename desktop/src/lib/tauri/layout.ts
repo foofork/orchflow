@@ -26,11 +26,13 @@ export interface GridLayout {
 
 export class LayoutClient {
   async createLayout(sessionId: string): Promise<GridLayout> {
-    return await invoke('create_layout', { sessionId });
+    // Create a session with a default layout using unified state commands
+    const session = await invoke('create_session', { name: sessionId });
+    return await invoke('get_unified_layout', { sessionId });
   }
 
   async getLayout(sessionId: string): Promise<GridLayout> {
-    return await invoke('get_layout', { sessionId });
+    return await invoke('get_unified_layout', { sessionId });
   }
 
   async splitPane(
@@ -40,7 +42,7 @@ export class LayoutClient {
     percent?: number,
     command?: string
   ): Promise<[string, string]> {
-    return await invoke('split_layout_pane', {
+    return await invoke('split_unified_layout_pane', {
       sessionId,
       paneId,
       horizontal,
@@ -50,15 +52,15 @@ export class LayoutClient {
   }
 
   async closePane(sessionId: string, paneId: string): Promise<void> {
-    return await invoke('close_layout_pane', { sessionId, paneId });
+    return await invoke('close_unified_layout_pane', { sessionId, paneId });
   }
 
   async resizePane(sessionId: string, paneId: string, newPercent: number): Promise<void> {
-    return await invoke('resize_layout_pane', { sessionId, paneId, newPercent });
+    return await invoke('resize_unified_layout_pane', { sessionId, paneId, newPercent });
   }
 
   async getLeafPanes(sessionId: string): Promise<PaneLayout[]> {
-    return await invoke('get_layout_leaf_panes', { sessionId });
+    return await invoke('get_unified_layout_leaf_panes', { sessionId });
   }
 }
 

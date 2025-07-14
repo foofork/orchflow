@@ -16,4 +16,6 @@ pub use terminal_security::{
     AuditConfig,
     AuditEvent,
     SecurityWarning,
+    SessionLookup,
+    StateManagerSessionLookup,
 };

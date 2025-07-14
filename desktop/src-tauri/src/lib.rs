@@ -10,7 +10,7 @@ pub mod file_watcher;
 pub mod file_watcher_commands;
 pub mod git_commands;
 pub mod layout;
-pub mod layout_commands;
+// pub mod layout_commands; // REMOVED - legacy module replaced by unified_state_commands
 pub mod manager;
 pub mod metrics;
 pub mod module_commands;

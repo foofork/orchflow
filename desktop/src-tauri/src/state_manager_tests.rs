@@ -240,7 +240,7 @@ mod state_manager_tests {
             let state_manager = StateManager::new(store);
 
             // Load from persistence
-            state_manager.load_from_store().await.unwrap();
+            state_manager.load_all().await.unwrap();
 
             // Check data was persisted
             let sessions = state_manager.list_sessions().await;

@@ -16,18 +16,43 @@ export interface MemoryMetrics {
 	percent: number;
 }
 
-export interface DiskMetrics {
+export interface DiskInfo {
+	name: string;
+	mountPoint: string;
+	fileSystem: string;
 	total: number;
 	used: number;
 	free: number;
 	percent: number;
 }
 
-export interface NetworkMetrics {
+export interface DiskMetrics {
+	disks: DiskInfo[];
+	totalSpace: number;
+	totalUsed: number;
+	totalFree: number;
+	averageUsagePercent: number;
+}
+
+export interface NetworkInterface {
+	name: string;
 	bytesReceived: number;
 	bytesSent: number;
 	packetsReceived: number;
 	packetsSent: number;
+	speed?: number; // bits per second
+	isUp: boolean;
+	interfaceType: string;
+}
+
+export interface NetworkMetrics {
+	interfaces: NetworkInterface[];
+	totalBytesReceived: number;
+	totalBytesSent: number;
+	totalPacketsReceived: number;
+	totalPacketsSent: number;
+	downloadSpeed: number; // bytes per second
+	uploadSpeed: number;   // bytes per second
 }
 
 export interface ProcessMetrics {
@@ -35,7 +60,36 @@ export interface ProcessMetrics {
 	name: string;
 	cpu: number;
 	memory: number;
+	virtualMemory: number;
 	status: string;
+	cmd: string[];
+	startTime: number;
+	diskUsage?: [number, number]; // [read_bytes, written_bytes]
+}
+
+export interface GpuMetrics {
+	name: string;
+	utilization?: number;
+	memoryUsed?: number;
+	memoryTotal?: number;
+	temperature?: number;
+	powerUsage?: number;
+}
+
+export interface BatteryMetrics {
+	percentage: number;
+	isCharging: boolean;
+	timeRemaining?: number; // seconds
+	health?: number;
+	cycleCount?: number;
+	powerConsumption?: number; // watts
+}
+
+export interface ThermalMetrics {
+	cpuTemperature?: number;
+	gpuTemperature?: number;
+	systemTemperature?: number;
+	fanSpeeds: [string, number][]; // [fan_name, rpm]
 }
 
 export interface SystemMetrics {
@@ -45,8 +99,14 @@ export interface SystemMetrics {
 	disk: DiskMetrics;
 	network: NetworkMetrics;
 	processes: ProcessMetrics[];
+	gpu: GpuMetrics[];
+	battery?: BatteryMetrics;
+	thermal: ThermalMetrics;
 	uptime: number;
 	loadAverage: [number, number, number];
+	hostname: string;
+	osVersion: string;
+	kernelVersion: string;
 }
 
 // Stores
@@ -196,46 +256,110 @@ function generateMockMetrics(): SystemMetrics {
 			percent: (usedMemory / baseMemory) * 100
 		},
 		disk: {
-			total: 512 * 1024 * 1024 * 1024, // 512GB
-			used: 256 * 1024 * 1024 * 1024,
-			free: 256 * 1024 * 1024 * 1024,
-			percent: 50
+			disks: [
+				{
+					name: '/dev/disk1s1',
+					mountPoint: '/',
+					fileSystem: 'apfs',
+					total: 512 * 1024 * 1024 * 1024, // 512GB
+					used: 256 * 1024 * 1024 * 1024,
+					free: 256 * 1024 * 1024 * 1024,
+					percent: 50
+				}
+			],
+			totalSpace: 512 * 1024 * 1024 * 1024,
+			totalUsed: 256 * 1024 * 1024 * 1024,
+			totalFree: 256 * 1024 * 1024 * 1024,
+			averageUsagePercent: 50
 		},
 		network: {
-			bytesReceived: Math.floor(Math.random() * 1000000),
-			bytesSent: Math.floor(Math.random() * 500000),
-			packetsReceived: Math.floor(Math.random() * 1000),
-			packetsSent: Math.floor(Math.random() * 500)
+			interfaces: [
+				{
+					name: 'eth0',
+					bytesReceived: Math.floor(Math.random() * 1000000),
+					bytesSent: Math.floor(Math.random() * 500000),
+					packetsReceived: Math.floor(Math.random() * 1000),
+					packetsSent: Math.floor(Math.random() * 500),
+					speed: 1000000000, // 1 Gbps
+					isUp: true,
+					interfaceType: 'ethernet'
+				}
+			],
+			totalBytesReceived: Math.floor(Math.random() * 1000000),
+			totalBytesSent: Math.floor(Math.random() * 500000),
+			totalPacketsReceived: Math.floor(Math.random() * 1000),
+			totalPacketsSent: Math.floor(Math.random() * 500),
+			downloadSpeed: Math.random() * 10000, // bytes/sec
+			uploadSpeed: Math.random() * 5000    // bytes/sec
 		},
 		processes: [
 			{
 				pid: 1234,
 				name: 'orchflow',
 				cpu: Math.random() * 10,
-				memory: Math.random() * 500,
-				status: 'running'
+				memory: Math.random() * 500 * 1024 * 1024,
+				virtualMemory: Math.random() * 800 * 1024 * 1024,
+				status: 'running',
+				cmd: ['./orchflow', '--serve'],
+				startTime: Date.now() - 3600000,
+				diskUsage: [Math.random() * 1000000, Math.random() * 500000]
 			},
 			{
 				pid: 5678,
 				name: 'node',
 				cpu: Math.random() * 5,
-				memory: Math.random() * 200,
-				status: 'running'
+				memory: Math.random() * 200 * 1024 * 1024,
+				virtualMemory: Math.random() * 400 * 1024 * 1024,
+				status: 'running',
+				cmd: ['node', 'server.js'],
+				startTime: Date.now() - 1800000,
+				diskUsage: [Math.random() * 500000, Math.random() * 200000]
 			},
 			{
 				pid: 9012,
 				name: 'neovim',
 				cpu: Math.random() * 3,
-				memory: Math.random() * 150,
-				status: 'running'
+				memory: Math.random() * 150 * 1024 * 1024,
+				virtualMemory: Math.random() * 300 * 1024 * 1024,
+				status: 'running',
+				cmd: ['nvim', 'file.ts'],
+				startTime: Date.now() - 900000,
+				diskUsage: [Math.random() * 100000, Math.random() * 50000]
 			}
 		],
+		gpu: [
+			{
+				name: 'Mock GPU',
+				utilization: Math.random() * 100,
+				memoryUsed: Math.random() * 8 * 1024 * 1024 * 1024,
+				memoryTotal: 8 * 1024 * 1024 * 1024,
+				temperature: 60 + Math.random() * 20,
+				powerUsage: 150 + Math.random() * 100
+			}
+		],
+		battery: {
+			percentage: 75 + Math.random() * 20,
+			isCharging: Math.random() > 0.5,
+			timeRemaining: 3600 + Math.random() * 7200,
+			health: 85 + Math.random() * 10,
+			cycleCount: 500 + Math.floor(Math.random() * 1000),
+			powerConsumption: 10 + Math.random() * 20
+		},
+		thermal: {
+			cpuTemperature: 45 + Math.random() * 25,
+			gpuTemperature: 50 + Math.random() * 30,
+			systemTemperature: 40 + Math.random() * 20,
+			fanSpeeds: [['CPU Fan', 1500 + Math.floor(Math.random() * 1000)], ['System Fan', 1200 + Math.floor(Math.random() * 800)]]
+		},
 		uptime: Math.floor((now - 1000000000) / 1000),
 		loadAverage: [
 			1.5 + Math.random() * 0.5,
 			1.3 + Math.random() * 0.5,
 			1.1 + Math.random() * 0.5
-		]
+		],
+		hostname: 'dev-machine',
+		osVersion: 'macOS 14.0',
+		kernelVersion: '23.0.0'
 	};
 }
 
@@ -265,6 +389,64 @@ export function formatUptime(seconds: number): string {
 	} else {
 		return `${minutes}m`;
 	}
+}
+
+export function formatSpeed(bytesPerSecond: number): string {
+	const units = ['B/s', 'KB/s', 'MB/s', 'GB/s'];
+	let value = bytesPerSecond;
+	let unitIndex = 0;
+	
+	while (value >= 1024 && unitIndex < units.length - 1) {
+		value /= 1024;
+		unitIndex++;
+	}
+	
+	return `${value.toFixed(1)} ${units[unitIndex]}`;
+}
+
+export function formatTemperature(celsius?: number): string {
+	if (celsius === undefined) return 'N/A';
+	return `${celsius.toFixed(1)}°C`;
+}
+
+export function formatPercentage(value?: number): string {
+	if (value === undefined) return 'N/A';
+	return `${value.toFixed(1)}%`;
+}
+
+export function formatPower(watts?: number): string {
+	if (watts === undefined) return 'N/A';
+	return `${watts.toFixed(1)}W`;
+}
+
+export function formatTime(milliseconds: number): string {
+	const seconds = Math.floor(milliseconds / 1000);
+	const minutes = Math.floor(seconds / 60);
+	const hours = Math.floor(minutes / 60);
+	
+	if (hours > 0) {
+		return `${hours}h ${minutes % 60}m`;
+	} else if (minutes > 0) {
+		return `${minutes}m ${seconds % 60}s`;
+	} else {
+		return `${seconds}s`;
+	}
+}
+
+export function getNetworkTotalBandwidth(metrics: SystemMetrics): number {
+	return metrics.network.interfaces.reduce((total, iface) => {
+		return total + (iface.speed || 0);
+	}, 0);
+}
+
+export function getDiskTotalUsagePercent(metrics: SystemMetrics): number {
+	return metrics.disk.averageUsagePercent;
+}
+
+export function getTopProcessesByMetric(metrics: SystemMetrics, metric: 'cpu' | 'memory', limit: number = 5): ProcessMetrics[] {
+	return [...metrics.processes]
+		.sort((a, b) => b[metric] - a[metric])
+		.slice(0, limit);
 }
 
 // Auto-start in browser

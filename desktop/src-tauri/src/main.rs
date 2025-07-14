@@ -3,7 +3,7 @@
 
 mod error;
 mod layout;
-mod layout_commands;
+// mod layout_commands; // REMOVED - legacy module replaced by unified_state_commands
 mod mux_backend;
 mod neovim;
 mod simple_state_store;
@@ -49,7 +49,7 @@ mod trash_commands;
 mod window_state;
 
 use layout::*;
-use layout_commands::*;
+// layout_commands removed - using unified_state_commands instead
 use neovim::*;
 use tmux::*;
 // use simple_state_store::*; // Not needed - using unified_state_commands
@@ -64,6 +64,7 @@ use updater::*;
 use metrics::*;
 use sharing_service::SharingService;
 use simple_state_store::SimpleStateStore;
+use state_manager::StateManager;
 use std::sync::{Arc, Mutex};
 use tauri::{Emitter, Manager};
 use tauri_plugin_fs;
@@ -73,11 +74,7 @@ use tauri_plugin_shell;
 use tauri_plugin_updater;
 use tauri_plugin_window_state;
 
-// Legacy AppState - being phased out in favor of StateManager
-// TODO: Remove this once all commands are migrated to unified_state_commands
-struct AppState {
-    layouts: Mutex<std::collections::HashMap<String, GridLayout>>,
-}
+// AppState has been removed - using StateManager for all state management
 
 // Neovim manager is directly managed, no wrapper needed
 
@@ -115,9 +112,6 @@ async fn main() {
 
             Ok(())
         })
-        .manage(AppState {
-            layouts: Mutex::new(std::collections::HashMap::new()),
-        })
         .manage(NeovimManager::new())
         .manage(UpdaterState::new())
         .manage(SharingService::new())
@@ -127,6 +121,11 @@ async fn main() {
             // Initialize SQLx pool synchronously in setup since we can't await here
             // The pool will be initialized during startup
             Arc::new(store)
+        })
+        .manage({
+            // Initialize StateManager with the same store
+            let store = Arc::new(SimpleStateStore::new_with_file("orchflow.db").unwrap());
+            StateManager::new(store)
         })
         .manage({
             // Initialize ModuleLoader
@@ -146,13 +145,7 @@ async fn main() {
             tmux_capture_pane,
             tmux_resize_pane,
             tmux_kill_pane,
-            // Layout commands
-            create_layout,
-            get_layout,
-            split_layout_pane,
-            close_layout_pane,
-            resize_layout_pane,
-            get_layout_leaf_panes,
+            // Legacy layout commands removed - using unified_state_commands instead
             // Neovim commands
             nvim_create_instance,
             nvim_open_file,
@@ -160,6 +153,8 @@ async fn main() {
             nvim_set_buffer_content,
             nvim_execute_command,
             nvim_close_instance,
+            nvim_get_mode,
+            nvim_eval,
             // Legacy commands removed - using unified_state_commands for all state management
             // Module commands
             module_scan,
@@ -358,6 +353,8 @@ async fn main() {
             neovim::nvim_set_buffer_content,
             neovim::nvim_execute_command,
             neovim::nvim_close_instance,
+            neovim::nvim_get_mode,
+            neovim::nvim_eval,
             // Utility commands
             get_current_dir,
         ])

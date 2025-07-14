@@ -216,6 +216,7 @@ pub struct TerminalSecurityManager {
     contexts: Arc<RwLock<HashMap<String, SecurityContext>>>,
     default_context: SecurityContext,
     audit_logger: Option<Arc<dyn AuditLogger>>,
+    session_lookup: Option<Arc<dyn SessionLookup>>,
     workspace_trust_store: Arc<RwLock<WorkspaceTrustStore>>,
 }
 
@@ -224,6 +225,45 @@ pub struct TerminalSecurityManager {
 pub trait AuditLogger: Send + Sync {
     async fn log(&self, event: AuditEvent) -> Result<()>;
     async fn query(&self, filter: AuditFilter) -> Result<Vec<AuditEvent>>;
+}
+
+/// Trait for looking up session information from terminal/pane IDs
+#[async_trait::async_trait]
+pub trait SessionLookup: Send + Sync {
+    async fn get_session_id_for_terminal(&self, terminal_id: &str) -> Option<String>;
+}
+
+/// Implementation of SessionLookup using the StateManager
+pub struct StateManagerSessionLookup {
+    state_manager: Arc<crate::state_manager::StateManager>,
+}
+
+impl StateManagerSessionLookup {
+    pub fn new(state_manager: Arc<crate::state_manager::StateManager>) -> Self {
+        Self { state_manager }
+    }
+}
+
+#[async_trait::async_trait]
+impl SessionLookup for StateManagerSessionLookup {
+    async fn get_session_id_for_terminal(&self, terminal_id: &str) -> Option<String> {
+        // Try to get the pane first (terminal_id might be a pane_id)
+        if let Some(pane) = self.state_manager.get_pane(terminal_id).await {
+            return Some(pane.session_id);
+        }
+        
+        // If not found as pane_id, search all panes for one with backend_id matching terminal_id
+        let all_panes = self.state_manager.list_all_panes().await;
+        for pane in all_panes {
+            if let Some(backend_id) = &pane.backend_id {
+                if backend_id == terminal_id {
+                    return Some(pane.session_id);
+                }
+            }
+        }
+        
+        None
+    }
 }
 
 /// Workspace trust store
@@ -256,6 +296,7 @@ impl TerminalSecurityManager {
             contexts: Arc::new(RwLock::new(HashMap::new())),
             default_context: SecurityContext::default_for_tier(default_tier),
             audit_logger: None,
+            session_lookup: None,
             workspace_trust_store: Arc::new(RwLock::new(WorkspaceTrustStore {
                 trusted_workspaces: HashMap::new(),
             })),
@@ -266,6 +307,20 @@ impl TerminalSecurityManager {
     pub fn with_audit_logger(mut self, logger: Arc<dyn AuditLogger>) -> Self {
         self.audit_logger = Some(logger);
         self
+    }
+    
+    /// Set session lookup implementation
+    pub fn with_session_lookup(mut self, session_lookup: Arc<dyn SessionLookup>) -> Self {
+        self.session_lookup = Some(session_lookup);
+        self
+    }
+    
+    /// Get session ID for a terminal, returning empty string if not found
+    async fn get_session_id(&self, terminal_id: &str) -> String {
+        match &self.session_lookup {
+            Some(lookup) => lookup.get_session_id_for_terminal(terminal_id).await.unwrap_or_default(),
+            None => String::new(),
+        }
     }
     
     /// Create security context for a new terminal
@@ -299,12 +354,13 @@ impl TerminalSecurityManager {
         
         // Audit terminal creation
         if let Some(logger) = &self.audit_logger {
+            let session_id = self.get_session_id(terminal_id).await;
             let event = AuditEvent {
                 id: uuid::Uuid::new_v4().to_string(),
                 timestamp: Utc::now(),
                 event_type: AuditEventType::TerminalCreated,
                 user: whoami::username(),
-                session_id: String::new(), // TODO: Get from context
+                session_id,
                 terminal_id: Some(terminal_id.to_string()),
                 command: None,
                 working_dir: workspace_path.map(|p| p.to_path_buf()),
@@ -343,6 +399,7 @@ impl TerminalSecurityManager {
         // Audit if needed
         if context.audit_config.enabled && !self.should_exclude_from_audit(command, &context.audit_config) {
             if let Some(logger) = &self.audit_logger {
+                let session_id = self.get_session_id(terminal_id).await;
                 let event = AuditEvent {
                     id: uuid::Uuid::new_v4().to_string(),
                     timestamp: Utc::now(),
@@ -352,7 +409,7 @@ impl TerminalSecurityManager {
                         CommandCheckResult::RequireConfirmation(_) => AuditEventType::CommandExecuted,
                     },
                     user: whoami::username(),
-                    session_id: String::new(),
+                    session_id,
                     terminal_id: Some(terminal_id.to_string()),
                     command: Some(command.to_string()),
                     working_dir: working_dir.map(|p| p.to_path_buf()),
@@ -960,6 +1017,59 @@ impl UntrustedRestrictions {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::state_manager::{StateManager, types::{PaneState, PaneType}};
+    use crate::simple_state_store::SimpleStateStore;
+    use std::sync::Arc;
+    
+    // Mock session lookup for testing
+    struct MockSessionLookup {
+        sessions: HashMap<String, String>,
+    }
+    
+    impl MockSessionLookup {
+        fn new() -> Self {
+            let mut sessions = HashMap::new();
+            sessions.insert("terminal-1".to_string(), "session-123".to_string());
+            sessions.insert("pane-1".to_string(), "session-456".to_string());
+            Self { sessions }
+        }
+    }
+    
+    #[async_trait::async_trait]
+    impl SessionLookup for MockSessionLookup {
+        async fn get_session_id_for_terminal(&self, terminal_id: &str) -> Option<String> {
+            self.sessions.get(terminal_id).cloned()
+        }
+    }
+    
+    // Mock audit logger for testing
+    struct MockAuditLogger {
+        events: Arc<tokio::sync::Mutex<Vec<AuditEvent>>>,
+    }
+    
+    impl MockAuditLogger {
+        fn new() -> Self {
+            Self {
+                events: Arc::new(tokio::sync::Mutex::new(Vec::new())),
+            }
+        }
+        
+        async fn get_events(&self) -> Vec<AuditEvent> {
+            self.events.lock().await.clone()
+        }
+    }
+    
+    #[async_trait::async_trait]
+    impl AuditLogger for MockAuditLogger {
+        async fn log(&self, event: AuditEvent) -> Result<()> {
+            self.events.lock().await.push(event);
+            Ok(())
+        }
+        
+        async fn query(&self, _filter: AuditFilter) -> Result<Vec<AuditEvent>> {
+            Ok(self.events.lock().await.clone())
+        }
+    }
     
     #[tokio::test]
     async fn test_security_tiers() {
@@ -976,6 +1086,61 @@ mod tests {
         // Test dangerous command
         let result = manager.check_command("test-terminal", "rm -rf /", None).await.unwrap();
         assert!(matches!(result, CommandCheckResult::Deny(_)));
+    }
+    
+    #[tokio::test]
+    async fn test_session_id_in_audit_logs() {
+        let audit_logger = Arc::new(MockAuditLogger::new());
+        let session_lookup = Arc::new(MockSessionLookup::new());
+        
+        let manager = TerminalSecurityManager::new(SecurityTier::Basic)
+            .with_audit_logger(audit_logger.clone())
+            .with_session_lookup(session_lookup);
+        
+        // Create terminal context - should log with session ID
+        let _context = manager.create_context("terminal-1", None, None).await.unwrap();
+        
+        // Check command - should log with session ID
+        let _result = manager.check_command("terminal-1", "echo test", None).await.unwrap();
+        
+        // Verify audit events have correct session IDs
+        let events = audit_logger.get_events().await;
+        
+        // Should have 2 events: terminal creation and command execution
+        assert_eq!(events.len(), 2);
+        
+        // First event: terminal creation
+        let terminal_created_event = &events[0];
+        assert_eq!(terminal_created_event.session_id, "session-123");
+        assert_eq!(terminal_created_event.terminal_id, Some("terminal-1".to_string()));
+        assert!(matches!(terminal_created_event.event_type, AuditEventType::TerminalCreated));
+        
+        // Second event: command execution
+        let command_event = &events[1];
+        assert_eq!(command_event.session_id, "session-123");
+        assert_eq!(command_event.terminal_id, Some("terminal-1".to_string()));
+        assert_eq!(command_event.command, Some("echo test".to_string()));
+        assert!(matches!(command_event.event_type, AuditEventType::CommandExecuted));
+    }
+    
+    #[tokio::test]
+    async fn test_session_id_fallback_when_no_lookup() {
+        let audit_logger = Arc::new(MockAuditLogger::new());
+        
+        // Manager without session lookup
+        let manager = TerminalSecurityManager::new(SecurityTier::Basic)
+            .with_audit_logger(audit_logger.clone());
+        
+        // Create terminal context
+        let _context = manager.create_context("unknown-terminal", None, None).await.unwrap();
+        
+        // Verify audit event has empty session ID as fallback
+        let events = audit_logger.get_events().await;
+        assert_eq!(events.len(), 1);
+        
+        let event = &events[0];
+        assert_eq!(event.session_id, ""); // Should be empty when no lookup available
+        assert_eq!(event.terminal_id, Some("unknown-terminal".to_string()));
     }
     
     #[test]
