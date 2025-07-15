@@ -1,8 +1,8 @@
 {
   "build": {
-    "beforeDevCommand": "npm run dev",
+    "beforeDevCommand": "",
     "beforeBuildCommand": "npm run build",
-    "devUrl": "http://localhost:5173",
+    "devUrl": "http://localhost:5175",
     "frontendDist": "../build"
   },
   "productName": "OrchFlow",
@@ -10,7 +10,11 @@
   "identifier": "com.orchflow.app",
   "bundle": {
     "active": true,
-    "targets": ["dmg", "msi", "nsis"],
+    "targets": [
+      "dmg",
+      "msi",
+      "nsis"
+    ],
     "icon": [],
     "resources": {
       "binaries/tmux": "bin/tmux",
@@ -43,7 +47,9 @@
         "displayLanguageSelector": true,
         "installerIcon": "icons/icon.ico",
         "installMode": "perMachine",
-        "languages": ["English"],
+        "languages": [
+          "English"
+        ],
         "template": "installer.nsi"
       }
     }
@@ -72,7 +78,10 @@
   },
   "plugins": {
     "fs": {
-      "scope": ["$HOME/.orchflow/**", "$APPDATA/**"]
+      "scope": [
+        "$HOME/.orchflow/**",
+        "$APPDATA/**"
+      ]
     },
     "shell": {
       "open": true,
@@ -83,7 +92,7 @@
           "args": true
         },
         {
-          "name": "binaries/nvim", 
+          "name": "binaries/nvim",
           "cmd": "nvim",
           "args": true
         }

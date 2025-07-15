@@ -173,7 +173,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   try {
     await manager.init();
     const port = await manager.findAvailablePort(type);
-    console.warn(port);
+    console.log(port);
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
     process.exit(1);

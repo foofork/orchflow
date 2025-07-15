@@ -1,0 +1,34 @@
+[package]
+name = "orchflow-terminal"
+version = "0.1.0"
+edition = "2021"
+authors = ["Orchflow Team"]
+description = "High-performance terminal I/O management with PTY support, buffering, and stream processing"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/foofork/orchflow"
+homepage = "https://github.com/foofork/orchflow"
+documentation = "https://docs.rs/orchflow-terminal"
+readme = "README.md"
+keywords = ["terminal", "pty", "async", "streaming", "buffer"]
+categories = ["asynchronous", "command-line-interface", "development-tools"]
+
+[dependencies]
+# Workspace dependencies
+tokio = { workspace = true }
+async-trait = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+anyhow = { workspace = true }
+bytes = { workspace = true }
+portable-pty = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Terminal-specific dependencies
+futures = "0.3"
+crossbeam-channel = "0.5"
+chrono = { version = "0.4", features = ["serde"] }
+base64 = "0.22"
+
+[dev-dependencies]
+tokio-test = "0.4"

@@ -1,0 +1,31 @@
+[package]
+name = "orchflow-core"
+version = "0.1.0"
+edition = "2021"
+authors = ["Orchflow Team"]
+description = "Transport-agnostic orchestration engine for managing terminal sessions, panes, and plugins with an event-driven architecture"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/foofork/orchflow"
+homepage = "https://github.com/foofork/orchflow"
+documentation = "https://docs.rs/orchflow-core"
+readme = "README.md"
+keywords = ["terminal", "orchestration", "multiplexer", "async", "plugin"]
+categories = ["command-line-interface", "asynchronous", "development-tools"]
+
+[dependencies]
+# Workspace dependencies
+tokio = { workspace = true }
+async-trait = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+anyhow = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Core-specific dependencies
+uuid = { version = "1.11", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+orchflow-mux = { path = "../orchflow-mux" }
+
+[dev-dependencies]
+tokio-test = "0.4"

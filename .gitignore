@@ -30,6 +30,7 @@ memory/
 *.db
 *.db-shm
 *.db-wal
+target
 
 # GitHub workflows (duplicate in subdirectories)
 desktop/.github/

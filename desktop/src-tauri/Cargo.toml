@@ -6,6 +6,7 @@ authors = ["OrchFlow Team"]
 license = "MIT OR Apache-2.0"
 repository = ""
 edition = "2021"
+default-run = "orchflow"
 
 [lib]
 name = "orchflow"

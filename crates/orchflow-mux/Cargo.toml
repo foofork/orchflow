@@ -1,0 +1,33 @@
+[package]
+name = "orchflow-mux"
+version = "0.1.0"
+edition = "2021"
+authors = ["Orchflow Team"]
+description = "Terminal multiplexer abstraction layer supporting tmux, mock backends, and custom implementations"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/foofork/orchflow"
+homepage = "https://github.com/foofork/orchflow"
+documentation = "https://docs.rs/orchflow-mux"
+readme = "README.md"
+keywords = ["terminal", "multiplexer", "tmux", "mux", "abstraction"]
+categories = ["command-line-interface", "asynchronous", "development-tools"]
+
+[dependencies]
+# Workspace dependencies
+tokio = { workspace = true }
+async-trait = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+anyhow = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Mux-specific dependencies
+chrono = { version = "0.4", features = ["serde"] }
+log = "0.4"
+futures-util = "0.3"
+tokio-tungstenite = "0.27"
+
+[dev-dependencies]
+tokio-test = "0.4"
+uuid = { version = "1.11", features = ["v4"] }
