@@ -29,6 +29,7 @@ The core is built around several key components:
 
 ```rust
 use orchflow_core::{Manager, storage::MemoryStore, state::StateManager};
+use orchflow_mux::backend::TmuxBackend; // Real tmux backend
 use std::sync::Arc;
 
 // Create a storage backend
@@ -37,8 +38,8 @@ let store = Arc::new(MemoryStore::new());
 // Create state manager
 let state_manager = StateManager::new(store);
 
-// Create a backend (implement the MuxBackend trait)
-let backend = Arc::new(MyTmuxBackend::new());
+// Create a backend - use TmuxBackend for production or MockBackend for testing
+let backend = Arc::new(TmuxBackend::new());
 
 // Create the manager
 let manager = Manager::new(backend, state_manager);
@@ -49,23 +50,53 @@ let result = manager.execute_action(Action::CreateSession {
 }).await?;
 ```
 
-## Implementing a Backend
+## Backend Options
 
-To integrate with a terminal multiplexer, implement the `MuxBackend` trait:
+OrchFlow Core is designed to work with different terminal multiplexer backends:
+
+### Production Backends
+- **TmuxBackend** (from `orchflow-mux`): Full tmux integration for production use
+- **Custom backends**: Implement the `MuxBackend` trait for other multiplexers
+
+### Testing Backends
+- **MockBackend** (from `orchflow-mux`): Configurable mock for testing and development
+
+### Using Available Backends
 
 ```rust
-use orchflow_core::MuxBackend;
+use orchflow_mux::backend::{TmuxBackend, MockBackend};
+use orchflow_mux::factory::BackendFactory;
+
+// Production: Use tmux backend
+let backend = Arc::new(TmuxBackend::new());
+
+// Testing: Use mock backend  
+let mut mock_backend = MockBackend::new();
+mock_backend.set_fail_mode(false);
+let backend = Arc::new(mock_backend);
+
+// Auto-detection: Let factory choose based on environment
+let backend = Arc::new(BackendFactory::create_backend().await?);
+```
+
+## Implementing a Custom Backend
+
+To integrate with a different terminal multiplexer, implement the `MuxBackend` trait:
+
+```rust
+use orchflow_mux::backend::{MuxBackend, MuxError};
 use async_trait::async_trait;
 
-struct MyBackend;
+struct MyCustomBackend;
 
 #[async_trait]
-impl MuxBackend for MyBackend {
-    async fn create_session(&self, name: &str) -> Result<String, String> {
-        // Implementation
+impl MuxBackend for MyCustomBackend {
+    async fn create_session(&self, name: &str) -> Result<String, MuxError> {
+        // Your custom implementation
+        Ok(format!("custom-session-{}", name))
     }
     
-    // ... other methods
+    // ... implement other required methods
 }
 ```
 

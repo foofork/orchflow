@@ -29,8 +29,8 @@ Terminal multiplexer abstraction layer supporting tmux, mock backends, and custo
 
 **Features:**
 - Clean trait-based interface for terminal multiplexers
-- Full tmux integration with session and pane management
-- Mock backend for testing and development
+- **Production**: Full tmux integration with session and pane management
+- **Testing**: Mock backend with configurable behavior for testing and development
 - Factory pattern for automatic backend selection
 - Comprehensive error handling
 
@@ -39,11 +39,12 @@ Terminal multiplexer abstraction layer supporting tmux, mock backends, and custo
 High-performance terminal I/O management with PTY support, buffering, and stream processing.
 
 **Features:**
-- PTY creation and lifecycle management
+- **Production**: Real PTY creation and lifecycle management for actual terminal processes
 - Async streams for non-blocking terminal operations
 - Smart buffering with ring buffer and scrollback
 - Stream processing and output management
 - Resource cleanup with automatic Drop implementation
+- **Testing**: Use `MockBackend` from `orchflow-mux` for testing without real PTYs
 
 ## 🚀 Quick Start
 
@@ -60,7 +61,7 @@ Basic usage:
 
 ```rust
 use orchflow_core::{Manager, StateManager, storage::MemoryStore};
-use orchflow_mux::factory;
+use orchflow_mux::factory::BackendFactory;
 use std::sync::Arc;
 
 #[tokio::main]
@@ -68,7 +69,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize components
     let store = Arc::new(MemoryStore::new());
     let state_manager = StateManager::new(store);
-    let backend = Arc::from(factory::create_mux_backend_async().await);
+    
+    // Production: Auto-detect backend (tmux if available, mock otherwise)
+    let backend = Arc::new(BackendFactory::create_backend().await?);
+    
+    // Or explicitly choose:
+    // let backend = Arc::new(TmuxBackend::new());     // Production
+    // let backend = Arc::new(MockBackend::new());     // Testing
+    
     let manager = Manager::new(backend, state_manager);
     
     // Use the orchestration system

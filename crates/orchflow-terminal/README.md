@@ -11,6 +11,12 @@ High-performance terminal I/O management with PTY support, buffering, and stream
 - **Resource Management**: Automatic cleanup and resource handling
 - **Cross-Platform**: Works on Unix-like systems with PTY support
 
+## Production vs Testing
+
+**Production Use**: This crate provides real PTY (pseudo-terminal) functionality for spawning and managing actual terminal processes. All examples and APIs interact with real system processes.
+
+**Testing**: No mock implementations are provided in this crate. For testing terminal orchestration without real PTYs, use the `MockBackend` from `orchflow-mux` at the multiplexer level instead.
+
 ## Components
 
 ### PTY Manager
