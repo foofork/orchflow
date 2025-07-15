@@ -12,7 +12,7 @@ OrchFlow is a modular **terminal orchestration system** that provides enterprise
 
 ## 📦 Core Crates
 
-### [orchflow-core](./crates/orchflow-core) [![Crates.io](https://img.shields.io/crates/v/orchflow-core.svg)](https://crates.io/crates/orchflow-core)
+### [orchflow-core](https://crates.io/crates/orchflow-core) [![Crates.io](https://img.shields.io/crates/v/orchflow-core.svg)](https://crates.io/crates/orchflow-core)
 
 Transport-agnostic orchestration engine for managing terminal sessions, panes, and plugins with an event-driven architecture.
 
@@ -23,7 +23,7 @@ Transport-agnostic orchestration engine for managing terminal sessions, panes, a
 - Backend abstraction for terminal multiplexers
 - Async/await support throughout
 
-### [orchflow-mux](./crates/orchflow-mux) [![Crates.io](https://img.shields.io/crates/v/orchflow-mux.svg)](https://crates.io/crates/orchflow-mux)
+### [orchflow-mux](https://crates.io/crates/orchflow-mux) [![Crates.io](https://img.shields.io/crates/v/orchflow-mux.svg)](https://crates.io/crates/orchflow-mux)
 
 Terminal multiplexer abstraction layer supporting tmux, mock backends, and custom implementations.
 
@@ -34,7 +34,7 @@ Terminal multiplexer abstraction layer supporting tmux, mock backends, and custo
 - Factory pattern for automatic backend selection
 - Comprehensive error handling
 
-### [orchflow-terminal](./crates/orchflow-terminal) [![Crates.io](https://img.shields.io/crates/v/orchflow-terminal.svg)](https://crates.io/crates/orchflow-terminal)
+### [orchflow-terminal](https://crates.io/crates/orchflow-terminal) [![Crates.io](https://img.shields.io/crates/v/orchflow-terminal.svg)](https://crates.io/crates/orchflow-terminal)
 
 High-performance terminal I/O management with PTY support, buffering, and stream processing.
 
