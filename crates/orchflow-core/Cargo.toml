@@ -25,7 +25,7 @@ serde_json = { workspace = true }
 # Core-specific dependencies
 uuid = { version = "1.11", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
-orchflow-mux = { path = "../orchflow-mux" }
+orchflow-mux = { version = "0.1.0", path = "../orchflow-mux" }
 
 [dev-dependencies]
 tokio-test = "0.4"
