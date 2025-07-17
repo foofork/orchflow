@@ -1,6 +1,5 @@
 import { EventEmitter } from 'events';
 import { MCPClient } from './mcp-client';
-import { NLIntentRecognizer } from './nl-intent-recognizer';
 import { ConversationContext } from './conversation-context';
 import { OrchestratorClient } from './orchestrator-client';
 import { StatusPane } from './status-pane';
@@ -20,7 +19,6 @@ export interface OrchFlowTerminalConfig {
 
 export class OrchFlowTerminal extends EventEmitter {
   private mcpClient: MCPClient;
-  private intentRecognizer: NLIntentRecognizer;
   private conversationContext: ConversationContext;
   private orchestratorClient: OrchestratorClient;
   private statusPane: StatusPane;
@@ -33,7 +31,6 @@ export class OrchFlowTerminal extends EventEmitter {
   constructor(config: OrchFlowTerminalConfig) {
     super();
     this.mcpClient = new MCPClient(config.mcpEndpoint);
-    this.intentRecognizer = new NLIntentRecognizer();
     this.conversationContext = new ConversationContext();
     this.orchestratorClient = new OrchestratorClient(config.orchestratorEndpoint);
     this.statusPane = new StatusPane(config.statusPaneConfig);
@@ -125,125 +122,60 @@ export class OrchFlowTerminal extends EventEmitter {
       timestamp: new Date()
     });
 
-    // Parse natural language intent
-    const intent = await this.intentRecognizer.parseIntent(
-      input,
-      this.conversationContext
-    );
+    // Direct natural language processing through MCP tools
+    // No pattern matching or keyword requirements
 
-    // Handle based on intent
-    switch (intent.action) {
-      case 'create_task':
-        await this.handleCreateTask(intent);
-        break;
-      case 'connect_to_worker':
-        await this.handleConnectToWorker(intent);
-        break;
-      case 'list_workers':
-        await this.handleListWorkers(intent);
-        break;
-      case 'pause_worker':
-        await this.handlePauseWorker(intent);
-        break;
-      case 'clarify':
-        await this.handleClarification(intent);
-        break;
-      default:
-        await this.handleGenericQuery(intent);
-    }
-  }
-
-  private async handleCreateTask(intent: any): Promise<void> {
-    const task = {
-      id: this.generateId(),
-      type: intent.parameters.taskType,
-      description: intent.parameters.description,
-      parameters: intent.parameters,
-      dependencies: [],
-      status: 'pending',
-      priority: intent.parameters.priority || 5,
-      descriptiveName: intent.parameters.descriptiveName
-    };
-
-    await this.orchestratorClient.submitTask(task);
-    await this.updateUI(`✓ Task created: "${task.descriptiveName}" worker will be spawned`);
-  }
-
-  private async handleConnectToWorker(intent: any): Promise<void> {
-    const workerName = intent.parameters.workerName;
-    const workers = await this.orchestratorClient.listWorkers();
-
-    // Find worker by descriptive name (fuzzy match)
-    const targetWorker = workers.find(w =>
-      w.descriptiveName.toLowerCase().includes(workerName.toLowerCase())
-    );
-
-    if (targetWorker) {
-      await this.workerAccessManager.connectToWorker(targetWorker.id);
-      await this.updateUI(`✓ Connected to "${targetWorker.descriptiveName}"`);
-    } else {
-      const workerList = workers.map(w => `  • ${w.descriptiveName}`).join('\n');
-      await this.updateUI(`Worker '${workerName}' not found. Available workers:\n${workerList}`);
-    }
-  }
-
-  private async handleListWorkers(_intent: any): Promise<void> {
-    const workers = await this.orchestratorClient.listWorkers();
-
-    if (workers.length === 0) {
-      await this.updateUI('No active workers');
+    // For numeric shortcuts (1-9), handle quick access
+    if (/^[1-9]$/.test(input)) {
+      const workerNumber = parseInt(input);
+      await this.handleQuickAccess(workerNumber);
       return;
     }
 
-    const workerList = workers.map(w => {
-      const statusIcon = this.getStatusIcon(w.status);
-      const key = w.quickAccessKey ? `[${w.quickAccessKey}]` : '   ';
-      return `${key} ${w.descriptiveName.padEnd(25)} ${statusIcon} ${w.status} (${w.progress}%)`;
-    }).join('\n');
-
-    await this.updateUI(workerList);
+    // All other input is processed through MCP tools
+    // which understand natural language without requiring keywords
+    await this.processNaturalLanguageCommand(input);
   }
 
-  private async handlePauseWorker(intent: any): Promise<void> {
-    const workerId = intent.parameters.workerId;
-    const workerName = intent.parameters.workerName;
+  private async processNaturalLanguageCommand(input: string): Promise<void> {
+    // Process through MCP tools for natural language understanding
+    // No pattern matching or specific keywords required
+    try {
+      const response = await this.mcpClient.invokeTool('orchflow_natural_task', {
+        naturalLanguageInput: input,
+        context: this.conversationContext.getRecentHistory()
+      });
 
-    let targetWorker;
-    if (workerId) {
-      targetWorker = await this.orchestratorClient.getWorker(workerId);
-    } else if (workerName) {
+      if (response.success) {
+        await this.updateUI(response.description || 'Command processed successfully');
+      } else {
+        await this.updateUI(`Error: ${response.error || 'Failed to process command'}`);
+      }
+    } catch (error) {
+      await this.updateUI(`Error processing command: ${error}`);
+    }
+  }
+
+  private async handleQuickAccess(workerNumber: number): Promise<void> {
+    try {
+      // Quick access is handled through the orchestrator
       const workers = await this.orchestratorClient.listWorkers();
-      targetWorker = workers.find(w =>
-        w.descriptiveName.toLowerCase().includes(workerName.toLowerCase())
-      );
+      const worker = workers.find(w => w.quickAccessKey === workerNumber);
+      
+      if (worker) {
+        await this.workerAccessManager.connectToWorker(worker.id);
+        await this.updateUI(`✓ Connected to "${worker.descriptiveName}" [${workerNumber}]`);
+      } else {
+        await this.updateUI(`No worker assigned to key ${workerNumber}`);
+      }
+    } catch (error) {
+      await this.updateUI(`Error connecting to worker: ${error}`);
     }
-
-    if (targetWorker) {
-      await this.orchestratorClient.pauseWorker(targetWorker.id);
-      await this.updateUI(`✓ Paused "${targetWorker.descriptiveName}"`);
-    } else {
-      await this.updateUI('Worker not found');
-    }
-  }
-
-  private async handleClarification(intent: any): Promise<void> {
-    await this.updateUI(intent.parameters.message);
-  }
-
-  private async handleGenericQuery(intent: any): Promise<void> {
-    // Use Claude to handle generic queries
-    const response = await this.mcpClient.invokeTool('orchflow_query', {
-      query: intent.parameters.query,
-      context: this.conversationContext.getRecentHistory()
-    });
-
-    await this.updateUI(response.result);
   }
 
   private async setupIntentHandlers(): Promise<void> {
-    // Intent handlers are set up in the NLIntentRecognizer
-    // This method ensures the recognizer is properly configured
-    await this.intentRecognizer.initialize();
+    // Intent handling is now done through MCP tools
+    // No pattern-based intent recognition needed
   }
 
   private async restoreSession(): Promise<void> {

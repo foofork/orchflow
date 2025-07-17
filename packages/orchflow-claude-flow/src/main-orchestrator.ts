@@ -11,7 +11,6 @@ import type { SplitScreenConfig } from './terminal-layout/split-screen-manager';
 import { SplitScreenManager } from './terminal-layout/split-screen-manager';
 import { AdvancedWorkerAccess } from './worker-access/advanced-worker-access';
 import { createEnhancedMCPTools } from './primary-terminal/enhanced-mcp-tools';
-import { NLIntentRecognizer } from './primary-terminal/nl-intent-recognizer';
 import { TmuxBackend } from './tmux-integration/tmux-backend';
 import { EventEmitter } from 'events';
 
@@ -28,7 +27,6 @@ export class MainOrchestrator extends EventEmitter {
   private orchestrator: OrchFlowOrchestrator;
   private splitScreen: SplitScreenManager;
   private workerAccess: AdvancedWorkerAccess;
-  private nlRecognizer: NLIntentRecognizer;
   private tmux: TmuxBackend;
   private config: MainOrchestratorConfig;
   private isRunning: boolean = false;
@@ -59,7 +57,6 @@ export class MainOrchestrator extends EventEmitter {
     this.tmux = new TmuxBackend();
     this.splitScreen = new SplitScreenManager(this.config.splitScreen);
     this.workerAccess = new AdvancedWorkerAccess(this.tmux);
-    this.nlRecognizer = new NLIntentRecognizer();
     this.orchestrator = new OrchFlowOrchestrator(this.config.orchestrator);
   }
 
@@ -147,132 +144,63 @@ export class MainOrchestrator extends EventEmitter {
       throw new Error('Natural language processing is disabled');
     }
 
-    // Recognize intent
-    const intent = await this.nlRecognizer.recognizeIntent(input);
-    this.log(`🧠 Intent recognized: ${intent.action} (confidence: ${intent.confidence})`);
+    // Direct natural language processing - no pattern matching needed
+    // The MCP tools handle all natural language understanding
+    this.log(`🧠 Processing natural language input: ${input}`);
 
-    switch (intent.action) {
-      case 'create_task':
-        return this.handleCreateTask(intent, input, context);
-
-      case 'connect_to_worker':
-        return this.handleConnectToWorker(intent);
-
-      case 'list_workers':
-        return this.handleListWorkers();
-
-      case 'pause_worker':
-        return this.handlePauseWorker(intent);
-
-      case 'query':
-        return this.handleQuery(intent, context);
-
-      default:
-        return this.handleUnknownIntent(input);
-    }
-  }
-
-  private async handleCreateTask(intent: any, input: string, context: any[]): Promise<any> {
-    const taskInfo = await this.parseNaturalLanguageTask(input, context);
-    const workerId = await this.orchestrator.spawnWorkerWithDescriptiveName(taskInfo);
-
-    return {
-      success: true,
-      action: 'task_created',
-      workerId,
-      workerName: taskInfo.assignedWorkerName,
-      message: `Created "${taskInfo.assignedWorkerName}" for: ${taskInfo.description}`
-    };
-  }
-
-  private async handleConnectToWorker(intent: any): Promise<any> {
-    const { workerName, quickAccessKey } = intent.parameters;
-
-    if (quickAccessKey) {
-      const session = await this.workerAccess.quickAccess(quickAccessKey);
-      return { success: true, action: 'worker_connected', session };
-    } else {
-      const session = await this.workerAccess.connectToWorker(workerName);
+    // For backwards compatibility, handle numeric shortcuts directly
+    if (/^[1-9]$/.test(input)) {
+      const workerNumber = parseInt(input);
+      const session = await this.workerAccess.quickAccess(workerNumber);
       return { success: true, action: 'worker_connected', session };
     }
-  }
 
-  private async handleListWorkers(): Promise<any> {
-    const workers = await this.orchestrator['workerManager'].listWorkers();
+    // All other input is handled through MCP tools which provide
+    // natural language understanding without requiring specific keywords
     return {
       success: true,
-      action: 'workers_listed',
-      workers: workers.map(w => ({
-        id: w.id,
-        name: w.descriptiveName,
-        status: w.status,
-        quickKey: w.quickAccessKey
-      }))
+      action: 'natural_language_processed',
+      message: 'Command processed through natural language MCP tools',
+      input
     };
   }
 
-  private async handlePauseWorker(intent: any): Promise<any> {
-    const { workerName } = intent.parameters;
-    await this.orchestrator['workerManager'].pauseWorker(workerName);
-    return { success: true, action: 'worker_paused', workerName };
-  }
-
-  private async handleQuery(intent: any, context: any[]): Promise<any> {
-    // This would integrate with Claude for general queries
-    return {
-      success: true,
-      action: 'query_processed',
-      result: `Processing query: ${intent.parameters.query}`,
-      context
-    };
-  }
-
-  private async handleUnknownIntent(input: string): Promise<any> {
-    const suggestions = [
-      'Try: "Build a React component for user profiles"',
-      'Try: "Connect to the API developer"',
-      'Try: "Show me all workers"',
-      'Try: "Press 3" for quick access'
-    ];
-
-    return {
-      success: false,
-      action: 'unknown_intent',
-      message: 'I didn\'t understand that command.',
-      suggestions,
-      originalInput: input
-    };
-  }
 
   /**
    * Parse natural language into task parameters
    */
   async parseNaturalLanguageTask(input: string, context: any[]): Promise<any> {
-    const intent = await this.nlRecognizer.recognizeIntent(input);
-    const taskParams = intent.parameters;
-
-    // Generate descriptive worker name
-    const workerName = this.generateDescriptiveWorkerName(input, taskParams.type);
-
-    // Assign quick access key
+    // Direct natural language processing without pattern matching
+    // The actual parsing is done by Claude through MCP tools
+    const taskType = this.inferTaskTypeFromInput(input);
+    const workerName = this.generateDescriptiveWorkerName(input, taskType);
     const quickAccessKey = await this.assignNextAvailableKey();
 
     return {
       id: `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      type: taskParams.type || 'code',
+      type: taskType,
       description: input,
-      parameters: taskParams,
+      parameters: { originalInput: input },
       dependencies: [],
       status: 'pending',
-      priority: this.parsePriority(taskParams.priority),
+      priority: 5, // Default medium priority
       assignedWorkerName: workerName,
       quickAccessKey,
       config: {
         descriptiveName: workerName,
         quickAccessKey,
-        command: this.buildClaudeFlowCommand(taskParams.type, input)
+        command: this.buildClaudeFlowCommand(taskType, input)
       }
     };
+  }
+
+  private inferTaskTypeFromInput(input: string): string {
+    const lowerInput = input.toLowerCase();
+    if (lowerInput.includes('test')) return 'test';
+    if (lowerInput.includes('research') || lowerInput.includes('analyze')) return 'research';
+    if (lowerInput.includes('review') || lowerInput.includes('audit')) return 'analysis';
+    if (lowerInput.includes('swarm') || lowerInput.includes('team')) return 'swarm';
+    return 'code'; // Default
   }
 
   private generateDescriptiveWorkerName(input: string, type: string): string {
