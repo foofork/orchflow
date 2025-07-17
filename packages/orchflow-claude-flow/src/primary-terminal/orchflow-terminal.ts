@@ -7,10 +7,14 @@ import { WorkerAccessManager } from './worker-access-manager';
 import { TmuxBackend } from '../tmux-integration/tmux-backend';
 import { OrchFlowFunctionalContext } from '../context/functional-context';
 import { DynamicInstructionProvider } from '../instructions/dynamic-instructions';
-import { OrchFlowMemoryContext } from '../context/memory-context';
+import { ContextManager } from '../managers/context-manager';
 import { ClaudeMDManager } from '../context/claude-md-manager';
 import { StatusPaneManager } from './status-pane-integration';
+import { TmuxInstaller } from '../setup/tmux-installer';
+import { hasTmux } from '../utils/terminal-utils';
+import { PerformanceMonitor } from '../performance/performance-monitor';
 import chalk from 'chalk';
+import type { WorkerInfo } from '../types/unified-interfaces';
 
 export interface OrchFlowTerminalConfig {
   mcpEndpoint: string;
@@ -20,6 +24,8 @@ export interface OrchFlowTerminalConfig {
     updateInterval: number;
     showQuickAccess: boolean;
   };
+  mode?: 'tmux' | 'inline' | 'split';
+  autoInstallTmux?: boolean;
 }
 
 export class OrchFlowTerminal extends EventEmitter {
@@ -31,22 +37,25 @@ export class OrchFlowTerminal extends EventEmitter {
   private tmuxBackend: TmuxBackend;
   private contextProvider: OrchFlowFunctionalContext;
   private instructionProvider: DynamicInstructionProvider;
-  private memoryContext: OrchFlowMemoryContext;
+  private memoryContext: ContextManager;
   private claudeMDManager: ClaudeMDManager;
   private statusPaneManager: StatusPaneManager;
+  private performanceMonitor: PerformanceMonitor | null = null;
   private sessionId: string = '';
   private primaryPaneId: string = '';
   private statusPaneId: string = '';
+  private config: OrchFlowTerminalConfig;
 
   constructor(config: OrchFlowTerminalConfig) {
     super();
+    this.config = config;
     this.mcpClient = new MCPClient(config.mcpEndpoint);
     this.conversationContext = new ConversationContext();
     this.orchestratorClient = new OrchestratorClient(config.orchestratorEndpoint);
     this.tmuxBackend = new TmuxBackend();
     this.statusPane = new StatusPane(this.tmuxBackend);
     this.workerAccessManager = new WorkerAccessManager();
-    
+
     // Initialize missing properties
     this.contextProvider = new OrchFlowFunctionalContext(
       this.orchestratorClient,
@@ -54,14 +63,14 @@ export class OrchFlowTerminal extends EventEmitter {
       this.workerAccessManager
     );
     this.instructionProvider = new DynamicInstructionProvider();
-    this.memoryContext = new OrchFlowMemoryContext(this.mcpClient);
+    this.memoryContext = ContextManager.getInstance({ mcpClient: this.mcpClient });
     this.claudeMDManager = new ClaudeMDManager();
-    
+
     // Initialize status pane manager (will be started after initialization)
     this.statusPaneManager = new StatusPaneManager({
       statusPane: this.statusPane,
-      orchestrator: this.orchestratorClient as any,
-      performanceMonitor: null as any // Will be set after performance monitor is created
+      orchestrator: this.orchestratorClient,
+      performanceMonitor: null // Will be set after performance monitor is created
     });
   }
 
@@ -73,8 +82,30 @@ export class OrchFlowTerminal extends EventEmitter {
     const optimizer = new SetupOptimizer();
     await optimizer.optimizeSetup();
 
-    // Setup 70/30 split screen layout
-    await this.setupSplitScreenLayout();
+    // Check and install tmux if needed
+    if (this.config.mode === 'tmux' && !(await hasTmux())) {
+      if (this.config.autoInstallTmux !== false) {
+        console.log(chalk.yellow('tmux not found. Installing...'));
+        const installer = new TmuxInstaller();
+        const result = await installer.installAndConfigure();
+
+        if (!result.success) {
+          console.error(chalk.red('Failed to install tmux:'), result.errorMessage);
+          console.log(chalk.yellow('Falling back to inline mode...'));
+          this.config.mode = 'inline';
+        } else {
+          installer.displayInstallationSummary(result);
+        }
+      } else {
+        console.warn(chalk.yellow('tmux not found. Falling back to inline mode...'));
+        this.config.mode = 'inline';
+      }
+    }
+
+    // Setup 70/30 split screen layout (only if in tmux mode)
+    if (this.config.mode === 'tmux') {
+      await this.setupSplitScreenLayout();
+    }
 
     // Connect to services
     await this.mcpClient.connect();
@@ -86,9 +117,9 @@ export class OrchFlowTerminal extends EventEmitter {
       this.conversationContext,
       this.workerAccessManager
     );
-    
+
     this.instructionProvider = new DynamicInstructionProvider();
-    this.memoryContext = new OrchFlowMemoryContext(this.mcpClient);
+    this.memoryContext = ContextManager.getInstance({ mcpClient: this.mcpClient });
     this.claudeMDManager = new ClaudeMDManager();
 
     // Initialize components
@@ -96,21 +127,17 @@ export class OrchFlowTerminal extends EventEmitter {
     await this.setupIntentHandlers();
     await this.setupWorkerAccessShortcuts();
     await this.restoreSession();
-    
+
     // Update CLAUDE.md with OrchFlow context
     await this.updateClaudeMDWithContext();
 
     // Performance monitoring - start monitoring after initialization
-    const { PerformanceMonitor } = await import('../performance/performance-monitor');
-    const monitor = new PerformanceMonitor();
-    monitor.start(5000); // Monitor every 5 seconds
-    
-    // Store monitor for cleanup and connect to status pane
-    (this as any).performanceMonitor = monitor;
-    
+    this.performanceMonitor = new PerformanceMonitor();
+    this.performanceMonitor.start(5000); // Monitor every 5 seconds
+
     // Connect performance monitor to status pane manager
-    this.statusPaneManager['performanceMonitor'] = monitor;
-    
+    this.statusPaneManager.setPerformanceMonitor(this.performanceMonitor);
+
     // Start status pane integrations
     await this.statusPaneManager.start();
 
@@ -201,17 +228,17 @@ export class OrchFlowTerminal extends EventEmitter {
     try {
       // Get rich functional context
       const context = await this.contextProvider.getContext(input);
-      
+
       // Get historical suggestions
       const suggestions = await this.memoryContext.suggestBasedOnHistory(input);
       if (suggestions.length > 0) {
         context.historicalSuggestions = suggestions;
       }
-      
+
       // Generate task-specific instructions
       const taskType = this.inferTaskType(input);
       const instructions = this.instructionProvider.generateInstructions(taskType, context);
-      
+
       const response = await this.mcpClient.invokeTool('orchflow_natural_task', {
         naturalLanguageInput: input,
         context: this.conversationContext.getRecentHistory(),
@@ -221,9 +248,9 @@ export class OrchFlowTerminal extends EventEmitter {
 
       if (response.success) {
         await this.updateUI(response.description || 'Command processed successfully');
-        
+
         // Store successful patterns for learning
-        await this.memoryContext.storeTaskHistory({
+        await this.memoryContext.storeTaskContext({
           taskId: response.workerId || `task_${Date.now()}`,
           input,
           taskType,
@@ -233,7 +260,7 @@ export class OrchFlowTerminal extends EventEmitter {
           successfulCommand: input,
           context: context.currentTask
         });
-        
+
         // Update CLAUDE.md with current context
         await this.updateClaudeMDWithContext();
       } else {
@@ -249,7 +276,7 @@ export class OrchFlowTerminal extends EventEmitter {
       // Quick access is handled through the orchestrator
       const workers = await this.orchestratorClient.listWorkers();
       const worker = workers.find(w => w.quickAccessKey === workerNumber);
-      
+
       if (worker) {
         await this.workerAccessManager.connectToWorker(worker.id);
         await this.updateUI(`✓ Connected to "${worker.descriptiveName}" [${workerNumber}]`);
@@ -271,7 +298,7 @@ export class OrchFlowTerminal extends EventEmitter {
     const sessionData = await this.orchestratorClient.getSessionData();
     if (sessionData) {
       this.conversationContext.restore(sessionData.conversation);
-      await this.statusPane.restoreWorkers(sessionData.workers);
+      await this.statusPane.restoreWorkers(sessionData.workers as WorkerInfo[]);
     }
   }
 
@@ -305,14 +332,14 @@ export class OrchFlowTerminal extends EventEmitter {
    */
   private inferTaskType(input: string): string {
     const lowerInput = input.toLowerCase();
-    if (lowerInput.includes('test')) return 'test';
-    if (lowerInput.includes('research') || lowerInput.includes('analyze')) return 'research';
-    if (lowerInput.includes('review') || lowerInput.includes('audit')) return 'analysis';
-    if (lowerInput.includes('swarm') || lowerInput.includes('team')) return 'swarm';
-    if (lowerInput.includes('auth') || lowerInput.includes('login')) return 'auth';
-    if (lowerInput.includes('database') || lowerInput.includes('db')) return 'database';
-    if (lowerInput.includes('api') || lowerInput.includes('endpoint')) return 'api-development';
-    if (lowerInput.includes('react') || lowerInput.includes('component')) return 'web-development';
+    if (lowerInput.includes('test')) {return 'test';}
+    if (lowerInput.includes('research') || lowerInput.includes('analyze')) {return 'research';}
+    if (lowerInput.includes('review') || lowerInput.includes('audit')) {return 'analysis';}
+    if (lowerInput.includes('swarm') || lowerInput.includes('team')) {return 'swarm';}
+    if (lowerInput.includes('auth') || lowerInput.includes('login')) {return 'auth';}
+    if (lowerInput.includes('database') || lowerInput.includes('db')) {return 'database';}
+    if (lowerInput.includes('api') || lowerInput.includes('endpoint')) {return 'api-development';}
+    if (lowerInput.includes('react') || lowerInput.includes('component')) {return 'web-development';}
     return 'code'; // Default
   }
 
@@ -369,9 +396,23 @@ export class OrchFlowTerminal extends EventEmitter {
     console.log(chalk.yellow('Shutting down OrchFlow Terminal...'));
 
     // Save session state
+    const workers = await this.orchestratorClient.listWorkers();
+    const convertedWorkers: WorkerInfo[] = workers.map((worker: any) => ({
+      id: worker.id,
+      name: worker.descriptiveName || worker.name,
+      status: worker.status,
+      currentTask: worker.currentTask?.description || worker.currentTask || '',
+      progress: worker.progress || 0,
+      resources: worker.resources || { cpuUsage: 0, memoryUsage: 0, diskUsage: 0 },
+      quickAccessKey: worker.quickAccessKey
+    }));
+    
     await this.orchestratorClient.saveSessionData({
+      id: 'shutdown-session',
       conversation: this.conversationContext.export(),
-      workers: await this.orchestratorClient.listWorkers()
+      workers: convertedWorkers,
+      tasks: [],
+      startTime: new Date()
     });
 
     // Clean up memory context
@@ -380,10 +421,10 @@ export class OrchFlowTerminal extends EventEmitter {
     }
 
     // Stop performance monitoring
-    if ((this as any).performanceMonitor) {
-      (this as any).performanceMonitor.stop();
+    if (this.performanceMonitor) {
+      this.performanceMonitor.stop();
     }
-    
+
     // Stop status pane integrations
     if (this.statusPaneManager) {
       await this.statusPaneManager.stop();

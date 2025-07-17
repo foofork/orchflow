@@ -1,5 +1,5 @@
 import { OrchFlowCore } from '../../core/orchflow-core';
-import { OrchFlowMemoryContext } from '../../context/memory-context';
+import { ContextManager } from '../../managers/context-manager';
 import { MCPClient } from '../../primary-terminal/mcp-client';
 import fetch from 'node-fetch';
 import { existsSync, mkdirSync, rmSync } from 'fs';
@@ -52,7 +52,7 @@ describe('Memory Persistence Integration Tests', () => {
   afterAll(async () => {
     await mcpClient?.disconnect();
     await core?.stop();
-    
+
     // Cleanup test directory
     if (existsSync(testDir)) {
       rmSync(testDir, { recursive: true, force: true });
@@ -91,7 +91,7 @@ describe('Memory Persistence Integration Tests', () => {
 
     it('should handle worker context updates', async () => {
       const workerId = 'test-worker-456';
-      
+
       // Initial context
       const initialContext = {
         name: 'Frontend Developer',
@@ -360,7 +360,7 @@ describe('Memory Persistence Integration Tests', () => {
 
       const searchData = await searchResponse.json();
       expect(searchData.matches).toHaveLength(2);
-      
+
       const versions = searchData.matches.map(m => JSON.parse(m.value).api.version);
       expect(versions).toContain('1.0.0');
       expect(versions).toContain('2.0.0');

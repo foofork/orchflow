@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import fs from 'fs/promises';
 import path from 'path';
-import type { Task } from './orchflow-orchestrator';
+import type { Task, SessionData } from '../types/unified-interfaces';
 
 export interface StateConfig {
   database: string;
@@ -9,19 +9,7 @@ export interface StateConfig {
   saveInterval?: number;
 }
 
-export interface SessionData {
-  id: string;
-  startTime: Date;
-  lastUpdate: Date;
-  tasks: Task[];
-  workers: any[];
-  metadata: Record<string, any>;
-  mainObjective?: string;
-  activeSubtasks?: string[];
-  completedTasks?: string[];
-  dependencies?: [string, string[]][];
-  taskHistory?: Array<{task: string, status: string, timestamp: Date}>;
-}
+// SessionData interface moved to unified-interfaces.ts
 
 export interface StateSnapshot {
   version: string;
@@ -109,6 +97,22 @@ export class StateManager extends EventEmitter {
 
   async updateTask(task: Task): Promise<void> {
     await this.persistTask(task);
+  }
+
+  async saveState(data: any): Promise<void> {
+    if (!this.initialized) {
+      throw new Error('StateManager not initialized');
+    }
+
+    // Merge provided data with current session data
+    if (data) {
+      this.sessionData = { ...this.sessionData, ...data };
+    }
+
+    this.sessionData.lastUpdate = new Date();
+    this.isDirty = true;
+
+    await this.save();
   }
 
   async getTask(taskId: string): Promise<Task | undefined> {
@@ -221,7 +225,7 @@ export class StateManager extends EventEmitter {
 
       this.emit('stateLoaded', snapshot);
     } catch (error) {
-      if ((error as any).code !== 'ENOENT') {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
         throw error;
       }
       // File doesn't exist, start fresh
@@ -286,7 +290,7 @@ export class StateManager extends EventEmitter {
       const files = await fs.readdir(snapshotsDir);
       return files.filter(f => f.endsWith('.json'));
     } catch (error) {
-      if ((error as any).code === 'ENOENT') {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
         return [];
       }
       throw error;

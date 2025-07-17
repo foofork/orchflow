@@ -1,5 +1,5 @@
 import { OrchFlowConfigManager } from '../../terminal-setup/config-manager';
-import { OrchFlowConfigData } from '../../types';
+import type { OrchFlowConfigData } from '../../types';
 import { join } from 'path';
 import { homedir } from 'os';
 
@@ -96,7 +96,7 @@ describe('OrchFlowConfigManager', () => {
         expect.stringContaining('Failed to load config')
       );
       expect(result.terminal.preferred_mode).toBe('auto');
-      
+
       consoleSpy.mockRestore();
     });
 
@@ -371,16 +371,16 @@ describe('OrchFlowConfigManager', () => {
   describe('memory usage', () => {
     it('should maintain low memory footprint', async () => {
       const initialMemory = process.memoryUsage().heapUsed;
-      
+
       // Perform multiple operations
       for (let i = 0; i < 100; i++) {
         mockFs.existsSync.mockReturnValue(false);
         await configManager.loadConfig();
       }
-      
+
       const finalMemory = process.memoryUsage().heapUsed;
       const memoryIncrease = finalMemory - initialMemory;
-      
+
       // Should use less than 10MB additional memory
       expect(memoryIncrease).toBeLessThan(10 * 1024 * 1024);
     });

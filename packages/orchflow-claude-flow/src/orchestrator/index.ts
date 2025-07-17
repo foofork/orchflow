@@ -3,7 +3,8 @@
  */
 
 export { OrchFlowOrchestrator } from './orchflow-orchestrator';
-export type { OrchFlowOrchestratorConfig, Task, WorkerId, ConflictInfo } from './orchflow-orchestrator';
+export type { OrchFlowOrchestratorConfig, Task, ConflictInfo } from './orchflow-orchestrator';
+export type { WorkerId } from '../types/unified-interfaces';
 
 export { TaskGraph } from './task-graph';
 export { WorkerManager } from './worker-manager';

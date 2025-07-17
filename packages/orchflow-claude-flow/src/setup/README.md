@@ -163,7 +163,7 @@ const confirmed = await ui.showConfirmation({
 });
 ```
 
-### 5. OptimizedSetupOrchestrator
+### 5. UnifiedSetupOrchestrator
 
 **Purpose**: Main orchestrator that coordinates all setup components.
 
@@ -176,9 +176,9 @@ const confirmed = await ui.showConfirmation({
 
 **Usage**:
 ```typescript
-import { OptimizedSetupOrchestrator } from './optimized-setup-orchestrator';
+import { UnifiedSetupOrchestrator } from './unified-setup-orchestrator';
 
-const orchestrator = OptimizedSetupOrchestrator.getInstance();
+const orchestrator = UnifiedSetupOrchestrator.getInstance();
 
 // Quick automated setup
 const result = await orchestrator.quickSetup();
@@ -199,7 +199,7 @@ const validation = await orchestrator.validateSetup();
 | TerminalEnvironmentDetector | Detection | <500ms | ~250ms |
 | SetupFlowRouter | Routing | <50ms | ~20ms |
 | OrchFlowConfigManager | Load/Save | <100ms | ~50ms |
-| OptimizedSetupOrchestrator | Quick Setup | <2000ms | ~1200ms |
+| UnifiedSetupOrchestrator | Quick Setup | <2000ms | ~1200ms |
 
 ### Memory Usage
 

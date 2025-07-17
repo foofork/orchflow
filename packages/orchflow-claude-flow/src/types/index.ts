@@ -1,12 +1,12 @@
 /**
  * OrchFlow Type Definitions
- * 
+ *
  * This file re-exports all unified interface definitions to maintain compatibility
  * while ensuring type consistency across the entire system.
  */
 
 // Re-export all unified interfaces
-export {
+export type {
   // Core Worker Types
   WorkerType,
   WorkerStatus,
@@ -15,14 +15,14 @@ export {
   ExtendedWorkerRich,
   WorkerContext,
   WorkerMemoryContext,
-  
+
   // Task and Context Types
   Task,
   Message,
   CodeArtifact,
   Decision,
   SharedKnowledge,
-  
+
   // Configuration Types
   OrchFlowConfig,
   CoreConfig,
@@ -31,7 +31,7 @@ export {
   TerminalConfig,
   OrchFlowOrchestratorConfig,
   WorkerConfig,
-  
+
   // MCP Types
   MCPTool,
   MCPPrompt,
@@ -40,26 +40,26 @@ export {
   MCPMessage,
   MCPError,
   MCPToolInfo,
-  
+
   // Session and Data Types
   SessionData,
   LaunchOptions,
-  
+
   // Worker Access Types
   WorkerAccessSession,
   WorkerSearchResult,
   WorkerConnection,
   WorkerDisplay,
   WorkerInfo,
-  
+
   // Performance Types
   PerformanceMetrics,
   WorkerMetrics,
-  
+
   // State Management Types
   StateConfig,
   WorkerId,
-  
+
   // Setup Types
   SetupFlowConfig,
   OrchFlowConfigFile,
@@ -67,18 +67,18 @@ export {
   ConfirmationConfig,
   ProgressConfig,
   StatusPaneConfig,
-  
+
   // Instruction Types
   InstructionConfig,
   FunctionalContext,
-  
+
   // Tmux Types
   TmuxConfiguration,
   TmuxConfig,
-  
+
   // Test Types
   TestConfig,
-  
+
   // Main Orchestrator Types
   MainOrchestratorConfig
 } from './unified-interfaces';
@@ -107,7 +107,7 @@ export interface OrchFlowEvent {
 }
 
 // Export unified interfaces as default base types for compatibility
-export {
+export type {
   Worker as BaseWorker,
   WorkerContext as BaseWorkerContext,
   OrchFlowConfig as BaseOrchFlowConfig,

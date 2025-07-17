@@ -35,11 +35,14 @@ export async function launchOrchFlow(args: string[], options: any = {}): Promise
     await orchestrator.initialize();
 
     // Initialize terminal with injection
-    const terminal = new OrchFlowTerminalInjected(`http://localhost:${options.port || 3001}`);
+    const terminal = new OrchFlowTerminalInjected(`http://localhost:${options.port || 3001}`, {
+      mode: options.mode || 'tmux',
+      autoInstallTmux: options.autoInstallTmux !== false
+    });
     await terminal.initialize();
 
     console.log(chalk.green('🚀 OrchFlow initialized with injection architecture'));
-    console.log(chalk.gray('   MCP Server running on port ' + (options.port || 3001)));
+    console.log(chalk.gray(`   MCP Server running on port ${  options.port || 3001}`));
     console.log(chalk.gray('   Terminal injection ready'));
 
     // Launch the terminal

@@ -6,7 +6,7 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { getRealClaudeFlowPath } from './utils';
 import { launchOrchFlow } from './orchflow-launcher';
-import { OptimizedSetupOrchestrator } from './setup/optimized-setup-orchestrator';
+import { UnifiedSetupOrchestrator } from './setup/unified-setup-orchestrator';
 
 interface ParsedArgs {
   options: {
@@ -17,6 +17,8 @@ interface ParsedArgs {
     flow?: string;
     interactive?: boolean;
     skipSetup?: boolean;
+    mode?: 'tmux' | 'inline' | 'split';
+    autoInstallTmux?: boolean;
   };
   commands: string[];
 }
@@ -27,7 +29,7 @@ function parseOrchFlowArgs(args: string[]): ParsedArgs {
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
-    
+
     switch (arg) {
       case '--debug':
         options.debug = true;
@@ -49,6 +51,15 @@ function parseOrchFlowArgs(args: string[]): ParsedArgs {
         break;
       case '--skip-setup':
         options.skipSetup = true;
+        break;
+      case '--mode':
+        const mode = args[++i];
+        if (mode === 'tmux' || mode === 'inline' || mode === 'split') {
+          options.mode = mode;
+        }
+        break;
+      case '--no-auto-install-tmux':
+        options.autoInstallTmux = false;
         break;
       default:
         if (!arg.startsWith('--')) {
@@ -73,35 +84,35 @@ async function main() {
 
     // Handle setup validation command
     if (commands.includes('validate')) {
-      const setupOrchestrator = OptimizedSetupOrchestrator.getInstance();
+      const setupOrchestrator = UnifiedSetupOrchestrator.getInstance();
       const validation = await setupOrchestrator.validateSetup();
-      
+
       if (validation.valid) {
         console.log(chalk.green('✅ Setup validation passed'));
       } else {
         console.log(chalk.red('❌ Setup validation failed'));
         validation.issues.forEach(issue => console.log(chalk.red(`  • ${issue}`)));
       }
-      
+
       if (validation.recommendations.length > 0) {
         console.log(chalk.yellow('\n💡 Recommendations:'));
         validation.recommendations.forEach(rec => console.log(chalk.yellow(`  • ${rec}`)));
       }
-      
+
       process.exit(validation.valid ? 0 : 1);
     }
 
     // Handle setup status command
     if (commands.includes('status')) {
-      const setupOrchestrator = OptimizedSetupOrchestrator.getInstance();
+      const setupOrchestrator = UnifiedSetupOrchestrator.getInstance();
       const status = await setupOrchestrator.getSetupStatus();
-      
+
       console.log(chalk.cyan('📊 OrchFlow Status'));
       console.log(`Setup: ${status.isSetup ? chalk.green('✅ Complete') : chalk.red('❌ Not configured')}`);
       console.log(`Flow: ${status.flow || chalk.gray('None')}`);
       console.log(`Terminal: ${status.environment.terminal}`);
       console.log(`Multiplexer: ${status.environment.multiplexer}`);
-      
+
       process.exit(0);
     }
 

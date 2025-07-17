@@ -24,7 +24,7 @@ describe('TerminalEnvironmentDetector', () => {
     detector = new TerminalEnvironmentDetector();
     mockExec = require('child_process').exec;
     originalEnv = process.env;
-    
+
     // Mock stdout columns and rows
     Object.defineProperty(process.stdout, 'columns', {
       value: 120,
@@ -68,7 +68,7 @@ describe('TerminalEnvironmentDetector', () => {
 
     it('should detect when inside tmux session', async () => {
       process.env.TMUX = '/tmp/tmux-1000/default,12345,0';
-      
+
       mockExec.mockImplementationOnce((cmd, callback) => {
         callback(null, '/usr/bin/tmux');
       });

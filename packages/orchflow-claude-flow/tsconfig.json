@@ -28,6 +28,7 @@
     "noImplicitOverride": true,
     "allowUnusedLabels": false,
     "allowUnreachableCode": false,
+    "isolatedModules": true,
     "types": ["node", "jest"]
   },
   "include": [

@@ -113,7 +113,7 @@ export class ErrorHandler extends EventEmitter {
    */
   async handleError(error: Error, context: Partial<ErrorContext>): Promise<OrchFlowError> {
     const orchflowError = this.createOrchFlowError(error, context);
-    
+
     // Log error
     if (this.config.enableLogging) {
       this.logError(orchflowError);
@@ -227,7 +227,7 @@ export class ErrorHandler extends EventEmitter {
   /**
    * Determine error severity
    */
-  private determineSeverity(error: Error, category: ErrorCategory): ErrorSeverity {
+  private determineSeverity(_error: Error, category: ErrorCategory): ErrorSeverity {
     if (category === ErrorCategory.SYSTEM) {
       return ErrorSeverity.CRITICAL;
     }
@@ -244,7 +244,7 @@ export class ErrorHandler extends EventEmitter {
    * Check if error is recoverable
    */
   private isRecoverable(error: Error, category: ErrorCategory): boolean {
-    return category !== ErrorCategory.SYSTEM && 
+    return category !== ErrorCategory.SYSTEM &&
            category !== ErrorCategory.CONFIGURATION &&
            !error.message.includes('fatal');
   }
@@ -252,7 +252,7 @@ export class ErrorHandler extends EventEmitter {
   /**
    * Check if error is retryable
    */
-  private isRetryable(error: Error, category: ErrorCategory): boolean {
+  private isRetryable(_error: Error, category: ErrorCategory): boolean {
     return category === ErrorCategory.NETWORK ||
            category === ErrorCategory.TIMEOUT ||
            category === ErrorCategory.RESOURCE ||
@@ -307,7 +307,7 @@ export class ErrorHandler extends EventEmitter {
   /**
    * Execute fallback strategy
    */
-  private async executeFallback(error: OrchFlowError, action: ErrorRecoveryAction): Promise<boolean> {
+  private async executeFallback(_error: OrchFlowError, action: ErrorRecoveryAction): Promise<boolean> {
     if (action.fallbackStrategy) {
       try {
         await action.fallbackStrategy();
@@ -347,7 +347,7 @@ export class ErrorHandler extends EventEmitter {
    */
   private async escalateError(error: OrchFlowError): Promise<void> {
     this.emit('errorEscalated', error);
-    
+
     if (this.config.enableNotifications) {
       await this.sendNotification(error);
     }
@@ -451,7 +451,7 @@ export class ErrorHandler extends EventEmitter {
   /**
    * Get resolution suggestion
    */
-  private getResolutionSuggestion(error: Error, category: ErrorCategory): string {
+  private getResolutionSuggestion(_error: Error, category: ErrorCategory): string {
     const suggestions: Record<ErrorCategory, string> = {
       [ErrorCategory.NETWORK]: 'Check network connectivity and retry',
       [ErrorCategory.TIMEOUT]: 'Increase timeout values or retry with exponential backoff',

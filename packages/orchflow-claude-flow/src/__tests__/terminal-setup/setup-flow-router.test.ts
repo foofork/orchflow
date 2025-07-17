@@ -1,7 +1,7 @@
 import { SetupFlowRouter } from '../../terminal-setup/setup-flow-router';
 import { UserInteractionManager } from '../../terminal-setup/user-interaction-manager';
 import { OrchFlowConfigManager } from '../../terminal-setup/config-manager';
-import { TerminalConfig } from '../../types';
+import type { TerminalConfig } from '../../types';
 
 // Mock dependencies
 jest.mock('../../terminal-setup/user-interaction-manager');

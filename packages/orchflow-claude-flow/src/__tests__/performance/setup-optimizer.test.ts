@@ -51,12 +51,12 @@ describe('SetupOptimizer', () => {
     it('should provide performance metrics', async () => {
       await optimizer.runBenchmark();
       const metrics = optimizer.getMetrics();
-      
+
       expect(metrics).toHaveProperty('setupDetection');
       expect(metrics).toHaveProperty('configLoading');
       expect(metrics).toHaveProperty('userInteraction');
       expect(metrics).toHaveProperty('memoryFootprint');
-      
+
       expect(typeof metrics.setupDetection).toBe('number');
       expect(typeof metrics.configLoading).toBe('number');
       expect(typeof metrics.userInteraction).toBe('number');
@@ -67,12 +67,12 @@ describe('SetupOptimizer', () => {
   describe('Benchmark Results', () => {
     it('should run benchmark and return results', async () => {
       const results = await optimizer.runBenchmark();
-      
+
       expect(results).toHaveProperty('setupDetection');
       expect(results).toHaveProperty('configLoading');
       expect(results).toHaveProperty('userInteraction');
       expect(results).toHaveProperty('memoryFootprint');
-      
+
       // All results should be positive numbers
       expect(results.setupDetection).toBeGreaterThan(0);
       expect(results.configLoading).toBeGreaterThan(0);
@@ -94,7 +94,7 @@ describe('CachedConfigManager', () => {
       const startTime = performance.now();
       const config = await configManager.loadConfig('terminal');
       const loadTime = performance.now() - startTime;
-      
+
       expect(loadTime).toBeLessThan(50); // Target: <50ms
       expect(config).toBeDefined();
       expect(typeof config).toBe('object');
@@ -105,12 +105,12 @@ describe('CachedConfigManager', () => {
       const startTime1 = performance.now();
       const config1 = await configManager.loadConfig('terminal');
       const loadTime1 = performance.now() - startTime1;
-      
+
       // Second load (should be cached)
       const startTime2 = performance.now();
       const config2 = await configManager.loadConfig('terminal');
       const loadTime2 = performance.now() - startTime2;
-      
+
       expect(loadTime2).toBeLessThan(loadTime1);
       expect(config1).toEqual(config2);
     });
@@ -123,7 +123,7 @@ describe('CachedConfigManager', () => {
   describe('Default Configurations', () => {
     it('should provide default terminal configuration', async () => {
       const config = await configManager.loadConfig('terminal');
-      
+
       expect(config).toHaveProperty('splitRatio', 70);
       expect(config).toHaveProperty('statusWidth', 30);
       expect(config).toHaveProperty('quickAccessKeys');
@@ -132,7 +132,7 @@ describe('CachedConfigManager', () => {
 
     it('should provide default orchestrator configuration', async () => {
       const config = await configManager.loadConfig('orchestrator');
-      
+
       expect(config).toHaveProperty('maxWorkers', 8);
       expect(config).toHaveProperty('poolSize', 4);
       expect(config).toHaveProperty('enableCaching', true);
@@ -147,14 +147,14 @@ describe('EnvironmentDetector', () => {
       const startTime = performance.now();
       const env = await EnvironmentDetector.detectEnvironment();
       const detectionTime = performance.now() - startTime;
-      
+
       expect(detectionTime).toBeLessThan(200); // Target: <200ms
       expect(env).toBeDefined();
     });
 
     it('should provide complete environment information', async () => {
       const env = await EnvironmentDetector.detectEnvironment();
-      
+
       expect(env).toHaveProperty('platform');
       expect(env).toHaveProperty('arch');
       expect(env).toHaveProperty('nodeVersion');
@@ -163,7 +163,7 @@ describe('EnvironmentDetector', () => {
       expect(env).toHaveProperty('hasClaudeFlow');
       expect(env).toHaveProperty('memoryUsage');
       expect(env).toHaveProperty('cpuCount');
-      
+
       expect(typeof env.platform).toBe('string');
       expect(typeof env.arch).toBe('string');
       expect(typeof env.nodeVersion).toBe('string');
@@ -179,12 +179,12 @@ describe('EnvironmentDetector', () => {
       const startTime1 = performance.now();
       const env1 = await EnvironmentDetector.detectEnvironment();
       const detectionTime1 = performance.now() - startTime1;
-      
+
       // Second detection (should be cached)
       const startTime2 = performance.now();
       const env2 = await EnvironmentDetector.detectEnvironment();
       const detectionTime2 = performance.now() - startTime2;
-      
+
       expect(detectionTime2).toBeLessThan(detectionTime1);
       expect(env1).toEqual(env2);
     });
@@ -235,13 +235,13 @@ describe('MemoryOptimizer', () => {
 describe('Performance Integration', () => {
   it('should meet all performance targets in integration', async () => {
     const optimizer = new SetupOptimizer();
-    
+
     // Run optimization
     await optimizer.optimizeSetup();
-    
+
     // Run benchmark
     const results = await optimizer.runBenchmark();
-    
+
     // Verify all targets are met
     expect(results.setupDetection).toBeLessThan(200);
     expect(results.configLoading).toBeLessThan(50);
@@ -251,12 +251,12 @@ describe('Performance Integration', () => {
 
   it('should handle multiple optimization cycles', async () => {
     const optimizer = new SetupOptimizer();
-    
+
     // Run multiple optimization cycles
     for (let i = 0; i < 3; i++) {
       await optimizer.optimizeSetup();
       const results = await optimizer.runBenchmark();
-      
+
       // Each cycle should maintain performance
       expect(results.setupDetection).toBeLessThan(200);
       expect(results.configLoading).toBeLessThan(50);
@@ -268,7 +268,7 @@ describe('Performance Integration', () => {
   it('should provide consistent performance under load', async () => {
     const optimizer = new SetupOptimizer();
     await optimizer.optimizeSetup();
-    
+
     // Run multiple concurrent operations
     const promises = [];
     for (let i = 0; i < 10; i++) {
@@ -276,14 +276,14 @@ describe('Performance Integration', () => {
       promises.push(optimizer.measureConfigLoading());
       promises.push(optimizer.measureUserInteraction());
     }
-    
+
     const results = await Promise.all(promises);
-    
+
     // All results should meet targets
     const setupTimes = results.filter((_, index) => index % 3 === 0);
     const configTimes = results.filter((_, index) => index % 3 === 1);
     const interactionTimes = results.filter((_, index) => index % 3 === 2);
-    
+
     expect(setupTimes.every(time => time < 200)).toBe(true);
     expect(configTimes.every(time => time < 50)).toBe(true);
     expect(interactionTimes.every(time => time < 100)).toBe(true);

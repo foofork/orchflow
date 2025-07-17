@@ -1,8 +1,8 @@
 import { OrchFlowFunctionalContext } from '../../context/functional-context';
-import { OrchestratorClient } from '../../orchestrator/orchflow-orchestrator';
-import { ConversationContext } from '../../primary-terminal/conversation-context';
-import { WorkerAccessManager } from '../../primary-terminal/worker-access-manager';
-import { Worker } from '../../types';
+import type { OrchestratorClient } from '../../orchestrator/orchflow-orchestrator';
+import type { ConversationContext } from '../../primary-terminal/conversation-context';
+import type { WorkerAccessManager } from '../../primary-terminal/worker-access-manager';
+import type { Worker } from '../../types';
 
 jest.mock('../../orchestrator/orchflow-orchestrator');
 jest.mock('../../primary-terminal/conversation-context');

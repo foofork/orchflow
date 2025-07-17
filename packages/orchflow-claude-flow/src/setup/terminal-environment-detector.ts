@@ -4,9 +4,6 @@
  */
 
 import { execSync } from 'child_process';
-import { existsSync } from 'fs';
-import { join } from 'path';
-import { homedir } from 'os';
 
 export interface TerminalEnvironment {
   terminal: 'tmux' | 'screen' | 'zellij' | 'konsole' | 'gnome-terminal' | 'alacritty' | 'iterm2' | 'wt' | 'unknown';
@@ -59,7 +56,7 @@ export class TerminalEnvironmentDetector {
     }
 
     const environment = await this.performDetection();
-    
+
     if (useCache) {
       this.cachedEnvironment = environment;
     }
@@ -103,52 +100,52 @@ export class TerminalEnvironmentDetector {
     const termProgram = process.env.TERM_PROGRAM;
     const term = process.env.TERM;
     const terminalApp = process.env.TERMINAL_APP;
-    
+
     // Check specific terminal programs
-    if (termProgram === 'iTerm.app') return 'iterm2';
-    if (termProgram === 'vscode') return 'unknown'; // Running in VS Code
-    if (terminalApp === 'Apple_Terminal') return 'unknown';
-    
+    if (termProgram === 'iTerm.app') {return 'iterm2';}
+    if (termProgram === 'vscode') {return 'unknown';} // Running in VS Code
+    if (terminalApp === 'Apple_Terminal') {return 'unknown';}
+
     // Check environment variables
-    if (process.env.TMUX) return 'tmux';
-    if (process.env.STY) return 'screen';
-    if (process.env.ZELLIJ) return 'zellij';
-    if (process.env.KONSOLE_VERSION) return 'konsole';
-    if (process.env.GNOME_TERMINAL_SCREEN) return 'gnome-terminal';
-    if (process.env.ALACRITTY_SOCKET) return 'alacritty';
-    if (process.env.WT_SESSION) return 'wt';
-    
+    if (process.env.TMUX) {return 'tmux';}
+    if (process.env.STY) {return 'screen';}
+    if (process.env.ZELLIJ) {return 'zellij';}
+    if (process.env.KONSOLE_VERSION) {return 'konsole';}
+    if (process.env.GNOME_TERMINAL_SCREEN) {return 'gnome-terminal';}
+    if (process.env.ALACRITTY_SOCKET) {return 'alacritty';}
+    if (process.env.WT_SESSION) {return 'wt';}
+
     // Check term value
-    if (term?.includes('tmux')) return 'tmux';
-    if (term?.includes('screen')) return 'screen';
-    if (term?.includes('alacritty')) return 'alacritty';
-    
+    if (term?.includes('tmux')) {return 'tmux';}
+    if (term?.includes('screen')) {return 'screen';}
+    if (term?.includes('alacritty')) {return 'alacritty';}
+
     return 'unknown';
   }
 
   private detectMultiplexer(): TerminalEnvironment['multiplexer'] {
     // Check if currently inside a multiplexer session
-    if (process.env.TMUX) return 'tmux';
-    if (process.env.STY) return 'screen';
-    if (process.env.ZELLIJ) return 'zellij';
-    
+    if (process.env.TMUX) {return 'tmux';}
+    if (process.env.STY) {return 'screen';}
+    if (process.env.ZELLIJ) {return 'zellij';}
+
     // Check if multiplexer is available
-    if (this.commandExists('tmux')) return 'tmux';
-    if (this.commandExists('screen')) return 'screen';
-    if (this.commandExists('zellij')) return 'zellij';
-    
+    if (this.commandExists('tmux')) {return 'tmux';}
+    if (this.commandExists('screen')) {return 'screen';}
+    if (this.commandExists('zellij')) {return 'zellij';}
+
     return 'none';
   }
 
   private detectShell(): TerminalEnvironment['shell'] {
     const shell = process.env.SHELL || process.env.ComSpec || '';
-    
-    if (shell.includes('bash')) return 'bash';
-    if (shell.includes('zsh')) return 'zsh';
-    if (shell.includes('fish')) return 'fish';
-    if (shell.includes('powershell') || shell.includes('pwsh')) return 'powershell';
-    if (shell.includes('cmd')) return 'cmd';
-    
+
+    if (shell.includes('bash')) {return 'bash';}
+    if (shell.includes('zsh')) {return 'zsh';}
+    if (shell.includes('fish')) {return 'fish';}
+    if (shell.includes('powershell') || shell.includes('pwsh')) {return 'powershell';}
+    if (shell.includes('cmd')) {return 'cmd';}
+
     return 'unknown';
   }
 
@@ -172,19 +169,19 @@ export class TerminalEnvironmentDetector {
 
     // Colors support
     capabilities.colors = this.supportsColors();
-    
+
     // Unicode support
     capabilities.unicode = this.supportsUnicode();
-    
+
     // Mouse support
     capabilities.mouse = this.supportsMouse();
-    
+
     // Clipboard support
     capabilities.clipboard = this.supportsClipboard(platform);
-    
+
     // Scrollback support
     capabilities.scrollback = true; // Most terminals support this
-    
+
     // Multiplexer-specific capabilities
     if (multiplexer === 'tmux') {
       capabilities.splitPanes = true;
@@ -227,7 +224,7 @@ export class TerminalEnvironmentDetector {
     } else if (multiplexer === 'zellij') {
       return this.detectZellijSession();
     }
-    
+
     return undefined;
   }
 
@@ -235,7 +232,7 @@ export class TerminalEnvironmentDetector {
     try {
       const sessionName = process.env.TMUX_SESSION || 'orchflow';
       const currentSession = execSync('tmux display-message -p "#{session_name}"', { encoding: 'utf8' }).trim();
-      
+
       if (currentSession) {
         return {
           name: currentSession,
@@ -243,11 +240,11 @@ export class TerminalEnvironmentDetector {
           hasExisting: true
         };
       }
-      
+
       // Check for existing orchflow session
       const sessions = execSync('tmux list-sessions -F "#{session_name}"', { encoding: 'utf8' }).trim();
       const hasOrchflowSession = sessions.split('\n').includes('orchflow');
-      
+
       return {
         name: sessionName,
         id: sessionName,
@@ -299,10 +296,10 @@ export class TerminalEnvironmentDetector {
   private supportsColors(): boolean {
     const term = process.env.TERM || '';
     const colorterm = process.env.COLORTERM || '';
-    
-    if (colorterm === 'truecolor' || colorterm === '24bit') return true;
-    if (term.includes('256color') || term.includes('color')) return true;
-    
+
+    if (colorterm === 'truecolor' || colorterm === '24bit') {return true;}
+    if (term.includes('256color') || term.includes('color')) {return true;}
+
     return false;
   }
 
@@ -342,8 +339,8 @@ export class TerminalEnvironmentDetector {
    * Get performance metrics for the last detection
    */
   getPerformanceMetrics(): { detectionTime: number } | null {
-    if (!this.detectionStartTime) return null;
-    
+    if (!this.detectionStartTime) {return null;}
+
     return {
       detectionTime: Date.now() - this.detectionStartTime
     };

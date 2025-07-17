@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import type { WorkerInfo } from './conversation-context';
+import type { WorkerInfo } from '../types/unified-interfaces';
 import { TmuxBackend } from '../tmux-integration/tmux-backend';
 import chalk from 'chalk';
 
@@ -9,7 +9,7 @@ export interface StatusPaneConfig {
   showQuickAccess: boolean;
 }
 
-export interface WorkerDisplay {
+export interface WorkerDisplayStatus {
   display: string;
   lastUpdate: Date;
 }
@@ -29,10 +29,10 @@ export class StatusPane extends EventEmitter {
   private paneId: string = '';
   private tmuxBackend: TmuxBackend;
   private config: StatusPaneConfig;
-  private workerDisplays: Map<string, WorkerDisplay> = new Map();
+  private workerDisplays: Map<string, WorkerInfo> = new Map();
   private updateInterval: NodeJS.Timeout | null = null;
   private resourceUsage: ResourceUsage = { cpu: 0, memory: 0, disk: 0 };
-  private taskGraph: TaskGraph = { nodes: [], edges: [] };
+  private _taskGraph: TaskGraph = { nodes: [], edges: [] };
   private taskStatuses: Map<string, string> = new Map();
   private notifications: string[] = [];
   private maxNotifications: number = 5;
@@ -83,8 +83,7 @@ ${chalk.cyan(`╚${  '═'.repeat(32)  }╝`)}
   }
 
   async updateWorkerDisplay(workerId: string, status: WorkerInfo): Promise<void> {
-    const display = this.formatWorkerDisplay(status);
-    this.workerDisplays.set(workerId, { display, lastUpdate: new Date() });
+    this.workerDisplays.set(workerId, status);
     await this.refreshDisplay();
   }
 
@@ -141,15 +140,16 @@ ${chalk.cyan(`╚${  '═'.repeat(32)  }╝`)}
     await this.renderHeader();
 
     // Render all workers
-    for (const [workerId, workerDisplay] of this.workerDisplays) {
-      await this.writeToPane(workerDisplay.display);
-      
+    for (const [workerId, workerInfo] of this.workerDisplays) {
+      const display = this.formatWorkerDisplay(workerInfo);
+      await this.writeToPane(display);
+
       // Show worker-specific resources if available
       const workerResources = this.workerResources.get(workerId);
       if (workerResources) {
         await this.renderWorkerResources(workerId, workerResources);
       }
-      
+
       await this.writeToPane(''); // Empty line between workers
     }
 
@@ -254,7 +254,7 @@ ${chalk.cyan(`└${  '─'.repeat(32)  }┘`)}
   }
 
   showDependencyGraph(graph: TaskGraph): void {
-    this.taskGraph = graph;
+    this._taskGraph = graph;
     // In a full implementation, this would render the graph
   }
 
@@ -315,10 +315,10 @@ ${chalk.cyan(`└${  '─'.repeat(32)  }┘`)}
   // Missing methods implementation
   async updateTaskStatus(taskId: string, status: string): Promise<void> {
     this.taskStatuses.set(taskId, status);
-    
+
     // Update the display to show current task status
     await this.refreshDisplay();
-    
+
     // Emit event for listeners
     this.emit('taskStatusUpdated', { taskId, status });
   }
@@ -327,48 +327,48 @@ ${chalk.cyan(`└${  '─'.repeat(32)  }┘`)}
     // Add timestamp to notification
     const timestamp = new Date().toLocaleTimeString();
     const notification = `[${timestamp}] ${message}`;
-    
+
     // Add to notifications array
     this.notifications.unshift(notification);
-    
+
     // Keep only the most recent notifications
     if (this.notifications.length > this.maxNotifications) {
       this.notifications = this.notifications.slice(0, this.maxNotifications);
     }
-    
+
     // Refresh display to show new notification
     await this.refreshDisplay();
-    
+
     // Emit event for listeners
     this.emit('notificationAdded', { message, timestamp });
   }
 
   async updateWorkerResources(workerId: string, resources: any): Promise<void> {
     this.workerResources.set(workerId, resources);
-    
+
     // Refresh display to show updated resources
     await this.refreshDisplay();
-    
+
     // Emit event for listeners
     this.emit('workerResourcesUpdated', { workerId, resources });
   }
 
   async updateSystemInfo(systemInfo: any): Promise<void> {
     this.systemInfo = { ...this.systemInfo, ...systemInfo };
-    
+
     // Refresh display to show updated system info
     await this.refreshDisplay();
-    
+
     // Emit event for listeners
     this.emit('systemInfoUpdated', { systemInfo: this.systemInfo });
   }
 
   async updateTaskQueue(taskStats: any): Promise<void> {
     this.taskQueueStats = { ...this.taskQueueStats, ...taskStats };
-    
+
     // Refresh display to show updated task queue
     await this.refreshDisplay();
-    
+
     // Emit event for listeners
     this.emit('taskQueueUpdated', { taskStats: this.taskQueueStats });
   }
@@ -377,7 +377,7 @@ ${chalk.cyan(`└${  '─'.repeat(32)  }┘`)}
     return this.workerDisplays.size;
   }
 
-  private async renderWorkerResources(workerId: string, resources: any): Promise<void> {
+  private async renderWorkerResources(_workerId: string, resources: any): Promise<void> {
     const resourceDisplay = `    ${chalk.gray('Resources:')} CPU: ${resources.cpu || 0}%, Memory: ${resources.memory || 0}%, Disk: ${resources.disk || 0}%`;
     await this.writeToPane(resourceDisplay);
   }
@@ -427,7 +427,7 @@ ${chalk.cyan(`├${  '─'.repeat(32)  }┤`)}`;
 
     for (const notification of this.notifications) {
       // Truncate long notifications to fit
-      const truncated = notification.length > 30 ? notification.slice(0, 27) + '...' : notification.padEnd(30);
+      const truncated = notification.length > 30 ? `${notification.slice(0, 27)  }...` : notification.padEnd(30);
       const notificationDisplay = `${chalk.cyan('│')} ${chalk.white(truncated)} ${chalk.cyan('│')}`;
       await this.writeToPane(notificationDisplay);
     }

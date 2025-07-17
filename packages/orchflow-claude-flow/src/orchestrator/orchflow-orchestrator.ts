@@ -2,6 +2,10 @@ import { EventEmitter } from 'events';
 import WebSocket from 'ws';
 import { TaskGraph } from './task-graph';
 import { WorkerManager } from './worker-manager';
+import type { Task, WorkerType } from '../types/unified-interfaces';
+
+// Re-export Task for backward compatibility
+export type { Task };
 import { MCPServer } from './mcp-server';
 import { StateManager } from './state-manager';
 import { SmartScheduler } from './smart-scheduler';
@@ -21,28 +25,7 @@ export interface OrchFlowOrchestratorConfig {
   thinWrapperMode?: boolean;
 }
 
-export interface Task {
-  id: string;
-  type: 'research' | 'code' | 'test' | 'analysis' | 'swarm' | 'hive-mind';
-  description: string;
-  parameters: any;
-  dependencies: string[];
-  status: 'pending' | 'running' | 'completed' | 'failed' | 'blocked';
-  assignedWorker?: string;
-  assignedWorkerName?: string;
-  priority: number;
-  estimatedDuration?: number;
-  claudeFlowCommand?: string;
-  config?: any;
-  deadline?: string;
-  createdAt?: Date;
-  updatedAt?: Date;
-  error?: string;
-}
-
-export interface WorkerId {
-  id: string;
-}
+// Task and WorkerId interfaces moved to unified-interfaces.ts
 
 export interface ConflictInfo {
   type: 'resource' | 'dependency' | 'file' | 'port';
@@ -136,7 +119,7 @@ export class OrchFlowOrchestrator extends EventEmitter {
     const command = this.claudeFlowWrapper.buildCommand(task);
 
     // Spawn worker with descriptive name
-    const workerId = await this.workerManager.spawnWorker(task.type, {
+    const workerId = await this.workerManager.spawnWorker(task.type || 'code', {
       ...task.config,
       descriptiveName,
       command,
@@ -297,7 +280,7 @@ export class OrchFlowOrchestrator extends EventEmitter {
       task.status = 'failed';
       task.error = (error as Error).message;
       await this.stateManager.updateTask(task);
-      
+
       await this.errorHandler.handleError(error as Error, {
         component: 'OrchFlowOrchestrator',
         operation: 'executeTask',
@@ -322,7 +305,7 @@ export class OrchFlowOrchestrator extends EventEmitter {
 
     // Return worker with lowest resource usage
     return suitableWorkers.reduce((best, current) =>
-      current.resources.cpuUsage < best.resources.cpuUsage ? current : best
+      (current.resources?.cpuUsage || 0) < (best.resources?.cpuUsage || 0) ? current : best
     ).id;
   }
 
@@ -353,7 +336,7 @@ export class OrchFlowOrchestrator extends EventEmitter {
       'hive-mind': ['collective-intelligence', 'consensus', 'distributed']
     };
 
-    return capabilityMap[task.type] || [];
+    return capabilityMap[task.type || 'code'] || [];
   }
 
   private getResourceLimits(task: Task): any {
@@ -367,7 +350,7 @@ export class OrchFlowOrchestrator extends EventEmitter {
       'hive-mind': { cpu: 100, memory: 4096 }
     };
 
-    return resourceMap[task.type] || { cpu: 50, memory: 1024 };
+    return resourceMap[task.type || 'code'] || { cpu: 50, memory: 1024 };
   }
 
   private assignQuickAccessKey(): number | undefined {
@@ -503,7 +486,7 @@ export class OrchFlowOrchestrator extends EventEmitter {
     }));
   }
 
-  private broadcastWorkerUpdate(workerId: string, workerInfo: any): void {
+  private broadcastWorkerUpdate(_workerId: string, workerInfo: any): void {
     const message = JSON.stringify({
       type: 'event',
       event: 'workerUpdate',
@@ -585,7 +568,7 @@ export class OrchFlowOrchestrator extends EventEmitter {
       currentTask: worker.currentTask,
       startTime: worker.startTime,
       estimatedCompletion: worker.estimatedCompletion,
-      resourceUsage: worker.resourceUsage,
+      resources: worker.resources,
       quickAccessKey: worker.quickAccessKey
     }));
   }
@@ -602,5 +585,13 @@ export class OrchFlowOrchestrator extends EventEmitter {
       failed: tasks.filter(t => t.status === 'failed').length,
       total: tasks.length
     };
+  }
+
+  /**
+   * Register an MCP tool with the MCP server
+   * This provides a public API for external tool registration
+   */
+  public registerMCPTool(name: string, tool: any): void {
+    this.mcpServer.registerTool(name, tool);
   }
 }

@@ -6,6 +6,18 @@ import type { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
 import { RateLimiter } from './rate-limiter';
 
+// Extend Express Request interface to include user property
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        apiKey: string;
+        permissions: string[];
+      };
+    }
+  }
+}
+
 export interface SecurityConfig {
   enableAuth: boolean;
   apiKeys?: string[];
@@ -76,7 +88,7 @@ export class SecurityMiddleware {
       }
 
       // Add user context
-      (req as any).user = {
+      req.user = {
         apiKey: this.hashApiKey(apiKey),
         permissions: this.getPermissions(apiKey)
       };
@@ -129,6 +141,8 @@ export class SecurityMiddleware {
       if (req.method === 'OPTIONS') {
         return res.sendStatus(204);
       }
+
+      next();
 
       next();
     };
@@ -218,7 +232,7 @@ export class SecurityMiddleware {
         path: req.path,
         ip: this.getClientIp(req),
         userAgent: req.headers['user-agent'],
-        user: (req as any).user?.apiKey
+        user: req.user?.apiKey
       };
 
       // Log response
@@ -265,13 +279,13 @@ export class SecurityMiddleware {
     return crypto.createHash('sha256').update(apiKey).digest('hex').substring(0, 8);
   }
 
-  private getPermissions(apiKey: string): string[] {
+  private getPermissions(_apiKey: string): string[] {
     // In production, this would query a database or cache
     return ['read', 'write', 'orchestrate'];
   }
 
   private getClientIdentifier(req: Request): string {
-    const user = (req as any).user;
+    const user = req.user;
     if (user?.apiKey) {
       return `user:${user.apiKey}`;
     }
@@ -293,7 +307,7 @@ export class SecurityMiddleware {
     return allowed.includes('*') || allowed.includes(origin);
   }
 
-  private sendToLoggingService(log: any): void {
+  private sendToLoggingService(_log: any): void {
     // Implement logging service integration
     // e.g., send to ELK stack, Datadog, etc.
   }

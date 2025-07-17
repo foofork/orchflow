@@ -55,7 +55,12 @@ export class SmartScheduler extends EventEmitter {
     // Priority-based strategy
     this.strategies.set('priority', {
       name: 'priority',
-      score: (task: Task) => task.priority * 10
+      score: (task: Task) => {
+        const priority = typeof task.priority === 'string' ?
+          ({ low: 1, medium: 5, high: 10, critical: 15 }[task.priority] || 5) :
+          task.priority;
+        return priority * 10;
+      }
     });
 
     // Dependency-aware strategy
@@ -63,7 +68,7 @@ export class SmartScheduler extends EventEmitter {
       name: 'dependency',
       score: (task: Task, context: SchedulingContext) => {
         // Tasks with no dependencies get higher score
-        const noDeps = task.dependencies.length === 0 ? 50 : 0;
+        const noDeps = (task.dependencies?.length || 0) === 0 ? 50 : 0;
         // Tasks that unblock others get bonus
         const unblockBonus = this.calculateUnblockBonus(task, context);
         return noDeps + unblockBonus;
@@ -162,7 +167,7 @@ export class SmartScheduler extends EventEmitter {
     // Count how many tasks depend on this one
     let dependentCount = 0;
     for (const otherTask of context.pendingTasks) {
-      if (otherTask.dependencies.includes(task.id)) {
+      if (otherTask.dependencies?.includes(task.id)) {
         dependentCount++;
       }
     }
@@ -189,7 +194,7 @@ export class SmartScheduler extends EventEmitter {
       'hive-mind': { cpu: 100, memory: 4096 }
     };
 
-    return defaults[task.type] || { cpu: 30, memory: 1024 };
+    return defaults[task.type || 'code'] || { cpu: 30, memory: 1024 };
   }
 
   private estimateDuration(task: Task): number {

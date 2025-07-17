@@ -1,4 +1,4 @@
-import { Worker, WorkerType } from '../types/index';
+import type { Worker, WorkerType } from '../types/index';
 import { OrchFlowCore } from '../core/orchflow-core';
 import { MCPClient } from '../primary-terminal/mcp-client';
 import fetch from 'node-fetch';
@@ -130,7 +130,12 @@ export class WorkerFactory {
       status: 'active',
       context: {
         conversationHistory: [],
-        sharedKnowledge: {},
+        sharedKnowledge: {
+          facts: {},
+          patterns: {},
+          insights: {},
+          bestPractices: {}
+        },
         codeArtifacts: [],
         decisions: []
       },
@@ -145,7 +150,7 @@ export class WorkerFactory {
   }
 
   static createWorkers(count: number, overrides: Partial<Worker> = {}): Worker[] {
-    return Array(count).fill(null).map((_, i) => 
+    return Array(count).fill(null).map((_, i) =>
       WorkerFactory.createWorker({
         name: `Test Worker ${i + 1}`,
         ...overrides
@@ -154,7 +159,7 @@ export class WorkerFactory {
   }
 
   static createWorkersByType(types: WorkerType[]): Worker[] {
-    return types.map((type, i) => 
+    return types.map((type, i) =>
       WorkerFactory.createWorker({
         name: `${type.charAt(0).toUpperCase() + type.slice(1)} Worker ${i + 1}`,
         type
@@ -178,7 +183,7 @@ export class APITestHelpers {
   }
 
   async createMultipleWorkers(tasks: Array<{task: string, type?: WorkerType}>): Promise<any[]> {
-    const promises = tasks.map(({ task, type = 'developer' }) => 
+    const promises = tasks.map(({ task, type = 'developer' }) =>
       this.createWorker(task, type)
     );
 
@@ -387,7 +392,7 @@ export class PerformanceTestHelpers {
     const startTime = performance.now();
     const result = await operation();
     const endTime = performance.now();
-    
+
     return {
       result,
       duration: endTime - startTime
@@ -395,7 +400,7 @@ export class PerformanceTestHelpers {
   }
 
   static async measureMultipleExecutions<T>(
-    operation: () => Promise<T>, 
+    operation: () => Promise<T>,
     iterations: number = 10
   ): Promise<{results: T[], avgDuration: number, maxDuration: number}> {
     const results: T[] = [];
@@ -437,9 +442,15 @@ export class MockDataGenerator {
           workerId: `worker-${i}`
         })),
         sharedKnowledge: {
-          technologies: ['React', 'Node.js', 'PostgreSQL', 'Docker'].slice(0, Math.floor(Math.random() * 4) + 1),
-          decisions: [`Decision ${i}-1`, `Decision ${i}-2`],
-          files: [`src/worker${i}.ts`, `tests/worker${i}.test.ts`]
+          facts: {
+            technologies: ['React', 'Node.js', 'PostgreSQL', 'Docker'].slice(0, Math.floor(Math.random() * 4) + 1),
+            files: [`src/worker${i}.ts`, `tests/worker${i}.test.ts`]
+          },
+          patterns: {
+            decisions: [`Decision ${i}-1`, `Decision ${i}-2`]
+          },
+          insights: {},
+          bestPractices: {}
         },
         codeArtifacts: [],
         decisions: []

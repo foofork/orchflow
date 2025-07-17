@@ -223,7 +223,7 @@ export class ConflictDetector extends EventEmitter {
     }
 
     // Check for missing dependencies
-    for (const depId of task.dependencies) {
+    for (const depId of task.dependencies || []) {
       const depTask = existingTasks.find(t => t.id === depId);
       if (!depTask) {
         conflicts.push({
@@ -393,7 +393,7 @@ export class ConflictDetector extends EventEmitter {
       'swarm': 80,
       'hive-mind': 100
     };
-    return cpuEstimates[task.type] || 30;
+    return cpuEstimates[task.type || 'code'] || 30;
   }
 
   private estimateMemoryUsage(task: Task): number {
@@ -405,7 +405,7 @@ export class ConflictDetector extends EventEmitter {
       'swarm': 2048,
       'hive-mind': 4096
     };
-    return memoryEstimates[task.type] || 1024;
+    return memoryEstimates[task.type || 'code'] || 1024;
   }
 
   private hasCircularDependency(
@@ -417,7 +417,7 @@ export class ConflictDetector extends EventEmitter {
     visited.add(task.id);
     recursionStack.add(task.id);
 
-    for (const depId of task.dependencies) {
+    for (const depId of task.dependencies || []) {
       if (!visited.has(depId)) {
         const depTask = existingTasks.find(t => t.id === depId);
         if (depTask && this.hasCircularDependency(depTask, existingTasks, visited, recursionStack)) {

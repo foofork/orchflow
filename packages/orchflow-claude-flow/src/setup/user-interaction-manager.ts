@@ -3,10 +3,11 @@
  * Optimized for terminal interactions with performance focus
  */
 
-import { createInterface, Interface } from 'readline';
+import type { Interface } from 'readline';
+import { createInterface } from 'readline';
 import chalk from 'chalk';
-import { TerminalEnvironment } from './terminal-environment-detector';
-import { SetupFlow, SetupFlowConfig } from './setup-flow-router';
+import type { TerminalEnvironment } from './terminal-environment-detector';
+import type { SetupFlow, SetupFlowConfig } from './setup-flow-router';
 
 export interface MenuOption {
   key: string;
@@ -124,7 +125,7 @@ export class UserInteractionManager {
     const options: MenuOption[] = flows.map(flow => {
       const config = configs.get(flow);
       const isRecommended = this.isRecommendedFlow(flow, environment);
-      
+
       return {
         key: flow.charAt(0).toUpperCase(),
         label: this.getFlowLabel(flow),
@@ -150,18 +151,18 @@ export class UserInteractionManager {
    */
   async showEnvironmentSummary(environment: TerminalEnvironment): Promise<void> {
     console.log(chalk.cyan.bold('\n🔍 Terminal Environment Detection\n'));
-    
+
     const info = [
-      [`Platform`, this.getPlatformDisplay(environment.platform)],
-      [`Terminal`, this.getTerminalDisplay(environment.terminal)],
-      [`Multiplexer`, this.getMultiplexerDisplay(environment.multiplexer)],
-      [`Shell`, this.getShellDisplay(environment.shell)],
-      [`Capabilities`, this.getCapabilitiesDisplay(environment.capabilities)]
+      ['Platform', this.getPlatformDisplay(environment.platform)],
+      ['Terminal', this.getTerminalDisplay(environment.terminal)],
+      ['Multiplexer', this.getMultiplexerDisplay(environment.multiplexer)],
+      ['Shell', this.getShellDisplay(environment.shell)],
+      ['Capabilities', this.getCapabilitiesDisplay(environment.capabilities)]
     ];
 
     // Display as table
     const maxLabelWidth = Math.max(...info.map(([label]) => label.length));
-    
+
     for (const [label, value] of info) {
       const paddedLabel = label.padEnd(maxLabelWidth);
       console.log(`  ${chalk.yellow(paddedLabel)}: ${value}`);
@@ -180,11 +181,11 @@ export class UserInteractionManager {
   showProgress(config: ProgressConfig): void {
     const percentage = Math.round((config.current / config.steps.length) * 100);
     const progressBar = this.createProgressBar(percentage);
-    
+
     console.log(chalk.cyan.bold(`\n${config.title}`));
     console.log(`${progressBar} ${percentage}%`);
     console.log(`Step ${config.current}/${config.steps.length}: ${config.steps[config.current - 1]}`);
-    
+
     if (config.showETA && this.interactionStartTime) {
       const elapsed = Date.now() - this.interactionStartTime;
       const eta = Math.round((elapsed / config.current) * (config.steps.length - config.current));
@@ -198,7 +199,7 @@ export class UserInteractionManager {
   showError(message: string, details?: string[]): void {
     console.log(chalk.red.bold('\n❌ Error'));
     console.log(chalk.red(`${message}\n`));
-    
+
     if (details && details.length > 0) {
       console.log(chalk.yellow('Details:'));
       details.forEach(detail => {
@@ -214,7 +215,7 @@ export class UserInteractionManager {
   showSuccess(message: string, details?: string[]): void {
     console.log(chalk.green.bold('\n✅ Success'));
     console.log(chalk.green(`${message}\n`));
-    
+
     if (details && details.length > 0) {
       console.log(chalk.cyan('Details:'));
       details.forEach(detail => {
@@ -230,7 +231,7 @@ export class UserInteractionManager {
   showWarning(message: string, details?: string[]): void {
     console.log(chalk.yellow.bold('\n⚠️  Warning'));
     console.log(chalk.yellow(`${message}\n`));
-    
+
     if (details && details.length > 0) {
       console.log(chalk.gray('Details:'));
       details.forEach(detail => {
@@ -254,8 +255,8 @@ export class UserInteractionManager {
    * Get performance metrics
    */
   getPerformanceMetrics(): { interactionTime: number } | null {
-    if (!this.interactionStartTime) return null;
-    
+    if (!this.interactionStartTime) {return null;}
+
     return {
       interactionTime: Date.now() - this.interactionStartTime
     };
@@ -263,24 +264,24 @@ export class UserInteractionManager {
 
   private async handleSingleSelect(config: MenuConfig): Promise<any> {
     const prompt = this.createMenuPrompt(config);
-    
+
     while (true) {
       const answer = await this.prompt(prompt);
-      
+
       if (answer.toLowerCase() === 'q' && config.allowCancel) {
         throw new Error('User cancelled operation');
       }
-      
-      const option = config.options.find(o => 
+
+      const option = config.options.find(o =>
         o.key.toLowerCase() === answer.toLowerCase()
       );
-      
+
       if (option) {
         if (option.disabled) {
           console.log(chalk.red('This option is not available'));
           continue;
         }
-        
+
         if (config.validation) {
           const error = config.validation(option.value);
           if (error) {
@@ -288,10 +289,10 @@ export class UserInteractionManager {
             continue;
           }
         }
-        
+
         return option.value;
       }
-      
+
       console.log(chalk.red('Invalid selection. Please try again.'));
     }
   }
@@ -299,28 +300,28 @@ export class UserInteractionManager {
   private async handleMultiSelect(config: MenuConfig): Promise<any[]> {
     const selected: any[] = [];
     const prompt = this.createMenuPrompt(config, true);
-    
+
     while (true) {
       const answer = await this.prompt(prompt);
-      
+
       if (answer.toLowerCase() === 'done') {
         return selected;
       }
-      
+
       if (answer.toLowerCase() === 'q' && config.allowCancel) {
         throw new Error('User cancelled operation');
       }
-      
-      const option = config.options.find(o => 
+
+      const option = config.options.find(o =>
         o.key.toLowerCase() === answer.toLowerCase()
       );
-      
+
       if (option) {
         if (option.disabled) {
           console.log(chalk.red('This option is not available'));
           continue;
         }
-        
+
         const index = selected.indexOf(option.value);
         if (index >= 0) {
           selected.splice(index, 1);
@@ -329,7 +330,7 @@ export class UserInteractionManager {
           selected.push(option.value);
           console.log(chalk.green(`Added: ${option.label}`));
         }
-        
+
         this.displaySelectedItems(selected, config.options);
       } else {
         console.log(chalk.red('Invalid selection. Please try again.'));
@@ -342,16 +343,16 @@ export class UserInteractionManager {
     if (config.description) {
       console.log(chalk.gray(`${config.description}\n`));
     }
-    
+
     config.options.forEach(option => {
       const key = chalk.yellow.bold(`[${option.key}]`);
       const label = option.disabled ? chalk.gray(option.label) : chalk.white(option.label);
       const recommended = option.recommended ? chalk.green(' (recommended)') : '';
       const description = option.description ? chalk.gray(` - ${option.description}`) : '';
-      
+
       console.log(`  ${key} ${label}${recommended}${description}`);
     });
-    
+
     console.log();
   }
 
@@ -367,19 +368,19 @@ export class UserInteractionManager {
 
   private createMenuPrompt(config: MenuConfig, multiSelect: boolean = false): string {
     let prompt = 'Select an option';
-    
+
     if (config.defaultOption) {
       prompt += ` (default: ${config.defaultOption})`;
     }
-    
+
     if (multiSelect) {
       prompt += ' (type "done" to finish)';
     }
-    
+
     if (config.allowCancel) {
       prompt += ' (q to quit)';
     }
-    
+
     return `${prompt}: `;
   }
 
@@ -388,7 +389,7 @@ export class UserInteractionManager {
       console.log(chalk.gray('No items selected'));
       return;
     }
-    
+
     console.log(chalk.cyan('Selected items:'));
     selected.forEach(value => {
       const option = options.find(o => o.value === value);
@@ -419,9 +420,9 @@ export class UserInteractionManager {
   }
 
   private isRecommendedFlow(flow: SetupFlow, environment: TerminalEnvironment): boolean {
-    if (flow === environment.multiplexer) return true;
-    if (flow === 'tmux' && environment.multiplexer === 'none' && environment.capabilities.splitPanes) return true;
-    if (flow === 'native' && environment.multiplexer === 'none') return true;
+    if (flow === environment.multiplexer) {return true;}
+    if (flow === 'tmux' && environment.multiplexer === 'none' && environment.capabilities.splitPanes) {return true;}
+    if (flow === 'native' && environment.multiplexer === 'none') {return true;}
     return false;
   }
 
@@ -444,13 +445,13 @@ export class UserInteractionManager {
       'native': 'Single terminal window with basic features',
       'fallback': 'Minimal setup for limited environments'
     };
-    
+
     let desc = descriptions[flow] || flow;
-    
+
     if (config) {
       desc += ` (${config.performance.complexity} complexity, ~${config.performance.estimatedTime}ms)`;
     }
-    
+
     return desc;
   }
 
@@ -499,28 +500,28 @@ export class UserInteractionManager {
 
   private getCapabilitiesDisplay(capabilities: TerminalEnvironment['capabilities']): string {
     const features: string[] = [];
-    
-    if (capabilities.splitPanes) features.push(chalk.green('Split Panes'));
-    if (capabilities.tabs) features.push(chalk.green('Tabs'));
-    if (capabilities.sessions) features.push(chalk.green('Sessions'));
-    if (capabilities.colors) features.push(chalk.green('Colors'));
-    if (capabilities.unicode) features.push(chalk.green('Unicode'));
-    if (capabilities.mouse) features.push(chalk.green('Mouse'));
-    if (capabilities.clipboard) features.push(chalk.green('Clipboard'));
-    
+
+    if (capabilities.splitPanes) {features.push(chalk.green('Split Panes'));}
+    if (capabilities.tabs) {features.push(chalk.green('Tabs'));}
+    if (capabilities.sessions) {features.push(chalk.green('Sessions'));}
+    if (capabilities.colors) {features.push(chalk.green('Colors'));}
+    if (capabilities.unicode) {features.push(chalk.green('Unicode'));}
+    if (capabilities.mouse) {features.push(chalk.green('Mouse'));}
+    if (capabilities.clipboard) {features.push(chalk.green('Clipboard'));}
+
     return features.join(', ') || chalk.gray('Basic');
   }
 
   private createProgressBar(percentage: number, width: number = 30): string {
     const filled = Math.round((percentage / 100) * width);
     const empty = width - filled;
-    
+
     return chalk.green('█'.repeat(filled)) + chalk.gray('░'.repeat(empty));
   }
 
   private formatTime(ms: number): string {
-    if (ms < 1000) return `${ms}ms`;
-    if (ms < 60000) return `${Math.round(ms / 1000)}s`;
+    if (ms < 1000) {return `${ms}ms`;}
+    if (ms < 60000) {return `${Math.round(ms / 1000)}s`;}
     return `${Math.round(ms / 60000)}m`;
   }
 }

@@ -28,8 +28,8 @@ class WorkerConnectionImpl implements WorkerConnection {
     tmuxBackend: TmuxBackend
   ) {
     this.workerId = workerInfo.id;
-    this.descriptiveName = workerInfo.descriptiveName;
-    this.tmuxPaneId = workerInfo.tmuxPaneId;
+    this.descriptiveName = workerInfo.descriptiveName || `Worker ${workerInfo.id}`;
+    this.tmuxPaneId = workerInfo.tmuxPaneId || '';
     this.tmuxBackend = tmuxBackend;
   }
 
@@ -115,7 +115,7 @@ export class WorkerAccessManager extends EventEmitter {
 
     // Find worker by name (case-insensitive partial match)
     const worker = workers.find(w =>
-      w.descriptiveName.toLowerCase().includes(name.toLowerCase())
+      w.descriptiveName?.toLowerCase().includes(name.toLowerCase())
     );
 
     if (!worker) {
@@ -191,7 +191,7 @@ export class WorkerAccessManager extends EventEmitter {
 
     // Score each worker based on matching words
     const scored = workers.map(worker => {
-      const nameLower = worker.descriptiveName.toLowerCase();
+      const nameLower = worker.descriptiveName?.toLowerCase() || '';
       const nameWords = nameLower.split(/\s+/);
 
       let score = 0;

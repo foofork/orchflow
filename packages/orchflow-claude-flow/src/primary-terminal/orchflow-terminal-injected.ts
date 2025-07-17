@@ -10,19 +10,49 @@ import { OrchFlowInjection } from '../orchflow-injection';
 import { writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
+import { TmuxInstaller } from '../setup/tmux-installer';
+import { hasTmux } from '../utils/terminal-utils';
+import chalk from 'chalk';
+
+export interface OrchFlowInjectedConfig {
+  mode?: 'tmux' | 'inline' | 'split';
+  autoInstallTmux?: boolean;
+}
 
 export class OrchFlowTerminalInjected extends EventEmitter {
   private claudeProcess?: ChildProcess;
   private orchestratorUrl: string;
   private configDir: string;
+  private config: OrchFlowInjectedConfig;
 
-  constructor(orchestratorUrl = 'http://localhost:3001') {
+  constructor(orchestratorUrl = 'http://localhost:3001', config: OrchFlowInjectedConfig = {}) {
     super();
     this.orchestratorUrl = orchestratorUrl;
     this.configDir = join(homedir(), '.orchflow', 'claude-injection');
+    this.config = { mode: 'tmux', autoInstallTmux: true, ...config };
   }
 
   async initialize(): Promise<void> {
+    // Check and install tmux if needed
+    if (this.config.mode === 'tmux' && !(await hasTmux())) {
+      if (this.config.autoInstallTmux) {
+        console.log(chalk.yellow('tmux not found. Installing...'));
+        const installer = new TmuxInstaller();
+        const result = await installer.installAndConfigure();
+
+        if (!result.success) {
+          console.error(chalk.red('Failed to install tmux:'), result.errorMessage);
+          console.log(chalk.yellow('Falling back to inline mode...'));
+          this.config.mode = 'inline';
+        } else {
+          installer.displayInstallationSummary(result);
+        }
+      } else {
+        console.warn(chalk.yellow('tmux not found. Falling back to inline mode...'));
+        this.config.mode = 'inline';
+      }
+    }
+
     // Create config directory
     if (!existsSync(this.configDir)) {
       mkdirSync(this.configDir, { recursive: true });

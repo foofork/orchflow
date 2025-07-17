@@ -40,7 +40,7 @@ export interface WorkerMetrics {
 }
 
 // Import unified OrchFlowConfig from unified interfaces
-export { OrchFlowConfig } from './types/unified-interfaces';
+export type { OrchFlowConfig } from './types/unified-interfaces';
 
 export interface PerformanceMetrics {
   setupTime: number;

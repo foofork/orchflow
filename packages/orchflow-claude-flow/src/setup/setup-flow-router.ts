@@ -3,8 +3,7 @@
  * Routes setup process based on detected environment
  */
 
-import { TerminalEnvironment } from './terminal-environment-detector';
-import { OrchFlowConfig } from '../types';
+import type { TerminalEnvironment } from './terminal-environment-detector';
 
 export type SetupFlow = 'tmux' | 'screen' | 'zellij' | 'native' | 'fallback';
 
@@ -54,7 +53,7 @@ export class SetupFlowRouter {
   route(environment: TerminalEnvironment): SetupFlowConfig {
     const flow = this.determineOptimalFlow(environment);
     const config = this.flowConfigs.get(flow);
-    
+
     if (!config) {
       throw new Error(`No configuration found for flow: ${flow}`);
     }
@@ -81,7 +80,7 @@ export class SetupFlowRouter {
    */
   validateFlow(flow: SetupFlow, environment: TerminalEnvironment): boolean {
     const config = this.flowConfigs.get(flow);
-    if (!config) return false;
+    if (!config) {return false;}
 
     // Check basic requirements
     if (flow === 'tmux' && environment.multiplexer !== 'tmux') {

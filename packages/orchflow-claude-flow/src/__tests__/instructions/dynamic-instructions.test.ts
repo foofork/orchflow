@@ -164,7 +164,7 @@ describe('DynamicInstructionProvider', () => {
   describe('getTaskPatterns', () => {
     it('should return web-development patterns', () => {
       const patterns = instructionProvider.getTaskPatterns('web-development');
-      
+
       expect(patterns).toContain('"Create a React component builder" - for UI components');
       expect(patterns).toContain('"Create an API developer" - for backend services');
       expect(patterns).toContain('"Create a database designer" - for data modeling');
@@ -173,7 +173,7 @@ describe('DynamicInstructionProvider', () => {
 
     it('should return api-development patterns', () => {
       const patterns = instructionProvider.getTaskPatterns('api-development');
-      
+
       expect(patterns).toContain('"Create a REST API designer" - for endpoint planning');
       expect(patterns).toContain('"Create a GraphQL developer" - for GraphQL schemas');
       expect(patterns).toContain('"Create an API tester" - for endpoint testing');
@@ -182,7 +182,7 @@ describe('DynamicInstructionProvider', () => {
 
     it('should return general patterns for unknown types', () => {
       const patterns = instructionProvider.getTaskPatterns('unknown-type');
-      
+
       expect(patterns).toContain('"Create a [role] to [task]" - spawn a specialized worker');
       expect(patterns).toContain('"Connect to [worker name or number]" - switch to a worker');
       expect(patterns).toContain('"What is [worker] doing?" - check worker status');

@@ -146,8 +146,8 @@ describe('TerminalSetupIntegration', () => {
 
       const result = await integration.initializeSetup();
 
-      expect(result).toEqual({ 
-        success: false, 
+      expect(result).toEqual({
+        success: false,
         error: 'Detection failed',
         fallbackMode: 'inline'
       });
@@ -169,8 +169,8 @@ describe('TerminalSetupIntegration', () => {
 
       const result = await integration.initializeSetup();
 
-      expect(result).toEqual({ 
-        success: false, 
+      expect(result).toEqual({
+        success: false,
         error: 'Routing failed',
         fallbackMode: 'inline'
       });
@@ -193,8 +193,8 @@ describe('TerminalSetupIntegration', () => {
 
       const result = await integration.initializeSetup();
 
-      expect(result).toEqual({ 
-        success: true, 
+      expect(result).toEqual({
+        success: true,
         mode: 'vscode',
         warning: 'Preferences not saved'
       });
@@ -216,8 +216,8 @@ describe('TerminalSetupIntegration', () => {
 
       const result = await integration.initializeSetup();
 
-      expect(result).toEqual({ 
-        success: false, 
+      expect(result).toEqual({
+        success: false,
         error: 'tmux: command not found',
         fallbackMode: 'inline'
       });

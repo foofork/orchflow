@@ -13,7 +13,7 @@ import ora from 'ora';
 import { OrchFlowCore } from './core/orchflow-core';
 import { OrchFlowTerminal } from './primary-terminal/orchflow-terminal';
 import { SplitScreenManager } from './terminal-layout/split-screen-manager';
-import { EnhancedSetupOrchestrator } from './setup/enhanced-setup-orchestrator';
+import { UnifiedSetupOrchestrator } from './setup/unified-setup-orchestrator';
 import type { LaunchOptions } from './types';
 
 class OrchFlowLauncher {
@@ -30,11 +30,13 @@ class OrchFlowLauncher {
   async launch(options: LaunchOptions = {}): Promise<void> {
     console.log(chalk.cyan.bold('\n🐝 OrchFlow - Natural Language Orchestration\n'));
 
-    // Phase 1: Enhanced Setup with Comprehensive Dependency Management
-    const setupOrchestrator = EnhancedSetupOrchestrator.getInstance();
+    // Phase 1: Unified Setup with Comprehensive Dependency Management
+    const setupOrchestrator = UnifiedSetupOrchestrator.getInstance();
     const setupResult = await setupOrchestrator.setup(options, {
       interactive: !options.noCore,
-      verbose: options.debug || false
+      verbose: options.debug || false,
+      enableTmuxInstall: true,
+      autoInstallDependencies: true
     });
 
     if (!setupResult.success) {
@@ -45,7 +47,7 @@ class OrchFlowLauncher {
     if (options.debug) {
       console.log(chalk.gray(`Setup completed in ${setupResult.performance.totalTime.toFixed(2)}ms`));
       console.log(chalk.gray(`Flow: ${setupResult.flow}, Environment: ${setupResult.environment.terminal}`));
-      console.log(chalk.gray(`Dependencies: tmux ${setupResult.dependencies.tmux.success ? '✓' : '✗'}, claude-flow ${setupResult.dependencies.claudeFlow.installed ? '✓' : '✗'}`));
+      console.log(chalk.gray(`Dependencies: tmux ${setupResult.dependencies?.tmux.success ? '✓' : '✗'}, claude-flow ${setupResult.dependencies?.claudeFlow.installed ? '✓' : '✗'}`));
     }
 
     // Start orchestration core

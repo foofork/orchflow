@@ -50,13 +50,13 @@ class CachedConfigManager {
       allowStale: true,
       updateAgeOnGet: true
     });
-    
+
     this.configDir = join(getOrchFlowHome(), 'config');
   }
 
   async loadConfig(configName: string): Promise<any> {
     const startTime = performance.now();
-    
+
     // Check cache first
     const cached = this.cache.get(configName);
     if (cached) {
@@ -71,12 +71,12 @@ class CachedConfigManager {
       const config = await this.loadConfigFromDisk(configName);
       this.cache.set(configName, config);
       this.loadedConfigs.add(configName);
-      
+
       const loadTime = performance.now() - startTime;
       if (loadTime > 50) {
         console.warn(`Config ${configName} loaded in ${loadTime.toFixed(2)}ms (target: <50ms)`);
       }
-      
+
       return config;
     }
 
@@ -85,7 +85,7 @@ class CachedConfigManager {
 
   private async loadConfigFromDisk(configName: string): Promise<any> {
     const configPath = join(this.configDir, `${configName}.json`);
-    
+
     if (!existsSync(configPath)) {
       return this.getDefaultConfig(configName);
     }
@@ -119,14 +119,14 @@ class CachedConfigManager {
         enableProfiling: false
       }
     };
-    
+
     return defaults[configName] || {};
   }
 
   preloadEssentialConfigs(): void {
     // Preload most commonly used configs
     const essentialConfigs = ['terminal', 'orchestrator', 'performance'];
-    
+
     Promise.all(essentialConfigs.map(config => this.loadConfig(config)))
       .catch(err => console.warn('Preload failed:', err));
   }
@@ -142,14 +142,14 @@ class EnvironmentDetector {
 
   static async detectEnvironment(): Promise<any> {
     const now = Date.now();
-    
+
     // Use cached result if still valid
     if (now - this.lastDetection < this.CACHE_DURATION && this.cache.has('env')) {
       return this.cache.get('env');
     }
 
     const startTime = performance.now();
-    
+
     const env = {
       platform: process.platform,
       arch: process.arch,
@@ -163,12 +163,12 @@ class EnvironmentDetector {
 
     this.cache.set('env', env);
     this.lastDetection = now;
-    
+
     const detectionTime = performance.now() - startTime;
     if (detectionTime > 200) {
       console.warn(`Environment detection took ${detectionTime.toFixed(2)}ms (target: <200ms)`);
     }
-    
+
     return env;
   }
 
@@ -182,11 +182,11 @@ class EnvironmentDetector {
     try {
       const { spawn } = require('child_process');
       const child = spawn('tmux', ['-V'], { stdio: 'ignore' });
-      
+
       return new Promise((resolve) => {
         child.on('exit', (code: number) => resolve(code === 0));
         child.on('error', () => resolve(false));
-        
+
         // Timeout after 100ms
         setTimeout(() => {
           child.kill();
@@ -218,7 +218,7 @@ class OptimizedInteractionHandler extends EventEmitter {
 
   async handleUserInput(input: string): Promise<any> {
     const startTime = performance.now();
-    
+
     // Check if we have a cached response for this input
     const cached = this.responseBuffer.get(input);
     if (cached) {
@@ -230,21 +230,21 @@ class OptimizedInteractionHandler extends EventEmitter {
 
     // Process input with timeout
     const response = await this.processInputWithTimeout(input);
-    
+
     // Cache the response for future use
     this.responseBuffer.set(input, response);
-    
+
     // Clean up cache if it gets too large
     if (this.responseBuffer.size > 1000) {
       const oldestKey = this.responseBuffer.keys().next().value;
       this.responseBuffer.delete(oldestKey);
     }
-    
+
     const responseTime = performance.now() - startTime;
     if (responseTime > this.RESPONSE_TIMEOUT) {
       console.warn(`User interaction took ${responseTime.toFixed(2)}ms (target: <${this.RESPONSE_TIMEOUT}ms)`);
     }
-    
+
     return response;
   }
 
@@ -309,11 +309,11 @@ class MemoryOptimizer {
   checkMemoryTarget(): boolean {
     const additional = this.getAdditionalMemoryUsage();
     const withinTarget = additional <= MemoryOptimizer.TARGET_MEMORY_MB;
-    
+
     if (!withinTarget) {
       console.warn(`Memory usage ${additional.toFixed(2)}MB exceeds target ${MemoryOptimizer.TARGET_MEMORY_MB}MB`);
     }
-    
+
     return withinTarget;
   }
 
@@ -327,23 +327,23 @@ class MemoryOptimizer {
     setInterval(() => {
       const usage = this.getCurrentMemoryUsage();
       this.memorySnapshots.push(usage);
-      
+
       // Keep only last 10 snapshots
       if (this.memorySnapshots.length > 10) {
         this.memorySnapshots.shift();
       }
-      
+
       this.checkMemoryTarget();
     }, 5000);
   }
 
   getMemoryTrend(): 'stable' | 'increasing' | 'decreasing' {
-    if (this.memorySnapshots.length < 3) return 'stable';
-    
+    if (this.memorySnapshots.length < 3) {return 'stable';}
+
     const recent = this.memorySnapshots.slice(-3);
     const trend = recent[2] - recent[0];
-    
-    if (Math.abs(trend) < 1) return 'stable';
+
+    if (Math.abs(trend) < 1) {return 'stable';}
     return trend > 0 ? 'increasing' : 'decreasing';
   }
 }
@@ -360,18 +360,18 @@ export class SetupOptimizer extends EventEmitter {
 
   constructor() {
     super();
-    
+
     this.configManager = new CachedConfigManager();
     this.interactionHandler = new OptimizedInteractionHandler();
     this.memoryOptimizer = new MemoryOptimizer();
-    
+
     this.targets = {
       setupDetection: 200,
       configLoading: 50,
       userInteraction: 100,
       memoryFootprint: 10
     };
-    
+
     this.metrics = {
       setupDetection: 0,
       configLoading: 0,
@@ -382,19 +382,19 @@ export class SetupOptimizer extends EventEmitter {
 
   async optimizeSetup(): Promise<void> {
     console.log('🚀 Starting setup optimization...');
-    
+
     // Start memory monitoring
     this.memoryOptimizer.startMemoryMonitoring();
-    
+
     // Preload essential configurations
     this.configManager.preloadEssentialConfigs();
-    
+
     // Detect environment with caching
     const env = await EnvironmentDetector.detectEnvironment();
-    
+
     // Apply optimizations based on environment
     await this.applyEnvironmentOptimizations(env);
-    
+
     console.log('✅ Setup optimization complete');
   }
 
@@ -404,12 +404,12 @@ export class SetupOptimizer extends EventEmitter {
       // CI optimizations: disable animations, reduce polling
       await this.applyCIOptimizations();
     }
-    
+
     if (env.cpuCount > 4) {
       // Multi-core optimizations: parallel processing
       await this.applyMultiCoreOptimizations();
     }
-    
+
     if (env.memoryUsage.heapUsed > 100 * 1024 * 1024) {
       // High memory usage: enable aggressive caching
       await this.applyMemoryOptimizations();
@@ -433,85 +433,85 @@ export class SetupOptimizer extends EventEmitter {
 
   async measureSetupDetection(): Promise<number> {
     const startTime = performance.now();
-    
+
     // Simulate setup detection
     await EnvironmentDetector.detectEnvironment();
-    
+
     const detectionTime = performance.now() - startTime;
     this.metrics.setupDetection = detectionTime;
-    
+
     return detectionTime;
   }
 
   async measureConfigLoading(): Promise<number> {
     const startTime = performance.now();
-    
+
     await this.configManager.loadConfig('terminal');
     await this.configManager.loadConfig('orchestrator');
-    
+
     const loadingTime = performance.now() - startTime;
     this.metrics.configLoading = loadingTime;
-    
+
     return loadingTime;
   }
 
   async measureUserInteraction(): Promise<number> {
     const startTime = performance.now();
-    
+
     await this.interactionHandler.handleUserInput('test input');
-    
+
     const interactionTime = performance.now() - startTime;
     this.metrics.userInteraction = interactionTime;
-    
+
     return interactionTime;
   }
 
   measureMemoryFootprint(): number {
     const footprint = this.memoryOptimizer.getAdditionalMemoryUsage();
     this.metrics.memoryFootprint = footprint;
-    
+
     return footprint;
   }
 
   async runBenchmark(): Promise<PerformanceMetrics> {
     console.log('📊 Running performance benchmark...');
-    
+
     const setupTime = await this.measureSetupDetection();
     const configTime = await this.measureConfigLoading();
     const interactionTime = await this.measureUserInteraction();
     const memoryFootprint = this.measureMemoryFootprint();
-    
+
     const results: PerformanceMetrics = {
       setupDetection: setupTime,
       configLoading: configTime,
       userInteraction: interactionTime,
       memoryFootprint: memoryFootprint
     };
-    
+
     console.log('\n📈 Performance Results:');
     console.log(`Setup Detection: ${setupTime.toFixed(2)}ms (target: <${this.targets.setupDetection}ms)`);
     console.log(`Config Loading: ${configTime.toFixed(2)}ms (target: <${this.targets.configLoading}ms)`);
     console.log(`User Interaction: ${interactionTime.toFixed(2)}ms (target: <${this.targets.userInteraction}ms)`);
     console.log(`Memory Footprint: ${memoryFootprint.toFixed(2)}MB (target: <${this.targets.memoryFootprint}MB)`);
-    
+
     // Check if targets are met
     const targetsMetString = this.checkTargetsMet(results);
     console.log(`\n${targetsMetString}`);
-    
+
     return results;
   }
 
   private checkTargetsMet(metrics: PerformanceMetrics): string {
     const results = [];
-    
+
     results.push(metrics.setupDetection <= this.targets.setupDetection ? '✅' : '❌');
     results.push(metrics.configLoading <= this.targets.configLoading ? '✅' : '❌');
     results.push(metrics.userInteraction <= this.targets.userInteraction ? '✅' : '❌');
     results.push(metrics.memoryFootprint <= this.targets.memoryFootprint ? '✅' : '❌');
-    
+
     const passed = results.filter(r => r === '✅').length;
     const total = results.length;
-    
+
     return `Performance Targets: ${passed}/${total} met ${results.join(' ')}`;
   }
 
@@ -522,7 +522,7 @@ export class SetupOptimizer extends EventEmitter {
   async generateOptimizationReport(): Promise<string> {
     const metrics = await this.runBenchmark();
     const memoryTrend = this.memoryOptimizer.getMemoryTrend();
-    
+
     return `
 🎯 OrchFlow Setup Performance Optimization Report
 ${'='.repeat(50)}
@@ -553,27 +553,27 @@ ${'='.repeat(50)}
 
   private generateRecommendations(metrics: PerformanceMetrics): string {
     const recommendations = [];
-    
+
     if (metrics.setupDetection > this.targets.setupDetection) {
       recommendations.push('• Optimize environment detection with more aggressive caching');
     }
-    
+
     if (metrics.configLoading > this.targets.configLoading) {
       recommendations.push('• Implement config file compression and binary serialization');
     }
-    
+
     if (metrics.userInteraction > this.targets.userInteraction) {
       recommendations.push('• Increase interaction buffer size and implement predictive caching');
     }
-    
+
     if (metrics.memoryFootprint > this.targets.memoryFootprint) {
       recommendations.push('• Enable more aggressive garbage collection and reduce cache sizes');
     }
-    
+
     if (recommendations.length === 0) {
       recommendations.push('• All performance targets met! Consider tightening targets for further optimization.');
     }
-    
+
     return recommendations.join('\n  ');
   }
 }

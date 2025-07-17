@@ -1,5 +1,5 @@
-import { OrchFlowMemoryContext } from '../../context/memory-context';
-import { MCPClient } from '../../primary-terminal/mcp-client';
+import { ContextManager } from '../../managers/context-manager';
+import type { MCPClient } from '../../primary-terminal/mcp-client';
 
 jest.mock('../../primary-terminal/mcp-client');
 
@@ -108,8 +108,8 @@ describe('OrchFlowMemoryContext', () => {
 
       jest.spyOn(memoryContext, 'getTaskHistory').mockResolvedValue(mockHistory);
       jest.spyOn(memoryContext, 'calculateSimilarity').mockImplementation((a, b) => {
-        if (a.includes('API') && b.includes('API')) return 0.8;
-        if (a.includes('interface') && b.includes('UI')) return 0.7;
+        if (a.includes('API') && b.includes('API')) {return 0.8;}
+        if (a.includes('interface') && b.includes('UI')) {return 0.7;}
         return 0.3;
       });
 

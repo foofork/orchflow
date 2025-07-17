@@ -27,7 +27,7 @@ import http from 'http';
 import { EventEmitter } from 'events';
 
 // Import unified MCP interfaces
-import { MCPTool } from '../types/unified-interfaces';
+import type { MCPTool } from '../types/unified-interfaces';
 
 export class MCPServer extends EventEmitter {
   private port: number;

@@ -126,7 +126,7 @@ export class TmuxBackend {
       // Get panes in session
       const { stdout: panesOutput } = await execAsync(
         `tmux list-panes -s -t "${sessionName}" -F ` +
-        `"#{pane_id},#{pane_index},#{pane_width},#{pane_height},#{pane_active}"`
+        '"#{pane_id},#{pane_index},#{pane_width},#{pane_height},#{pane_active}"'
       );
 
       const panes: TmuxPane[] = panesOutput.split('\n')
@@ -173,7 +173,7 @@ export class TmuxBackend {
 
   async getPaneInfo(paneId: string): Promise<TmuxPane> {
     const { stdout } = await execAsync(
-      `tmux list-panes -F "#{pane_id},#{pane_index},#{pane_width},#{pane_height},#{pane_active}" ` +
+      'tmux list-panes -F "#{pane_id},#{pane_index},#{pane_width},#{pane_height},#{pane_active}" ' +
       `-f "#{==:#{pane_id},${paneId}}"`
     );
 

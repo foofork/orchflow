@@ -1,6 +1,6 @@
 import { UserInteractionManager } from '../../terminal-setup/user-interaction-manager';
 import { OrchFlowConfigManager } from '../../terminal-setup/config-manager';
-import { MenuOption } from '../../types';
+import type { MenuOption } from '../../types';
 
 // Mock readline
 jest.mock('readline', () => ({

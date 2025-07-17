@@ -3,7 +3,7 @@
  * Automatically installs tmux and configures it for OrchFlow
  */
 
-import { spawn, exec } from 'child_process';
+import { exec } from 'child_process';
 import { promisify } from 'util';
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
@@ -13,14 +13,8 @@ import ora from 'ora';
 
 const execAsync = promisify(exec);
 
-export interface TmuxInstallationResult {
-  success: boolean;
-  alreadyInstalled: boolean;
-  version?: string;
-  configUpdated: boolean;
-  errorMessage?: string;
-  installMethod?: string;
-}
+// Import unified type instead of declaring locally
+import type { TmuxInstallerResult } from '../types/unified-interfaces';
 
 export interface TmuxConfig {
   orchflowBindings: boolean;
@@ -42,9 +36,9 @@ export class TmuxInstaller {
   /**
    * Main installation method - handles everything automatically
    */
-  async installAndConfigure(config: Partial<TmuxConfig> = {}): Promise<TmuxInstallationResult> {
+  async installAndConfigure(config: Partial<TmuxConfig> = {}): Promise<TmuxInstallerResult> {
     const spinner = ora('Setting up tmux for OrchFlow...').start();
-    
+
     try {
       // Step 1: Check if tmux is already installed
       const existingVersion = await this.checkTmuxVersion();
@@ -56,10 +50,11 @@ export class TmuxInstaller {
       // Step 2: Install tmux automatically
       spinner.text = 'Installing tmux...';
       const installResult = await this.installTmux();
-      
+
       if (!installResult.success) {
         spinner.fail('Failed to install tmux');
         return {
+          installed: false,
           success: false,
           alreadyInstalled: false,
           configUpdated: false,
@@ -72,8 +67,9 @@ export class TmuxInstaller {
 
       // Step 3: Configure tmux for OrchFlow
       const configResult = await this.configureTmux(config);
-      
+
       return {
+        installed: true,
         success: true,
         alreadyInstalled: false,
         version: installResult.version,
@@ -84,6 +80,7 @@ export class TmuxInstaller {
     } catch (error) {
       spinner.fail('Installation failed');
       return {
+        installed: false,
         success: false,
         alreadyInstalled: false,
         configUpdated: false,
@@ -110,7 +107,7 @@ export class TmuxInstaller {
    */
   private async installTmux(): Promise<{ success: boolean; version?: string; installMethod?: string; errorMessage?: string }> {
     const platform = process.platform;
-    
+
     try {
       switch (platform) {
         case 'darwin':
@@ -302,10 +299,11 @@ Option 4 - Use Windows Terminal with OrchFlow's inline mode (no tmux required)
   /**
    * Configure existing tmux installation
    */
-  private async configureExistingTmux(config: Partial<TmuxConfig>, version: string): Promise<TmuxInstallationResult> {
+  private async configureExistingTmux(config: Partial<TmuxConfig>, version: string): Promise<TmuxInstallerResult> {
     const configResult = await this.configureTmux(config);
-    
+
     return {
+      installed: true,
       success: true,
       alreadyInstalled: true,
       version,
@@ -320,7 +318,7 @@ Option 4 - Use Windows Terminal with OrchFlow's inline mode (no tmux required)
   private async configureTmux(config: Partial<TmuxConfig>): Promise<{ success: boolean; errorMessage?: string }> {
     try {
       const tmuxConfig = this.generateTmuxConfig(config);
-      
+
       // Create OrchFlow tmux config directory
       const orchflowConfigDir = join(homedir(), '.orchflow');
       if (!existsSync(orchflowConfigDir)) {
@@ -463,7 +461,7 @@ source-file ~/.orchflow/tmux.conf
 
     if (existsSync(this.tmuxConfigPath)) {
       const existingConfig = readFileSync(this.tmuxConfigPath, 'utf8');
-      
+
       // Check if OrchFlow config is already sourced
       if (!existingConfig.includes('source-file ~/.orchflow/tmux.conf')) {
         // Append OrchFlow configuration
@@ -490,36 +488,36 @@ source-file ~/.orchflow/tmux.conf
   /**
    * Display post-installation instructions
    */
-  displayInstallationSummary(result: TmuxInstallationResult): void {
-    console.log('\n' + chalk.green('🎉 tmux Setup Complete!'));
+  displayInstallationSummary(result: TmuxInstallerResult): void {
+    console.log(`\n${  chalk.green('🎉 tmux Setup Complete!')}`);
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    
+
     if (result.alreadyInstalled) {
       console.log(chalk.yellow(`✓ tmux ${result.version} was already installed`));
     } else {
       console.log(chalk.green(`✓ tmux ${result.version} installed via ${result.installMethod}`));
     }
-    
+
     if (result.configUpdated) {
       console.log(chalk.green('✓ OrchFlow tmux configuration applied'));
     }
 
-    console.log('\n' + chalk.cyan('🚀 Key Features Enabled:'));
+    console.log(`\n${  chalk.cyan('🚀 Key Features Enabled:')}`);
     console.log(`  • ${chalk.green('Ctrl+O')} prefix key for OrchFlow commands`);
     console.log(`  • ${chalk.green('Ctrl+O, 1-9')} for quick worker access`);
     console.log(`  • ${chalk.green('Ctrl+O, 0')} to return to primary terminal`);
     console.log(`  • ${chalk.green('Ctrl+O, s')} for session switcher`);
     console.log(`  • ${chalk.green('Ctrl+O, f')} for fullscreen toggle`);
-    console.log(`  • Mouse support enabled`);
-    console.log(`  • Enhanced status bar with OrchFlow branding`);
+    console.log('  • Mouse support enabled');
+    console.log('  • Enhanced status bar with OrchFlow branding');
 
-    console.log('\n' + chalk.cyan('📋 Next Steps:'));
-    console.log(`  1. OrchFlow will now use tmux for split-screen layout`);
-    console.log(`  2. Your workers will appear in separate panes`);
-    console.log(`  3. Use the key bindings above for efficient navigation`);
-    console.log(`  4. Status updates will appear in the right pane`);
-    
-    console.log('\n' + chalk.gray('Configuration files:'));
+    console.log(`\n${  chalk.cyan('📋 Next Steps:')}`);
+    console.log('  1. OrchFlow will now use tmux for split-screen layout');
+    console.log('  2. Your workers will appear in separate panes');
+    console.log('  3. Use the key bindings above for efficient navigation');
+    console.log('  4. Status updates will appear in the right pane');
+
+    console.log(`\n${  chalk.gray('Configuration files:')}`);
     console.log(`  • Main: ${this.tmuxConfigPath}`);
     console.log(`  • OrchFlow: ${this.orchflowConfigPath}`);
     console.log('');

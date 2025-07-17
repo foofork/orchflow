@@ -1,5 +1,4 @@
 import { EventEmitter } from 'events';
-import type { ChildProcess } from 'child_process';
 import { spawn } from 'child_process';
 // Mock UUID implementation
 function uuidv4(): string {
@@ -12,6 +11,7 @@ function uuidv4(): string {
 import path from 'path';
 import os from 'os';
 import type { Task } from './orchflow-orchestrator';
+import type { Worker, WorkerType } from '../types/unified-interfaces';
 
 export interface WorkerConfig {
   maxWorkers: number;
@@ -22,20 +22,17 @@ export interface WorkerConfig {
   };
 }
 
-// Import unified Worker interface
-import { Worker } from '../types/unified-interfaces';
-
 export class WorkerManager extends EventEmitter {
   private workers: Map<string, Worker> = new Map();
   private workersByName: Map<string, Worker> = new Map();
   private config: WorkerConfig;
-  private claudeFlowPath: string;
+  private _claudeFlowPath: string;
   private resourceMonitorInterval?: NodeJS.Timeout;
 
   constructor(config: WorkerConfig) {
     super();
     this.config = config;
-    this.claudeFlowPath = this.findClaudeFlowPath();
+    this._claudeFlowPath = this.findClaudeFlowPath();
     this.startResourceMonitoring();
   }
 
@@ -60,9 +57,26 @@ export class WorkerManager extends EventEmitter {
     const workerId = `worker_${uuidv4()}`;
     const worker: Worker = {
       id: workerId,
-      type,
-      descriptiveName: config.descriptiveName || `${type} Worker`,
+      name: config.descriptiveName || `${type} Worker`,
+      type: type as WorkerType,
+      task: config.task || `${type} work`,
       status: 'spawning',
+      context: {
+        conversationHistory: [],
+        sharedKnowledge: {
+          facts: {},
+          patterns: {},
+          insights: {},
+          bestPractices: {}
+        },
+        codeArtifacts: [],
+        decisions: []
+      },
+      progress: 0,
+      createdAt: new Date(),
+      lastActive: new Date(),
+      children: [],
+      descriptiveName: config.descriptiveName || `${type} Worker`,
       quickAccessKey: config.quickAccessKey,
       resources: {
         cpuUsage: 0,
@@ -70,7 +84,6 @@ export class WorkerManager extends EventEmitter {
       },
       capabilities: this.getCapabilitiesForType(type),
       startTime: new Date(),
-      lastActivity: new Date(),
       output: [],
       config
     };
@@ -130,7 +143,7 @@ export class WorkerManager extends EventEmitter {
     process.stdout?.on('data', (data) => {
       const output = data.toString();
       worker.output.push(output);
-      worker.lastActivity = new Date();
+      worker.lastActive = new Date();
       this.emit('workerOutput', { worker, output });
     });
 
@@ -167,7 +180,7 @@ export class WorkerManager extends EventEmitter {
     }
 
     worker.currentTask = task;
-    worker.lastActivity = new Date();
+    worker.lastActive = new Date();
 
     // Send task to worker (implementation depends on worker type)
     if (worker.tmuxSession) {
@@ -200,7 +213,7 @@ export class WorkerManager extends EventEmitter {
       await this.execCommand(`tmux send-keys -t ${worker.tmuxSession} C-z`);
     } else if (worker.process) {
       // Send SIGSTOP to pause process
-      process.kill(worker.process.pid!, 'SIGSTOP');
+      process.kill(worker.process.pid, 'SIGSTOP');
     }
 
     worker.status = 'paused';
@@ -218,7 +231,7 @@ export class WorkerManager extends EventEmitter {
       await this.execCommand(`tmux send-keys -t ${worker.tmuxSession} "fg" Enter`);
     } else if (worker.process) {
       // Send SIGCONT to resume process
-      process.kill(worker.process.pid!, 'SIGCONT');
+      process.kill(worker.process.pid, 'SIGCONT');
     }
 
     worker.status = 'running';

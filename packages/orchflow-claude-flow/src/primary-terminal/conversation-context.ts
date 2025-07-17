@@ -12,15 +12,11 @@ export interface UserPreferences {
   theme: 'light' | 'dark';
 }
 
-export interface WorkerInfo {
-  id: string;
-  name?: string; // Optional name property for compatibility
-  descriptiveName: string;
-  status: string;
-  progress: number;
-  quickAccessKey?: number;
-  tmuxPaneId: string;
-}
+// WorkerInfo interface moved to unified-interfaces.ts
+import type { WorkerInfo } from '../types/unified-interfaces';
+
+// Re-export WorkerInfo for backward compatibility
+export type { WorkerInfo };
 
 export class ConversationContext {
   private history: Message[] = [];

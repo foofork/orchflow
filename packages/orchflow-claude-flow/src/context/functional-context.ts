@@ -2,7 +2,7 @@ import type { OrchestratorClient, SessionData } from '../primary-terminal/orches
 import type { ConversationContext } from '../primary-terminal/conversation-context';
 import type { WorkerAccessManager } from '../primary-terminal/worker-access-manager';
 
-export interface WorkerContext {
+export interface WorkerListContext {
   workers: Array<{
     id: string;
     descriptiveName: string;
@@ -30,7 +30,7 @@ export interface OrchFlowPatterns {
 }
 
 export interface FunctionalContextResponse {
-  workers: WorkerContext['workers'];
+  workers: WorkerListContext['workers'];
   currentTask?: TaskContext;
   availableCommands: string[];
   quickAccessMap: Array<{key: number, workerId: string, workerName: string}>;
@@ -56,7 +56,7 @@ export class OrchFlowFunctionalContext {
   async getContext(userInput: string): Promise<FunctionalContextResponse> {
     const workers = await this.orchestratorClient.listWorkers();
     const enrichedWorkers = await this.enrichWorkerInfo(workers);
-    
+
     return {
       workers: enrichedWorkers,
       currentTask: await this.getCurrentTaskContext(),
@@ -67,11 +67,11 @@ export class OrchFlowFunctionalContext {
       historicalSuggestions: []
     };
   }
-  
+
   /**
    * Enrich worker information with progress and activity details
    */
-  private async enrichWorkerInfo(workers: any[]): Promise<WorkerContext['workers']> {
+  private async enrichWorkerInfo(workers: any[]): Promise<WorkerListContext['workers']> {
     return workers.map(w => ({
       id: w.id,
       descriptiveName: w.descriptiveName || w.name,
@@ -88,8 +88,8 @@ export class OrchFlowFunctionalContext {
    */
   private async getCurrentTaskContext(): Promise<TaskContext | undefined> {
     try {
-      const sessionData: SessionData = await this.orchestratorClient.getSessionData();
-      if (!sessionData) return undefined;
+      const sessionData: SessionData | null = await this.orchestratorClient.getSessionData();
+      if (!sessionData) {return undefined;}
 
       return {
         mainObjective: sessionData.mainObjective || 'General development tasks',
@@ -109,13 +109,13 @@ export class OrchFlowFunctionalContext {
    */
   private getRelevantCommands(input: string): string[] {
     const commands = [];
-    
+
     // Always include quick access hint
     commands.push('Tip: Press 1-9 to quickly connect to workers');
-    
+
     // Context-aware suggestions based on input
     const lowerInput = input.toLowerCase();
-    
+
     if (lowerInput.includes('create') || lowerInput.includes('build')) {
       commands.push(
         'Create a React component builder to handle UI development',
@@ -124,7 +124,7 @@ export class OrchFlowFunctionalContext {
         'Create a database designer for data modeling'
       );
     }
-    
+
     if (lowerInput.includes('connect') || lowerInput.includes('check') || lowerInput.includes('show')) {
       commands.push(
         'Connect to the React builder',
@@ -157,7 +157,7 @@ export class OrchFlowFunctionalContext {
         'Optimize database performance'
       );
     }
-    
+
     return commands;
   }
 

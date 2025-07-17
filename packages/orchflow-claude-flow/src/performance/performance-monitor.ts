@@ -70,7 +70,7 @@ export class PerformanceMonitor extends EventEmitter {
     }
 
     console.log(`📊 Starting performance monitoring (interval: ${intervalMs}ms)`);
-    
+
     this.monitoringInterval = setInterval(() => {
       this.captureSnapshot();
     }, intervalMs);
@@ -125,7 +125,7 @@ export class PerformanceMonitor extends EventEmitter {
   private checkThresholds(snapshot: PerformanceSnapshot): void {
     for (const threshold of this.thresholds) {
       const metricValue = snapshot.metrics[threshold.metric as keyof typeof snapshot.metrics];
-      
+
       if (metricValue >= threshold.critical) {
         this.generateAlert(threshold.metric, metricValue, threshold.critical, 'critical');
       } else if (metricValue >= threshold.warning) {
@@ -160,9 +160,9 @@ export class PerformanceMonitor extends EventEmitter {
 
     const emoji = level === 'critical' ? '🚨' : '⚠️';
     const unit = this.thresholds.find(t => t.metric === metric)?.unit || '';
-    
+
     console.log(`${emoji} Performance Alert: ${metric} = ${value.toFixed(2)}${unit} (threshold: ${threshold}${unit})`);
-    
+
     this.emit('alert', alert);
   }
 
@@ -171,15 +171,15 @@ export class PerformanceMonitor extends EventEmitter {
    */
   private measureSetupDetection(): number {
     const start = performance.now();
-    
+
     // Simulate setup detection
     const platform = process.platform;
     const arch = process.arch;
     const nodeVersion = process.version;
-    
+
     // Simulate some detection work
-    const _ = { platform, arch, nodeVersion };
-    
+    const _envInfo = { platform, arch, nodeVersion };
+
     return performance.now() - start;
   }
 
@@ -188,7 +188,7 @@ export class PerformanceMonitor extends EventEmitter {
    */
   private measureConfigLoading(): number {
     const start = performance.now();
-    
+
     // Simulate config loading
     const configPath = join(getOrchFlowHome(), 'config', 'terminal.json');
     if (existsSync(configPath)) {
@@ -198,7 +198,7 @@ export class PerformanceMonitor extends EventEmitter {
         // Ignore errors for benchmark
       }
     }
-    
+
     return performance.now() - start;
   }
 
@@ -207,15 +207,15 @@ export class PerformanceMonitor extends EventEmitter {
    */
   private measureUserInteraction(): number {
     const start = performance.now();
-    
+
     // Simulate user interaction processing
     const input = 'test input';
     const processed = input.toLowerCase().split(' ');
     const response = { type: 'test', words: processed.length };
-    
+
     // Simulate response generation
-    const _ = response;
-    
+    const _processedResponse = response;
+
     return performance.now() - start;
   }
 
@@ -232,16 +232,16 @@ export class PerformanceMonitor extends EventEmitter {
    */
   private measureCPUUsage(): number {
     const startUsage = process.cpuUsage();
-    
+
     // Simulate some CPU work
     const start = Date.now();
     while (Date.now() - start < 10) {
       // Busy wait for 10ms
     }
-    
+
     const endUsage = process.cpuUsage(startUsage);
     const totalUsage = endUsage.user + endUsage.system;
-    
+
     // Calculate percentage (rough approximation)
     return (totalUsage / 10000) * 100; // Convert to percentage
   }
@@ -253,7 +253,7 @@ export class PerformanceMonitor extends EventEmitter {
     try {
       const fs = require('fs');
       const stats = fs.statSync(getOrchFlowHome());
-      
+
       // This is a simplified calculation
       // In a real implementation, you'd calculate actual disk usage
       return Math.min(stats.size / 1024 / 1024, 100); // MB, capped at 100%
@@ -296,16 +296,16 @@ export class PerformanceMonitor extends EventEmitter {
 
     const recent = this.snapshots.slice(-10);
     const metrics = ['setupDetection', 'configLoading', 'userInteraction', 'memoryFootprint', 'cpuUsage', 'diskUsage'];
-    
+
     const stats: any = {};
-    
+
     for (const metric of metrics) {
       const values = recent.map(s => s.metrics[metric as keyof typeof s.metrics]);
       const sum = values.reduce((a, b) => a + b, 0);
       const avg = sum / values.length;
       const min = Math.min(...values);
       const max = Math.max(...values);
-      
+
       stats[metric] = {
         current: values[values.length - 1],
         average: avg,
@@ -314,7 +314,7 @@ export class PerformanceMonitor extends EventEmitter {
         trend: this.calculateTrend(values)
       };
     }
-    
+
     return stats;
   }
 
@@ -322,13 +322,13 @@ export class PerformanceMonitor extends EventEmitter {
    * Calculate performance trend
    */
   private calculateTrend(values: number[]): 'stable' | 'improving' | 'degrading' {
-    if (values.length < 3) return 'stable';
-    
+    if (values.length < 3) {return 'stable';}
+
     const recent = values.slice(-3);
     const trend = recent[2] - recent[0];
     const threshold = recent[0] * 0.1; // 10% threshold
-    
-    if (Math.abs(trend) < threshold) return 'stable';
+
+    if (Math.abs(trend) < threshold) {return 'stable';}
     return trend > 0 ? 'degrading' : 'improving';
   }
 
@@ -343,7 +343,7 @@ export class PerformanceMonitor extends EventEmitter {
       thresholds: this.thresholds,
       exportedAt: new Date().toISOString()
     };
-    
+
     return JSON.stringify(data, null, 2);
   }
 
@@ -353,17 +353,17 @@ export class PerformanceMonitor extends EventEmitter {
   saveToFile(filename?: string): string {
     const defaultFilename = `performance-${new Date().toISOString().split('T')[0]}.json`;
     const filepath = join(getOrchFlowHome(), 'performance', filename || defaultFilename);
-    
+
     // Ensure directory exists
     const fs = require('fs');
     const dir = join(getOrchFlowHome(), 'performance');
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    
+
     const data = this.exportData();
     writeFileSync(filepath, data);
-    
+
     console.log(`📊 Performance data saved to: ${filepath}`);
     return filepath;
   }
@@ -374,7 +374,7 @@ export class PerformanceMonitor extends EventEmitter {
   generateReport(): string {
     const stats = this.getStatistics();
     const activeAlerts = this.getActiveAlerts();
-    
+
     if (!stats) {
       return 'No performance data available';
     }
@@ -400,7 +400,7 @@ ${'='.repeat(40)}
   Disk Usage: ${stats.diskUsage.average.toFixed(2)}%
 
 🚨 Active Alerts: ${activeAlerts.length}
-${activeAlerts.map(alert => 
+${activeAlerts.map(alert =>
   `  ${alert.level === 'critical' ? '🚨' : '⚠️'} ${alert.metric}: ${alert.value.toFixed(2)} (threshold: ${alert.threshold})`
 ).join('\n')}
 
@@ -428,7 +428,7 @@ export class PerformanceBenchmark {
    */
   async runBenchmark(): Promise<Map<string, any>> {
     console.log(`🏁 Running performance benchmark (${this.iterations} iterations)...`);
-    
+
     const benchmarks = [
       { name: 'setupDetection', fn: this.benchmarkSetupDetection.bind(this) },
       { name: 'configLoading', fn: this.benchmarkConfigLoading.bind(this) },
@@ -438,15 +438,15 @@ export class PerformanceBenchmark {
 
     for (const benchmark of benchmarks) {
       const times = [];
-      
+
       for (let i = 0; i < this.iterations; i++) {
         const time = await benchmark.fn();
         times.push(time);
-        
+
         // Small delay between iterations
         await new Promise(resolve => setTimeout(resolve, 10));
       }
-      
+
       this.results.set(benchmark.name, times);
     }
 
@@ -458,7 +458,7 @@ export class PerformanceBenchmark {
    */
   private async benchmarkSetupDetection(): Promise<number> {
     const start = performance.now();
-    
+
     // Simulate environment detection
     const env = {
       platform: process.platform,
@@ -466,10 +466,10 @@ export class PerformanceBenchmark {
       nodeVersion: process.version,
       memory: process.memoryUsage()
     };
-    
+
     // Simulate some processing
     const _ = JSON.stringify(env);
-    
+
     return performance.now() - start;
   }
 
@@ -478,17 +478,17 @@ export class PerformanceBenchmark {
    */
   private async benchmarkConfigLoading(): Promise<number> {
     const start = performance.now();
-    
+
     // Simulate config loading
     const config = {
       terminal: { splitRatio: 70, statusWidth: 30 },
       orchestrator: { maxWorkers: 8, poolSize: 4 },
       performance: { enableMetrics: true }
     };
-    
+
     // Simulate JSON parsing
     const _ = JSON.parse(JSON.stringify(config));
-    
+
     return performance.now() - start;
   }
 
@@ -497,7 +497,7 @@ export class PerformanceBenchmark {
    */
   private async benchmarkUserInteraction(): Promise<number> {
     const start = performance.now();
-    
+
     // Simulate user input processing
     const input = 'create a new worker for testing';
     const words = input.split(' ');
@@ -506,10 +506,10 @@ export class PerformanceBenchmark {
       action: 'create_worker',
       parameters: { purpose: 'testing', wordCount: words.length }
     };
-    
+
     // Simulate response serialization
     const _ = JSON.stringify(response);
-    
+
     return performance.now() - start;
   }
 
@@ -518,16 +518,16 @@ export class PerformanceBenchmark {
    */
   private async benchmarkMemoryFootprint(): Promise<number> {
     const initialMemory = process.memoryUsage().heapUsed;
-    
+
     // Simulate memory usage
     const data = Array.from({ length: 1000 }, (_, i) => ({ id: i, value: Math.random() }));
-    
+
     const finalMemory = process.memoryUsage().heapUsed;
     const additionalMemory = (finalMemory - initialMemory) / 1024 / 1024; // MB
-    
+
     // Clean up
     data.length = 0;
-    
+
     return additionalMemory;
   }
 
@@ -536,11 +536,11 @@ export class PerformanceBenchmark {
    */
   private analyzeResults(): Map<string, any> {
     const analysis = new Map();
-    
+
     for (const [name, times] of this.results) {
       const sorted = times.slice().sort((a, b) => a - b);
       const sum = times.reduce((a, b) => a + b, 0);
-      
+
       const stats = {
         min: Math.min(...times),
         max: Math.max(...times),
@@ -550,10 +550,10 @@ export class PerformanceBenchmark {
         p99: sorted[Math.floor(sorted.length * 0.99)],
         stddev: this.calculateStdDev(times, sum / times.length)
       };
-      
+
       analysis.set(name, stats);
     }
-    
+
     return analysis;
   }
 
@@ -571,7 +571,7 @@ export class PerformanceBenchmark {
    */
   generateReport(): string {
     const analysis = this.analyzeResults();
-    
+
     let report = `
 🏁 Performance Benchmark Report
 ${'='.repeat(40)}
@@ -579,10 +579,10 @@ ${'='.repeat(40)}
 📊 Results (${this.iterations} iterations):
 
 `;
-    
+
     for (const [name, stats] of analysis) {
       const unit = name === 'memoryFootprint' ? 'MB' : 'ms';
-      
+
       report += `📈 ${name}:
 `;
       report += `  Average: ${stats.average.toFixed(2)}${unit}
@@ -599,11 +599,11 @@ ${'='.repeat(40)}
 `;
       report += `  Std Dev: ${stats.stddev.toFixed(2)}${unit}
 `;
-      report += `\n`;
+      report += '\n';
     }
-    
+
     report += `🕒 Benchmark completed at: ${new Date().toLocaleString()}`;
-    
+
     return report;
   }
 }

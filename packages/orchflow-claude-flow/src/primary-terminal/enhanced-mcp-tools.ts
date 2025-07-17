@@ -42,20 +42,7 @@ interface WorkerConnection {
 // Import unified interfaces
 import { ExtendedWorkerRich } from '../types/unified-interfaces';
 
-// ExtendedWorkerRich is now imported from unified interfaces
-  progress: number;
-  resources?: any;
-  estimatedCompletion?: Date;
-  priority?: number;
-  status: WorkerStatus;
-  descriptiveName: string;
-  quickAccessKey?: number;
-  id: string;
-  currentTask?: {
-    description: string;
-  };
-  startTime?: Date;
-}
+// ExtendedWorkerRich is now imported from unified interfaces - no need to redefine
 
 interface Orchestrator {
   parseNaturalLanguageTask(input: string, context: unknown[], orchflowContext?: any): Promise<TaskInfo>;

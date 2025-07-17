@@ -1,11 +1,11 @@
 import { OrchFlowFunctionalContext } from '../../context/functional-context';
 import { DynamicInstructionProvider } from '../../instructions/dynamic-instructions';
-import { OrchFlowMemoryContext } from '../../context/memory-context';
+import { ContextManager } from '../../managers/context-manager';
 import { ClaudeMDManager } from '../../context/claude-md-manager';
-import { OrchestratorClient } from '../../orchestrator/orchflow-orchestrator';
-import { ConversationContext } from '../../primary-terminal/conversation-context';
-import { WorkerAccessManager } from '../../primary-terminal/worker-access-manager';
-import { Worker } from '../../types';
+import type { OrchestratorClient } from '../../orchestrator/orchflow-orchestrator';
+import type { ConversationContext } from '../../primary-terminal/conversation-context';
+import type { WorkerAccessManager } from '../../primary-terminal/worker-access-manager';
+import type { Worker } from '../../types';
 
 jest.mock('../../orchestrator/orchflow-orchestrator');
 jest.mock('../../primary-terminal/conversation-context');
@@ -232,7 +232,7 @@ describe('Context Generation Performance Tests', () => {
 
       for (let i = 0; i < iterations; i++) {
         const startTime = performance.now();
-        
+
         // Store context
         await memoryContext.storeWorkerContext(`worker-${i}`, {
           name: `Worker ${i}`,
@@ -279,7 +279,7 @@ describe('Context Generation Performance Tests', () => {
 
       for (let i = 0; i < iterations; i++) {
         const startTime = performance.now();
-        
+
         for (let j = 0; j < testStrings.length; j++) {
           for (let k = j + 1; k < testStrings.length; k++) {
             memoryContext.calculateSimilarity(testStrings[j], testStrings[k]);
@@ -327,10 +327,10 @@ describe('Context Generation Performance Tests', () => {
 
         // 1. Get functional context
         const context = await functionalContext.getContext('Create a new React component');
-        
+
         // 2. Generate instructions
         const instructions = instructionProvider.generateInstructions('web-development', context);
-        
+
         // 3. Generate CLAUDE.md content
         const claudeMDContent = await claudeMDManager.generateOrchFlowSection(context);
 
@@ -381,7 +381,7 @@ describe('Context Generation Performance Tests', () => {
         const context = await functionalContext.getContext('Create a new React component');
         const instructions = instructionProvider.generateInstructions('web-development', context);
         const claudeMDContent = await claudeMDManager.generateOrchFlowSection(context);
-        
+
         // Force garbage collection if available
         if (global.gc) {
           global.gc();

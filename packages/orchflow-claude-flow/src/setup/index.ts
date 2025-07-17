@@ -8,14 +8,19 @@ export type { TerminalEnvironment, TerminalCapabilities } from './terminal-envir
 export { SetupFlowRouter } from './setup-flow-router';
 export type { SetupFlow, SetupFlowConfig, SetupStep } from './setup-flow-router';
 
-export { OrchFlowConfigManager } from './orchflow-config-manager';
-export type { OrchFlowConfigFile } from './orchflow-config-manager';
+export { ConfigurationManager } from '../managers/configuration-manager';
+export type { OrchFlowConfigFile } from '../managers/configuration-manager';
+
+// Backward compatibility alias
+export { ConfigurationManager as OrchFlowConfigManager } from '../managers/configuration-manager';
 
 export { UserInteractionManager } from './user-interaction-manager';
 export type { MenuOption, MenuConfig, ConfirmationConfig, ProgressConfig } from './user-interaction-manager';
 
-export { OptimizedSetupOrchestrator } from './optimized-setup-orchestrator';
-export type { SetupResult, SetupOptions } from './optimized-setup-orchestrator';
+// Legacy orchestrators removed - all functionality now in UnifiedSetupOrchestrator
+
+export { UnifiedSetupOrchestrator } from './unified-setup-orchestrator';
+export type { UnifiedSetupResult, SetupOptions as UnifiedSetupOptions } from './unified-setup-orchestrator';
 
 // Re-export commonly used types
 export type { LaunchOptions, OrchFlowConfig } from '../types';

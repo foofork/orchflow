@@ -13,15 +13,10 @@ import { homedir } from 'os';
 import crypto from 'crypto';
 
 // Import unified types
-import { 
-  Worker, 
-  WorkerContext, 
-  WorkerType, 
-  WorkerStatus,
-  Message,
-  CodeArtifact,
-  Decision
-} from '../types/unified-interfaces';
+import type {
+  Worker,
+  WorkerType,
+  CodeArtifact } from '../types/unified-interfaces';
 
 // Define a simplified config interface for the core
 export interface OrchFlowConfig {

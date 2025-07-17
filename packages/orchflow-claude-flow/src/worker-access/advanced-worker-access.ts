@@ -1,10 +1,12 @@
 import { EventEmitter } from 'events';
 import type { TmuxBackend } from '../tmux-integration/tmux-backend';
-import { 
-  Worker, 
-  ExtendedWorker, 
+import type {
+  ExtendedWorker,
   WorkerAccessSession,
   WorkerSearchResult
+} from '../types/unified-interfaces';
+import {
+  Worker
 } from '../types/unified-interfaces';
 
 // WorkerSearchResult is now imported from unified interfaces
@@ -73,7 +75,9 @@ export class AdvancedWorkerAccess extends EventEmitter {
 
     for (const worker of workers) {
       const name = worker.descriptiveName?.toLowerCase() || '';
-      const description = worker.currentTask?.description?.toLowerCase() || '';
+      const description = typeof worker.currentTask === 'string' 
+        ? worker.currentTask.toLowerCase() 
+        : worker.currentTask?.description?.toLowerCase() || '';
 
       // Exact name match
       if (name === queryLower) {
@@ -159,8 +163,9 @@ export class AdvancedWorkerAccess extends EventEmitter {
     const paneId = await this.createWorkerPane(worker);
 
     session = {
+      id: `session_${worker.id}_${Date.now()}`,
       workerId: worker.id,
-      workerName: worker.descriptiveName,
+      workerName: worker.descriptiveName || `Worker ${worker.id}`,
       paneId,
       startTime: new Date(),
       lastActivity: new Date(),
@@ -450,36 +455,4 @@ export class AdvancedWorkerAccess extends EventEmitter {
     this.removeAllListeners();
   }
 
-  /**
-   * Assign a quick access key to a worker
-   */
-  assignQuickKey(workerId: string, key: number): void {
-    const worker = this.workerRegistry.get(workerId);
-    if (worker) {
-      // Remove existing key if worker has one
-      if (worker.quickAccessKey) {
-        this.quickKeyMap.delete(worker.quickAccessKey);
-      }
-      
-      // Assign new key
-      worker.quickAccessKey = key;
-      this.quickKeyMap.set(key, workerId);
-      
-      this.emit('quickKeyAssigned', { workerId, key });
-    }
-  }
-
-  /**
-   * Unassign a quick access key from a worker
-   */
-  unassignQuickKey(workerId: string): void {
-    const worker = this.workerRegistry.get(workerId);
-    if (worker && worker.quickAccessKey) {
-      const key = worker.quickAccessKey;
-      this.quickKeyMap.delete(key);
-      delete worker.quickAccessKey;
-      
-      this.emit('quickKeyUnassigned', { workerId, key });
-    }
-  }
 }

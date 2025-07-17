@@ -95,7 +95,7 @@ describe('TerminalEnvironmentDetector', () => {
     it('should detect tmux session when in tmux', async () => {
       const originalTmux = process.env.TMUX;
       process.env.TMUX = 'test-session';
-      
+
       try {
         const environment = await detector.detect(false);
         expect(environment.multiplexer).toBe('tmux');
@@ -113,7 +113,7 @@ describe('TerminalEnvironmentDetector', () => {
     it('should detect screen session when in screen', async () => {
       const originalSTY = process.env.STY;
       process.env.STY = 'test-session';
-      
+
       try {
         const environment = await detector.detect(false);
         expect(environment.multiplexer).toBe('screen');
@@ -133,7 +133,7 @@ describe('TerminalEnvironmentDetector', () => {
       const mockExecSync = jest.fn().mockImplementation(() => {
         throw new Error('Command failed');
       });
-      
+
       jest.doMock('child_process', () => ({
         execSync: mockExecSync
       }));
@@ -148,7 +148,7 @@ describe('TerminalEnvironmentDetector', () => {
     it('should detect colors based on environment', async () => {
       const originalTerm = process.env.TERM;
       process.env.TERM = 'xterm-256color';
-      
+
       try {
         const environment = await detector.detect(false);
         expect(environment.capabilities.colors).toBe(true);
@@ -164,7 +164,7 @@ describe('TerminalEnvironmentDetector', () => {
     it('should detect unicode support', async () => {
       const originalLang = process.env.LANG;
       process.env.LANG = 'en_US.UTF-8';
-      
+
       try {
         const environment = await detector.detect(false);
         expect(environment.capabilities.unicode).toBe(true);

@@ -207,7 +207,7 @@ describe('ClaudeMDManager', () => {
       );
       expect(mockFs.appendFile).toHaveBeenCalledWith(
         path.join(process.cwd(), 'CLAUDE.md'),
-        '\n\n' + orchFlowContent
+        `\n\n${  orchFlowContent}`
       );
     });
 
@@ -315,7 +315,7 @@ New content here`;
 
       expect(mockFs.appendFile).toHaveBeenCalledWith(
         path.join(process.cwd(), 'CLAUDE.md'),
-        '\n\n' + newOrchFlowContent
+        `\n\n${  newOrchFlowContent}`
       );
     });
   });

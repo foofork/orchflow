@@ -47,6 +47,15 @@ You have access to OrchFlow, a natural language orchestration system. During our
       {
         name: 'orchflow_spawn_worker',
         description: 'Create a worker for parallel task execution',
+        parameters: {
+          type: 'object',
+          properties: {
+            task: { type: 'string', description: 'Task description' },
+            type: { type: 'string', enum: ['developer', 'tester', 'researcher', 'analyst'] },
+            context: { type: 'object', description: 'Shared context to pass to worker' }
+          },
+          required: ['task']
+        },
         inputSchema: {
           type: 'object',
           properties: {
@@ -70,6 +79,12 @@ You have access to OrchFlow, a natural language orchestration system. During our
       {
         name: 'orchflow_worker_status',
         description: 'Get status of all workers or specific worker',
+        parameters: {
+          type: 'object',
+          properties: {
+            workerId: { type: 'string', description: 'Optional specific worker ID' }
+          }
+        },
         inputSchema: {
           type: 'object',
           properties: {
@@ -87,6 +102,14 @@ You have access to OrchFlow, a natural language orchestration system. During our
       {
         name: 'orchflow_switch_context',
         description: 'Switch conversation context to a specific worker',
+        parameters: {
+          type: 'object',
+          properties: {
+            workerId: { type: 'string', description: 'Worker ID to switch to' },
+            preserveHistory: { type: 'boolean', description: 'Keep current conversation in history' }
+          },
+          required: ['workerId']
+        },
         inputSchema: {
           type: 'object',
           properties: {
@@ -104,13 +127,21 @@ You have access to OrchFlow, a natural language orchestration system. During our
           return {
             success: true,
             context: context,
-            message: `Switched to ${(context as any).workerName} context`
+            message: `Switched to ${(context as any).workerName || 'worker'} context`
           };
         }
       },
       {
         name: 'orchflow_share_knowledge',
         description: 'Share information between workers',
+        parameters: {
+          type: 'object',
+          properties: {
+            knowledge: { type: 'object', description: 'Information to share' },
+            targetWorkers: { type: 'array', items: { type: 'string' }, description: 'Worker IDs to share with' }
+          },
+          required: ['knowledge']
+        },
         inputSchema: {
           type: 'object',
           properties: {
@@ -131,6 +162,22 @@ You have access to OrchFlow, a natural language orchestration system. During our
       {
         name: 'orchflow_execute_parallel',
         description: 'Execute tasks in parallel across workers',
+        parameters: {
+          type: 'object',
+          properties: {
+            tasks: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  description: { type: 'string' },
+                  assignTo: { type: 'string', description: 'Worker type or ID' }
+                }
+              }
+            }
+          },
+          required: ['tasks']
+        },
         inputSchema: {
           type: 'object',
           properties: {

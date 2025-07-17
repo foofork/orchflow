@@ -153,8 +153,8 @@ export class OrchFlowMemoryContext {
       const history = await this.getTaskHistory(50);
 
       // Find similar tasks based on input similarity
-      const similarTasks = history.filter(task => 
-        task.status === 'completed' && 
+      const similarTasks = history.filter(task =>
+        task.status === 'completed' &&
         task.successfulCommand &&
         this.calculateSimilarity(task.input, currentInput) > 0.6
       );
@@ -177,8 +177,8 @@ export class OrchFlowMemoryContext {
    * Store worker decision for learning
    */
   async storeWorkerDecision(
-    workerId: string, 
-    decision: string, 
+    workerId: string,
+    decision: string,
     context: any,
     outcome: 'success' | 'failure' | 'partial'
   ): Promise<void> {
@@ -210,7 +210,7 @@ export class OrchFlowMemoryContext {
   async getWorkerPatterns(workerType: string): Promise<any[]> {
     try {
       const result = await this.mcpClient.invokeTool('mcp__claude-flow__memory_search', {
-        pattern: `orchflow/workers/*/decisions/*`,
+        pattern: 'orchflow/workers/*/decisions/*',
         namespace: this.memoryNamespace,
         limit: 20
       });
@@ -242,7 +242,7 @@ export class OrchFlowMemoryContext {
     try {
       const timestamp = new Date().toISOString();
       const memoryKey = `orchflow/metrics/${timestamp}`;
-      
+
       await this.mcpClient.invokeTool('mcp__claude-flow__memory_usage', {
         action: 'store',
         key: memoryKey,
@@ -294,7 +294,7 @@ export class OrchFlowMemoryContext {
   async cleanupOldEntries(): Promise<void> {
     try {
       const cutoffTime = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); // 7 days ago
-      
+
       // Get all entries
       const result = await this.mcpClient.invokeTool('mcp__claude-flow__memory_search', {
         pattern: 'orchflow/*',
@@ -332,9 +332,9 @@ export class OrchFlowMemoryContext {
   private calculateSimilarity(str1: string, str2: string): number {
     const longer = str1.length > str2.length ? str1 : str2;
     const shorter = str1.length > str2.length ? str2 : str1;
-    
-    if (longer.length === 0) return 1.0;
-    
+
+    if (longer.length === 0) {return 1.0;}
+
     const distance = this.levenshteinDistance(longer, shorter);
     return (longer.length - distance) / longer.length;
   }
@@ -344,15 +344,15 @@ export class OrchFlowMemoryContext {
    */
   private levenshteinDistance(str1: string, str2: string): number {
     const matrix = [];
-    
+
     for (let i = 0; i <= str2.length; i++) {
       matrix[i] = [i];
     }
-    
+
     for (let j = 0; j <= str1.length; j++) {
       matrix[0][j] = j;
     }
-    
+
     for (let i = 1; i <= str2.length; i++) {
       for (let j = 1; j <= str1.length; j++) {
         if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
@@ -366,7 +366,7 @@ export class OrchFlowMemoryContext {
         }
       }
     }
-    
+
     return matrix[str2.length][str1.length];
   }
 

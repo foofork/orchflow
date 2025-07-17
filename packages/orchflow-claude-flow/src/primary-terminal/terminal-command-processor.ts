@@ -5,7 +5,7 @@
 
 export class TerminalCommandProcessor {
   // Command processing methods
-  
+
   static async initialize() {
     return new TerminalCommandProcessor();
   }

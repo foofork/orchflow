@@ -29,7 +29,7 @@ export class ClaudeMDManager {
     const workerStatus = this.formatWorkerStatus(context.workers);
     const taskContext = this.formatTaskContext(context.currentTask);
     const quickAccessInfo = this.formatQuickAccessInfo(context.quickAccessMap);
-    
+
     return `${this.orchflowSectionMarker}
 
 ## OrchFlow Terminal Commands
@@ -77,13 +77,13 @@ ${this.orchflowSectionEndMarker}`;
   async appendToClaudeMD(content: string): Promise<void> {
     try {
       const existing = await this.readClaudeMD();
-      
+
       // Check if OrchFlow section already exists
       if (existing.includes(this.orchflowSectionMarker)) {
         await this.updateExistingSection(content);
       } else {
         // Append new section
-        await fs.appendFile(this.claudeMdPath, '\n\n' + content);
+        await fs.appendFile(this.claudeMdPath, `\n\n${  content}`);
       }
     } catch (error) {
       console.warn('Failed to append to CLAUDE.md:', error);
@@ -96,16 +96,16 @@ ${this.orchflowSectionEndMarker}`;
   async updateExistingSection(newContent: string): Promise<void> {
     try {
       const existing = await this.readClaudeMD();
-      
+
       // Find and replace the OrchFlow section
       const startIndex = existing.indexOf(this.orchflowSectionMarker);
       const endIndex = existing.indexOf(this.orchflowSectionEndMarker);
-      
+
       if (startIndex !== -1 && endIndex !== -1) {
         const beforeSection = existing.substring(0, startIndex);
         const afterSection = existing.substring(endIndex + this.orchflowSectionEndMarker.length);
         const updatedContent = beforeSection + newContent + afterSection;
-        
+
         await fs.writeFile(this.claudeMdPath, updatedContent);
       }
     } catch (error) {
@@ -119,15 +119,15 @@ ${this.orchflowSectionEndMarker}`;
   async removeOrchFlowSection(): Promise<void> {
     try {
       const existing = await this.readClaudeMD();
-      
+
       const startIndex = existing.indexOf(this.orchflowSectionMarker);
       const endIndex = existing.indexOf(this.orchflowSectionEndMarker);
-      
+
       if (startIndex !== -1 && endIndex !== -1) {
         const beforeSection = existing.substring(0, startIndex);
         const afterSection = existing.substring(endIndex + this.orchflowSectionEndMarker.length);
         const cleanedContent = beforeSection + afterSection;
-        
+
         await fs.writeFile(this.claudeMdPath, cleanedContent);
       }
     } catch (error) {
@@ -247,7 +247,7 @@ ${this.getWorkerSpecificGuidance(workerName, taskDescription)}
       const status = this.getStatusIcon(worker.status);
       const progress = worker.progress ? ` (${worker.progress}%)` : '';
       const task = worker.currentTask ? ` - ${worker.currentTask}` : '';
-      
+
       return `${key} ${status} ${worker.descriptiveName}${progress}${task}`;
     });
 
@@ -264,11 +264,11 @@ ${this.getWorkerSpecificGuidance(workerName, taskDescription)}
 
     const lines = [];
     lines.push(`**Main Objective**: ${taskContext.mainObjective}`);
-    
+
     if (taskContext.activeSubtasks.length > 0) {
       lines.push(`**Active Subtasks**: ${taskContext.activeSubtasks.join(', ')}`);
     }
-    
+
     if (taskContext.completedTasks.length > 0) {
       lines.push(`**Completed**: ${taskContext.completedTasks.length} tasks`);
     }
@@ -284,7 +284,7 @@ ${this.getWorkerSpecificGuidance(workerName, taskDescription)}
       return 'No quick access keys assigned';
     }
 
-    const accessLines = quickAccessMap.map(entry => 
+    const accessLines = quickAccessMap.map(entry =>
       `**${entry.key}**: ${entry.workerName}`
     );
 
@@ -310,11 +310,11 @@ ${this.getWorkerSpecificGuidance(workerName, taskDescription)}
   private getWorkerSpecificGuidance(workerName: string, taskDescription: string): string {
     const name = workerName.toLowerCase();
     const task = taskDescription.toLowerCase();
-    
+
     // Use task variable to provide context-aware guidance
     const isUrgent = task.includes('urgent') || task.includes('critical');
     const isAPI = task.includes('api') || task.includes('endpoint');
-    
+
     if (name.includes('react') || name.includes('component')) {
       const prefix = isUrgent ? '**URGENT** ' : '';
       const apiSuffix = isAPI ? ' Focus on API integration patterns.' : '';
@@ -326,7 +326,7 @@ ${prefix}**React Development Focus**:
 - Document component APIs and usage examples
 - Consider performance implications (memoization, lazy loading)${apiSuffix}`;
     }
-    
+
     if (name.includes('api') || name.includes('backend')) {
       return `
 **API Development Focus**:
@@ -336,7 +336,7 @@ ${prefix}**React Development Focus**:
 - Include comprehensive API documentation
 - Consider rate limiting and security measures`;
     }
-    
+
     if (name.includes('test') || name.includes('testing')) {
       return `
 **Testing Focus**:
@@ -346,7 +346,7 @@ ${prefix}**React Development Focus**:
 - Include both positive and negative test cases
 - Document test scenarios and expected behaviors`;
     }
-    
+
     if (name.includes('database') || name.includes('db')) {
       return `
 **Database Focus**:
@@ -356,7 +356,7 @@ ${prefix}**React Development Focus**:
 - Plan for scalability and data migration
 - Document database structure and relationships`;
     }
-    
+
     return `
 **General Development Focus**:
 - Write clean, maintainable code

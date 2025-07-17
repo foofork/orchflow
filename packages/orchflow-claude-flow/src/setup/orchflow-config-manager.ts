@@ -9,10 +9,10 @@ import { homedir } from 'os';
 import * as path from 'path';
 import * as os from 'os';
 import { parse, stringify } from 'yaml';
-import { OrchFlowConfig, LaunchOptions } from '../types';
+import type { OrchFlowConfig, LaunchOptions } from '../types';
 import type { OrchFlowConfig as CoreOrchFlowConfig } from '../core/orchflow-core';
-import { TerminalEnvironment } from './terminal-environment-detector';
-import { SetupFlow } from './setup-flow-router';
+import type { TerminalEnvironment } from './terminal-environment-detector';
+import type { SetupFlow } from './setup-flow-router';
 
 export interface OrchFlowConfigFile {
   version: string;
@@ -208,7 +208,7 @@ export class OrchFlowConfigManager {
 
     if (options.port || options.host || options.debug || options.dataDir) {
       config.core = { ...this.defaultConfig.core };
-      
+
       if (options.port) {
         config.core.port = options.port;
       }
@@ -385,9 +385,33 @@ export class OrchFlowConfigManager {
       security: {
         enableAuth: config.security?.enableAuth ?? false,
         apiKey: config.security?.apiKey,
-        allowedOrigins: config.security?.allowedOrigins ?? ['*']
+        allowedOrigins: config.security?.allowedOrigins ?? ['*'],
+        rateLimiting: config.security?.rateLimiting ?? { enabled: false, maxRequests: 100, windowMs: 60000 },
+        cors: config.security?.cors ?? { enabled: true, origin: '*' }
       },
-      logLevel: config.logLevel || 'info'
+      logLevel: config.logLevel || 'info',
+      // Add missing required properties
+      core: {
+        port: config.port || 3001,
+        enablePersistence: config.enablePersistence ?? true,
+        enableWebSocket: config.enableWebSocket ?? true,
+        mode: config.mode || 'production',
+        maxWorkers: config.maxWorkers || 10,
+        storageDir: config.storageDir || path.join(os.homedir(), '.orchflow', 'storage')
+      },
+      splitScreen: {
+        enabled: config.splitScreen?.enabled ?? false,
+        primaryWidth: config.splitScreen?.primaryWidth ?? 70,
+        statusWidth: config.splitScreen?.statusWidth ?? 30,
+        sessionName: config.splitScreen?.sessionName ?? 'orchflow',
+        enableQuickAccess: config.splitScreen?.enableQuickAccess ?? true
+      },
+      terminal: {
+        mode: config.terminal?.mode || 'auto',
+        statusUpdateInterval: config.terminal?.statusUpdateInterval || 1000,
+        showResourceUsage: config.terminal?.showResourceUsage ?? true,
+        maxWorkersDisplay: config.terminal?.maxWorkersDisplay || 10
+      }
     };
   }
 
@@ -452,7 +476,7 @@ export class OrchFlowConfigManager {
     }
 
     const result = { ...target };
-    
+
     for (const key in source) {
       if (source.hasOwnProperty(key)) {
         if (typeof source[key] === 'object' && !Array.isArray(source[key])) {

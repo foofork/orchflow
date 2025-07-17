@@ -63,7 +63,15 @@ export class TaskGraph {
     }
 
     // Sort by priority (higher priority first)
-    executableTasks.sort((a, b) => b.priority - a.priority);
+    executableTasks.sort((a, b) => {
+      const aPriority = typeof a.priority === 'string' ?
+        ({ low: 1, medium: 5, high: 10, critical: 15 }[a.priority] || 5) :
+        a.priority;
+      const bPriority = typeof b.priority === 'string' ?
+        ({ low: 1, medium: 5, high: 10, critical: 15 }[b.priority] || 5) :
+        b.priority;
+      return bPriority - aPriority;
+    });
 
     return executableTasks;
   }

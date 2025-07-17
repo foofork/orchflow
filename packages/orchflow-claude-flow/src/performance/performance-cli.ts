@@ -48,7 +48,7 @@ class PerformanceCLI {
 
       // Run benchmark to verify improvements
       const results = await this.optimizer.runBenchmark();
-      
+
       console.log(chalk.green('\n✅ Optimization Results:'));
       console.log(chalk.cyan(`Setup Detection: ${results.setupDetection.toFixed(2)}ms`));
       console.log(chalk.cyan(`Config Loading: ${results.configLoading.toFixed(2)}ms`));
@@ -79,9 +79,9 @@ class PerformanceCLI {
     try {
       this.benchmark = new PerformanceBenchmark(iterations);
       await this.benchmark.runBenchmark();
-      
+
       spinner.succeed('Benchmark completed');
-      
+
       const report = this.benchmark.generateReport();
       console.log(report);
 
@@ -105,7 +105,7 @@ class PerformanceCLI {
     const interval = 5000; // 5 seconds
 
     console.log(chalk.cyan(`📊 Starting performance monitoring for ${duration} seconds...`));
-    
+
     // Setup event handlers
     this.monitor.on('snapshot', (snapshot) => {
       if (options.verbose) {
@@ -116,7 +116,7 @@ class PerformanceCLI {
     this.monitor.on('alert', (alert) => {
       const emoji = alert.level === 'critical' ? '🚨' : '⚠️';
       const color = alert.level === 'critical' ? chalk.red : chalk.yellow;
-      
+
       console.log(color(`${emoji} ${alert.metric}: ${alert.value.toFixed(2)} (threshold: ${alert.threshold})`));
     });
 
@@ -126,7 +126,7 @@ class PerformanceCLI {
     // Stop after duration
     setTimeout(() => {
       this.monitor.stop();
-      
+
       const report = this.monitor.generateReport();
       console.log(report);
 
@@ -156,10 +156,10 @@ class PerformanceCLI {
     let updateCount = 0;
     const maxLines = 20;
 
-    this.monitor.on('snapshot', (snapshot) => {
+    this.monitor.on('snapshot', (_snapshot) => {
       // Clear previous output
       if (updateCount > 0) {
-        process.stdout.write('\x1b[' + maxLines + 'A'); // Move cursor up
+        process.stdout.write(`\x1b[${  maxLines  }A`); // Move cursor up
         process.stdout.write('\x1b[J'); // Clear from cursor down
       }
 
@@ -173,7 +173,7 @@ class PerformanceCLI {
         console.log(chalk.cyan(`Memory Footprint: ${stats.memoryFootprint.current.toFixed(2)}MB ${this.getTrendIcon(stats.memoryFootprint.trend)}`));
         console.log(chalk.cyan(`CPU Usage: ${stats.cpuUsage.current.toFixed(2)}% ${this.getTrendIcon(stats.cpuUsage.trend)}`));
         console.log(chalk.cyan(`Disk Usage: ${stats.diskUsage.current.toFixed(2)}% ${this.getTrendIcon(stats.diskUsage.trend)}`));
-        
+
         const activeAlerts = this.monitor.getActiveAlerts();
         console.log(chalk.gray('\nActive Alerts:'));
         if (activeAlerts.length === 0) {
@@ -185,7 +185,7 @@ class PerformanceCLI {
             console.log(color(`${emoji} ${alert.metric}: ${alert.value.toFixed(2)}`));
           });
         }
-        
+
         console.log(chalk.gray(`\nUpdated: ${new Date().toLocaleTimeString()}`));
         console.log(chalk.gray(`Updates: ${updateCount + 1}`));
       }
@@ -225,17 +225,17 @@ class PerformanceCLI {
       // Run optimization check
       await this.optimizer.optimizeSetup();
       const optimizationReport = await this.optimizer.generateOptimizationReport();
-      
+
       // Run benchmark
       await this.benchmark.runBenchmark();
       const benchmarkReport = this.benchmark.generateReport();
-      
+
       // Start monitoring for a short period
       this.monitor.start(1000);
       await new Promise(resolve => setTimeout(resolve, 10000)); // 10 seconds
       this.monitor.stop();
       const monitoringReport = this.monitor.generateReport();
-      
+
       // Combine reports
       const fullReport = `
 📊 OrchFlow Performance Analysis Report
@@ -249,9 +249,9 @@ ${monitoringReport}
 
 🕒 Generated at: ${new Date().toLocaleString()}
 `;
-      
+
       spinner.succeed('Report generated successfully');
-      
+
       if (options.output) {
         writeFileSync(options.output, fullReport);
         console.log(chalk.green(`\n📊 Full report saved to: ${options.output}`));
@@ -269,17 +269,17 @@ ${monitoringReport}
   /**
    * Reset performance data
    */
-  async resetData(options: PerformanceOptions): Promise<void> {
+  async resetData(_options: PerformanceOptions): Promise<void> {
     const spinner = ora('Resetting performance data...').start();
 
     try {
       // Reset monitoring data
       this.monitor = new PerformanceMonitor();
-      
+
       // Clear cached data
       const performanceDir = join(getOrchFlowHome(), 'performance');
       const fs = require('fs');
-      
+
       if (fs.existsSync(performanceDir)) {
         const files = fs.readdirSync(performanceDir);
         for (const file of files) {
@@ -288,7 +288,7 @@ ${monitoringReport}
           }
         }
       }
-      
+
       spinner.succeed('Performance data reset successfully');
       console.log(chalk.green('✅ All performance data has been cleared'));
 

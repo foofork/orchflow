@@ -25,18 +25,18 @@ export class DynamicInstructionProvider {
    * Generate dynamic instructions based on task type and context
    */
   generateInstructions(
-    taskType: string, 
+    taskType: string,
     context: FunctionalContextResponse,
     config: Partial<InstructionConfig> = {}
   ): string {
     const finalConfig = { ...this.defaultConfig, ...config };
-    const instructions = [`# OrchFlow Task Context\n`];
-    
+    const instructions = ['# OrchFlow Task Context\n'];
+
     // Add current objective if available
     if (finalConfig.includeTaskContext && context.currentTask?.mainObjective) {
       instructions.push(`## Current Objective: ${context.currentTask.mainObjective}\n`);
     }
-    
+
     // Add relevant patterns based on task type
     if (finalConfig.includePatterns) {
       const patterns = this.getTaskPatterns(taskType);
@@ -48,7 +48,7 @@ export class DynamicInstructionProvider {
         instructions.push('');
       }
     }
-    
+
     // Add current worker status with quick access
     if (finalConfig.includeWorkerStatus && context.workers && context.workers.length > 0) {
       instructions.push('## Active Workers:');
@@ -58,7 +58,7 @@ export class DynamicInstructionProvider {
         const status = this.getStatusEmoji(w.status);
         instructions.push(`- ${key} ${status} ${w.descriptiveName}: ${w.status}${progress}`);
       });
-      
+
       if (finalConfig.includeQuickAccess) {
         instructions.push('\n💡 **Quick Access**: Use number keys 1-9 or worker names to connect instantly');
       }
@@ -137,7 +137,7 @@ export class DynamicInstructionProvider {
         '"Assign key [1-9] to [worker]" - set up quick access shortcuts'
       ]
     };
-    
+
     return patterns[taskType] || patterns.general;
   }
 

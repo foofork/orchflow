@@ -1,6 +1,6 @@
 /**
  * Unified Interface Definitions for OrchFlow
- * 
+ *
  * This file contains harmonized interface definitions that resolve
  * conflicts between different modules and ensure type consistency.
  */
@@ -9,7 +9,7 @@
 // Core Worker Interfaces
 // ================================
 
-export type WorkerType = 
+export type WorkerType =
   | 'coordinator'
   | 'researcher'
   | 'coder'
@@ -20,9 +20,10 @@ export type WorkerType =
   | 'optimizer'
   | 'documenter'
   | 'monitor'
-  | 'specialist';
+  | 'specialist'
+  | 'developer'; // Added to support existing code
 
-export type WorkerStatus = 
+export type WorkerStatus =
   | 'idle'
   | 'active'
   | 'busy'
@@ -47,7 +48,7 @@ export interface Worker {
   parentId?: string;
   children: string[];
   metadata?: Record<string, any>;
-  
+
   // Additional properties for compatibility
   descriptiveName?: string;
   quickAccessKey?: number;
@@ -66,11 +67,11 @@ export interface Worker {
     pid?: number;
   };
   config?: any;
-  
+
   // Process-specific properties
   process?: any; // ChildProcess
   tmuxSession?: string;
-  currentTask?: Task;
+  currentTask?: Task | string; // Support both Task object and string
   estimatedCompletion?: Date;
   priority?: number;
 }
@@ -79,7 +80,7 @@ export interface Worker {
 export interface ExtendedWorker extends Worker {
   descriptiveName: string;
   quickAccessKey?: number;
-  currentTask?: Task;
+  currentTask?: Task | string; // Support both Task object and string
   startTime?: Date;
   resources: {
     cpuUsage: number;
@@ -118,16 +119,25 @@ export interface ExtendedWorkerRich extends ExtendedWorker {
 export interface Task {
   id: string;
   description: string;
-  priority: 'low' | 'medium' | 'high' | 'critical';
-  status: 'pending' | 'in_progress' | 'completed' | 'failed';
+  type?: 'research' | 'code' | 'test' | 'analysis' | 'swarm' | 'hive-mind' | string; // Support all type variants
+  priority: 'low' | 'medium' | 'high' | 'critical' | number; // Support both string and number
+  status: 'pending' | 'in_progress' | 'running' | 'completed' | 'failed' | 'blocked' | string; // Support all status variants
   assignedTo?: string;
+  assignedWorker?: string; // Alias for assignedTo
+  assignedWorkerName?: string; // Worker descriptive name
   dependencies?: string[];
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt?: Date; // Made optional for compatibility
+  updatedAt?: Date; // Made optional for compatibility
   completedAt?: Date;
   estimatedDuration?: number;
   actualDuration?: number;
   metadata?: Record<string, any>;
+  parameters?: any; // From orchestrator variants
+  claudeFlowCommand?: string; // Specific to orchestrator
+  config?: any; // Task-specific config
+  deadline?: string; // Task deadline
+  error?: string; // Error message if failed
+  descriptiveName?: string; // From orchestrator-client
 }
 
 export interface WorkerContext {
@@ -142,6 +152,28 @@ export interface WorkerMemoryContext {
   shortTerm: Record<string, any>;
   longTerm: Record<string, any>;
   learnings: Record<string, any>;
+}
+
+// Worker list context from functional-context.ts
+export interface WorkerListContext {
+  workers: Array<{
+    id: string;
+    descriptiveName: string;
+    status: 'active' | 'paused' | 'completed';
+    currentTask?: string;
+    quickAccessKey?: number;
+    progress?: number;
+    estimatedCompletion?: Date;
+  }>;
+}
+
+// Task context from functional-context.ts
+export interface TaskContext {
+  mainObjective: string;
+  activeSubtasks: string[];
+  completedTasks: string[];
+  dependencies: Map<string, string[]>;
+  taskHistory: Array<{task: string, status: string, timestamp: Date}>;
 }
 
 export interface Message {
@@ -192,7 +224,7 @@ export interface OrchFlowConfig {
   enablePersistence: boolean;
   enableWebSocket: boolean;
   logLevel?: 'debug' | 'info' | 'warn' | 'error';
-  
+
   // Nested configuration objects
   core: CoreConfig;
   security: SecurityConfig;
@@ -344,12 +376,21 @@ export interface MCPToolInfo {
 
 export interface SessionData {
   id: string;
-  workers: Worker[];
+  workers: Worker[] | WorkerInfo[] | any[]; // Support all worker types
   tasks: Task[];
   startTime: Date;
   endTime?: Date;
-  status: 'active' | 'paused' | 'completed' | 'failed';
+  lastUpdate?: Date; // From state-manager
+  status?: 'active' | 'paused' | 'completed' | 'failed'; // Made optional
   metadata?: Record<string, any>;
+
+  // Additional properties from other variants
+  conversation?: any; // From orchestrator-client
+  mainObjective?: string; // From multiple sources
+  activeSubtasks?: string[]; // From multiple sources
+  completedTasks?: string[]; // From multiple sources
+  dependencies?: [string, string[]][]; // From multiple sources
+  taskHistory?: Array<{task: string, status: string, timestamp: Date}>; // From orchestrator-client
 }
 
 export interface LaunchOptions {
@@ -371,6 +412,8 @@ export interface LaunchOptions {
 export interface WorkerAccessSession {
   id: string;
   workerId: string;
+  paneId: string;
+  workerName: string;
   startTime: Date;
   lastActivity: Date;
   isActive: boolean;
@@ -402,16 +445,29 @@ export interface WorkerDisplay {
 
 export interface WorkerInfo {
   id: string;
-  name: string;
-  type: WorkerType;
-  status: WorkerStatus;
-  currentTask?: string;
-  lastActivity: Date;
+  name?: string; // Optional for compatibility
+  descriptiveName?: string; // From conversation-context
+  type?: WorkerType; // Made optional for compatibility
+  status: WorkerStatus | string; // Support both enum and string
+  currentTask?: string; // Always string to match status pane expectations
+  lastActivity?: Date; // Made optional
+  progress?: number; // From conversation-context
+  quickAccessKey?: number; // From conversation-context
+  tmuxPaneId?: string; // From conversation-context
+  resources?: ResourceUsage; // Resource usage information
+  estimatedCompletion?: Date; // Added missing property
+  resourceUsage?: ResourceUsage; // Alias for resources
 }
 
 // ================================
 // Performance and Metrics Interfaces
 // ================================
+
+export interface ResourceUsage {
+  cpuUsage: number;
+  memoryUsage: number;
+  diskUsage: number;
+}
 
 export interface PerformanceMetrics {
   setupTime: number;
@@ -458,6 +514,95 @@ export interface WorkerId {
 // Setup and Configuration Interfaces
 // ================================
 
+// Unified SetupResult interface - combines both variants
+export interface SetupResult {
+  success: boolean;
+  flow: SetupFlowString | SetupFlow; // Support both string and SetupFlow type
+  environment: SetupEnvironment | TerminalEnvironment; // Support both environment types
+  dependencies?: {
+    tmux: TmuxInstallationResult;
+    claudeFlow: { installed: boolean; version?: string };
+  };
+  config: {
+    core: any;
+    splitScreen: any;
+    terminal: any;
+  } | OrchFlowConfigFile; // Support both config formats
+  performance: {
+    totalTime: number;
+    steps?: Array<{ name: string; duration: number; success: boolean }>;
+    detectionTime?: number;
+    configTime?: number;
+    setupTime?: number;
+    interactionTime?: number;
+  };
+  errors?: string[];
+  warnings?: string[];
+}
+
+// Supporting types for SetupResult
+export interface SetupFlow {
+  type: 'basic' | 'advanced' | 'custom';
+  description?: string;
+}
+
+// String alias for setup flow router compatibility
+export type SetupFlowString = 'tmux' | 'screen' | 'zellij' | 'native' | 'fallback' | string;
+
+export interface SetupEnvironment {
+  isVSCode: boolean;
+  isTmux: boolean;
+  hasClaudeFlow: boolean;
+  platform: string;
+  shell: string;
+  // Additional properties from enhanced setup
+  terminal?: string;
+  hasTmux?: boolean;
+  isInsideTmux?: boolean;
+  isCodespaces?: boolean;
+  terminalSize?: { width: number; height: number };
+  packageManagers?: string[];
+  userPreference?: UserSetupPreference;
+  // Ensure backward compatibility
+  Platform?: string; // Alias for platform
+}
+
+export interface UserSetupPreference {
+  mode: 'auto' | 'tmux' | 'inline' | 'statusbar' | 'window';
+  autoInstallDependencies: boolean;
+  packageManager?: string;
+  skipSetupPrompts?: boolean;
+  tmuxConfig?: {
+    orchflowBindings: boolean;
+    mouseSupport: boolean;
+    customPrefix?: string;
+  };
+}
+
+export interface TerminalEnvironment extends SetupEnvironment {
+  terminal?: string;
+  terminalVersion?: string;
+  // Add missing properties that are expected by terminal-environment-detector
+  multiplexer?: 'tmux' | 'screen' | 'none';
+  capabilities?: string[];
+}
+
+export interface TmuxInstallationResult {
+  installed: boolean;
+  version?: string;
+  path?: string;
+  error?: string;
+  // Add TmuxInstallerResult compatibility properties
+  success: boolean;
+  alreadyInstalled: boolean;
+  installMethod?: string;
+  configUpdated: boolean;
+  errorMessage?: string;
+}
+
+// Type alias for compatibility
+export type TmuxInstallerResult = TmuxInstallationResult;
+
 export interface SetupFlowConfig {
   skipWelcome: boolean;
   autoInstallDeps: boolean;
@@ -471,6 +616,22 @@ export interface OrchFlowConfigFile {
   config: OrchFlowConfig;
   lastModified: Date;
   checksum: string;
+  // Add missing properties
+  setup?: SetupFlowConfig;
+  splitScreen?: SplitScreenConfig;
+  ui?: {
+    theme: 'auto' | 'light' | 'dark';
+    statusPane: {
+      enabled: boolean;
+      width: number;
+      updateInterval: number;
+    };
+    keybindings: Record<string, string>;
+  };
+  terminal?: {
+    multiplexer: 'tmux' | 'screen' | 'none';
+    sessionName?: string;
+  };
 }
 
 export interface MenuConfig {
@@ -518,6 +679,9 @@ export interface FunctionalContext {
   variables: Record<string, any>;
   imports: Record<string, any>;
 }
+
+// Missing export for WorkerContext (needed by functional-context.ts)
+export type { WorkerContext as WorkerContextBase };
 
 // ================================
 // Tmux Configuration Interfaces
@@ -587,7 +751,7 @@ export interface MainOrchestratorConfig {
 // Re-export commonly used types
 // ================================
 
-export {
+export type {
   Worker as BaseWorker,
   WorkerContext as BaseWorkerContext,
   OrchFlowConfig as BaseOrchFlowConfig,

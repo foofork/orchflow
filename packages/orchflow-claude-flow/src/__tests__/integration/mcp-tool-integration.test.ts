@@ -1,7 +1,7 @@
 import { OrchFlowCore } from '../../core/orchflow-core';
 import { OrchFlowFunctionalContext } from '../../context/functional-context';
 import { DynamicInstructionProvider } from '../../instructions/dynamic-instructions';
-import { OrchFlowMemoryContext } from '../../context/memory-context';
+import { ContextManager } from '../../managers/context-manager';
 import { ClaudeMDManager } from '../../context/claude-md-manager';
 import fetch from 'node-fetch';
 

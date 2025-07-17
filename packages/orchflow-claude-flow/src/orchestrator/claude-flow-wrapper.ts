@@ -118,7 +118,7 @@ export class ClaudeFlowWrapper {
   }
 
   buildCommand(task: Task): string {
-    const template = this.commandTemplates.get(task.type);
+    const template = this.commandTemplates.get(task.type || 'code');
     if (!template) {
       // Fallback to generic command
       return this.buildGenericCommand(task);
@@ -150,7 +150,7 @@ export class ClaudeFlowWrapper {
     return `${this.claudeFlowPath} sparc run orchestrator "${task.description}"`;
   }
 
-  private buildAdditionalArgs(parameters: any): string {
+  private buildAdditionalArgs(parameters: Record<string, any>): string {
     const args: string[] = [];
 
     // Convert parameters to command line arguments
@@ -175,14 +175,20 @@ export class ClaudeFlowWrapper {
     return args.join(' ');
   }
 
-  parseClaudeFlowOutput(output: string): any {
+  parseClaudeFlowOutput(output: string): {
+    progress: number;
+    status: string;
+    messages: string[];
+    errors: string[];
+    data: Record<string, any>;
+  } {
     // Parse claude-flow output to extract structured information
     const result = {
       progress: 0,
       status: '',
       messages: [] as string[],
       errors: [] as string[],
-      data: {} as any
+      data: {} as Record<string, any>
     };
 
     const lines = output.split('\n');
@@ -225,16 +231,22 @@ export class ClaudeFlowWrapper {
     return result;
   }
 
-  generateWorkerConfig(task: Task): any {
+  generateWorkerConfig(task: Task): {
+    name: string;
+    memory: string;
+    timeout: number;
+    retries: number;
+    environment: Record<string, string>;
+  } {
     // Generate worker-specific configuration based on task
     return {
       name: `${task.type}_${task.id}`,
-      memory: this.getMemoryLimit(task.type),
-      timeout: this.getTimeout(task.type),
+      memory: this.getMemoryLimit(task.type || 'code'),
+      timeout: this.getTimeout(task.type || 'code'),
       retries: task.type === 'test' ? 3 : 1,
       environment: {
         ORCHFLOW_TASK_ID: task.id,
-        ORCHFLOW_TASK_TYPE: task.type,
+        ORCHFLOW_TASK_TYPE: task.type || 'code',
         ORCHFLOW_WORKER: 'true'
       }
     };

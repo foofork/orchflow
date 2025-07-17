@@ -102,7 +102,7 @@ export class MainOrchestrator extends EventEmitter {
     const enhancedTools = createEnhancedMCPTools(this);
 
     for (const tool of enhancedTools) {
-      this.orchestrator['mcpServer'].registerTool(tool.name, tool);
+      this.orchestrator.registerMCPTool(tool.name, tool);
     }
   }
 
@@ -139,7 +139,7 @@ export class MainOrchestrator extends EventEmitter {
   /**
    * Process natural language input from primary terminal
    */
-  async processNaturalLanguageInput(input: string, context: any[] = []): Promise<any> {
+  async processNaturalLanguageInput(input: string, _context: any[] = []): Promise<any> {
     if (!this.config.enableNaturalLanguage) {
       throw new Error('Natural language processing is disabled');
     }
@@ -169,12 +169,12 @@ export class MainOrchestrator extends EventEmitter {
   /**
    * Parse natural language into task parameters
    */
-  async parseNaturalLanguageTask(input: string, context: any[], orchflowContext?: any): Promise<any> {
+  async parseNaturalLanguageTask(input: string, _context: any[], orchflowContext?: any): Promise<any> {
     // Enhanced natural language processing with OrchFlow context
     const taskType = this.inferTaskTypeFromInput(input);
     const workerName = this.generateDescriptiveWorkerName(input, taskType);
     const quickAccessKey = await this.assignNextAvailableKey();
-    
+
     // Use orchflowContext for enhanced task creation if available
     const priority = this.inferPriorityFromInput(input);
     const specificInstructions = this.generateTaskSpecificInstructions(input, taskType, orchflowContext);
@@ -201,10 +201,10 @@ export class MainOrchestrator extends EventEmitter {
 
   private inferTaskTypeFromInput(input: string): string {
     const lowerInput = input.toLowerCase();
-    if (lowerInput.includes('test')) return 'test';
-    if (lowerInput.includes('research') || lowerInput.includes('analyze')) return 'research';
-    if (lowerInput.includes('review') || lowerInput.includes('audit')) return 'analysis';
-    if (lowerInput.includes('swarm') || lowerInput.includes('team')) return 'swarm';
+    if (lowerInput.includes('test')) {return 'test';}
+    if (lowerInput.includes('research') || lowerInput.includes('analyze')) {return 'research';}
+    if (lowerInput.includes('review') || lowerInput.includes('audit')) {return 'analysis';}
+    if (lowerInput.includes('swarm') || lowerInput.includes('team')) {return 'swarm';}
     return 'code'; // Default
   }
 
@@ -329,10 +329,10 @@ export class MainOrchestrator extends EventEmitter {
     return await this.orchestrator.spawnWorker(taskInfo);
   }
 
-  async findWorkerSmart(identifier: string, fuzzyMatch: boolean = true): Promise<any> {
+  async findWorkerSmart(identifier: string, _fuzzyMatch: boolean = true): Promise<any> {
     const workers = await this.orchestrator['workerManager'].listWorkers();
-    return workers.find(w => 
-      w.id === identifier || 
+    return workers.find(w =>
+      w.id === identifier ||
       w.descriptiveName === identifier ||
       w.quickAccessKey?.toString() === identifier
     ) || null;
@@ -340,7 +340,7 @@ export class MainOrchestrator extends EventEmitter {
 
   async suggestSimilarWorkers(identifier: string): Promise<any[]> {
     const workers = await this.orchestrator['workerManager'].listWorkers();
-    return workers.filter(w => 
+    return workers.filter(w =>
       (w.descriptiveName || w.name || '').toLowerCase().includes(identifier.toLowerCase())
     ).slice(0, 5);
   }
@@ -359,7 +359,7 @@ export class MainOrchestrator extends EventEmitter {
   }
 
   async unassignQuickAccessKey(key: number): Promise<void> {
-    await this.workerAccess.unassignQuickKey(key);
+    await this.workerAccess.unassignQuickKey(key.toString());
   }
 
   async connectToWorker(workerId: string): Promise<any> {
@@ -382,7 +382,7 @@ export class MainOrchestrator extends EventEmitter {
     return `/snapshots/${name}`;
   }
 
-  async getPerformanceMetrics(timeframe: string): Promise<any> {
+  async getPerformanceMetrics(_timeframe: string): Promise<any> {
     return {
       system: { cpu: 45, memory: 60, disk: 30, network: {} },
       workers: { total: 3, avgLifetime: 1800, successRate: 0.92, efficiency: 0.85 },
@@ -395,7 +395,7 @@ export class MainOrchestrator extends EventEmitter {
    */
   private inferPriorityFromInput(input: string): number {
     const lowerInput = input.toLowerCase();
-    
+
     if (lowerInput.includes('urgent') || lowerInput.includes('critical') || lowerInput.includes('asap')) {
       return 9;
     }
@@ -405,22 +405,22 @@ export class MainOrchestrator extends EventEmitter {
     if (lowerInput.includes('low priority') || lowerInput.includes('when you can') || lowerInput.includes('eventually')) {
       return 3;
     }
-    
+
     return 5; // Default medium priority
   }
 
   /**
    * Generate task-specific instructions based on input and context
    */
-  private generateTaskSpecificInstructions(input: string, taskType: string, orchflowContext?: any): string {
+  private generateTaskSpecificInstructions(_input: string, taskType: string, orchflowContext?: any): string {
     const instructions = [];
-    
+
     // Add context-aware instructions
     if (orchflowContext?.workers?.length > 0) {
       instructions.push('**Coordination**: Check existing workers for related tasks before starting.');
       instructions.push('**Memory**: Use mcp__claude-flow__memory_usage to coordinate with other workers.');
     }
-    
+
     // Add task-type specific instructions
     switch (taskType) {
       case 'code':
@@ -436,7 +436,7 @@ export class MainOrchestrator extends EventEmitter {
         instructions.push('**Sources**: Cite reliable sources and provide examples.');
         break;
     }
-    
+
     return instructions.join('\n');
   }
 }

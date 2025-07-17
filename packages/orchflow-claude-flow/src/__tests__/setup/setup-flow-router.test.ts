@@ -3,7 +3,7 @@
  */
 
 import { SetupFlowRouter } from '../../setup/setup-flow-router';
-import { TerminalEnvironment } from '../../setup/terminal-environment-detector';
+import type { TerminalEnvironment } from '../../setup/terminal-environment-detector';
 
 describe('SetupFlowRouter', () => {
   let router: SetupFlowRouter;
@@ -44,7 +44,7 @@ describe('SetupFlowRouter', () => {
       mockEnvironment.multiplexer = 'tmux';
       mockEnvironment.capabilities.splitPanes = true;
       mockEnvironment.capabilities.sessions = true;
-      
+
       const flowConfig = router.route(mockEnvironment);
       expect(flowConfig.flow).toBe('tmux');
     });
@@ -53,7 +53,7 @@ describe('SetupFlowRouter', () => {
       mockEnvironment.multiplexer = 'screen';
       mockEnvironment.capabilities.splitPanes = true;
       mockEnvironment.capabilities.sessions = true;
-      
+
       const flowConfig = router.route(mockEnvironment);
       expect(flowConfig.flow).toBe('screen');
     });
@@ -62,14 +62,14 @@ describe('SetupFlowRouter', () => {
       mockEnvironment.multiplexer = 'zellij';
       mockEnvironment.capabilities.splitPanes = true;
       mockEnvironment.capabilities.sessions = true;
-      
+
       const flowConfig = router.route(mockEnvironment);
       expect(flowConfig.flow).toBe('zellij');
     });
 
     it('should route to native when no multiplexer available', () => {
       mockEnvironment.multiplexer = 'none';
-      
+
       const flowConfig = router.route(mockEnvironment);
       expect(flowConfig.flow).toBe('native');
     });
@@ -78,7 +78,7 @@ describe('SetupFlowRouter', () => {
       mockEnvironment.multiplexer = 'none';
       mockEnvironment.capabilities.colors = false;
       mockEnvironment.capabilities.unicode = false;
-      
+
       const flowConfig = router.route(mockEnvironment);
       expect(['native', 'fallback']).toContain(flowConfig.flow);
     });
@@ -88,7 +88,7 @@ describe('SetupFlowRouter', () => {
     it('should validate tmux flow requires tmux multiplexer', () => {
       mockEnvironment.multiplexer = 'tmux';
       expect(router.validateFlow('tmux', mockEnvironment)).toBe(true);
-      
+
       mockEnvironment.multiplexer = 'none';
       expect(router.validateFlow('tmux', mockEnvironment)).toBe(false);
     });
@@ -96,7 +96,7 @@ describe('SetupFlowRouter', () => {
     it('should validate screen flow requires screen multiplexer', () => {
       mockEnvironment.multiplexer = 'screen';
       expect(router.validateFlow('screen', mockEnvironment)).toBe(true);
-      
+
       mockEnvironment.multiplexer = 'none';
       expect(router.validateFlow('screen', mockEnvironment)).toBe(false);
     });
@@ -104,21 +104,21 @@ describe('SetupFlowRouter', () => {
     it('should validate zellij flow requires zellij multiplexer', () => {
       mockEnvironment.multiplexer = 'zellij';
       expect(router.validateFlow('zellij', mockEnvironment)).toBe(true);
-      
+
       mockEnvironment.multiplexer = 'none';
       expect(router.validateFlow('zellij', mockEnvironment)).toBe(false);
     });
 
     it('should validate native flow accepts any environment', () => {
       expect(router.validateFlow('native', mockEnvironment)).toBe(true);
-      
+
       mockEnvironment.multiplexer = 'tmux';
       expect(router.validateFlow('native', mockEnvironment)).toBe(true);
     });
 
     it('should validate fallback flow accepts any environment', () => {
       expect(router.validateFlow('fallback', mockEnvironment)).toBe(true);
-      
+
       mockEnvironment.multiplexer = 'tmux';
       expect(router.validateFlow('fallback', mockEnvironment)).toBe(true);
     });
@@ -185,10 +185,10 @@ describe('SetupFlowRouter', () => {
     it('should customize flow for macOS', () => {
       mockEnvironment.platform = 'darwin';
       mockEnvironment.multiplexer = 'tmux';
-      
+
       const flowConfig = router.route(mockEnvironment);
       expect(flowConfig.flow).toBe('tmux');
-      
+
       // Check if clipboard commands are customized for macOS
       const setupStep = flowConfig.steps.find(step => step.environment);
       if (setupStep?.environment) {
@@ -200,10 +200,10 @@ describe('SetupFlowRouter', () => {
     it('should customize flow for Linux', () => {
       mockEnvironment.platform = 'linux';
       mockEnvironment.multiplexer = 'tmux';
-      
+
       const flowConfig = router.route(mockEnvironment);
       expect(flowConfig.flow).toBe('tmux');
-      
+
       // Check if clipboard commands are customized for Linux
       const setupStep = flowConfig.steps.find(step => step.environment);
       if (setupStep?.environment) {
@@ -225,7 +225,7 @@ describe('SetupFlowRouter', () => {
     it('should have different performance characteristics per flow', () => {
       const tmuxConfig = router.getFlowConfig('tmux');
       const fallbackConfig = router.getFlowConfig('fallback');
-      
+
       expect(tmuxConfig!.performance.estimatedTime).toBeGreaterThan(
         fallbackConfig!.performance.estimatedTime
       );
@@ -238,10 +238,10 @@ describe('SetupFlowRouter', () => {
     it('should validate step dependencies in tmux flow', () => {
       const config = router.getFlowConfig('tmux');
       expect(config).toBeDefined();
-      
+
       const stepsWithDeps = config!.steps.filter(step => step.dependencies);
       expect(stepsWithDeps.length).toBeGreaterThan(0);
-      
+
       // Check that dependencies reference valid step IDs
       stepsWithDeps.forEach(step => {
         step.dependencies!.forEach(dep => {
@@ -256,7 +256,7 @@ describe('SetupFlowRouter', () => {
     it('should include validation functions where appropriate', () => {
       const config = router.getFlowConfig('tmux');
       expect(config).toBeDefined();
-      
+
       const checkStep = config!.steps.find(step => step.id === 'check-tmux');
       expect(checkStep).toBeDefined();
       expect(checkStep!.validation).toBeDefined();

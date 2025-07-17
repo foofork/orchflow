@@ -22,9 +22,9 @@ export async function quickPerformanceCheck(): Promise<{
 }> {
   const { SetupOptimizer } = await import('./setup-optimizer');
   const optimizer = new SetupOptimizer();
-  
+
   const results = await optimizer.runBenchmark();
-  
+
   return {
     setupDetection: results.setupDetection,
     configLoading: results.configLoading,
@@ -45,9 +45,9 @@ export async function quickPerformanceCheck(): Promise<{
 export async function initializePerformanceMonitoring(intervalMs: number = 5000): Promise<any> {
   const { PerformanceMonitor } = await import('./performance-monitor');
   const monitor = new PerformanceMonitor();
-  
+
   monitor.start(intervalMs);
-  
+
   return monitor;
 }
 
@@ -57,9 +57,9 @@ export async function initializePerformanceMonitoring(intervalMs: number = 5000)
 export async function optimizePerformance(): Promise<void> {
   const { SetupOptimizer } = await import('./setup-optimizer');
   const optimizer = new SetupOptimizer();
-  
+
   await optimizer.optimizeSetup();
-  
+
   console.log('✅ Performance optimization completed');
 }
 
@@ -69,7 +69,7 @@ export async function optimizePerformance(): Promise<void> {
 export async function generatePerformanceReport(): Promise<string> {
   const { SetupOptimizer } = await import('./setup-optimizer');
   const optimizer = new SetupOptimizer();
-  
+
   await optimizer.optimizeSetup();
   return await optimizer.generateOptimizationReport();
 }

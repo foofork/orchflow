@@ -1,27 +1,15 @@
 import WebSocket from 'ws';
 import { EventEmitter } from 'events';
-import type { WorkerInfo } from './conversation-context';
+import type { WorkerInfo } from '../types/unified-interfaces';
+import type { Task } from '../types/unified-interfaces';
 
-export interface Task {
-  id: string;
-  type: string;
-  description: string;
-  parameters: any;
-  dependencies: string[];
-  status: string;
-  priority: number;
-  descriptiveName?: string;
-}
+// Task interface moved to unified-interfaces.ts
 
-export interface SessionData {
-  conversation: any;
-  workers: WorkerInfo[];
-  mainObjective?: string;
-  activeSubtasks?: string[];
-  completedTasks?: string[];
-  dependencies?: [string, string[]][];
-  taskHistory?: Array<{task: string, status: string, timestamp: Date}>;
-}
+// SessionData interface moved to unified-interfaces.ts
+import type { SessionData } from '../types/unified-interfaces';
+
+// Re-export SessionData for backward compatibility
+export type { SessionData };
 
 export class OrchestratorClient extends EventEmitter {
   private ws: WebSocket | null = null;

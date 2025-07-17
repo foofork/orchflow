@@ -5,7 +5,7 @@
 
 export class TerminalUI {
   // UI components and methods
-  
+
   static async initialize() {
     return new TerminalUI();
   }

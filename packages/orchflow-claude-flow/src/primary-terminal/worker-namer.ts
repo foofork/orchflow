@@ -1,9 +1,6 @@
-export interface Task {
-  id: string;
-  type: string;
-  description: string;
-  parameters?: any;
-}
+import type { Task } from '../types/unified-interfaces';
+
+// Task interface moved to unified-interfaces.ts
 
 export class WorkerNamer {
   private usedNames: Set<string> = new Set();
