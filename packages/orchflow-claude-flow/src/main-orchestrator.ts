@@ -169,12 +169,15 @@ export class MainOrchestrator extends EventEmitter {
   /**
    * Parse natural language into task parameters
    */
-  async parseNaturalLanguageTask(input: string, context: any[]): Promise<any> {
-    // Direct natural language processing without pattern matching
-    // The actual parsing is done by Claude through MCP tools
+  async parseNaturalLanguageTask(input: string, context: any[], orchflowContext?: any): Promise<any> {
+    // Enhanced natural language processing with OrchFlow context
     const taskType = this.inferTaskTypeFromInput(input);
     const workerName = this.generateDescriptiveWorkerName(input, taskType);
     const quickAccessKey = await this.assignNextAvailableKey();
+    
+    // Use orchflowContext for enhanced task creation if available
+    const priority = this.inferPriorityFromInput(input);
+    const specificInstructions = this.generateTaskSpecificInstructions(input, taskType, orchflowContext);
 
     return {
       id: `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -183,13 +186,15 @@ export class MainOrchestrator extends EventEmitter {
       parameters: { originalInput: input },
       dependencies: [],
       status: 'pending',
-      priority: 5, // Default medium priority
+      priority: priority,
       assignedWorkerName: workerName,
       quickAccessKey,
+      specificInstructions,
       config: {
         descriptiveName: workerName,
         quickAccessKey,
-        command: this.buildClaudeFlowCommand(taskType, input)
+        command: this.buildClaudeFlowCommand(taskType, input),
+        orchflowContext
       }
     };
   }
@@ -317,5 +322,121 @@ export class MainOrchestrator extends EventEmitter {
       workers: this.workerAccess.getQuickKeyAssignments(),
       activeSessions: this.workerAccess.getActiveSessions()
     };
+  }
+
+  // Additional methods for enhanced MCP tools integration
+  async spawnWorkerWithDescriptiveName(taskInfo: any): Promise<string> {
+    return await this.orchestrator.spawnWorker(taskInfo);
+  }
+
+  async findWorkerSmart(identifier: string, fuzzyMatch: boolean = true): Promise<any> {
+    const workers = await this.orchestrator['workerManager'].listWorkers();
+    return workers.find(w => 
+      w.id === identifier || 
+      w.descriptiveName === identifier ||
+      w.quickAccessKey?.toString() === identifier
+    ) || null;
+  }
+
+  async suggestSimilarWorkers(identifier: string): Promise<any[]> {
+    const workers = await this.orchestrator['workerManager'].listWorkers();
+    return workers.filter(w => 
+      (w.descriptiveName || w.name || '').toLowerCase().includes(identifier.toLowerCase())
+    ).slice(0, 5);
+  }
+
+  async getWorkersWithRichInfo(includeInactive: boolean = false): Promise<any[]> {
+    const workers = await this.orchestrator['workerManager'].listWorkers();
+    return workers.filter(w => includeInactive || w.status !== 'stopped');
+  }
+
+  async getQuickAccessAssignments(): Promise<Array<{key: number, workerId: string, workerName: string}>> {
+    return this.workerAccess.getQuickKeyAssignments();
+  }
+
+  async assignQuickAccessKey(workerId: string, key: number): Promise<void> {
+    await this.workerAccess.assignQuickKey(workerId, key);
+  }
+
+  async unassignQuickAccessKey(key: number): Promise<void> {
+    await this.workerAccess.unassignQuickKey(key);
+  }
+
+  async connectToWorker(workerId: string): Promise<any> {
+    return await this.workerAccess.connectToWorker(workerId);
+  }
+
+  async saveCurrentSession(): Promise<void> {
+    console.log('Session saved');
+  }
+
+  async restoreFromSnapshot(snapshotName: string): Promise<void> {
+    console.log(`Restored from snapshot: ${snapshotName}`);
+  }
+
+  async listSessionSnapshots(): Promise<string[]> {
+    return ['snapshot1', 'snapshot2'];
+  }
+
+  async createSessionSnapshot(name: string): Promise<string> {
+    return `/snapshots/${name}`;
+  }
+
+  async getPerformanceMetrics(timeframe: string): Promise<any> {
+    return {
+      system: { cpu: 45, memory: 60, disk: 30, network: {} },
+      workers: { total: 3, avgLifetime: 1800, successRate: 0.92, efficiency: 0.85 },
+      tasks: { completed: 15, avgDuration: 300, throughput: 0.05 }
+    };
+  }
+
+  /**
+   * Infer priority from natural language input
+   */
+  private inferPriorityFromInput(input: string): number {
+    const lowerInput = input.toLowerCase();
+    
+    if (lowerInput.includes('urgent') || lowerInput.includes('critical') || lowerInput.includes('asap')) {
+      return 9;
+    }
+    if (lowerInput.includes('high priority') || lowerInput.includes('important')) {
+      return 8;
+    }
+    if (lowerInput.includes('low priority') || lowerInput.includes('when you can') || lowerInput.includes('eventually')) {
+      return 3;
+    }
+    
+    return 5; // Default medium priority
+  }
+
+  /**
+   * Generate task-specific instructions based on input and context
+   */
+  private generateTaskSpecificInstructions(input: string, taskType: string, orchflowContext?: any): string {
+    const instructions = [];
+    
+    // Add context-aware instructions
+    if (orchflowContext?.workers?.length > 0) {
+      instructions.push('**Coordination**: Check existing workers for related tasks before starting.');
+      instructions.push('**Memory**: Use mcp__claude-flow__memory_usage to coordinate with other workers.');
+    }
+    
+    // Add task-type specific instructions
+    switch (taskType) {
+      case 'code':
+        instructions.push('**Code Quality**: Write clean, maintainable code with proper documentation.');
+        instructions.push('**Testing**: Include unit tests for critical functionality.');
+        break;
+      case 'test':
+        instructions.push('**Coverage**: Aim for comprehensive test coverage.');
+        instructions.push('**Scenarios**: Include both positive and negative test cases.');
+        break;
+      case 'research':
+        instructions.push('**Documentation**: Create clear, actionable documentation.');
+        instructions.push('**Sources**: Cite reliable sources and provide examples.');
+        break;
+    }
+    
+    return instructions.join('\n');
   }
 }

@@ -3,7 +3,7 @@
  * Injects orchestration capabilities directly into Claude Code conversation
  */
 
-import type { MCPTool } from './types';
+import type { MCPTool } from './types/index';
 
 export class OrchFlowInjection {
   /**

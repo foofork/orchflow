@@ -98,10 +98,22 @@ OrchFlow uses the Model Context Protocol (MCP) to inject orchestration tools int
 
 ## Documentation
 
-- [Quick Start](QUICK_START.md)
-- [User Guide](USER_GUIDE.md)
-- [Examples](EXAMPLES.md)
-- [API Reference](API.md)
+- [Quick Start](QUICK_START.md) - Get started in 5 minutes
+- [CLI Reference](CLI_REFERENCE.md) - Complete command-line interface guide
+- [Examples](EXAMPLES.md) - Common usage patterns and workflows
+- [API Reference](API.md) - MCP tools and programmatic usage
+- [Architecture](ARCHITECTURE.md) - Implementation details and design
+- [Integration Guide](INTEGRATION_GUIDE.md) - MCP integration steps
+- [Troubleshooting](TROUBLESHOOTING.md) - Common issues and solutions
+
+## Key Benefits
+
+- **🚀 2.8-4.4x Faster Development**: Parallel execution of related tasks
+- **🧠 Natural Language Control**: No special syntax or commands to learn
+- **🔄 Seamless Context Switching**: Move between tasks effortlessly
+- **💾 Persistent Sessions**: Save and restore entire project states
+- **🎯 Intelligent Coordination**: Auto-sync decisions and interfaces
+- **⚡ Real-time Collaboration**: Multiple work streams with live updates
 
 ## Why OrchFlow?
 

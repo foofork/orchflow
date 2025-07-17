@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * OrchFlow CLI - Injection-based implementation
  * Launches Claude with orchestration capabilities injected
@@ -14,13 +13,8 @@ import ora from 'ora';
 import { OrchFlowCore } from './core/orchflow-core';
 import { OrchFlowTerminal } from './primary-terminal/orchflow-terminal';
 import { SplitScreenManager } from './terminal-layout/split-screen-manager';
-
-interface LaunchOptions {
-  debug?: boolean;
-  port?: number;
-  noCore?: boolean;
-  restore?: string;
-}
+import { EnhancedSetupOrchestrator } from './setup/enhanced-setup-orchestrator';
+import type { LaunchOptions } from './types';
 
 class OrchFlowLauncher {
   private configDir: string;
@@ -36,14 +30,31 @@ class OrchFlowLauncher {
   async launch(options: LaunchOptions = {}): Promise<void> {
     console.log(chalk.cyan.bold('\n🐝 OrchFlow - Natural Language Orchestration\n'));
 
+    // Phase 1: Enhanced Setup with Comprehensive Dependency Management
+    const setupOrchestrator = EnhancedSetupOrchestrator.getInstance();
+    const setupResult = await setupOrchestrator.setup(options, {
+      interactive: !options.noCore,
+      verbose: options.debug || false
+    });
+
+    if (!setupResult.success) {
+      console.error(chalk.red('Setup failed:'), setupResult.errors.join(', '));
+      process.exit(1);
+    }
+
+    if (options.debug) {
+      console.log(chalk.gray(`Setup completed in ${setupResult.performance.totalTime.toFixed(2)}ms`));
+      console.log(chalk.gray(`Flow: ${setupResult.flow}, Environment: ${setupResult.environment.terminal}`));
+      console.log(chalk.gray(`Dependencies: tmux ${setupResult.dependencies.tmux.success ? '✓' : '✗'}, claude-flow ${setupResult.dependencies.claudeFlow.installed ? '✓' : '✗'}`));
+    }
+
     // Start orchestration core
     if (!options.noCore) {
       const spinner = ora('Starting orchestration core...').start();
       try {
         this.core = new OrchFlowCore({
-          port: options.port || 3001,
-          enablePersistence: true,
-          enableWebSocket: true
+          ...setupResult.config.core,
+          port: options.port || setupResult.config.core.port
         });
 
         await this.core.start();

@@ -5,8 +5,61 @@ import { spawn } from 'child_process';
 import chalk from 'chalk';
 import ora from 'ora';
 import { getRealClaudeFlowPath } from './utils';
-import { ensureOrchFlowBinaries } from './binary-manager';
 import { launchOrchFlow } from './orchflow-launcher';
+import { OptimizedSetupOrchestrator } from './setup/optimized-setup-orchestrator';
+
+interface ParsedArgs {
+  options: {
+    debug?: boolean;
+    port?: number;
+    host?: string;
+    config?: string;
+    flow?: string;
+    interactive?: boolean;
+    skipSetup?: boolean;
+  };
+  commands: string[];
+}
+
+function parseOrchFlowArgs(args: string[]): ParsedArgs {
+  const options: ParsedArgs['options'] = {};
+  const commands: string[] = [];
+
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    
+    switch (arg) {
+      case '--debug':
+        options.debug = true;
+        break;
+      case '--port':
+        options.port = parseInt(args[++i]);
+        break;
+      case '--host':
+        options.host = args[++i];
+        break;
+      case '--config':
+        options.config = args[++i];
+        break;
+      case '--flow':
+        options.flow = args[++i];
+        break;
+      case '--interactive':
+        options.interactive = true;
+        break;
+      case '--skip-setup':
+        options.skipSetup = true;
+        break;
+      default:
+        if (!arg.startsWith('--')) {
+          commands.push(arg);
+        }
+        break;
+    }
+  }
+
+  return { options, commands };
+}
 
 async function main() {
   const args = process.argv.slice(2);
@@ -15,15 +68,50 @@ async function main() {
   if (args[0] === 'orchflow') {
     console.log(chalk.cyan('🚀 Initializing OrchFlow Terminal Architecture...'));
 
-    const spinner = ora('Checking OrchFlow components...').start();
+    // Parse enhanced arguments
+    const { options, commands } = parseOrchFlowArgs(args.slice(1));
+
+    // Handle setup validation command
+    if (commands.includes('validate')) {
+      const setupOrchestrator = OptimizedSetupOrchestrator.getInstance();
+      const validation = await setupOrchestrator.validateSetup();
+      
+      if (validation.valid) {
+        console.log(chalk.green('✅ Setup validation passed'));
+      } else {
+        console.log(chalk.red('❌ Setup validation failed'));
+        validation.issues.forEach(issue => console.log(chalk.red(`  • ${issue}`)));
+      }
+      
+      if (validation.recommendations.length > 0) {
+        console.log(chalk.yellow('\n💡 Recommendations:'));
+        validation.recommendations.forEach(rec => console.log(chalk.yellow(`  • ${rec}`)));
+      }
+      
+      process.exit(validation.valid ? 0 : 1);
+    }
+
+    // Handle setup status command
+    if (commands.includes('status')) {
+      const setupOrchestrator = OptimizedSetupOrchestrator.getInstance();
+      const status = await setupOrchestrator.getSetupStatus();
+      
+      console.log(chalk.cyan('📊 OrchFlow Status'));
+      console.log(`Setup: ${status.isSetup ? chalk.green('✅ Complete') : chalk.red('❌ Not configured')}`);
+      console.log(`Flow: ${status.flow || chalk.gray('None')}`);
+      console.log(`Terminal: ${status.environment.terminal}`);
+      console.log(`Multiplexer: ${status.environment.multiplexer}`);
+      
+      process.exit(0);
+    }
+
+    const spinner = ora('Initializing OrchFlow...').start();
 
     try {
-      // Ensure OrchFlow binaries are installed
-      await ensureOrchFlowBinaries();
-      spinner.succeed('OrchFlow components ready');
+      spinner.succeed('OrchFlow initialized');
 
-      // Launch OrchFlow terminal with 70/30 split layout
-      await launchOrchFlow(args.slice(1));
+      // Launch OrchFlow terminal with optimized setup
+      await launchOrchFlow(args.slice(1), options);
     } catch (error) {
       spinner.fail('Failed to initialize OrchFlow');
       console.error(chalk.red('Error:'), error instanceof Error ? error.message : String(error));

@@ -16,6 +16,11 @@ export interface SessionData {
   tasks: Task[];
   workers: any[];
   metadata: Record<string, any>;
+  mainObjective?: string;
+  activeSubtasks?: string[];
+  completedTasks?: string[];
+  dependencies?: [string, string[]][];
+  taskHistory?: Array<{task: string, status: string, timestamp: Date}>;
 }
 
 export interface StateSnapshot {

@@ -33,6 +33,12 @@ export class StatusPane extends EventEmitter {
   private updateInterval: NodeJS.Timeout | null = null;
   private resourceUsage: ResourceUsage = { cpu: 0, memory: 0, disk: 0 };
   private taskGraph: TaskGraph = { nodes: [], edges: [] };
+  private taskStatuses: Map<string, string> = new Map();
+  private notifications: string[] = [];
+  private maxNotifications: number = 5;
+  private systemInfo: any = {};
+  private taskQueueStats: any = {};
+  private workerResources: Map<string, any> = new Map();
 
   constructor(tmuxBackend: TmuxBackend | StatusPaneConfig, paneId?: string) {
     super();
@@ -129,7 +135,7 @@ ${chalk.cyan(`╚${  '═'.repeat(32)  }╝`)}
     return `${bar} ${chalk.white(`${progress  }%`)}`;
   }
 
-  private async refreshDisplay(): Promise<void> {
+  async refreshDisplay(): Promise<void> {
     // Clear and redraw the entire status pane
     await this.tmuxBackend.sendKeys(this.paneId, 'clear');
     await this.renderHeader();
@@ -137,8 +143,27 @@ ${chalk.cyan(`╚${  '═'.repeat(32)  }╝`)}
     // Render all workers
     for (const [workerId, workerDisplay] of this.workerDisplays) {
       await this.writeToPane(workerDisplay.display);
+      
+      // Show worker-specific resources if available
+      const workerResources = this.workerResources.get(workerId);
+      if (workerResources) {
+        await this.renderWorkerResources(workerId, workerResources);
+      }
+      
       await this.writeToPane(''); // Empty line between workers
     }
+
+    // Render task status section
+    await this.renderTaskStatusSection();
+
+    // Render notifications section
+    await this.renderNotificationsSection();
+
+    // Render system info section
+    await this.renderSystemInfoSection();
+
+    // Render task queue section
+    await this.renderTaskQueueSection();
 
     // Render resource usage
     await this.renderResourceUsage();
@@ -285,5 +310,178 @@ ${chalk.cyan(`└${  '─'.repeat(32)  }┘`)}
 
   async cleanup(): Promise<void> {
     await this.shutdown();
+  }
+
+  // Missing methods implementation
+  async updateTaskStatus(taskId: string, status: string): Promise<void> {
+    this.taskStatuses.set(taskId, status);
+    
+    // Update the display to show current task status
+    await this.refreshDisplay();
+    
+    // Emit event for listeners
+    this.emit('taskStatusUpdated', { taskId, status });
+  }
+
+  async addNotification(message: string): Promise<void> {
+    // Add timestamp to notification
+    const timestamp = new Date().toLocaleTimeString();
+    const notification = `[${timestamp}] ${message}`;
+    
+    // Add to notifications array
+    this.notifications.unshift(notification);
+    
+    // Keep only the most recent notifications
+    if (this.notifications.length > this.maxNotifications) {
+      this.notifications = this.notifications.slice(0, this.maxNotifications);
+    }
+    
+    // Refresh display to show new notification
+    await this.refreshDisplay();
+    
+    // Emit event for listeners
+    this.emit('notificationAdded', { message, timestamp });
+  }
+
+  async updateWorkerResources(workerId: string, resources: any): Promise<void> {
+    this.workerResources.set(workerId, resources);
+    
+    // Refresh display to show updated resources
+    await this.refreshDisplay();
+    
+    // Emit event for listeners
+    this.emit('workerResourcesUpdated', { workerId, resources });
+  }
+
+  async updateSystemInfo(systemInfo: any): Promise<void> {
+    this.systemInfo = { ...this.systemInfo, ...systemInfo };
+    
+    // Refresh display to show updated system info
+    await this.refreshDisplay();
+    
+    // Emit event for listeners
+    this.emit('systemInfoUpdated', { systemInfo: this.systemInfo });
+  }
+
+  async updateTaskQueue(taskStats: any): Promise<void> {
+    this.taskQueueStats = { ...this.taskQueueStats, ...taskStats };
+    
+    // Refresh display to show updated task queue
+    await this.refreshDisplay();
+    
+    // Emit event for listeners
+    this.emit('taskQueueUpdated', { taskStats: this.taskQueueStats });
+  }
+
+  getWorkerCount(): number {
+    return this.workerDisplays.size;
+  }
+
+  private async renderWorkerResources(workerId: string, resources: any): Promise<void> {
+    const resourceDisplay = `    ${chalk.gray('Resources:')} CPU: ${resources.cpu || 0}%, Memory: ${resources.memory || 0}%, Disk: ${resources.disk || 0}%`;
+    await this.writeToPane(resourceDisplay);
+  }
+
+  private async renderTaskStatusSection(): Promise<void> {
+    if (this.taskStatuses.size === 0) {
+      return;
+    }
+
+    const header = `
+${chalk.cyan(`┌${  '─'.repeat(32)  }┐`)}
+${chalk.cyan('│')} ${chalk.yellow('Task Status')}                  ${chalk.cyan('│')}
+${chalk.cyan(`├${  '─'.repeat(32)  }┤`)}`;
+    await this.writeToPane(header);
+
+    for (const [taskId, status] of this.taskStatuses) {
+      const statusIcon = this.getTaskStatusIcon(status);
+      const taskDisplay = `${chalk.cyan('│')} ${statusIcon} ${chalk.white(taskId.slice(0, 15).padEnd(15))} ${chalk.gray(status)} ${chalk.cyan('│')}`;
+      await this.writeToPane(taskDisplay);
+    }
+
+    const footer = `${chalk.cyan(`└${  '─'.repeat(32)  }┘`)}`;
+    await this.writeToPane(footer);
+  }
+
+  private getTaskStatusIcon(status: string): string {
+    switch (status.toLowerCase()) {
+      case 'pending': return chalk.yellow('⏳');
+      case 'running': return chalk.green('🟢');
+      case 'completed': return chalk.green('✅');
+      case 'failed': return chalk.red('❌');
+      case 'cancelled': return chalk.gray('⚪');
+      default: return chalk.gray('❓');
+    }
+  }
+
+  private async renderNotificationsSection(): Promise<void> {
+    if (this.notifications.length === 0) {
+      return;
+    }
+
+    const header = `
+${chalk.cyan(`┌${  '─'.repeat(32)  }┐`)}
+${chalk.cyan('│')} ${chalk.yellow('Recent Notifications')}         ${chalk.cyan('│')}
+${chalk.cyan(`├${  '─'.repeat(32)  }┤`)}`;
+    await this.writeToPane(header);
+
+    for (const notification of this.notifications) {
+      // Truncate long notifications to fit
+      const truncated = notification.length > 30 ? notification.slice(0, 27) + '...' : notification.padEnd(30);
+      const notificationDisplay = `${chalk.cyan('│')} ${chalk.white(truncated)} ${chalk.cyan('│')}`;
+      await this.writeToPane(notificationDisplay);
+    }
+
+    const footer = `${chalk.cyan(`└${  '─'.repeat(32)  }┘`)}`;
+    await this.writeToPane(footer);
+  }
+
+  private async renderSystemInfoSection(): Promise<void> {
+    if (Object.keys(this.systemInfo).length === 0) {
+      return;
+    }
+
+    const header = `
+${chalk.cyan(`┌${  '─'.repeat(32)  }┐`)}
+${chalk.cyan('│')} ${chalk.yellow('System Information')}           ${chalk.cyan('│')}
+${chalk.cyan(`├${  '─'.repeat(32)  }┤`)}`;
+    await this.writeToPane(header);
+
+    for (const [key, value] of Object.entries(this.systemInfo)) {
+      const keyDisplay = key.slice(0, 10).padEnd(10);
+      const valueDisplay = String(value).slice(0, 18).padEnd(18);
+      const infoDisplay = `${chalk.cyan('│')} ${chalk.gray(keyDisplay)}: ${chalk.white(valueDisplay)} ${chalk.cyan('│')}`;
+      await this.writeToPane(infoDisplay);
+    }
+
+    const footer = `${chalk.cyan(`└${  '─'.repeat(32)  }┘`)}`;
+    await this.writeToPane(footer);
+  }
+
+  private async renderTaskQueueSection(): Promise<void> {
+    if (Object.keys(this.taskQueueStats).length === 0) {
+      return;
+    }
+
+    const header = `
+${chalk.cyan(`┌${  '─'.repeat(32)  }┐`)}
+${chalk.cyan('│')} ${chalk.yellow('Task Queue Stats')}             ${chalk.cyan('│')}
+${chalk.cyan(`├${  '─'.repeat(32)  }┤`)}`;
+    await this.writeToPane(header);
+
+    const stats = [
+      { label: 'Pending', value: this.taskQueueStats.pending || 0 },
+      { label: 'Running', value: this.taskQueueStats.running || 0 },
+      { label: 'Completed', value: this.taskQueueStats.completed || 0 },
+      { label: 'Failed', value: this.taskQueueStats.failed || 0 }
+    ];
+
+    for (const stat of stats) {
+      const statDisplay = `${chalk.cyan('│')} ${chalk.white(stat.label.padEnd(10))}: ${chalk.green(String(stat.value).padStart(8))} ${chalk.cyan('│')}`;
+      await this.writeToPane(statDisplay);
+    }
+
+    const footer = `${chalk.cyan(`└${  '─'.repeat(32)  }┘`)}`;
+    await this.writeToPane(footer);
   }
 }

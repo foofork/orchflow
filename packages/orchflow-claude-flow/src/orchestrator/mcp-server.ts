@@ -1,5 +1,5 @@
 // Mock MCP imports until package is properly available
-import type { MCPRequest } from '../types';
+import type { MCPRequest } from '../types/index';
 
 interface MCPServerBase {
   setRequestHandler(method: string, handler: (request: MCPRequest) => Promise<any>): void;
@@ -26,12 +26,8 @@ import WebSocket from 'ws';
 import http from 'http';
 import { EventEmitter } from 'events';
 
-export interface MCPTool {
-  name: string;
-  description: string;
-  parameters: any;
-  handler: (params: any) => Promise<any>;
-}
+// Import unified MCP interfaces
+import { MCPTool } from '../types/unified-interfaces';
 
 export class MCPServer extends EventEmitter {
   private port: number;

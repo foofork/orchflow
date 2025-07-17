@@ -16,6 +16,11 @@ export interface Task {
 export interface SessionData {
   conversation: any;
   workers: WorkerInfo[];
+  mainObjective?: string;
+  activeSubtasks?: string[];
+  completedTasks?: string[];
+  dependencies?: [string, string[]][];
+  taskHistory?: Array<{task: string, status: string, timestamp: Date}>;
 }
 
 export class OrchestratorClient extends EventEmitter {

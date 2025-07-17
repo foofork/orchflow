@@ -59,7 +59,8 @@
     "node-fetch": "^3.3.2",
     "ora": "^7.0.1",
     "which": "^5.0.0",
-    "ws": "^8.16.0"
+    "ws": "^8.16.0",
+    "yaml": "^2.8.0"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",

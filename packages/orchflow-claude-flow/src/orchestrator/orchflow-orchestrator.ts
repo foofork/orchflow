@@ -8,6 +8,7 @@ import { SmartScheduler } from './smart-scheduler';
 import { ClaudeFlowWrapper } from './claude-flow-wrapper';
 import { ConflictDetector } from './conflict-detector';
 import { WorkerNamer } from '../primary-terminal/worker-namer';
+import { ErrorHandler } from '../core/error-handler';
 
 export interface OrchFlowOrchestratorConfig {
   mcpPort: number;
@@ -59,6 +60,7 @@ export class OrchFlowOrchestrator extends EventEmitter {
   private claudeFlowWrapper: ClaudeFlowWrapper;
   private conflictDetector: ConflictDetector;
   private workerNamer: WorkerNamer;
+  private errorHandler: ErrorHandler;
   private config: OrchFlowOrchestratorConfig;
   private wsServer: WebSocket.Server | null = null;
   private clients: Set<WebSocket> = new Set();
@@ -75,22 +77,46 @@ export class OrchFlowOrchestrator extends EventEmitter {
     this.claudeFlowWrapper = new ClaudeFlowWrapper();
     this.conflictDetector = new ConflictDetector();
     this.workerNamer = new WorkerNamer();
+    this.errorHandler = ErrorHandler.getInstance();
   }
 
   async initialize(): Promise<void> {
     console.log('Initializing OrchFlow Orchestrator...');
 
-    // Initialize components
-    await this.stateManager.initialize();
-    await this.mcpServer.start();
-    await this.registerOrchFlowMCPTools();
-    await this.startWebSocketServer();
-    await this.startSmartScheduler();
+    try {
+      // Initialize components
+      await this.stateManager.initialize();
+      await this.mcpServer.start();
+      await this.registerOrchFlowMCPTools();
+      await this.startWebSocketServer();
+      await this.startSmartScheduler();
 
-    // Restore previous state if available
-    await this.restoreState();
+      // Restore previous state if available
+      await this.restoreState();
 
-    console.log('OrchFlow Orchestrator initialized');
+      console.log('OrchFlow Orchestrator initialized');
+    } catch (error) {
+      await this.errorHandler.handleError(error as Error, {
+        component: 'OrchFlowOrchestrator',
+        operation: 'initialize'
+      });
+      throw error;
+    }
+  }
+
+  async spawnWorker(workerType: string, config?: any): Promise<string> {
+    // Create a basic task for the worker
+    const task: Task = {
+      id: this.generateTaskId(),
+      type: workerType as Task['type'],
+      description: config?.description || `${workerType} worker`,
+      parameters: config || {},
+      dependencies: [],
+      status: 'pending',
+      priority: config?.priority || 5
+    };
+
+    return this.spawnWorkerWithDescriptiveName(task);
   }
 
   async spawnWorkerWithDescriptiveName(task: Task): Promise<string> {
@@ -252,20 +278,32 @@ export class OrchFlowOrchestrator extends EventEmitter {
   }
 
   private async executeTask(task: Task): Promise<void> {
-    // Update task status
-    task.status = 'running';
-    await this.stateManager.updateTask(task);
+    try {
+      // Update task status
+      task.status = 'running';
+      await this.stateManager.updateTask(task);
 
-    // Find best worker for task
-    let workerId = await this.findBestWorker(task);
+      // Find best worker for task
+      let workerId = await this.findBestWorker(task);
 
-    if (!workerId) {
-      // Spawn new worker if none available
-      workerId = await this.spawnWorkerWithDescriptiveName(task);
+      if (!workerId) {
+        // Spawn new worker if none available
+        workerId = await this.spawnWorkerWithDescriptiveName(task);
+      }
+
+      // Assign task to worker
+      await this.assignTaskToWorker(workerId, task);
+    } catch (error) {
+      task.status = 'failed';
+      task.error = (error as Error).message;
+      await this.stateManager.updateTask(task);
+      
+      await this.errorHandler.handleError(error as Error, {
+        component: 'OrchFlowOrchestrator',
+        operation: 'executeTask',
+        taskId: task.id
+      });
     }
-
-    // Assign task to worker
-    await this.assignTaskToWorker(workerId, task);
   }
 
   private async findBestWorker(task: Task): Promise<string | null> {
@@ -349,6 +387,43 @@ export class OrchFlowOrchestrator extends EventEmitter {
 
   private generateTaskId(): string {
     return `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  /**
+   * Get all workers from worker manager
+   */
+  getWorkers(): any[] {
+    return this.workerManager.getWorkers();
+  }
+
+  /**
+   * Find a worker by ID
+   */
+  async getWorker(workerId: string): Promise<any> {
+    const workers = this.workerManager.getWorkers();
+    return workers.find(w => w.id === workerId);
+  }
+
+  /**
+   * Get session data for restoration
+   */
+  async getSessionData(): Promise<any> {
+    return {
+      workers: this.workerManager.getWorkers(),
+      tasks: this.taskGraph.getAllTasks(),
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  /**
+   * Save session data
+   */
+  async saveSessionData(data: any): Promise<void> {
+    try {
+      await this.stateManager.saveState(data);
+    } catch (error) {
+      console.error('Failed to save session data:', error);
+    }
   }
 
   private async startWebSocketServer(): Promise<void> {
@@ -467,6 +542,10 @@ export class OrchFlowOrchestrator extends EventEmitter {
     }
   }
 
+  async destroy(): Promise<void> {
+    return this.shutdown();
+  }
+
   async shutdown(): Promise<void> {
     console.log('Shutting down OrchFlow Orchestrator...');
 
@@ -489,5 +568,39 @@ export class OrchFlowOrchestrator extends EventEmitter {
     }
 
     console.log('OrchFlow Orchestrator shutdown complete');
+  }
+
+  // Duplicate functions removed - already defined earlier in the class
+
+  /**
+   * Get workers with rich information for status pane
+   */
+  async getWorkersWithRichInfo(): Promise<any[]> {
+    const workers = this.workerManager.getWorkers();
+    return workers.map(worker => ({
+      id: worker.id,
+      descriptiveName: worker.descriptiveName || worker.name,
+      status: worker.status,
+      progress: worker.progress || 0,
+      currentTask: worker.currentTask,
+      startTime: worker.startTime,
+      estimatedCompletion: worker.estimatedCompletion,
+      resourceUsage: worker.resourceUsage,
+      quickAccessKey: worker.quickAccessKey
+    }));
+  }
+
+  /**
+   * Get task statistics for status pane
+   */
+  async getTaskStatistics(): Promise<any> {
+    const tasks = this.taskGraph.getAllTasks();
+    return {
+      pending: tasks.filter(t => t.status === 'pending').length,
+      running: tasks.filter(t => t.status === 'running').length,
+      completed: tasks.filter(t => t.status === 'completed').length,
+      failed: tasks.filter(t => t.status === 'failed').length,
+      total: tasks.length
+    };
   }
 }

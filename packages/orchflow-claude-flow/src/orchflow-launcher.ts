@@ -1,21 +1,16 @@
-import type { ChildProcess } from 'child_process';
-import { spawn } from 'child_process';
-import { join } from 'path';
 import chalk from 'chalk';
-import { getComponentsDir } from './utils';
+import { OrchFlowTerminalInjected } from './primary-terminal/orchflow-terminal-injected';
+import { OrchFlowOrchestrator } from './orchestrator/orchflow-orchestrator';
 
 interface OrchFlowProcess {
-  terminal: ChildProcess;
-  orchestrator: ChildProcess;
-  statusPane: ChildProcess;
+  terminal: OrchFlowTerminalInjected;
+  orchestrator: OrchFlowOrchestrator;
 }
 
 /**
- * Launch OrchFlow with the 70/30 split terminal layout
+ * Launch OrchFlow with injection-based architecture
  */
-export async function launchOrchFlow(args: string[]): Promise<void> {
-  const componentsDir = getComponentsDir();
-
+export async function launchOrchFlow(args: string[], options: any = {}): Promise<void> {
   console.log(chalk.cyan('✨ OrchFlow Terminal Architecture'));
   console.log(chalk.gray('━'.repeat(50)));
   console.log(chalk.green('✓ Natural Language Interface: ') + chalk.white('Ready'));
@@ -30,42 +25,34 @@ export async function launchOrchFlow(args: string[]): Promise<void> {
   console.log();
 
   try {
-    // For now, since we're creating placeholders, we'll simulate the launch
-    // In the real implementation, this would spawn the actual processes
-
-    // Start the orchestrator service first
-    const orchestratorPath = join(componentsDir, 'orchflow-orchestrator');
-    const orchestrator = spawn(orchestratorPath, ['--port', '3000'], {
-      stdio: 'pipe',
-      env: { ...process.env, ORCHFLOW_MODE: 'orchestrator' }
+    // Initialize orchestrator with injection architecture
+    const orchestrator = new OrchFlowOrchestrator({
+      mcpPort: options.port || 3001,
+      stateConfig: { database: ':memory:' },
+      workerConfig: { maxWorkers: 9 }
     });
 
-    // Start the primary terminal with 70/30 split
-    const terminalPath = join(componentsDir, 'orchflow-terminal');
-    const terminal = spawn(terminalPath, [
-      '--orchestrator', 'ws://localhost:3000',
-      '--split', '70:30',
-      ...args
-    ], {
-      stdio: 'inherit',
-      env: { ...process.env, ORCHFLOW_MODE: 'terminal' }
-    });
+    await orchestrator.initialize();
+
+    // Initialize terminal with injection
+    const terminal = new OrchFlowTerminalInjected(`http://localhost:${options.port || 3001}`);
+    await terminal.initialize();
+
+    console.log(chalk.green('🚀 OrchFlow initialized with injection architecture'));
+    console.log(chalk.gray('   MCP Server running on port ' + (options.port || 3001)));
+    console.log(chalk.gray('   Terminal injection ready'));
+
+    // Launch the terminal
+    await terminal.launch();
 
     // Handle process cleanup
     const cleanup = () => {
-      orchestrator.kill();
-      terminal.kill();
+      orchestrator.destroy();
       process.exit(0);
     };
 
     process.on('SIGINT', cleanup);
     process.on('SIGTERM', cleanup);
-
-    // Wait for terminal to exit
-    terminal.on('exit', (code) => {
-      cleanup();
-      process.exit(code || 0);
-    });
 
   } catch (error) {
     console.error(chalk.red('Failed to launch OrchFlow:'), error instanceof Error ? error.message : String(error));
@@ -76,12 +63,12 @@ export async function launchOrchFlow(args: string[]): Promise<void> {
 /**
  * Launch OrchFlow in development mode
  */
-export async function launchOrchFlowDev(args: string[]): Promise<void> {
+export async function launchOrchFlowDev(args: string[], options: any = {}): Promise<void> {
   console.log(chalk.cyan('🔧 OrchFlow Development Mode'));
 
   // In dev mode, we can run TypeScript directly or use different configs
   // This is useful for development and testing
 
   // For now, just launch the regular version
-  await launchOrchFlow(args);
+  await launchOrchFlow(args, options);
 }

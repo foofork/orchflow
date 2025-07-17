@@ -1,5 +1,8 @@
 import type { MCPTool } from '../orchestrator/mcp-server';
 import type { ExtendedWorker } from '../worker-access/advanced-worker-access';
+import type { FunctionalContextResponse } from '../context/functional-context';
+import type { WorkerStatus } from '../types';
+import { DynamicInstructionProvider } from '../instructions/dynamic-instructions';
 
 interface TaskInfo {
   description: string;
@@ -36,16 +39,26 @@ interface WorkerConnection {
   status: string;
 }
 
-interface ExtendedWorkerRich extends ExtendedWorker {
+// Import unified interfaces
+import { ExtendedWorkerRich } from '../types/unified-interfaces';
+
+// ExtendedWorkerRich is now imported from unified interfaces
   progress: number;
   resources?: any;
   estimatedCompletion?: Date;
   priority?: number;
-  status: string;
+  status: WorkerStatus;
+  descriptiveName: string;
+  quickAccessKey?: number;
+  id: string;
+  currentTask?: {
+    description: string;
+  };
+  startTime?: Date;
 }
 
 interface Orchestrator {
-  parseNaturalLanguageTask(input: string, context: unknown[]): Promise<TaskInfo>;
+  parseNaturalLanguageTask(input: string, context: unknown[], orchflowContext?: any): Promise<TaskInfo>;
   spawnWorkerWithDescriptiveName(taskInfo: TaskInfo): Promise<string>;
   findWorkerSmart(identifier: string, fuzzyMatch: boolean): Promise<ExtendedWorker | null>;
   suggestSimilarWorkers(identifier: string): Promise<ExtendedWorker[]>;
@@ -75,15 +88,31 @@ export const createEnhancedMCPTools = (orchestrator: Orchestrator): MCPTool[] =>
         type: 'object',
         properties: {
           naturalLanguageInput: { type: 'string', description: 'Natural language task description' },
-          context: { type: 'array', description: 'Conversation context for better understanding' }
+          context: { type: 'array', description: 'Conversation context for better understanding' },
+          orchflowContext: { type: 'object', description: 'Rich OrchFlow context including workers, tasks, and patterns' }
         },
         required: ['naturalLanguageInput']
       },
       handler: async (params: any) => {
-        const { naturalLanguageInput, context = [] } = params as { naturalLanguageInput: string; context?: unknown[] };
+        const { naturalLanguageInput, context = [], orchflowContext } = params as { 
+          naturalLanguageInput: string; 
+          context?: unknown[];
+          orchflowContext?: FunctionalContextResponse;
+        };
 
-        // Parse intent and extract task parameters
-        const taskInfo = await orchestrator.parseNaturalLanguageTask(naturalLanguageInput, context);
+        // Parse intent and extract task parameters with enriched context
+        const taskInfo = await orchestrator.parseNaturalLanguageTask(
+          naturalLanguageInput, 
+          context,
+          orchflowContext
+        );
+
+        // Generate dynamic instructions based on task type and context
+        const instructionProvider = new DynamicInstructionProvider();
+        const instructions = instructionProvider.generateInstructions(
+          taskInfo.taskType || 'general',
+          orchflowContext || {} as FunctionalContextResponse
+        );
 
         // Create worker with descriptive name
         const workerId = await orchestrator.spawnWorkerWithDescriptiveName(taskInfo);
@@ -93,7 +122,14 @@ export const createEnhancedMCPTools = (orchestrator: Orchestrator): MCPTool[] =>
           workerId,
           workerName: taskInfo.assignedWorkerName,
           quickAccessKey: taskInfo.quickAccessKey,
-          description: `Created "${taskInfo.assignedWorkerName}" for: ${taskInfo.description}`
+          description: `Created "${taskInfo.assignedWorkerName}" for: ${taskInfo.description}`,
+          instructions,
+          nextSteps: orchflowContext?.availableCommands || [],
+          context: {
+            activeWorkers: orchflowContext?.workers?.length || 0,
+            quickAccessAvailable: orchflowContext?.quickAccessMap || [],
+            systemCapabilities: orchflowContext?.systemCapabilities || []
+          }
         };
       }
     },

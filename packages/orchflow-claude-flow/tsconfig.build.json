@@ -13,7 +13,6 @@
     "**/*.test.ts",
     "**/*.spec.ts",
     "src/__tests__/**/*",
-    "src/binary-manager.ts",
     "src/cli.ts",
     "src/main-orchestrator.ts",
     "src/orchestrator/**/*",

@@ -11,7 +11,7 @@ npm install -g @orchflow/claude-flow
 ## 🎯 First Launch
 
 ```bash
-claude-flow orchflow
+orchflow
 ```
 
 You'll see the OrchFlow terminal with a 70/30 split layout:
@@ -132,12 +132,15 @@ Show me the GraphQL analysis
 # Check claude-flow installation
 claude-flow --version
 
+# Check OrchFlow installation
+orchflow --help
+
 # Verify tmux is available
 tmux -V
 
 # Clear cache and retry
 rm -rf ~/.orchflow/cache
-claude-flow orchflow
+orchflow
 ```
 
 ### Workers Not Responding

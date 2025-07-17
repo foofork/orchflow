@@ -6,6 +6,8 @@
 
 export { OrchFlowCore } from './core/orchflow-core';
 export { OrchFlowMCPServer } from './mcp/orchflow-mcp-server';
+export { OrchFlowOrchestrator } from './orchestrator/orchflow-orchestrator';
+export { PrimaryTerminal } from './primary-terminal/primary-terminal';
 
 export type {
   Worker,
@@ -21,8 +23,10 @@ export type {
   Decision,
   OrchFlowConfig,
   OrchFlowEvent,
-  EventType
-} from './types';
+  EventType,
+  LaunchOptions,
+  SecurityConfig
+} from './types/index';
 
 // Version
 export const VERSION = '0.1.0';

@@ -22,30 +22,8 @@ export interface WorkerConfig {
   };
 }
 
-export interface Worker {
-  id: string;
-  type: string;
-  descriptiveName: string;
-  status: 'spawning' | 'running' | 'paused' | 'stopped' | 'error';
-  process?: ChildProcess;
-  tmuxSession?: string;
-  currentTask?: Task;
-  quickAccessKey?: number;
-  resources: {
-    cpuUsage: number;
-    memoryUsage: number;
-  };
-  capabilities: string[];
-  startTime: Date;
-  lastActivity: Date;
-  output: string[];
-  connection?: {
-    type: 'tmux' | 'process';
-    sessionName?: string;
-    pid?: number;
-  };
-  config?: any;
-}
+// Import unified Worker interface
+import { Worker } from '../types/unified-interfaces';
 
 export class WorkerManager extends EventEmitter {
   private workers: Map<string, Worker> = new Map();

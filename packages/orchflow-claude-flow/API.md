@@ -377,37 +377,87 @@ OrchFlow registers MCP tools for Claude integration.
 
 ### Available Tools
 
-#### `orchflow_natural_task`
+#### `orchflow_spawn_worker`
 
-Create tasks using natural language.
+Create a new worker for parallel task execution.
 
 ```typescript
-// Called by Claude
-const result = await mcpServer.callTool('orchflow_natural_task', {
-  naturalLanguageInput: 'Build a React component for user profiles',
-  context: []
+const result = await mcpServer.callTool('orchflow_spawn_worker', {
+  task: 'Build REST API for user management',
+  type: 'developer',
+  parentContext: {
+    sharedKnowledge: {
+      apiVersion: 'v1',
+      authMethod: 'JWT'
+    }
+  }
 });
 ```
 
-#### `orchflow_smart_connect`
+#### `orchflow_worker_status`
 
-Connect to workers intelligently.
+Get the status of all workers or a specific worker.
 
 ```typescript
-const result = await mcpServer.callTool('orchflow_smart_connect', {
-  workerIdentifier: 'react developer',
-  fuzzyMatch: true
+const result = await mcpServer.callTool('orchflow_worker_status', {
+  workerId: 'worker-123' // optional
 });
 ```
 
-#### `orchflow_status_rich`
+#### `orchflow_switch_context`
 
-Get rich status information.
+Switch the conversation context to a specific worker.
 
 ```typescript
-const result = await mcpServer.callTool('orchflow_status_rich', {
-  includeInactive: false,
-  sortBy: 'priority'
+const result = await mcpServer.callTool('orchflow_switch_context', {
+  workerId: 'worker-123',
+  preserveHistory: true
+});
+```
+
+#### `orchflow_share_knowledge`
+
+Share information, decisions, or code between workers.
+
+```typescript
+const result = await mcpServer.callTool('orchflow_share_knowledge', {
+  knowledge: {
+    apiEndpoint: 'https://api.example.com/v1',
+    authToken: 'Bearer token-here'
+  },
+  targetWorkers: ['worker-123', 'worker-456']
+});
+```
+
+#### `orchflow_merge_work`
+
+Merge results from multiple workers.
+
+```typescript
+const result = await mcpServer.callTool('orchflow_merge_work', {
+  workerIds: ['worker-123', 'worker-456'],
+  strategy: 'combine'
+});
+```
+
+#### `orchflow_save_session`
+
+Save the current orchestration session state.
+
+```typescript
+const result = await mcpServer.callTool('orchflow_save_session', {
+  name: 'auth-system-project',
+  description: 'Authentication system development session'
+});
+```
+
+#### `orchflow_restore_session`
+
+Restore a previously saved orchestration session.
+
+```typescript
+const result = await mcpServer.callTool('orchflow_restore_session', {
+  name: 'auth-system-project'
 });
 ```
 

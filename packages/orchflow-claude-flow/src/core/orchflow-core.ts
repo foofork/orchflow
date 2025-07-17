@@ -12,58 +12,18 @@ import { join } from 'path';
 import { homedir } from 'os';
 import crypto from 'crypto';
 
-// Types
-export interface Worker {
-  id: string;
-  name: string;
-  type: WorkerType;
-  task: string;
-  status: WorkerStatus;
-  context: WorkerContext;
-  progress: number;
-  createdAt: Date;
-  lastActive: Date;
-  parentId?: string;
-  children: string[];
-}
+// Import unified types
+import { 
+  Worker, 
+  WorkerContext, 
+  WorkerType, 
+  WorkerStatus,
+  Message,
+  CodeArtifact,
+  Decision
+} from '../types/unified-interfaces';
 
-export interface WorkerContext {
-  conversationHistory: Message[];
-  sharedKnowledge: Record<string, any>;
-  codeArtifacts: CodeArtifact[];
-  decisions: Decision[];
-}
-
-export interface Message {
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: Date;
-  workerId: string;
-}
-
-export interface CodeArtifact {
-  id: string;
-  filename: string;
-  content: string;
-  language: string;
-  version: number;
-  workerId: string;
-  timestamp: Date;
-}
-
-export interface Decision {
-  id: string;
-  description: string;
-  rationale: string;
-  alternatives: string[];
-  chosenOption: string;
-  workerId: string;
-  timestamp: Date;
-}
-
-export type WorkerType = 'developer' | 'tester' | 'researcher' | 'analyst' | 'architect' | 'reviewer' | 'coordinator';
-export type WorkerStatus = 'active' | 'idle' | 'paused' | 'completed' | 'failed';
-
+// Define a simplified config interface for the core
 export interface OrchFlowConfig {
   port: number;
   host: string;
@@ -76,6 +36,7 @@ export interface OrchFlowConfig {
     apiKey?: string;
     allowedOrigins: string[];
   };
+  logLevel?: 'debug' | 'info' | 'warn' | 'error';
 }
 
 /**
@@ -104,6 +65,7 @@ export class OrchFlowCore extends EventEmitter {
         enableAuth: false,
         allowedOrigins: ['*']
       },
+      logLevel: 'info',
       ...config
     };
 

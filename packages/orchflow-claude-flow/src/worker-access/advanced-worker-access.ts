@@ -1,34 +1,13 @@
 import { EventEmitter } from 'events';
 import type { TmuxBackend } from '../tmux-integration/tmux-backend';
-import type { Worker } from '../types';
+import { 
+  Worker, 
+  ExtendedWorker, 
+  WorkerAccessSession,
+  WorkerSearchResult
+} from '../types/unified-interfaces';
 
-export interface WorkerAccessSession {
-  workerId: string;
-  workerName: string;
-  paneId: string;
-  startTime: Date;
-  lastActivity: Date;
-  isActive: boolean;
-}
-
-interface ExtendedWorker extends Worker {
-  descriptiveName: string;
-  quickAccessKey?: number;
-  currentTask?: {
-    description: string;
-  };
-  startTime?: Date;
-  resources?: any;
-  estimatedCompletion?: Date;
-  priority?: number;
-}
-
-export interface WorkerSearchResult {
-  worker: ExtendedWorker;
-  confidence: number;
-  matchType: 'exact' | 'partial' | 'fuzzy' | 'numeric';
-  matchField: 'name' | 'description' | 'quickKey';
-}
+// WorkerSearchResult is now imported from unified interfaces
 
 export class AdvancedWorkerAccess extends EventEmitter {
   private tmux: TmuxBackend;
@@ -313,6 +292,50 @@ export class AdvancedWorkerAccess extends EventEmitter {
   }
 
   /**
+   * Assign a quick access key to a worker
+   */
+  assignQuickKey(workerId: string, key: number): boolean {
+    const worker = this.workerRegistry.get(workerId);
+    if (!worker) {
+      return false;
+    }
+
+    // Check if key is already assigned
+    if (this.quickKeyMap.has(key)) {
+      return false;
+    }
+
+    // Remove existing key assignment for this worker
+    if (worker.quickAccessKey) {
+      this.quickKeyMap.delete(worker.quickAccessKey);
+    }
+
+    // Assign new key
+    worker.quickAccessKey = key;
+    this.quickKeyMap.set(key, workerId);
+
+    this.emit('quickKeyAssigned', { workerId, key });
+    return true;
+  }
+
+  /**
+   * Remove quick access key from a worker
+   */
+  unassignQuickKey(workerId: string): boolean {
+    const worker = this.workerRegistry.get(workerId);
+    if (!worker || !worker.quickAccessKey) {
+      return false;
+    }
+
+    const key = worker.quickAccessKey;
+    this.quickKeyMap.delete(key);
+    worker.quickAccessKey = undefined;
+
+    this.emit('quickKeyUnassigned', { workerId, key });
+    return true;
+  }
+
+  /**
    * Get quick access key assignments
    */
   getQuickKeyAssignments(): { key: number; workerId: string; workerName: string }[] {
@@ -330,6 +353,31 @@ export class AdvancedWorkerAccess extends EventEmitter {
     }
 
     return assignments.sort((a, b) => a.key - b.key);
+  }
+
+  /**
+   * Get all registered workers
+   */
+  getWorkers(): ExtendedWorker[] {
+    return Array.from(this.workerRegistry.values());
+  }
+
+  /**
+   * Get worker by ID
+   */
+  getWorker(workerId: string): ExtendedWorker | undefined {
+    return this.workerRegistry.get(workerId);
+  }
+
+  /**
+   * Update worker information
+   */
+  updateWorker(workerId: string, updates: Partial<ExtendedWorker>): void {
+    const worker = this.workerRegistry.get(workerId);
+    if (worker) {
+      Object.assign(worker, updates);
+      this.emit('workerUpdated', worker);
+    }
   }
 
   /**
@@ -357,6 +405,29 @@ export class AdvancedWorkerAccess extends EventEmitter {
   }
 
   /**
+   * Get next available quick access key
+   */
+  getNextAvailableQuickKey(): number | null {
+    for (let i = 1; i <= 9; i++) {
+      if (!this.quickKeyMap.has(i)) {
+        return i;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Auto-assign quick access key to a worker
+   */
+  autoAssignQuickKey(workerId: string): boolean {
+    const nextKey = this.getNextAvailableQuickKey();
+    if (nextKey === null) {
+      return false;
+    }
+    return this.assignQuickKey(workerId, nextKey);
+  }
+
+  /**
    * Get search history for autocomplete
    */
   getSearchHistory(): string[] {
@@ -377,5 +448,38 @@ export class AdvancedWorkerAccess extends EventEmitter {
     this.quickKeyMap.clear();
     this.searchHistory = [];
     this.removeAllListeners();
+  }
+
+  /**
+   * Assign a quick access key to a worker
+   */
+  assignQuickKey(workerId: string, key: number): void {
+    const worker = this.workerRegistry.get(workerId);
+    if (worker) {
+      // Remove existing key if worker has one
+      if (worker.quickAccessKey) {
+        this.quickKeyMap.delete(worker.quickAccessKey);
+      }
+      
+      // Assign new key
+      worker.quickAccessKey = key;
+      this.quickKeyMap.set(key, workerId);
+      
+      this.emit('quickKeyAssigned', { workerId, key });
+    }
+  }
+
+  /**
+   * Unassign a quick access key from a worker
+   */
+  unassignQuickKey(workerId: string): void {
+    const worker = this.workerRegistry.get(workerId);
+    if (worker && worker.quickAccessKey) {
+      const key = worker.quickAccessKey;
+      this.quickKeyMap.delete(key);
+      delete worker.quickAccessKey;
+      
+      this.emit('quickKeyUnassigned', { workerId, key });
+    }
   }
 }

@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 import chalk from 'chalk';
-import { ensureOrchFlowBinaries } from './binary-manager';
 import { isCI } from './utils';
 
 async function postinstall() {
@@ -10,24 +9,11 @@ async function postinstall() {
     return;
   }
 
-  console.log(chalk.cyan('\n🎆 Setting up OrchFlow components...\n'));
-
-  try {
-    await ensureOrchFlowBinaries();
-
-    console.log(chalk.green('\n✅ OrchFlow setup complete!\n'));
-    console.log(chalk.cyan('Getting started:'));
-    console.log(chalk.white('  claude-flow orchflow    ') + chalk.gray('# Launch OrchFlow terminal'));
-    console.log(chalk.white('  claude-flow --help      ') + chalk.gray('# Show all commands'));
-    console.log();
-  } catch (error) {
-    console.error(chalk.red('\n❌ Failed to set up OrchFlow components'));
-    console.error(chalk.gray(error instanceof Error ? error.message : String(error)));
-    console.error(chalk.yellow('\nYou can try running setup manually:'));
-    console.error(chalk.white('  npx @orchflow/claude-flow setup'));
-    // Don't fail the install
-    process.exit(0);
-  }
+  console.log(chalk.cyan('\n🎆 OrchFlow setup complete!\n'));
+  console.log(chalk.cyan('Getting started:'));
+  console.log(chalk.white('  claude-flow orchflow    ') + chalk.gray('# Launch OrchFlow terminal'));
+  console.log(chalk.white('  claude-flow --help      ') + chalk.gray('# Show all commands'));
+  console.log();
 }
 
 // Only run if this is the main module

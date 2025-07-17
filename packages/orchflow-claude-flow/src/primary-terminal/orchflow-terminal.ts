@@ -5,6 +5,11 @@ import { OrchestratorClient } from './orchestrator-client';
 import { StatusPane } from './status-pane';
 import { WorkerAccessManager } from './worker-access-manager';
 import { TmuxBackend } from '../tmux-integration/tmux-backend';
+import { OrchFlowFunctionalContext } from '../context/functional-context';
+import { DynamicInstructionProvider } from '../instructions/dynamic-instructions';
+import { OrchFlowMemoryContext } from '../context/memory-context';
+import { ClaudeMDManager } from '../context/claude-md-manager';
+import { StatusPaneManager } from './status-pane-integration';
 import chalk from 'chalk';
 
 export interface OrchFlowTerminalConfig {
@@ -24,6 +29,11 @@ export class OrchFlowTerminal extends EventEmitter {
   private statusPane: StatusPane;
   private workerAccessManager: WorkerAccessManager;
   private tmuxBackend: TmuxBackend;
+  private contextProvider: OrchFlowFunctionalContext;
+  private instructionProvider: DynamicInstructionProvider;
+  private memoryContext: OrchFlowMemoryContext;
+  private claudeMDManager: ClaudeMDManager;
+  private statusPaneManager: StatusPaneManager;
   private sessionId: string = '';
   private primaryPaneId: string = '';
   private statusPaneId: string = '';
@@ -33,13 +43,35 @@ export class OrchFlowTerminal extends EventEmitter {
     this.mcpClient = new MCPClient(config.mcpEndpoint);
     this.conversationContext = new ConversationContext();
     this.orchestratorClient = new OrchestratorClient(config.orchestratorEndpoint);
-    this.statusPane = new StatusPane(config.statusPaneConfig);
-    this.workerAccessManager = new WorkerAccessManager();
     this.tmuxBackend = new TmuxBackend();
+    this.statusPane = new StatusPane(this.tmuxBackend);
+    this.workerAccessManager = new WorkerAccessManager();
+    
+    // Initialize missing properties
+    this.contextProvider = new OrchFlowFunctionalContext(
+      this.orchestratorClient,
+      this.conversationContext,
+      this.workerAccessManager
+    );
+    this.instructionProvider = new DynamicInstructionProvider();
+    this.memoryContext = new OrchFlowMemoryContext(this.mcpClient);
+    this.claudeMDManager = new ClaudeMDManager();
+    
+    // Initialize status pane manager (will be started after initialization)
+    this.statusPaneManager = new StatusPaneManager({
+      statusPane: this.statusPane,
+      orchestrator: this.orchestratorClient as any,
+      performanceMonitor: null as any // Will be set after performance monitor is created
+    });
   }
 
   async initialize(): Promise<void> {
     console.log(chalk.cyan('Initializing OrchFlow Terminal...'));
+
+    // Performance optimization - initialize optimizer first
+    const { SetupOptimizer } = await import('../performance/setup-optimizer');
+    const optimizer = new SetupOptimizer();
+    await optimizer.optimizeSetup();
 
     // Setup 70/30 split screen layout
     await this.setupSplitScreenLayout();
@@ -48,11 +80,39 @@ export class OrchFlowTerminal extends EventEmitter {
     await this.mcpClient.connect();
     await this.orchestratorClient.connect();
 
+    // Initialize new context providers
+    this.contextProvider = new OrchFlowFunctionalContext(
+      this.orchestratorClient,
+      this.conversationContext,
+      this.workerAccessManager
+    );
+    
+    this.instructionProvider = new DynamicInstructionProvider();
+    this.memoryContext = new OrchFlowMemoryContext(this.mcpClient);
+    this.claudeMDManager = new ClaudeMDManager();
+
     // Initialize components
     await this.statusPane.initialize(this.statusPaneId);
     await this.setupIntentHandlers();
     await this.setupWorkerAccessShortcuts();
     await this.restoreSession();
+    
+    // Update CLAUDE.md with OrchFlow context
+    await this.updateClaudeMDWithContext();
+
+    // Performance monitoring - start monitoring after initialization
+    const { PerformanceMonitor } = await import('../performance/performance-monitor');
+    const monitor = new PerformanceMonitor();
+    monitor.start(5000); // Monitor every 5 seconds
+    
+    // Store monitor for cleanup and connect to status pane
+    (this as any).performanceMonitor = monitor;
+    
+    // Connect performance monitor to status pane manager
+    this.statusPaneManager['performanceMonitor'] = monitor;
+    
+    // Start status pane integrations
+    await this.statusPaneManager.start();
 
     console.log(chalk.green('✓ OrchFlow Terminal ready'));
     console.log(chalk.gray('Type your commands in natural language...'));
@@ -138,16 +198,44 @@ export class OrchFlowTerminal extends EventEmitter {
   }
 
   private async processNaturalLanguageCommand(input: string): Promise<void> {
-    // Process through MCP tools for natural language understanding
-    // No pattern matching or specific keywords required
     try {
+      // Get rich functional context
+      const context = await this.contextProvider.getContext(input);
+      
+      // Get historical suggestions
+      const suggestions = await this.memoryContext.suggestBasedOnHistory(input);
+      if (suggestions.length > 0) {
+        context.historicalSuggestions = suggestions;
+      }
+      
+      // Generate task-specific instructions
+      const taskType = this.inferTaskType(input);
+      const instructions = this.instructionProvider.generateInstructions(taskType, context);
+      
       const response = await this.mcpClient.invokeTool('orchflow_natural_task', {
         naturalLanguageInput: input,
-        context: this.conversationContext.getRecentHistory()
+        context: this.conversationContext.getRecentHistory(),
+        orchflowContext: context,
+        instructions
       });
 
       if (response.success) {
         await this.updateUI(response.description || 'Command processed successfully');
+        
+        // Store successful patterns for learning
+        await this.memoryContext.storeTaskHistory({
+          taskId: response.workerId || `task_${Date.now()}`,
+          input,
+          taskType,
+          assignedWorker: response.workerName || 'Unknown',
+          startTime: new Date(),
+          status: 'completed',
+          successfulCommand: input,
+          context: context.currentTask
+        });
+        
+        // Update CLAUDE.md with current context
+        await this.updateClaudeMDWithContext();
       } else {
         await this.updateUI(`Error: ${response.error || 'Failed to process command'}`);
       }
@@ -197,6 +285,35 @@ export class OrchFlowTerminal extends EventEmitter {
       content: message,
       timestamp: new Date()
     });
+  }
+
+  /**
+   * Update CLAUDE.md with current OrchFlow context
+   */
+  private async updateClaudeMDWithContext(): Promise<void> {
+    try {
+      const context = await this.contextProvider.getContext('');
+      const orchflowSection = await this.claudeMDManager.generateOrchFlowSection(context);
+      await this.claudeMDManager.appendToClaudeMD(orchflowSection);
+    } catch (error) {
+      console.warn('Failed to update CLAUDE.md:', error);
+    }
+  }
+
+  /**
+   * Infer task type from input
+   */
+  private inferTaskType(input: string): string {
+    const lowerInput = input.toLowerCase();
+    if (lowerInput.includes('test')) return 'test';
+    if (lowerInput.includes('research') || lowerInput.includes('analyze')) return 'research';
+    if (lowerInput.includes('review') || lowerInput.includes('audit')) return 'analysis';
+    if (lowerInput.includes('swarm') || lowerInput.includes('team')) return 'swarm';
+    if (lowerInput.includes('auth') || lowerInput.includes('login')) return 'auth';
+    if (lowerInput.includes('database') || lowerInput.includes('db')) return 'database';
+    if (lowerInput.includes('api') || lowerInput.includes('endpoint')) return 'api-development';
+    if (lowerInput.includes('react') || lowerInput.includes('component')) return 'web-development';
+    return 'code'; // Default
   }
 
   private getStatusIcon(status: string): string {
@@ -256,6 +373,26 @@ export class OrchFlowTerminal extends EventEmitter {
       conversation: this.conversationContext.export(),
       workers: await this.orchestratorClient.listWorkers()
     });
+
+    // Clean up memory context
+    if (this.memoryContext) {
+      await this.memoryContext.cleanupOldEntries();
+    }
+
+    // Stop performance monitoring
+    if ((this as any).performanceMonitor) {
+      (this as any).performanceMonitor.stop();
+    }
+    
+    // Stop status pane integrations
+    if (this.statusPaneManager) {
+      await this.statusPaneManager.stop();
+    }
+
+    // Remove OrchFlow section from CLAUDE.md
+    if (this.claudeMDManager) {
+      await this.claudeMDManager.removeOrchFlowSection();
+    }
 
     // Disconnect services
     await this.mcpClient.disconnect();
