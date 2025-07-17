@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events';
-import { TmuxBackend } from '../tmux-integration/tmux-backend';
+import type { TmuxBackend } from '../tmux-integration/tmux-backend';
+import type { Worker } from '../types';
 
 export interface WorkerAccessSession {
   workerId: string;
@@ -10,8 +11,20 @@ export interface WorkerAccessSession {
   isActive: boolean;
 }
 
+interface ExtendedWorker extends Worker {
+  descriptiveName: string;
+  quickAccessKey?: number;
+  currentTask?: {
+    description: string;
+  };
+  startTime?: Date;
+  resources?: any;
+  estimatedCompletion?: Date;
+  priority?: number;
+}
+
 export interface WorkerSearchResult {
-  worker: any;
+  worker: ExtendedWorker;
   confidence: number;
   matchType: 'exact' | 'partial' | 'fuzzy' | 'numeric';
   matchField: 'name' | 'description' | 'quickKey';
@@ -20,7 +33,7 @@ export interface WorkerSearchResult {
 export class AdvancedWorkerAccess extends EventEmitter {
   private tmux: TmuxBackend;
   private activeSessions: Map<string, WorkerAccessSession> = new Map();
-  private workerRegistry: Map<string, any> = new Map();
+  private workerRegistry: Map<string, ExtendedWorker> = new Map();
   private quickKeyMap: Map<number, string> = new Map(); // key -> workerId
   private searchHistory: string[] = [];
 
@@ -29,9 +42,9 @@ export class AdvancedWorkerAccess extends EventEmitter {
     this.tmux = tmux;
   }
 
-  registerWorker(worker: any): void {
+  registerWorker(worker: ExtendedWorker): void {
     this.workerRegistry.set(worker.id, worker);
-    
+
     if (worker.quickAccessKey) {
       this.quickKeyMap.set(worker.quickAccessKey, worker.id);
     }
@@ -44,10 +57,10 @@ export class AdvancedWorkerAccess extends EventEmitter {
     if (worker?.quickAccessKey) {
       this.quickKeyMap.delete(worker.quickAccessKey);
     }
-    
+
     this.workerRegistry.delete(workerId);
     this.activeSessions.delete(workerId);
-    
+
     this.emit('workerUnregistered', workerId);
   }
 
@@ -78,11 +91,11 @@ export class AdvancedWorkerAccess extends EventEmitter {
 
     // Search by name and description
     const queryLower = query.toLowerCase();
-    
+
     for (const worker of workers) {
       const name = worker.descriptiveName?.toLowerCase() || '';
       const description = worker.currentTask?.description?.toLowerCase() || '';
-      
+
       // Exact name match
       if (name === queryLower) {
         results.push({
@@ -152,7 +165,7 @@ export class AdvancedWorkerAccess extends EventEmitter {
     }
 
     const { worker } = results[0];
-    
+
     // Check if already connected
     let session = this.activeSessions.get(worker.id);
     if (session && session.isActive) {
@@ -165,7 +178,7 @@ export class AdvancedWorkerAccess extends EventEmitter {
 
     // Create new session
     const paneId = await this.createWorkerPane(worker);
-    
+
     session = {
       workerId: worker.id,
       workerName: worker.descriptiveName,
@@ -176,44 +189,45 @@ export class AdvancedWorkerAccess extends EventEmitter {
     };
 
     this.activeSessions.set(worker.id, session);
-    
+
     // Setup session
     await this.setupWorkerSession(session, worker);
-    
+
     this.emit('sessionCreated', session);
     return session;
   }
 
-  private async createWorkerPane(worker: any): Promise<string> {
+  private async createWorkerPane(worker: ExtendedWorker): Promise<string> {
     // Create new pane for worker interaction
     const sessionId = 'main'; // Assumes main session exists
-    const paneId = await this.tmux.splitPane(sessionId, false);
-    
+    const mainPaneId = 'main:0.0'; // Default main pane ID
+    const newPane = await this.tmux.splitPane(sessionId, mainPaneId, 'horizontal', 50);
+
     // Set pane title
     const title = `${worker.descriptiveName} (${worker.quickAccessKey || '•'})`;
-    await this.tmux.sendKeys(paneId, 
-      `tmux set-option -t ${paneId} pane-title "${title}"`);
-    
-    return paneId;
+    await this.tmux.sendKeys(newPane.id,
+      `tmux set-option -t ${newPane.id} pane-title "${title}"`);
+
+    return newPane.id;
   }
 
-  private async setupWorkerSession(session: WorkerAccessSession, worker: any): Promise<void> {
+  private async setupWorkerSession(session: WorkerAccessSession, worker: ExtendedWorker): Promise<void> {
     const { paneId } = session;
-    
+
     // Clear pane and show worker info
     await this.tmux.sendKeys(paneId, 'clear');
-    
+
     const workerInfo = this.formatWorkerInfo(worker);
     await this.tmux.sendKeys(paneId, `echo "${workerInfo}"`);
-    
+
     // Setup interactive commands
     await this.tmux.sendKeys(paneId, 'echo "Connected to worker. Type commands or press Ctrl+D to return to primary terminal."');
-    
+
     // Monitor for exit
     this.monitorWorkerSession(session);
   }
 
-  private formatWorkerInfo(worker: any): string {
+  private formatWorkerInfo(worker: ExtendedWorker): string {
     const info = [
       `╭─ Worker: ${worker.descriptiveName} ─╮`,
       `│ ID: ${worker.id}`,
@@ -223,7 +237,7 @@ export class AdvancedWorkerAccess extends EventEmitter {
       `│ Started: ${worker.startTime ? new Date(worker.startTime).toLocaleTimeString() : 'Unknown'}`,
       `╰${'─'.repeat(Math.max(30, worker.descriptiveName.length + 10))}╯`
     ];
-    
+
     return info.join('\\n');
   }
 
@@ -239,25 +253,25 @@ export class AdvancedWorkerAccess extends EventEmitter {
     setTimeout(() => {
       clearInterval(checkInterval);
       if (Date.now() - session.lastActivity.getTime() > 300000) { // 5 minutes
-        this.closeWorkerSession(session.workerId);
+        void this.closeWorkerSession(session.workerId);
       }
     }, 300000);
   }
 
   async closeWorkerSession(workerId: string): Promise<void> {
     const session = this.activeSessions.get(workerId);
-    if (!session) return;
+    if (!session) {return;}
 
     try {
       // Close the pane
       await this.tmux.sendKeys(session.paneId, 'exit');
     } catch (error) {
-      console.warn(`Failed to close worker pane: ${error}`);
+      console.warn(`Failed to close worker pane: ${error instanceof Error ? error.message : String(error)}`);
     }
 
     session.isActive = false;
     this.activeSessions.delete(workerId);
-    
+
     this.emit('sessionClosed', session);
   }
 
@@ -270,7 +284,7 @@ export class AdvancedWorkerAccess extends EventEmitter {
       .filter(r => r.confidence > 0.3)
       .map(r => r.worker.descriptiveName)
       .slice(0, limit);
-    
+
     return suggestions;
   }
 
@@ -303,7 +317,7 @@ export class AdvancedWorkerAccess extends EventEmitter {
    */
   getQuickKeyAssignments(): { key: number; workerId: string; workerName: string }[] {
     const assignments: { key: number; workerId: string; workerName: string }[] = [];
-    
+
     for (const [key, workerId] of this.quickKeyMap.entries()) {
       const worker = this.workerRegistry.get(workerId);
       if (worker) {
@@ -314,7 +328,7 @@ export class AdvancedWorkerAccess extends EventEmitter {
         });
       }
     }
-    
+
     return assignments.sort((a, b) => a.key - b.key);
   }
 
@@ -324,21 +338,21 @@ export class AdvancedWorkerAccess extends EventEmitter {
   private fuzzyMatch(query: string, target: string): number {
     const queryChars = query.split('');
     const targetChars = target.split('');
-    
+
     let queryIndex = 0;
     let matches = 0;
-    
+
     for (let i = 0; i < targetChars.length && queryIndex < queryChars.length; i++) {
       if (targetChars[i].toLowerCase() === queryChars[queryIndex].toLowerCase()) {
         matches++;
         queryIndex++;
       }
     }
-    
+
     if (queryIndex !== queryChars.length) {
       return 0; // Not all query characters found
     }
-    
+
     return matches / target.length;
   }
 
@@ -354,11 +368,11 @@ export class AdvancedWorkerAccess extends EventEmitter {
    */
   async cleanup(): Promise<void> {
     const sessions = Array.from(this.activeSessions.keys());
-    
+
     for (const workerId of sessions) {
       await this.closeWorkerSession(workerId);
     }
-    
+
     this.workerRegistry.clear();
     this.quickKeyMap.clear();
     this.searchHistory = [];

@@ -1,6 +1,8 @@
 // Mock MCP imports until package is properly available
+import type { MCPRequest } from '../types';
+
 interface MCPServerBase {
-  setRequestHandler(method: string, handler: any): void;
+  setRequestHandler(method: string, handler: (request: MCPRequest) => Promise<any>): void;
   connect(transport: any): Promise<void>;
   close(): Promise<void>;
 }
@@ -11,9 +13,9 @@ interface StdioServerTransport {
 
 // Mock implementations
 const MockMCPServer = class implements MCPServerBase {
-  constructor(config: any, options: any) {}
-  setRequestHandler(method: string, handler: any): void {}
-  async connect(transport: any): Promise<void> {}
+  constructor(_config: any, _options: any) {}
+  setRequestHandler(_method: string, _handler: (request: MCPRequest) => Promise<any>): void {}
+  async connect(_transport: any): Promise<void> {}
   async close(): Promise<void> {}
 };
 
@@ -49,9 +51,9 @@ export class MCPServer extends EventEmitter {
 
     // Create HTTP server for WebSocket
     this.httpServer = http.createServer();
-    
+
     // Initialize WebSocket server for MCP communication
-    this.wsServer = new WebSocket.Server({ 
+    this.wsServer = new WebSocket.Server({
       server: this.httpServer,
       path: '/mcp'
     });
@@ -59,7 +61,7 @@ export class MCPServer extends EventEmitter {
     this.wsServer.on('connection', (ws) => {
       console.log('New MCP client connected');
       this.connectedClients.add(ws);
-      
+
       ws.on('message', async (message) => {
         try {
           const data = JSON.parse(message.toString());
@@ -102,21 +104,21 @@ export class MCPServer extends EventEmitter {
 
   registerTool(name: string, tool: MCPTool): void {
     this.tools.set(name, tool);
-    
+
     // Register with MCP server if initialized
     if (this.server) {
-      this.server.setRequestHandler('tools/call', async (request) => {
+      this.server.setRequestHandler('tools/call', async (request: MCPRequest) => {
         if (request.params.name === name) {
           try {
             const result = await tool.handler(request.params.arguments || {});
             return { content: [{ type: 'text', text: JSON.stringify(result) }] };
           } catch (error: any) {
-            return { 
-              content: [{ 
-                type: 'text', 
-                text: `Error: ${error.message}` 
+            return {
+              content: [{
+                type: 'text',
+                text: `Error: ${error.message}`
               }],
-              isError: true 
+              isError: true
             };
           }
         }
@@ -145,29 +147,29 @@ export class MCPServer extends EventEmitter {
     });
 
     // Handle tool calls
-    this.server?.setRequestHandler('tools/call', async (request) => {
+    this.server?.setRequestHandler('tools/call', async (request: MCPRequest) => {
       const toolName = request.params.name;
       const tool = this.tools.get(toolName);
-      
+
       if (!tool) {
-        return { 
+        return {
           content: [{ type: 'text', text: `Tool ${toolName} not found` }],
-          isError: true 
+          isError: true
         };
       }
 
       try {
         const result = await tool.handler(request.params.arguments || {});
-        return { 
-          content: [{ 
-            type: 'text', 
-            text: JSON.stringify(result, null, 2) 
-          }] 
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify(result, null, 2)
+          }]
         };
       } catch (error: any) {
-        return { 
+        return {
           content: [{ type: 'text', text: `Error: ${error.message}` }],
-          isError: true 
+          isError: true
         };
       }
     });
@@ -183,15 +185,15 @@ export class MCPServer extends EventEmitter {
         case 'tools/list':
           result = await this.listTools();
           break;
-          
+
         case 'tools/call':
           result = await this.callTool(params.name, params.arguments);
           break;
-          
+
         case 'capabilities':
           result = this.getCapabilities();
           break;
-          
+
         default:
           throw new Error(`Unknown method: ${method}`);
       }

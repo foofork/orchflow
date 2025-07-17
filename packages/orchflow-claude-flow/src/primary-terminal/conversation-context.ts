@@ -41,7 +41,7 @@ export class ConversationContext {
 
   addMessage(message: Message): void {
     this.history.push(message);
-    
+
     // Trim history if it exceeds max size
     if (this.history.length > this.maxHistorySize) {
       this.history = this.history.slice(-this.maxHistorySize);
@@ -112,16 +112,16 @@ export class ConversationContext {
   }
 
   restore(data: any): void {
-    if (data.sessionId) this.sessionId = data.sessionId;
-    if (data.history) this.history = data.history;
+    if (data.sessionId) {this.sessionId = data.sessionId;}
+    if (data.history) {this.history = data.history;}
     if (data.activeWorkers) {
       this.activeWorkers.clear();
       data.activeWorkers.forEach(([id, worker]: [string, WorkerInfo]) => {
         this.activeWorkers.set(id, worker);
       });
     }
-    if (data.currentTask) this.currentTask = data.currentTask;
-    if (data.userPreferences) this.userPreferences = data.userPreferences;
+    if (data.currentTask) {this.currentTask = data.currentTask;}
+    if (data.userPreferences) {this.userPreferences = data.userPreferences;}
   }
 
   clear(): void {
@@ -167,12 +167,12 @@ export class ConversationContext {
   }
 
   isWaitingForResponse(): boolean {
-    if (this.history.length === 0) return false;
+    if (this.history.length === 0) {return false;}
     return this.history[this.history.length - 1].type === 'user';
   }
 
   getConversationDuration(): number {
-    if (this.history.length === 0) return 0;
+    if (this.history.length === 0) {return 0;}
     const firstMessage = this.history[0];
     const lastMessage = this.history[this.history.length - 1];
     return lastMessage.timestamp.getTime() - firstMessage.timestamp.getTime();

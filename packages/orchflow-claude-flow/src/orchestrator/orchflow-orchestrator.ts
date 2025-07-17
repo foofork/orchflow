@@ -79,24 +79,24 @@ export class OrchFlowOrchestrator extends EventEmitter {
 
   async initialize(): Promise<void> {
     console.log('Initializing OrchFlow Orchestrator...');
-    
+
     // Initialize components
     await this.stateManager.initialize();
     await this.mcpServer.start();
     await this.registerOrchFlowMCPTools();
     await this.startWebSocketServer();
     await this.startSmartScheduler();
-    
+
     // Restore previous state if available
     await this.restoreState();
-    
+
     console.log('OrchFlow Orchestrator initialized');
   }
 
   async spawnWorkerWithDescriptiveName(task: Task): Promise<string> {
     // Generate context-aware descriptive name
     const descriptiveName = this.workerNamer.generateName(task);
-    
+
     // Check for conflicts before spawning
     const conflicts = await this.conflictDetector.checkConflicts(task);
     if (conflicts.length > 0) {
@@ -105,10 +105,10 @@ export class OrchFlowOrchestrator extends EventEmitter {
         throw new Error(`Task conflicts detected: ${errors.map(c => c.description).join(', ')}`);
       }
     }
-    
+
     // Build claude-flow command using thin wrapper
     const command = this.claudeFlowWrapper.buildCommand(task);
-    
+
     // Spawn worker with descriptive name
     const workerId = await this.workerManager.spawnWorker(task.type, {
       ...task.config,
@@ -116,12 +116,12 @@ export class OrchFlowOrchestrator extends EventEmitter {
       command,
       quickAccessKey: this.assignQuickAccessKey()
     });
-    
+
     // Update task with worker assignment
     task.assignedWorker = workerId;
     task.assignedWorkerName = descriptiveName;
     task.claudeFlowCommand = command;
-    
+
     // Notify clients
     this.broadcastWorkerUpdate(workerId, {
       id: workerId,
@@ -129,20 +129,20 @@ export class OrchFlowOrchestrator extends EventEmitter {
       status: 'spawning',
       progress: 0
     });
-    
+
     return workerId;
   }
 
   async submitTask(task: Task): Promise<void> {
     // Add task to graph
     this.taskGraph.addTask(task);
-    
+
     // Persist task state
     await this.stateManager.persistTask(task);
-    
+
     // Trigger scheduling
     await this.scheduler.schedule();
-    
+
     // Notify clients
     this.broadcastTaskUpdate(task);
   }
@@ -255,25 +255,25 @@ export class OrchFlowOrchestrator extends EventEmitter {
     // Update task status
     task.status = 'running';
     await this.stateManager.updateTask(task);
-    
+
     // Find best worker for task
     let workerId = await this.findBestWorker(task);
-    
+
     if (!workerId) {
       // Spawn new worker if none available
       workerId = await this.spawnWorkerWithDescriptiveName(task);
     }
-    
+
     // Assign task to worker
     await this.assignTaskToWorker(workerId, task);
   }
 
   private async findBestWorker(task: Task): Promise<string | null> {
     const workers = await this.workerManager.listWorkers();
-    
+
     // Find idle worker with matching capabilities
-    const suitableWorkers = workers.filter(worker => 
-      worker.status === 'running' && 
+    const suitableWorkers = workers.filter(worker =>
+      worker.status === 'running' &&
       !worker.currentTask &&
       this.hasRequiredCapabilities(worker, task)
     );
@@ -283,7 +283,7 @@ export class OrchFlowOrchestrator extends EventEmitter {
     }
 
     // Return worker with lowest resource usage
-    return suitableWorkers.reduce((best, current) => 
+    return suitableWorkers.reduce((best, current) =>
       current.resources.cpuUsage < best.resources.cpuUsage ? current : best
     ).id;
   }
@@ -295,11 +295,11 @@ export class OrchFlowOrchestrator extends EventEmitter {
 
   private async assignTaskToWorker(workerId: string, task: Task): Promise<void> {
     await this.workerManager.assignTask(workerId, task);
-    
+
     // Update task with worker assignment
     task.assignedWorker = workerId;
     await this.stateManager.updateTask(task);
-    
+
     // Notify clients
     this.broadcastTaskUpdate(task);
   }
@@ -314,7 +314,7 @@ export class OrchFlowOrchestrator extends EventEmitter {
       'swarm': ['coordination', 'parallel-execution', 'orchestration'],
       'hive-mind': ['collective-intelligence', 'consensus', 'distributed']
     };
-    
+
     return capabilityMap[task.type] || [];
   }
 
@@ -328,7 +328,7 @@ export class OrchFlowOrchestrator extends EventEmitter {
       'swarm': { cpu: 100, memory: 2048 },
       'hive-mind': { cpu: 100, memory: 4096 }
     };
-    
+
     return resourceMap[task.type] || { cpu: 50, memory: 1024 };
   }
 
@@ -337,13 +337,13 @@ export class OrchFlowOrchestrator extends EventEmitter {
     const usedKeys = new Set(
       this.workerManager.getWorkers().map(w => w.quickAccessKey).filter(k => k)
     );
-    
+
     for (let i = 1; i <= 9; i++) {
       if (!usedKeys.has(i)) {
         return i;
       }
     }
-    
+
     return undefined; // No keys available
   }
 
@@ -353,10 +353,10 @@ export class OrchFlowOrchestrator extends EventEmitter {
 
   private async startWebSocketServer(): Promise<void> {
     this.wsServer = new WebSocket.Server({ port: 3001 });
-    
+
     this.wsServer.on('connection', (ws) => {
       this.clients.add(ws);
-      
+
       ws.on('message', async (message) => {
         try {
           const data = JSON.parse(message.toString());
@@ -365,11 +365,11 @@ export class OrchFlowOrchestrator extends EventEmitter {
           ws.send(JSON.stringify({ error: (error as Error).message }));
         }
       });
-      
+
       ws.on('close', () => {
         this.clients.delete(ws);
       });
-      
+
       // Send initial state
       this.sendInitialState(ws);
     });
@@ -377,10 +377,10 @@ export class OrchFlowOrchestrator extends EventEmitter {
 
   private async handleWebSocketMessage(ws: WebSocket, message: any): Promise<void> {
     const { id, method, params } = message;
-    
+
     try {
       let result;
-      
+
       switch (method) {
         case 'submitTask':
           await this.submitTask(params.task);
@@ -410,7 +410,7 @@ export class OrchFlowOrchestrator extends EventEmitter {
         default:
           throw new Error(`Unknown method: ${method}`);
       }
-      
+
       ws.send(JSON.stringify({ id, result }));
     } catch (error) {
       ws.send(JSON.stringify({ id, error: { message: (error as Error).message } }));
@@ -420,7 +420,7 @@ export class OrchFlowOrchestrator extends EventEmitter {
   private async sendInitialState(ws: WebSocket): Promise<void> {
     const workers = await this.workerManager.listWorkers();
     const tasks = this.taskGraph.getAllTasks();
-    
+
     ws.send(JSON.stringify({
       type: 'event',
       event: 'initialState',
@@ -434,7 +434,7 @@ export class OrchFlowOrchestrator extends EventEmitter {
       event: 'workerUpdate',
       data: workerInfo
     });
-    
+
     this.clients.forEach(client => {
       if (client.readyState === WebSocket.OPEN) {
         client.send(message);
@@ -448,7 +448,7 @@ export class OrchFlowOrchestrator extends EventEmitter {
       event: 'taskUpdate',
       data: task
     });
-    
+
     this.clients.forEach(client => {
       if (client.readyState === WebSocket.OPEN) {
         client.send(message);
@@ -469,25 +469,25 @@ export class OrchFlowOrchestrator extends EventEmitter {
 
   async shutdown(): Promise<void> {
     console.log('Shutting down OrchFlow Orchestrator...');
-    
+
     // Stop scheduler
     if (this.schedulerInterval) {
       clearInterval(this.schedulerInterval);
     }
-    
+
     // Save current state
     await this.stateManager.saveAllTasks(this.taskGraph.getAllTasks());
-    
+
     // Shutdown components
     await this.workerManager.shutdown();
     await this.mcpServer.stop();
-    
+
     // Close WebSocket connections
     this.clients.forEach(client => client.close());
     if (this.wsServer) {
       this.wsServer.close();
     }
-    
+
     console.log('OrchFlow Orchestrator shutdown complete');
   }
 }

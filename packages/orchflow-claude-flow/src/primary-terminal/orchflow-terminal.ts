@@ -43,20 +43,20 @@ export class OrchFlowTerminal extends EventEmitter {
 
   async initialize(): Promise<void> {
     console.log(chalk.cyan('Initializing OrchFlow Terminal...'));
-    
+
     // Setup 70/30 split screen layout
     await this.setupSplitScreenLayout();
-    
+
     // Connect to services
     await this.mcpClient.connect();
     await this.orchestratorClient.connect();
-    
+
     // Initialize components
     await this.statusPane.initialize(this.statusPaneId);
     await this.setupIntentHandlers();
     await this.setupWorkerAccessShortcuts();
     await this.restoreSession();
-    
+
     console.log(chalk.green('✓ OrchFlow Terminal ready'));
     console.log(chalk.gray('Type your commands in natural language...'));
   }
@@ -65,10 +65,10 @@ export class OrchFlowTerminal extends EventEmitter {
     // Create 70/30 split screen layout
     const session = await this.tmuxBackend.createSession('orchflow-terminal');
     this.sessionId = session.id;
-    
+
     // Primary pane is already created, it's 100% width initially
     this.primaryPaneId = session.panes[0].id;
-    
+
     // Split for status pane (30% width on the right)
     const statusPane = await this.tmuxBackend.splitPane(
       session.id,
@@ -76,9 +76,9 @@ export class OrchFlowTerminal extends EventEmitter {
       'vertical',
       30 // 30% for status pane
     );
-    
+
     this.statusPaneId = statusPane.id;
-    
+
     // Set pane titles
     await this.tmuxBackend.setPaneTitle(this.primaryPaneId, 'OrchFlow Terminal');
     await this.tmuxBackend.setPaneTitle(this.statusPaneId, 'Status & Workers');
@@ -102,7 +102,7 @@ export class OrchFlowTerminal extends EventEmitter {
   private async connectToWorkerByNumber(number: number): Promise<void> {
     const workers = await this.orchestratorClient.listWorkers();
     const targetWorker = workers.find(w => w.quickAccessKey === number);
-    
+
     if (targetWorker) {
       await this.workerAccessManager.connectToWorker(targetWorker.id);
       await this.updateUI(`Connected to ${targetWorker.descriptiveName}`);
@@ -117,7 +117,7 @@ export class OrchFlowTerminal extends EventEmitter {
       await this.connectToWorkerByNumber(parseInt(input));
       return;
     }
-    
+
     // Add to conversation history
     this.conversationContext.addMessage({
       type: 'user',
@@ -127,7 +127,7 @@ export class OrchFlowTerminal extends EventEmitter {
 
     // Parse natural language intent
     const intent = await this.intentRecognizer.parseIntent(
-      input, 
+      input,
       this.conversationContext
     );
 
@@ -172,12 +172,12 @@ export class OrchFlowTerminal extends EventEmitter {
   private async handleConnectToWorker(intent: any): Promise<void> {
     const workerName = intent.parameters.workerName;
     const workers = await this.orchestratorClient.listWorkers();
-    
+
     // Find worker by descriptive name (fuzzy match)
-    const targetWorker = workers.find(w => 
+    const targetWorker = workers.find(w =>
       w.descriptiveName.toLowerCase().includes(workerName.toLowerCase())
     );
-    
+
     if (targetWorker) {
       await this.workerAccessManager.connectToWorker(targetWorker.id);
       await this.updateUI(`✓ Connected to "${targetWorker.descriptiveName}"`);
@@ -189,35 +189,35 @@ export class OrchFlowTerminal extends EventEmitter {
 
   private async handleListWorkers(_intent: any): Promise<void> {
     const workers = await this.orchestratorClient.listWorkers();
-    
+
     if (workers.length === 0) {
       await this.updateUI('No active workers');
       return;
     }
-    
+
     const workerList = workers.map(w => {
       const statusIcon = this.getStatusIcon(w.status);
       const key = w.quickAccessKey ? `[${w.quickAccessKey}]` : '   ';
       return `${key} ${w.descriptiveName.padEnd(25)} ${statusIcon} ${w.status} (${w.progress}%)`;
     }).join('\n');
-    
+
     await this.updateUI(workerList);
   }
 
   private async handlePauseWorker(intent: any): Promise<void> {
     const workerId = intent.parameters.workerId;
     const workerName = intent.parameters.workerName;
-    
+
     let targetWorker;
     if (workerId) {
       targetWorker = await this.orchestratorClient.getWorker(workerId);
     } else if (workerName) {
       const workers = await this.orchestratorClient.listWorkers();
-      targetWorker = workers.find(w => 
+      targetWorker = workers.find(w =>
         w.descriptiveName.toLowerCase().includes(workerName.toLowerCase())
       );
     }
-    
+
     if (targetWorker) {
       await this.orchestratorClient.pauseWorker(targetWorker.id);
       await this.updateUI(`✓ Paused "${targetWorker.descriptiveName}"`);
@@ -236,7 +236,7 @@ export class OrchFlowTerminal extends EventEmitter {
       query: intent.parameters.query,
       context: this.conversationContext.getRecentHistory()
     });
-    
+
     await this.updateUI(response.result);
   }
 
@@ -258,7 +258,7 @@ export class OrchFlowTerminal extends EventEmitter {
   private async updateUI(message: string): Promise<void> {
     // In a real implementation, this would update the terminal display
     console.log(chalk.white(message));
-    
+
     // Also add to conversation history
     this.conversationContext.addMessage({
       type: 'assistant',
@@ -288,29 +288,29 @@ export class OrchFlowTerminal extends EventEmitter {
       await this.updateUI(`Worker ${workerId} not found`);
       return;
     }
-    
+
     // Update conversation context
     this.conversationContext.switchContext(workerId);
-    
+
     // Update UI
     await this.updateUI(`Switched to ${worker.descriptiveName || worker.name}`);
-    
+
     // Emit event for status pane update
     this.emit('workerSwitched', worker);
   }
 
   async connectWebSocket(wsUrl: string): Promise<void> {
     await this.orchestratorClient.connectWebSocket(wsUrl);
-    
+
     // Forward events to status pane
     this.orchestratorClient.on('worker:created', (worker) => {
       this.statusPane.addWorker(worker);
     });
-    
+
     this.orchestratorClient.on('worker:updated', (worker) => {
       this.statusPane.updateWorker(worker);
     });
-    
+
     this.orchestratorClient.on('worker:deleted', (workerId) => {
       this.statusPane.removeWorker(workerId);
     });
@@ -318,20 +318,20 @@ export class OrchFlowTerminal extends EventEmitter {
 
   async shutdown(): Promise<void> {
     console.log(chalk.yellow('Shutting down OrchFlow Terminal...'));
-    
+
     // Save session state
     await this.orchestratorClient.saveSessionData({
       conversation: this.conversationContext.export(),
       workers: await this.orchestratorClient.listWorkers()
     });
-    
+
     // Disconnect services
     await this.mcpClient.disconnect();
     await this.orchestratorClient.disconnect();
-    
+
     // Clean up tmux session
     await this.tmuxBackend.killSession(this.sessionId);
-    
+
     console.log(chalk.green('✓ OrchFlow Terminal shutdown complete'));
   }
 }

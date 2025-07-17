@@ -2,7 +2,7 @@
  * DEPRECATED: This file is part of the old word-watching architecture.
  * In the new injection-based architecture, Claude naturally understands
  * orchestration commands through MCP tools - no NLP parsing needed.
- * 
+ *
  * Kept for reference/compatibility but not used in production.
  */
 
@@ -42,7 +42,7 @@ export class NLIntentRecognizer {
    */
   async recognizeIntent(input: string, context?: ConversationContext): Promise<Intent> {
     const normalizedInput = input.trim().toLowerCase();
-    
+
     // Try each pattern category
     for (const [action, pattern] of this.patterns.entries()) {
       for (const regex of pattern.patterns) {
@@ -59,7 +59,7 @@ export class NLIntentRecognizer {
         }
       }
     }
-    
+
     // Default unknown intent
     return {
       action: 'unknown',
@@ -86,7 +86,7 @@ export class NLIntentRecognizer {
         const description = match[1].trim();
         const taskType = this.inferTaskType(description);
         const descriptiveName = this.workerNamer.generateFromDescription(description);
-        
+
         return {
           action: 'create_task',
           parameters: {
@@ -98,7 +98,7 @@ export class NLIntentRecognizer {
         };
       }
     });
-    
+
     // Worker connection patterns
     this.patterns.set('connect_to_worker', {
       patterns: [
@@ -117,7 +117,7 @@ export class NLIntentRecognizer {
         }
       })
     });
-    
+
     // Worker list patterns
     this.patterns.set('list_workers', {
       patterns: [
@@ -133,7 +133,7 @@ export class NLIntentRecognizer {
         parameters: {}
       })
     });
-    
+
     // Worker control patterns
     this.patterns.set('pause_worker', {
       patterns: [
@@ -188,7 +188,7 @@ export class NLIntentRecognizer {
   async parseIntent(input: string, context: ConversationContext): Promise<Intent> {
     // Normalize input
     const normalizedInput = input.trim();
-    
+
     // Check for numeric shortcut (1-9)
     if (/^[1-9]$/.test(normalizedInput)) {
       return {
@@ -198,7 +198,7 @@ export class NLIntentRecognizer {
         context
       };
     }
-    
+
     // Try to match patterns
     for (const [action, pattern] of this.patterns) {
       for (const regex of pattern.patterns) {
@@ -215,14 +215,14 @@ export class NLIntentRecognizer {
         }
       }
     }
-    
+
     // If no pattern matches, try to understand intent from context
     return this.inferIntentFromContext(normalizedInput, context);
   }
 
   private inferTaskType(description: string): TaskType {
     const desc = description.toLowerCase();
-    
+
     const keywords: Record<TaskType, string[]> = {
       'research': ['analyze', 'study', 'investigate', 'research', 'explore', 'examine', 'review'],
       'code': ['build', 'implement', 'create', 'develop', 'code', 'write', 'program', 'script'],
@@ -231,50 +231,50 @@ export class NLIntentRecognizer {
       'swarm': ['swarm', 'team', 'collaborative', 'distributed', 'multiple', 'parallel'],
       'hive-mind': ['hive-mind', 'collective', 'intelligence', 'coordination', 'orchestrate']
     };
-    
+
     // Count keyword matches
     const scores: Partial<Record<TaskType, number>> = {};
-    
+
     for (const [type, words] of Object.entries(keywords)) {
-      scores[type as TaskType] = words.reduce((score, word) => 
+      scores[type as TaskType] = words.reduce((score, word) =>
         score + (desc.includes(word) ? 1 : 0), 0
       );
     }
-    
+
     // Find type with highest score
     let bestType: TaskType = 'code';
     let bestScore = 0;
-    
+
     for (const [type, score] of Object.entries(scores)) {
       if (score > bestScore) {
         bestScore = score;
         bestType = type as TaskType;
       }
     }
-    
+
     return bestType;
   }
 
   private inferPriority(description: string): number {
     const desc = description.toLowerCase();
-    
+
     // High priority indicators
-    if (desc.includes('urgent') || desc.includes('critical') || 
+    if (desc.includes('urgent') || desc.includes('critical') ||
         desc.includes('asap') || desc.includes('immediately')) {
       return 9;
     }
-    
+
     // Medium-high priority
     if (desc.includes('important') || desc.includes('priority')) {
       return 7;
     }
-    
+
     // Low priority
     if (desc.includes('when possible') || desc.includes('low priority') ||
         desc.includes('eventually')) {
       return 3;
     }
-    
+
     // Default medium priority
     return 5;
   }
@@ -284,20 +284,20 @@ export class NLIntentRecognizer {
     const matchLength = match[0].length;
     const inputLength = input.length;
     const coverage = matchLength / inputLength;
-    
+
     // Boost confidence if the match covers most of the input
     return Math.min(0.5 + (coverage * 0.5), 1.0);
   }
 
   private async inferIntentFromContext(
-    input: string, 
+    input: string,
     context: ConversationContext
   ): Promise<Intent> {
     // Look at recent history to understand context
     const recentMessages = context.getRecentHistory(3);
-    
+
     // If user seems to be responding to a question
-    if (recentMessages.length > 0 && 
+    if (recentMessages.length > 0 &&
         recentMessages[recentMessages.length - 1].type === 'assistant') {
       // This might be a clarification or follow-up
       return {
@@ -310,7 +310,7 @@ export class NLIntentRecognizer {
         context
       };
     }
-    
+
     // Default to generic query
     return {
       action: 'generic_query',

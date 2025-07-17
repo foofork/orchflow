@@ -9,12 +9,12 @@ async function postinstall() {
     console.log(chalk.gray('Skipping OrchFlow postinstall in CI environment'));
     return;
   }
-  
+
   console.log(chalk.cyan('\n🎆 Setting up OrchFlow components...\n'));
-  
+
   try {
     await ensureOrchFlowBinaries();
-    
+
     console.log(chalk.green('\n✅ OrchFlow setup complete!\n'));
     console.log(chalk.cyan('Getting started:'));
     console.log(chalk.white('  claude-flow orchflow    ') + chalk.gray('# Launch OrchFlow terminal'));
@@ -22,7 +22,7 @@ async function postinstall() {
     console.log();
   } catch (error) {
     console.error(chalk.red('\n❌ Failed to set up OrchFlow components'));
-    console.error(chalk.gray(error.message));
+    console.error(chalk.gray(error instanceof Error ? error.message : String(error)));
     console.error(chalk.yellow('\nYou can try running setup manually:'));
     console.error(chalk.white('  npx @orchflow/claude-flow setup'));
     // Don't fail the install

@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { WorkerInfo } from './conversation-context';
+import type { WorkerInfo } from './conversation-context';
 import { TmuxBackend } from '../tmux-integration/tmux-backend';
 import chalk from 'chalk';
 
@@ -67,11 +67,11 @@ export class StatusPane extends EventEmitter {
 
   private async renderHeader(): Promise<void> {
     const header = `
-${chalk.cyan('╔' + '═'.repeat(32) + '╗')}
+${chalk.cyan(`╔${  '═'.repeat(32)  }╗`)}
 ${chalk.cyan('║')}        ${chalk.bold.white('OrchFlow Status')}         ${chalk.cyan('║')}
-${chalk.cyan('╠' + '═'.repeat(32) + '╣')}
+${chalk.cyan(`╠${  '═'.repeat(32)  }╣`)}
 ${chalk.cyan('║')} ${chalk.yellow('Workers & Progress')}             ${chalk.cyan('║')}
-${chalk.cyan('╚' + '═'.repeat(32) + '╝')}
+${chalk.cyan(`╚${  '═'.repeat(32)  }╝`)}
 `;
     await this.writeToPane(header);
   }
@@ -83,15 +83,15 @@ ${chalk.cyan('╚' + '═'.repeat(32) + '╝')}
   }
 
   private formatWorkerDisplay(status: WorkerInfo): string {
-    const keyDisplay = status.quickAccessKey ? 
-      chalk.bold.yellow(`[${status.quickAccessKey}]`) : 
+    const keyDisplay = status.quickAccessKey ?
+      chalk.bold.yellow(`[${status.quickAccessKey}]`) :
       chalk.gray('   ');
-    
+
     const nameDisplay = chalk.white(status.descriptiveName.padEnd(20));
     const statusIcon = this.getStatusIcon(status.status);
     const statusText = this.formatStatus(status.status);
     const progressBar = this.renderProgressBar(status.progress);
-    
+
     return `${keyDisplay} ${nameDisplay}
     ${statusIcon} ${statusText} ${progressBar}`;
   }
@@ -115,7 +115,7 @@ ${chalk.cyan('╚' + '═'.repeat(32) + '╝')}
       'failed': chalk.red,
       'spawning': chalk.blue
     };
-    
+
     const color = colors[status] || chalk.gray;
     return color(status.charAt(0).toUpperCase() + status.slice(1).padEnd(10));
   }
@@ -124,38 +124,38 @@ ${chalk.cyan('╚' + '═'.repeat(32) + '╝')}
     const width = 15;
     const filled = Math.floor((progress / 100) * width);
     const empty = width - filled;
-    
+
     const bar = chalk.green('█'.repeat(filled)) + chalk.gray('░'.repeat(empty));
-    return `${bar} ${chalk.white(progress + '%')}`;
+    return `${bar} ${chalk.white(`${progress  }%`)}`;
   }
 
   private async refreshDisplay(): Promise<void> {
     // Clear and redraw the entire status pane
     await this.tmuxBackend.sendKeys(this.paneId, 'clear');
     await this.renderHeader();
-    
+
     // Render all workers
     for (const [workerId, workerDisplay] of this.workerDisplays) {
       await this.writeToPane(workerDisplay.display);
       await this.writeToPane(''); // Empty line between workers
     }
-    
+
     // Render resource usage
     await this.renderResourceUsage();
-    
+
     // Render shortcuts at the bottom
     await this.renderShortcutSection();
   }
 
   private async renderResourceUsage(): Promise<void> {
     const resourceDisplay = `
-${chalk.cyan('┌' + '─'.repeat(32) + '┐')}
+${chalk.cyan(`┌${  '─'.repeat(32)  }┐`)}
 ${chalk.cyan('│')} ${chalk.yellow('System Resources')}              ${chalk.cyan('│')}
-${chalk.cyan('├' + '─'.repeat(32) + '┤')}
+${chalk.cyan(`├${  '─'.repeat(32)  }┤`)}
 ${chalk.cyan('│')} CPU:    ${this.renderResourceBar(this.resourceUsage.cpu)}     ${chalk.cyan('│')}
 ${chalk.cyan('│')} Memory: ${this.renderResourceBar(this.resourceUsage.memory)}     ${chalk.cyan('│')}
 ${chalk.cyan('│')} Disk:   ${this.renderResourceBar(this.resourceUsage.disk)}     ${chalk.cyan('│')}
-${chalk.cyan('└' + '─'.repeat(32) + '┘')}
+${chalk.cyan(`└${  '─'.repeat(32)  }┘`)}
 `;
     await this.writeToPane(resourceDisplay);
   }
@@ -164,23 +164,23 @@ ${chalk.cyan('└' + '─'.repeat(32) + '┘')}
     const width = 10;
     const filled = Math.floor((usage / 100) * width);
     const empty = width - filled;
-    
+
     let color = chalk.green;
-    if (usage > 80) color = chalk.red;
-    else if (usage > 60) color = chalk.yellow;
-    
-    return color('█'.repeat(filled)) + chalk.gray('░'.repeat(empty)) + ` ${usage}%`;
+    if (usage > 80) {color = chalk.red;}
+    else if (usage > 60) {color = chalk.yellow;}
+
+    return `${color('█'.repeat(filled)) + chalk.gray('░'.repeat(empty))  } ${usage}%`;
   }
 
   private async renderShortcutSection(): Promise<void> {
     const shortcuts = `
-${chalk.cyan('┌' + '─'.repeat(32) + '┐')}
+${chalk.cyan(`┌${  '─'.repeat(32)  }┐`)}
 ${chalk.cyan('│')}      ${chalk.yellow('Quick Access (1-9)')}        ${chalk.cyan('│')}
-${chalk.cyan('├' + '─'.repeat(32) + '┤')}
+${chalk.cyan(`├${  '─'.repeat(32)  }┤`)}
 ${chalk.cyan('│')} ${chalk.gray('Press number to connect')}       ${chalk.cyan('│')}
 ${chalk.cyan('│')} ${chalk.gray("'list workers' for all")}       ${chalk.cyan('│')}
 ${chalk.cyan('│')} ${chalk.gray("'connect to [name]' to find")}  ${chalk.cyan('│')}
-${chalk.cyan('└' + '─'.repeat(32) + '┘')}
+${chalk.cyan(`└${  '─'.repeat(32)  }┘`)}
 `;
     await this.writeToPane(shortcuts);
   }

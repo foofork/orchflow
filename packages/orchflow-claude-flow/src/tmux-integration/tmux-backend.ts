@@ -30,14 +30,14 @@ export type SplitType = 'horizontal' | 'vertical';
 
 export class TmuxBackend {
   private sessionPrefix = 'orchflow';
-  
+
   async createSession(name: string): Promise<TmuxSession> {
     const sessionName = `${this.sessionPrefix}-${name}`;
-    
+
     try {
       // Create new tmux session detached
       await execAsync(`tmux new-session -d -s "${sessionName}"`);
-      
+
       // Get session info
       const info = await this.getSessionInfo(sessionName);
       return info;
@@ -52,21 +52,21 @@ export class TmuxBackend {
   }
 
   async splitPane(
-    sessionId: string, 
-    paneId: string, 
-    splitType: SplitType, 
+    sessionId: string,
+    paneId: string,
+    splitType: SplitType,
     size?: number
   ): Promise<TmuxPane> {
     const direction = splitType === 'horizontal' ? '-h' : '-v';
     const sizeArg = size ? `-p ${size}` : '';
-    
+
     // Split the pane
     const { stdout } = await execAsync(
       `tmux split-window ${direction} ${sizeArg} -t "${paneId}" -P -F "#{pane_id}"`
     );
-    
+
     const newPaneId = stdout.trim();
-    
+
     // Get pane info
     const paneInfo = await this.getPaneInfo(newPaneId);
     return paneInfo;
@@ -107,7 +107,7 @@ export class TmuxBackend {
   async listSessions(): Promise<string[]> {
     try {
       const { stdout } = await execAsync(
-        `tmux list-sessions -F "#{session_name}"`
+        'tmux list-sessions -F "#{session_name}"'
       );
       return stdout.split('\n').filter(s => s.startsWith(this.sessionPrefix));
     } catch (error) {
@@ -122,12 +122,13 @@ export class TmuxBackend {
       const { stdout: sessionId } = await execAsync(
         `tmux list-sessions -F "#{session_id}" -f "#{==:#{session_name},${sessionName}}"`
       );
-      
+
       // Get panes in session
       const { stdout: panesOutput } = await execAsync(
-        `tmux list-panes -s -t "${sessionName}" -F "#{pane_id},#{pane_index},#{pane_width},#{pane_height},#{pane_active}"`
+        `tmux list-panes -s -t "${sessionName}" -F ` +
+        `"#{pane_id},#{pane_index},#{pane_width},#{pane_height},#{pane_active}"`
       );
-      
+
       const panes: TmuxPane[] = panesOutput.split('\n')
         .filter(line => line.trim())
         .map(line => {
@@ -140,12 +141,12 @@ export class TmuxBackend {
             active: active === '1'
           };
         });
-      
+
       // Get windows
       const { stdout: windowsOutput } = await execAsync(
         `tmux list-windows -t "${sessionName}" -F "#{window_id},#{window_index},#{window_name},#{window_active}"`
       );
-      
+
       const windows: TmuxWindow[] = windowsOutput.split('\n')
         .filter(line => line.trim())
         .map(line => {
@@ -158,7 +159,7 @@ export class TmuxBackend {
             panes: [] // Would need additional query to get panes per window
           };
         });
-      
+
       return {
         id: sessionId.trim(),
         name: sessionName,
@@ -166,17 +167,18 @@ export class TmuxBackend {
         windows
       };
     } catch (error) {
-      throw new Error(`Failed to get session info: ${error.message}`);
+      throw new Error(`Failed to get session info: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
   async getPaneInfo(paneId: string): Promise<TmuxPane> {
     const { stdout } = await execAsync(
-      `tmux list-panes -F "#{pane_id},#{pane_index},#{pane_width},#{pane_height},#{pane_active}" -f "#{==:#{pane_id},${paneId}}"`
+      `tmux list-panes -F "#{pane_id},#{pane_index},#{pane_width},#{pane_height},#{pane_active}" ` +
+      `-f "#{==:#{pane_id},${paneId}}"`
     );
-    
+
     const [id, index, width, height, active] = stdout.trim().split(',');
-    
+
     return {
       id: id.trim(),
       index: parseInt(index),

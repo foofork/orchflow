@@ -1,4 +1,4 @@
-import { Task } from './orchflow-orchestrator';
+import type { Task } from './orchflow-orchestrator';
 
 export interface TaskGraphStatus {
   totalTasks: number;
@@ -16,7 +16,7 @@ export class TaskGraph {
 
   addTask(task: Task): void {
     this.tasks.set(task.id, task);
-    
+
     // Initialize dependency tracking
     if (!this.dependencies.has(task.id)) {
       this.dependencies.set(task.id, new Set());
@@ -24,7 +24,7 @@ export class TaskGraph {
     if (!this.dependents.has(task.id)) {
       this.dependents.set(task.id, new Set());
     }
-    
+
     // Add dependencies
     task.dependencies.forEach(depId => {
       this.addDependency(task.id, depId);
@@ -37,13 +37,13 @@ export class TaskGraph {
       this.dependencies.set(taskId, new Set());
     }
     this.dependencies.get(taskId)!.add(dependsOn);
-    
+
     // dependsOn has taskId as a dependent
     if (!this.dependents.has(dependsOn)) {
       this.dependents.set(dependsOn, new Set());
     }
     this.dependents.get(dependsOn)!.add(taskId);
-    
+
     // Check for cycles
     if (this.hasCycle(taskId)) {
       // Remove the dependency to prevent the cycle
@@ -55,16 +55,16 @@ export class TaskGraph {
 
   getExecutableTasks(): Task[] {
     const executableTasks: Task[] = [];
-    
+
     for (const [taskId, task] of this.tasks) {
       if (task.status === 'pending' && this.canExecute(taskId)) {
         executableTasks.push(task);
       }
     }
-    
+
     // Sort by priority (higher priority first)
     executableTasks.sort((a, b) => b.priority - a.priority);
-    
+
     return executableTasks;
   }
 
@@ -73,7 +73,7 @@ export class TaskGraph {
     if (!deps || deps.size === 0) {
       return true; // No dependencies
     }
-    
+
     // Check if all dependencies are completed
     for (const depId of deps) {
       const depTask = this.tasks.get(depId);
@@ -81,7 +81,7 @@ export class TaskGraph {
         return false;
       }
     }
-    
+
     return true;
   }
 
@@ -101,7 +101,7 @@ export class TaskGraph {
         task.error = error;
       }
       this.emit('taskFailed', task);
-      
+
       // Mark dependent tasks as blocked
       this.markDependentsBlocked(taskId);
     }
@@ -109,8 +109,8 @@ export class TaskGraph {
 
   private markDependentsBlocked(taskId: string): void {
     const deps = this.dependents.get(taskId);
-    if (!deps) return;
-    
+    if (!deps) {return;}
+
     for (const depId of deps) {
       const depTask = this.tasks.get(depId);
       if (depTask && depTask.status === 'pending') {
@@ -126,7 +126,7 @@ export class TaskGraph {
     let runningTasks = 0;
     let completedTasks = 0;
     let failedTasks = 0;
-    
+
     for (const task of this.tasks.values()) {
       switch (task.status) {
         case 'pending': pendingTasks++; break;
@@ -135,13 +135,13 @@ export class TaskGraph {
         case 'failed': failedTasks++; break;
       }
     }
-    
+
     // Convert dependencies to serializable format
     const deps = new Map<string, string[]>();
     for (const [taskId, depSet] of this.dependencies) {
       deps.set(taskId, Array.from(depSet));
     }
-    
+
     return {
       totalTasks: this.tasks.size,
       pendingTasks,
@@ -154,7 +154,7 @@ export class TaskGraph {
 
   detectConflicts(newTask: Task): Promise<ConflictInfo[]> {
     const conflicts: ConflictInfo[] = [];
-    
+
     // Check for resource conflicts
     for (const [taskId, task] of this.tasks) {
       if (task.status === 'running' || task.status === 'pending') {
@@ -169,7 +169,7 @@ export class TaskGraph {
         }
       }
     }
-    
+
     return Promise.resolve(conflicts);
   }
 
@@ -180,7 +180,7 @@ export class TaskGraph {
       // Check if they might modify the same files
       return this.mightModifySameFiles(task1, task2);
     }
-    
+
     return false;
   }
 
@@ -188,34 +188,34 @@ export class TaskGraph {
     // Simplified check - in reality would analyze task descriptions
     const desc1 = task1.description.toLowerCase();
     const desc2 = task2.description.toLowerCase();
-    
+
     // Look for common keywords that might indicate file conflicts
     const keywords = ['api', 'database', 'auth', 'user', 'config', 'package'];
-    
+
     for (const keyword of keywords) {
       if (desc1.includes(keyword) && desc2.includes(keyword)) {
         return true;
       }
     }
-    
+
     return false;
   }
 
   private hasCycle(startTask: string): boolean {
     const visited = new Set<string>();
     const recursionStack = new Set<string>();
-    
+
     return this.hasCycleDFS(startTask, visited, recursionStack);
   }
 
   private hasCycleDFS(
-    taskId: string, 
-    visited: Set<string>, 
+    taskId: string,
+    visited: Set<string>,
     recursionStack: Set<string>
   ): boolean {
     visited.add(taskId);
     recursionStack.add(taskId);
-    
+
     const deps = this.dependencies.get(taskId);
     if (deps) {
       for (const depId of deps) {
@@ -228,7 +228,7 @@ export class TaskGraph {
         }
       }
     }
-    
+
     recursionStack.delete(taskId);
     return false;
   }
@@ -244,7 +244,7 @@ export class TaskGraph {
   removeTask(taskId: string): void {
     // Remove task and clean up dependencies
     this.tasks.delete(taskId);
-    
+
     // Remove from dependencies
     const deps = this.dependencies.get(taskId);
     if (deps) {
@@ -256,7 +256,7 @@ export class TaskGraph {
       });
     }
     this.dependencies.delete(taskId);
-    
+
     // Remove from dependents
     const dependents = this.dependents.get(taskId);
     if (dependents) {

@@ -4,7 +4,7 @@ import { promisify } from 'util';
 import { pipeline } from 'stream';
 import fetch from 'node-fetch';
 import tar from 'tar';
-import chalk from 'chalk';
+// import chalk from 'chalk'; // Unused in current implementation
 import ora from 'ora';
 import { getComponentsDir, getPlatformBinaryName } from './utils';
 
@@ -31,16 +31,16 @@ const COMPONENTS: Component[] = [
  */
 export async function ensureOrchFlowBinaries(): Promise<void> {
   const componentsDir = getComponentsDir();
-  
+
   // Create components directory if it doesn't exist
   if (!existsSync(componentsDir)) {
     mkdirSync(componentsDir, { recursive: true });
   }
-  
+
   // Check and download each component
   for (const component of COMPONENTS) {
     const binaryPath = join(componentsDir, component.binaryName);
-    
+
     if (!existsSync(binaryPath)) {
       await downloadComponent(component);
     }
@@ -52,27 +52,27 @@ export async function ensureOrchFlowBinaries(): Promise<void> {
  */
 async function downloadComponent(component: Component): Promise<void> {
   const spinner = ora(`Downloading ${component.name}...`).start();
-  
+
   try {
     const platformBinary = getPlatformBinaryName(component.binaryName);
     const downloadUrl = `${GITHUB_RELEASE_URL}/v${ORCHFLOW_VERSION}/${platformBinary}.tar.gz`;
-    
+
     // For now, since we don't have actual releases, we'll skip the download
     // and just create placeholder scripts
     const componentsDir = getComponentsDir();
     const binaryPath = join(componentsDir, component.binaryName);
-    
+
     // Create a placeholder script that will be replaced with actual binaries later
     const placeholderScript = `#!/bin/bash
 echo "OrchFlow component '${component.name}' v${ORCHFLOW_VERSION}"
 echo "This is a placeholder. Actual binary will be downloaded from:"
 echo "${downloadUrl}"
 `;
-    
+
     const fs = await import('fs/promises');
     await fs.writeFile(binaryPath, placeholderScript);
     chmodSync(binaryPath, '755');
-    
+
     spinner.succeed(`${component.name} ready`);
   } catch (error) {
     spinner.fail(`Failed to download ${component.name}`);
@@ -83,33 +83,35 @@ echo "${downloadUrl}"
 /**
  * Download and extract a tarball
  */
+// Placeholder for future implementation
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function downloadAndExtract(url: string, destPath: string): Promise<void> {
   const response = await fetch(url);
-  
+
   if (!response.ok) {
     throw new Error(`Failed to download: ${response.statusText}`);
   }
-  
+
   const componentsDir = getComponentsDir();
   const tempFile = join(componentsDir, 'temp.tar.gz');
-  
+
   // Download to temp file
   await pipelineAsync(
-    response.body!,
+    response.body as NodeJS.ReadableStream,
     createWriteStream(tempFile)
   );
-  
+
   // Extract tarball
   await tar.extract({
     file: tempFile,
     cwd: componentsDir,
     strip: 1 // Remove top-level directory from tarball
   });
-  
+
   // Clean up temp file
   const fs = await import('fs/promises');
   await fs.unlink(tempFile);
-  
+
   // Make binary executable
   chmodSync(destPath, '755');
 }
@@ -121,7 +123,7 @@ export async function checkForUpdates(): Promise<boolean> {
   try {
     const response = await fetch(`${GITHUB_RELEASE_URL}/latest`);
     const latestVersion = response.url.split('/').pop()?.replace('v', '');
-    
+
     return latestVersion !== ORCHFLOW_VERSION;
   } catch (error) {
     return false;

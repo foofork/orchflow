@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
-import { WorkerInfo } from './conversation-context';
+import type { WorkerInfo } from './conversation-context';
 import { TmuxBackend } from '../tmux-integration/tmux-backend';
-import { OrchestratorClient } from './orchestrator-client';
+import type { OrchestratorClient } from './orchestrator-client';
 import chalk from 'chalk';
 
 export interface WorkerConnection {
@@ -24,7 +24,7 @@ class WorkerConnectionImpl implements WorkerConnection {
   private isConnected: boolean = false;
 
   constructor(
-    workerInfo: WorkerInfo, 
+    workerInfo: WorkerInfo,
     tmuxBackend: TmuxBackend
   ) {
     this.workerId = workerInfo.id;
@@ -34,26 +34,26 @@ class WorkerConnectionImpl implements WorkerConnection {
   }
 
   async connect(): Promise<void> {
-    if (this.isConnected) return;
-    
+    if (this.isConnected) {return;}
+
     // Switch to worker's tmux pane
     await this.tmuxBackend.selectPane(this.tmuxPaneId);
-    
+
     // Show connection message
     const connectionMsg = chalk.green(`\n# Connected to ${this.descriptiveName}\n`);
     await this.tmuxBackend.sendKeys(this.tmuxPaneId, `echo "${connectionMsg}"`);
-    
+
     this.isConnected = true;
     this.isInteractive = true;
   }
 
   async disconnect(): Promise<void> {
-    if (!this.isConnected) return;
-    
+    if (!this.isConnected) {return;}
+
     // Send disconnect message
     const disconnectMsg = chalk.yellow(`\n# Disconnected from ${this.descriptiveName}\n`);
     await this.tmuxBackend.sendKeys(this.tmuxPaneId, `echo "${disconnectMsg}"`);
-    
+
     this.isConnected = false;
     this.isInteractive = false;
   }
@@ -62,7 +62,7 @@ class WorkerConnectionImpl implements WorkerConnection {
     if (!this.isConnected) {
       throw new Error('Not connected to worker');
     }
-    
+
     await this.tmuxBackend.sendKeys(this.tmuxPaneId, message);
   }
 
@@ -93,31 +93,31 @@ export class WorkerAccessManager extends EventEmitter {
       await existingConnection.connect(); // Ensure it's active
       return existingConnection;
     }
-    
+
     // Get worker info
     const workerInfo = await this.getWorkerInfo(workerId);
     if (!workerInfo) {
       throw new Error(`Worker ${workerId} not found`);
     }
-    
+
     // Create new connection
     const connection = new WorkerConnectionImpl(workerInfo, this.tmuxBackend);
     await connection.connect();
-    
+
     this.activeConnections.set(workerId, connection);
     this.emit('workerConnected', workerInfo);
-    
+
     return connection;
   }
 
   async connectToWorkerByName(name: string): Promise<WorkerConnection> {
     const workers = await this.listAvailableWorkers();
-    
+
     // Find worker by name (case-insensitive partial match)
-    const worker = workers.find(w => 
+    const worker = workers.find(w =>
       w.descriptiveName.toLowerCase().includes(name.toLowerCase())
     );
-    
+
     if (!worker) {
       // Try more fuzzy matching
       const fuzzyMatch = this.fuzzyFindWorker(name, workers);
@@ -126,18 +126,18 @@ export class WorkerAccessManager extends EventEmitter {
       }
       throw new Error(`Worker '${name}' not found`);
     }
-    
+
     return this.connectToWorker(worker.id);
   }
 
   async connectToWorkerByNumber(number: number): Promise<WorkerConnection> {
     const workers = await this.listAvailableWorkers();
     const worker = workers.find(w => w.quickAccessKey === number);
-    
+
     if (!worker) {
       throw new Error(`No worker assigned to key ${number}`);
     }
-    
+
     return this.connectToWorker(worker.id);
   }
 
@@ -188,14 +188,14 @@ export class WorkerAccessManager extends EventEmitter {
   private fuzzyFindWorker(query: string, workers: WorkerInfo[]): WorkerInfo | null {
     const queryLower = query.toLowerCase();
     const queryWords = queryLower.split(/\s+/);
-    
+
     // Score each worker based on matching words
     const scored = workers.map(worker => {
       const nameLower = worker.descriptiveName.toLowerCase();
       const nameWords = nameLower.split(/\s+/);
-      
+
       let score = 0;
-      
+
       // Check each query word
       for (const qWord of queryWords) {
         for (const nWord of nameWords) {
@@ -206,17 +206,17 @@ export class WorkerAccessManager extends EventEmitter {
           }
         }
       }
-      
+
       return { worker, score };
     });
-    
+
     // Sort by score and return best match if score > 0
     scored.sort((a, b) => b.score - a.score);
-    
+
     if (scored.length > 0 && scored[0].score > 0) {
       return scored[0].worker;
     }
-    
+
     return null;
   }
 

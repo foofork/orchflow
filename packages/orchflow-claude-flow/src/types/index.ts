@@ -2,18 +2,18 @@
  * OrchFlow Type Definitions
  */
 
-export type WorkerType = 
-  | 'coordinator' 
-  | 'researcher' 
-  | 'coder' 
+export type WorkerType =
+  | 'coordinator'
+  | 'researcher'
+  | 'coder'
   | 'developer'
-  | 'analyst' 
-  | 'architect' 
-  | 'tester' 
-  | 'reviewer' 
-  | 'optimizer' 
-  | 'documenter' 
-  | 'monitor' 
+  | 'analyst'
+  | 'architect'
+  | 'tester'
+  | 'reviewer'
+  | 'optimizer'
+  | 'documenter'
+  | 'monitor'
   | 'specialist';
 
 export type WorkerStatus = 'idle' | 'active' | 'busy' | 'completed' | 'error';
@@ -133,7 +133,7 @@ export interface LaunchOptions {
   config?: string;
 }
 
-export type EventType = 
+export type EventType =
   | 'worker:created'
   | 'worker:updated'
   | 'worker:deleted'

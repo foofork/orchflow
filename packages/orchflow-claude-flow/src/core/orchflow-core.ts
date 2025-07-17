@@ -3,8 +3,9 @@
  */
 
 import { EventEmitter } from 'events';
-import { Server } from 'http';
-import express, { Express } from 'express';
+import type { Server } from 'http';
+import type { Express } from 'express';
+import express from 'express';
 import { WebSocketServer, WebSocket } from 'ws';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
@@ -91,7 +92,7 @@ export class OrchFlowCore extends EventEmitter {
 
   constructor(config: Partial<OrchFlowConfig> = {}) {
     super();
-    
+
     this.config = {
       port: 3001,
       host: 'localhost',
@@ -117,7 +118,7 @@ export class OrchFlowCore extends EventEmitter {
     if (!existsSync(this.storageDir)) {
       mkdirSync(this.storageDir, { recursive: true });
     }
-    
+
     // Create subdirectories
     ['workers', 'sessions', 'knowledge', 'logs'].forEach(dir => {
       const path = join(this.storageDir, dir);
@@ -130,11 +131,11 @@ export class OrchFlowCore extends EventEmitter {
   private setupMiddleware(): void {
     this.app.use(express.json({ limit: '50mb' }));
     this.app.use(express.urlencoded({ extended: true }));
-    
+
     // CORS for MCP
     this.app.use((req, res, next) => {
       const origin = req.headers.origin || '*';
-      if (this.config.security.allowedOrigins.includes('*') || 
+      if (this.config.security.allowedOrigins.includes('*') ||
           this.config.security.allowedOrigins.includes(origin)) {
         res.header('Access-Control-Allow-Origin', origin);
         res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -186,7 +187,7 @@ export class OrchFlowCore extends EventEmitter {
 
     this.app.get('/mcp/orchflow_worker_status', async (req, res) => {
       const { workerId } = req.query;
-      
+
       if (workerId) {
         const worker = this.workers.get(workerId as string);
         if (!worker) {
@@ -210,7 +211,7 @@ export class OrchFlowCore extends EventEmitter {
     this.app.post('/mcp/orchflow_switch_context', async (req, res) => {
       const { workerId } = req.body;
       const worker = this.workers.get(workerId);
-      
+
       if (!worker) {
         res.status(404).json({ error: 'Worker not found' });
         return;
@@ -233,7 +234,7 @@ export class OrchFlowCore extends EventEmitter {
     this.app.post('/mcp/orchflow_share_knowledge', async (req, res) => {
       const { knowledge, targetWorkers } = req.body;
       const targets = targetWorkers || Array.from(this.workers.keys());
-      
+
       targets.forEach((workerId: string) => {
         const worker = this.workers.get(workerId);
         if (worker) {
@@ -273,7 +274,7 @@ export class OrchFlowCore extends EventEmitter {
     this.app.post('/api/workers/:workerId/message', async (req, res) => {
       const { workerId } = req.params;
       const { role, content } = req.body;
-      
+
       const worker = this.workers.get(workerId);
       if (!worker) {
         res.status(404).json({ error: 'Worker not found' });
@@ -289,14 +290,14 @@ export class OrchFlowCore extends EventEmitter {
 
       worker.lastActive = new Date();
       this.persistWorker(worker);
-      
+
       res.json({ success: true });
     });
 
     this.app.post('/api/workers/:workerId/artifact', async (req, res) => {
       const { workerId } = req.params;
       const { filename, content, language } = req.body;
-      
+
       const worker = this.workers.get(workerId);
       if (!worker) {
         res.status(404).json({ error: 'Worker not found' });
@@ -321,17 +322,17 @@ export class OrchFlowCore extends EventEmitter {
 
       worker.context.codeArtifacts.push(artifact);
       this.persistWorker(worker);
-      
+
       res.json({ success: true, artifact });
     });
 
     this.app.get('/api/knowledge', async (_req, res) => {
       const allKnowledge: Record<string, any> = {};
-      
+
       this.workers.forEach(worker => {
         Object.assign(allKnowledge, worker.context.sharedKnowledge);
       });
-      
+
       res.json({ knowledge: allKnowledge });
     });
   }
@@ -366,7 +367,7 @@ export class OrchFlowCore extends EventEmitter {
     this.workers.set(worker.id, worker);
     this.persistWorker(worker);
     this.emit('worker:created', worker);
-    
+
     this.broadcastUpdate({
       type: 'worker_created',
       data: worker
@@ -388,32 +389,32 @@ export class OrchFlowCore extends EventEmitter {
     };
 
     let name = '';
-    
+
     // Extract key terms
-    if (taskWords.includes('api')) name = 'API ';
-    else if (taskWords.includes('frontend')) name = 'Frontend ';
-    else if (taskWords.includes('backend')) name = 'Backend ';
-    else if (taskWords.includes('database')) name = 'Database ';
-    else if (taskWords.includes('react')) name = 'React ';
-    else if (taskWords.includes('authentication')) name = 'Auth ';
-    else if (taskWords.includes('payment')) name = 'Payment ';
-    
+    if (taskWords.includes('api')) {name = 'API ';}
+    else if (taskWords.includes('frontend')) {name = 'Frontend ';}
+    else if (taskWords.includes('backend')) {name = 'Backend ';}
+    else if (taskWords.includes('database')) {name = 'Database ';}
+    else if (taskWords.includes('react')) {name = 'React ';}
+    else if (taskWords.includes('authentication')) {name = 'Auth ';}
+    else if (taskWords.includes('payment')) {name = 'Payment ';}
+
     const descriptorList = descriptors[type] || descriptors.developer;
     name += descriptorList[Math.floor(Math.random() * descriptorList.length)];
-    
+
     return name;
   }
 
   private persistWorker(worker: Worker): void {
-    if (!this.config.enablePersistence) return;
-    
+    if (!this.config.enablePersistence) {return;}
+
     const path = join(this.storageDir, 'workers', `${worker.id}.json`);
     writeFileSync(path, JSON.stringify(worker, null, 2));
   }
 
   private broadcastUpdate(message: any): void {
-    if (!this.wss) return;
-    
+    if (!this.wss) {return;}
+
     const data = JSON.stringify(message);
     this.wss.clients.forEach(client => {
       if (client.readyState === WebSocket.OPEN) {
@@ -429,7 +430,7 @@ export class OrchFlowCore extends EventEmitter {
 
     if (this.config.enableWebSocket) {
       this.wss = new WebSocketServer({ server: this.server });
-      
+
       this.wss.on('connection', (ws) => {
         ws.on('message', (message) => {
           try {
@@ -458,8 +459,8 @@ export class OrchFlowCore extends EventEmitter {
 
   private async loadPersistedWorkers(): Promise<void> {
     const workersDir = join(this.storageDir, 'workers');
-    if (!existsSync(workersDir)) return;
-    
+    if (!existsSync(workersDir)) {return;}
+
     const files = require('fs').readdirSync(workersDir);
     for (const file of files) {
       if (file.endsWith('.json')) {
@@ -482,11 +483,11 @@ export class OrchFlowCore extends EventEmitter {
       case 'ping':
         ws.send(JSON.stringify({ type: 'pong' }));
         break;
-        
+
       case 'subscribe':
         // Client wants updates for specific workers
         break;
-        
+
       case 'update_progress':
         const worker = this.workers.get(message.workerId);
         if (worker) {
@@ -506,7 +507,7 @@ export class OrchFlowCore extends EventEmitter {
       if (this.wss) {
         this.wss.close();
       }
-      
+
       if (this.server) {
         this.server.close(() => resolve());
       } else {
@@ -521,14 +522,14 @@ export class OrchFlowCore extends EventEmitter {
 
   async restoreSession(sessionName: string): Promise<void> {
     const sessionPath = join(this.storageDir, 'sessions', `${sessionName}.json`);
-    
+
     if (!existsSync(sessionPath)) {
       throw new Error(`Session ${sessionName} not found`);
     }
-    
+
     const stateData = readFileSync(sessionPath, 'utf-8');
     const state = JSON.parse(stateData);
-    
+
     // Restore workers
     this.workers.clear();
     for (const [id, worker] of state.workers) {
@@ -539,12 +540,12 @@ export class OrchFlowCore extends EventEmitter {
       });
       this.emit('worker:created', worker);
     }
-    
+
     // Restore shared knowledge
     if (state.sharedKnowledge) {
       Object.assign(this.sharedKnowledge, state.sharedKnowledge);
     }
-    
+
     this.emit('session:restored', { sessionName, workerCount: this.workers.size });
   }
 
@@ -555,10 +556,10 @@ export class OrchFlowCore extends EventEmitter {
       sessionId: crypto.randomUUID(),
       timestamp: new Date().toISOString()
     };
-    
+
     const sessionPath = join(this.storageDir, 'sessions', `${sessionName}.json`);
     writeFileSync(sessionPath, JSON.stringify(state, null, 2));
-    
+
     this.emit('session:saved', { sessionName });
   }
 }

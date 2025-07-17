@@ -2,7 +2,7 @@
  * Enterprise Security Middleware for OrchFlow
  */
 
-import { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
 import { RateLimiter } from './rate-limiter';
 
@@ -67,7 +67,7 @@ export class SecurityMiddleware {
       }
 
       const apiKey = this.extractApiKey(req);
-      
+
       if (!apiKey || !this.isValidApiKey(apiKey)) {
         return res.status(401).json({
           error: 'Unauthorized',
@@ -115,12 +115,12 @@ export class SecurityMiddleware {
   cors() {
     return (req: Request, res: Response, next: NextFunction) => {
       const origin = req.headers.origin || '*';
-      
+
       if (this.isAllowedOrigin(origin)) {
         res.header('Access-Control-Allow-Origin', origin);
         res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
         res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-Key');
-        
+
         if (this.config.cors.credentials) {
           res.header('Access-Control-Allow-Credentials', 'true');
         }
@@ -138,20 +138,20 @@ export class SecurityMiddleware {
    * Security headers middleware
    */
   securityHeaders() {
-    return (req: Request, res: Response, next: NextFunction) => {
+    return (_req: Request, res: Response, next: NextFunction) => {
       // Prevent XSS
       res.header('X-XSS-Protection', '1; mode=block');
       res.header('X-Content-Type-Options', 'nosniff');
-      
+
       // Prevent clickjacking
       res.header('X-Frame-Options', 'DENY');
-      
+
       // HSTS
       res.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
-      
+
       // CSP
       if (this.config.contentSecurityPolicy) {
-        res.header('Content-Security-Policy', 
+        res.header('Content-Security-Policy',
           "default-src 'self'; " +
           "script-src 'self' 'unsafe-inline'; " +
           "style-src 'self' 'unsafe-inline'; " +
@@ -244,11 +244,11 @@ export class SecurityMiddleware {
   private extractApiKey(req: Request): string | null {
     // Check header
     const headerKey = req.headers['x-api-key'] || req.headers.authorization?.replace('Bearer ', '');
-    if (headerKey) return headerKey as string;
+    if (headerKey) {return headerKey as string;}
 
     // Check query parameter
     const queryKey = req.query.apiKey || req.query.api_key;
-    if (queryKey) return queryKey as string;
+    if (queryKey) {return queryKey as string;}
 
     return null;
   }
@@ -257,7 +257,7 @@ export class SecurityMiddleware {
     if (!this.config.apiKeys || this.config.apiKeys.length === 0) {
       return true; // No keys configured means any key is valid
     }
-    
+
     return this.config.apiKeys.includes(apiKey);
   }
 
@@ -275,7 +275,7 @@ export class SecurityMiddleware {
     if (user?.apiKey) {
       return `user:${user.apiKey}`;
     }
-    
+
     return `ip:${this.getClientIp(req)}`;
   }
 
@@ -284,7 +284,7 @@ export class SecurityMiddleware {
     if (forwarded) {
       return (forwarded as string).split(',')[0].trim();
     }
-    
+
     return req.socket.remoteAddress || 'unknown';
   }
 

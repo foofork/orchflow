@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events';
-import { spawn, ChildProcess } from 'child_process';
+import type { ChildProcess } from 'child_process';
+import { spawn } from 'child_process';
 // Mock UUID implementation
 function uuidv4(): string {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
@@ -10,7 +11,7 @@ function uuidv4(): string {
 }
 import path from 'path';
 import os from 'os';
-import { Task } from './orchflow-orchestrator';
+import type { Task } from './orchflow-orchestrator';
 
 export interface WorkerConfig {
   maxWorkers: number;
@@ -123,7 +124,7 @@ export class WorkerManager extends EventEmitter {
 
     // Create tmux session with descriptive name
     const tmuxCommand = `tmux new-session -d -s ${sessionName} -n "${worker.descriptiveName}" ${command}`;
-    
+
     await this.execCommand(tmuxCommand);
 
     worker.connection = {
@@ -134,7 +135,7 @@ export class WorkerManager extends EventEmitter {
 
   private async spawnProcessWorker(worker: Worker, command: string): Promise<void> {
     const [cmd, ...args] = command.split(' ');
-    
+
     const process = spawn(cmd, args, {
       shell: true,
       detached: true,
@@ -271,11 +272,11 @@ export class WorkerManager extends EventEmitter {
   private findWorker(workerIdOrName: string): Worker | undefined {
     // Try to find by ID first
     let worker = this.workers.get(workerIdOrName);
-    if (worker) return worker;
+    if (worker) {return worker;}
 
     // Try to find by name (case-insensitive)
     worker = this.workersByName.get(workerIdOrName.toLowerCase());
-    if (worker) return worker;
+    if (worker) {return worker;}
 
     // Try fuzzy match on descriptive name
     const searchTerm = workerIdOrName.toLowerCase();
@@ -345,7 +346,7 @@ export class WorkerManager extends EventEmitter {
     }
 
     // Stop all workers
-    const stopPromises = Array.from(this.workers.keys()).map(id => 
+    const stopPromises = Array.from(this.workers.keys()).map(id =>
       this.stopWorker(id).catch(err => console.error(`Failed to stop worker ${id}:`, err))
     );
 

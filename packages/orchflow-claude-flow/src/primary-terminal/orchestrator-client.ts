@@ -1,6 +1,6 @@
 import WebSocket from 'ws';
 import { EventEmitter } from 'events';
-import { WorkerInfo } from './conversation-context';
+import type { WorkerInfo } from './conversation-context';
 
 export interface Task {
   id: string;
@@ -106,12 +106,12 @@ export class OrchestratorClient extends EventEmitter {
 
     return new Promise((resolve, reject) => {
       this.pendingRequests.set(id, { resolve, reject });
-      
+
       if (!this.ws || !this.connected) {
         reject(new Error('Not connected to orchestrator'));
         return;
       }
-      
+
       this.ws.send(JSON.stringify(message));
 
       // Timeout after 30 seconds
@@ -128,7 +128,7 @@ export class OrchestratorClient extends EventEmitter {
     if (message.id && this.pendingRequests.has(message.id)) {
       const handler = this.pendingRequests.get(message.id)!;
       this.pendingRequests.delete(message.id);
-      
+
       if (message.error) {
         handler.reject(new Error(message.error.message));
       } else {
@@ -177,7 +177,7 @@ export class OrchestratorClient extends EventEmitter {
       this.ws.close();
       this.connected = false;
     }
-    
+
     // Update endpoint and connect
     this.endpoint = wsUrl;
     await this.connect();

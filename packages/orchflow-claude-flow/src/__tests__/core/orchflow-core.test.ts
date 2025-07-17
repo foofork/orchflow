@@ -7,7 +7,7 @@ const mockFetch = fetch as jest.MockedFunction<typeof fetch>;
 
 describe('OrchFlowCore', () => {
   let core: OrchFlowCore;
-  
+
   beforeEach(() => {
     core = new OrchFlowCore({
       port: 0, // Random port
@@ -28,10 +28,10 @@ describe('OrchFlowCore', () => {
 
     it('should handle health check', async () => {
       await core.start();
-      
+
       const response = await fetch(`http://localhost:${(core as any).config.port}/health`);
       const data = await response.json();
-      
+
       expect(data).toMatchObject({
         status: 'healthy',
         workers: 0,
@@ -54,9 +54,9 @@ describe('OrchFlowCore', () => {
           type: 'developer'
         })
       });
-      
+
       const data = await response.json();
-      
+
       expect(data.success).toBe(true);
       expect(data.worker).toMatchObject({
         id: expect.any(String),
@@ -72,9 +72,9 @@ describe('OrchFlowCore', () => {
         enablePersistence: false,
         enableWebSocket: false
       });
-      
+
       await coreWithLimit.start();
-      
+
       // Create max workers
       for (let i = 0; i < 2; i++) {
         await fetch(`http://localhost:${(coreWithLimit as any).config.port}/mcp/orchflow_spawn_worker`, {
@@ -83,18 +83,18 @@ describe('OrchFlowCore', () => {
           body: JSON.stringify({ task: `Task ${i}` })
         });
       }
-      
+
       // Try to create one more
       const response = await fetch(`http://localhost:${(coreWithLimit as any).config.port}/mcp/orchflow_spawn_worker`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ task: 'Overflow task' })
       });
-      
+
       expect(response.status).toBe(500);
       const error = await response.json();
       expect(error.error).toContain('Maximum worker limit');
-      
+
       await coreWithLimit.stop();
     });
 
@@ -105,13 +105,13 @@ describe('OrchFlowCore', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ task: 'Test task' })
       });
-      
+
       const { worker } = await createResponse.json();
-      
+
       // Get specific worker status
       const statusResponse = await fetch(`http://localhost:${(core as any).config.port}/mcp/orchflow_worker_status?workerId=${worker.id}`);
       const statusData = await statusResponse.json();
-      
+
       expect(statusData.worker).toMatchObject({
         id: worker.id,
         name: worker.name,
@@ -128,11 +128,11 @@ describe('OrchFlowCore', () => {
           body: JSON.stringify({ task: `Task ${i}` })
         });
       }
-      
+
       // List all workers
       const response = await fetch(`http://localhost:${(core as any).config.port}/mcp/orchflow_worker_status`);
       const data = await response.json();
-      
+
       expect(data.workers).toHaveLength(3);
       expect(data.workers[0]).toMatchObject({
         id: expect.any(String),
@@ -146,16 +146,16 @@ describe('OrchFlowCore', () => {
 
   describe('Context Management', () => {
     let workerId: string;
-    
+
     beforeEach(async () => {
       await core.start();
-      
+
       const response = await fetch(`http://localhost:${(core as any).config.port}/mcp/orchflow_spawn_worker`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ task: 'Test task' })
       });
-      
+
       const data = await response.json();
       workerId = data.worker.id;
     });
@@ -166,9 +166,9 @@ describe('OrchFlowCore', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ workerId })
       });
-      
+
       const data = await response.json();
-      
+
       expect(data.success).toBe(true);
       expect(data.context).toMatchObject({
         workerId,
@@ -185,15 +185,15 @@ describe('OrchFlowCore', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ task: 'Another task' })
       });
-      
+
       const worker2 = await response2.json();
-      
+
       // Share knowledge
       const knowledge = {
         interfaces: { User: { id: 'string', name: 'string' } },
         decisions: ['Use TypeScript', 'REST API']
       };
-      
+
       const shareResponse = await fetch(`http://localhost:${(core as any).config.port}/mcp/orchflow_share_knowledge`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -202,7 +202,7 @@ describe('OrchFlowCore', () => {
           targetWorkers: [workerId, worker2.worker.id]
         })
       });
-      
+
       const shareData = await shareResponse.json();
       expect(shareData.success).toBe(true);
       expect(shareData.sharedWith).toHaveLength(2);
@@ -220,15 +220,15 @@ describe('OrchFlowCore', () => {
         { description: 'Write tests', assignTo: 'tester' },
         { description: 'Create docs', assignTo: 'developer' }
       ];
-      
+
       const response = await fetch(`http://localhost:${(core as any).config.port}/mcp/orchflow_execute_parallel`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tasks })
       });
-      
+
       const data = await response.json();
-      
+
       expect(data.success).toBe(true);
       expect(data.results).toHaveLength(3);
       data.results.forEach(result => {
@@ -259,7 +259,7 @@ describe('OrchFlowCore', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ task })
       });
-      
+
       const data = await response.json();
       expect(data.worker.name).toMatch(expectedPattern);
     });

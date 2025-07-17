@@ -35,7 +35,7 @@ export class SplitScreenManager extends EventEmitter {
       const sessionName = this.config.sessionName || `orchflow_${Date.now()}`;
       const session = await this.tmux.createSession(sessionName);
       this.sessionId = session.id;
-      
+
       // Get the first pane as primary
       this.primaryPaneId = session.panes[0].id;
 
@@ -77,24 +77,24 @@ export class SplitScreenManager extends EventEmitter {
     const statusCols = Math.floor(120 * (this.config.statusWidth / 100));
 
     // Send tmux resize commands
-    await this.tmux.sendKeys(this.sessionId, 
+    await this.tmux.sendKeys(this.sessionId,
       `tmux resize-pane -t ${this.primaryPaneId} -x ${primaryCols}`);
-    await this.tmux.sendKeys(this.sessionId, 
+    await this.tmux.sendKeys(this.sessionId,
       `tmux resize-pane -t ${this.statusPaneId} -x ${statusCols}`);
   }
 
   private async setupPrimaryPane(): Promise<void> {
     // Set up the primary pane for natural language interaction
     await this.tmux.sendKeys(this.primaryPaneId, 'clear');
-    
+
     // Display welcome message
     const welcomeMessage = this.getWelcomeMessage();
     await this.tmux.sendKeys(this.primaryPaneId, `echo "${welcomeMessage}"`);
-    
+
     // Set pane title
-    await this.tmux.sendKeys(this.primaryPaneId, 
+    await this.tmux.sendKeys(this.primaryPaneId,
       `tmux set-option -t ${this.primaryPaneId} pane-title "OrchFlow Primary Terminal"`);
-    
+
     if (this.config.enableQuickAccess) {
       await this.setupQuickAccessKeys();
     }
@@ -168,10 +168,10 @@ export class SplitScreenManager extends EventEmitter {
   async connectToWorker(workerId: string): Promise<void> {
     // Create new pane for worker connection
     const workerPane = await this.tmux.splitPane(this.sessionId, this.primaryPaneId, 'horizontal');
-    
+
     // Connect to worker in new pane
     await this.tmux.sendKeys(workerPane.id, `# Connecting to worker ${workerId}`);
-    
+
     this.emit('workerConnected', { workerId, paneId: workerPane.id });
   }
 
@@ -191,7 +191,7 @@ export class SplitScreenManager extends EventEmitter {
 
   async displayNotification(message: string, duration: number = 3000): Promise<void> {
     // Display notification in status pane
-    await this.tmux.sendKeys(this.statusPaneId, 
+    await this.tmux.sendKeys(this.statusPaneId,
       `tmux display-message -t ${this.statusPaneId} -d ${duration} "${message}"`);
   }
 
@@ -220,7 +220,7 @@ export class SplitScreenManager extends EventEmitter {
 
   async cleanup(): Promise<void> {
     console.log('Cleaning up split-screen layout...');
-    
+
     if (this.statusPane) {
       await this.statusPane.cleanup();
     }

@@ -1,4 +1,4 @@
-import { Task } from './orchflow-orchestrator';
+import type { Task } from './orchflow-orchestrator';
 import path from 'path';
 import fs from 'fs';
 
@@ -125,20 +125,20 @@ export class ClaudeFlowWrapper {
     }
 
     const cmd = template(task);
-    
+
     // Build full command string
     let fullCommand = cmd.command;
-    
+
     // Add arguments
     if (cmd.args.length > 0) {
-      fullCommand += ' ' + cmd.args.join(' ');
+      fullCommand += ` ${  cmd.args.join(' ')}`;
     }
 
     // Add additional parameters from task
     if (task.parameters) {
       const additionalArgs = this.buildAdditionalArgs(task.parameters);
       if (additionalArgs) {
-        fullCommand += ' ' + additionalArgs;
+        fullCommand += ` ${  additionalArgs}`;
       }
     }
 
@@ -161,8 +161,8 @@ export class ClaudeFlowWrapper {
       }
 
       // Convert camelCase to kebab-case
-      const flag = '--' + key.replace(/([A-Z])/g, '-$1').toLowerCase();
-      
+      const flag = `--${  key.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
+
       if (typeof value === 'boolean') {
         if (value) {
           args.push(flag);
@@ -186,7 +186,7 @@ export class ClaudeFlowWrapper {
     };
 
     const lines = output.split('\n');
-    
+
     for (const line of lines) {
       // Parse progress indicators
       if (line.includes('Progress:') || line.includes('progress:')) {

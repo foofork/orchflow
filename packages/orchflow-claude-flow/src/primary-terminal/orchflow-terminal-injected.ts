@@ -3,7 +3,8 @@
  * This is how it SHOULD work - injecting orchestration into the conversation
  */
 
-import { spawn, ChildProcess } from 'child_process';
+import type { ChildProcess } from 'child_process';
+import { spawn } from 'child_process';
 import { EventEmitter } from 'events';
 import { OrchFlowInjection } from '../orchflow-injection';
 import { writeFileSync, mkdirSync, existsSync } from 'fs';
@@ -29,7 +30,7 @@ export class OrchFlowTerminalInjected extends EventEmitter {
 
     // Write MCP tool configuration
     await this.writeMCPConfig();
-    
+
     // Write system prompt injection
     await this.writeSystemPrompt();
   }
@@ -69,7 +70,7 @@ export class OrchFlowTerminalInjected extends EventEmitter {
    */
   private async writeMCPConfig(): Promise<void> {
     const tools = OrchFlowInjection.getMCPTools();
-    
+
     // Convert our tool format to MCP format
     const mcpTools = tools.map(tool => ({
       name: tool.name,
@@ -100,7 +101,7 @@ export class OrchFlowTerminalInjected extends EventEmitter {
    */
   private async writeSystemPrompt(): Promise<void> {
     const prompt = OrchFlowInjection.getSystemPromptInjection();
-    
+
     writeFileSync(
       join(this.configDir, 'orchflow-prompt.md'),
       prompt
@@ -119,42 +120,42 @@ export class OrchFlowTerminalInjected extends EventEmitter {
 
 /**
  * Example usage showing the natural conversation flow:
- * 
+ *
  * const terminal = new OrchFlowTerminalInjected();
  * await terminal.initialize();
  * await terminal.launch();
- * 
+ *
  * // Now the user is in a Claude Code conversation where:
- * 
- * User: "I need to build a real-time chat app. Let's work on the server, 
+ *
+ * User: "I need to build a real-time chat app. Let's work on the server,
  *        client, and database schema simultaneously"
- * 
+ *
  * Claude: I'll help you build a real-time chat application. This is a perfect case
  *         for parallel development. Let me set up three work streams:
- *         
+ *
  *         [Claude automatically uses orchflow_spawn_worker internally]
- *         
+ *
  *         ✓ Server Developer - Building WebSocket server with Node.js
- *         ✓ Client Developer - Creating React chat interface  
+ *         ✓ Client Developer - Creating React chat interface
  *         ✓ Database Architect - Designing schema for messages and users
- *         
+ *
  *         Starting with the server, we'll use Socket.io for real-time communication.
  *         Here's the basic structure:
- *         
+ *
  *         ```javascript
  *         const express = require('express');
  *         const { Server } = require('socket.io');
  *         ...
  *         ```
- *         
+ *
  * User: "Actually, let's check how the database design is going"
- * 
+ *
  * Claude: [Seamlessly switches context using orchflow_switch_context]
- *         
+ *
  *         The database schema is taking shape nicely. For a real-time chat app,
  *         we need to optimize for quick message retrieval and user presence.
  *         Here's the schema I've designed:
- *         
+ *
  *         ```sql
  *         -- Users table
  *         CREATE TABLE users (
@@ -162,17 +163,17 @@ export class OrchFlowTerminalInjected extends EventEmitter {
  *           username VARCHAR(50) UNIQUE NOT NULL,
  *           ...
  *         ```
- *         
+ *
  *         [Claude maintains context awareness across all workers]
- * 
+ *
  * User: "Make sure all three components use the same message format"
- * 
+ *
  * Claude: Good point! Let me ensure consistency across all workers.
- *         
+ *
  *         [Uses orchflow_share_knowledge to sync the message interface]
- *         
+ *
  *         I've synchronized the message format across all three workers:
- *         
+ *
  *         ```typescript
  *         interface ChatMessage {
  *           id: string;
@@ -183,6 +184,6 @@ export class OrchFlowTerminalInjected extends EventEmitter {
  *           reactions?: Reaction[];
  *         }
  *         ```
- *         
+ *
  *         All three components now use this same interface...
  */

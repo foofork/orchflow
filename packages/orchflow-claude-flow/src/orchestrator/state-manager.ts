@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import fs from 'fs/promises';
 import path from 'path';
-import { Task } from './orchflow-orchestrator';
+import type { Task } from './orchflow-orchestrator';
 
 export interface StateConfig {
   database: string;
@@ -93,7 +93,7 @@ export class StateManager extends EventEmitter {
 
     this.sessionData.lastUpdate = new Date();
     this.isDirty = true;
-    
+
     this.emit('taskPersisted', task);
 
     // Save immediately for critical updates
@@ -124,7 +124,7 @@ export class StateManager extends EventEmitter {
 
     this.sessionData.lastUpdate = new Date();
     this.isDirty = true;
-    
+
     this.emit('workerPersisted', worker);
   }
 
@@ -166,7 +166,7 @@ export class StateManager extends EventEmitter {
   }
 
   private async save(): Promise<void> {
-    if (!this.isDirty) return;
+    if (!this.isDirty) {return;}
 
     const snapshot: StateSnapshot = {
       version: '1.0.0',
@@ -178,10 +178,10 @@ export class StateManager extends EventEmitter {
       // Save to temporary file first (atomic write)
       const tempPath = `${this.dbPath}.tmp`;
       await fs.writeFile(tempPath, JSON.stringify(snapshot, null, 2));
-      
+
       // Move temp file to actual path
       await fs.rename(tempPath, this.dbPath);
-      
+
       this.isDirty = false;
       this.emit('stateSaved', snapshot);
     } catch (error) {
@@ -254,7 +254,7 @@ export class StateManager extends EventEmitter {
     };
 
     await fs.writeFile(snapshotPath, JSON.stringify(snapshot, null, 2));
-    
+
     this.emit('snapshotCreated', { name: snapshotName, path: snapshotPath });
     return snapshotPath;
   }
@@ -276,7 +276,7 @@ export class StateManager extends EventEmitter {
 
   async listSnapshots(): Promise<string[]> {
     const snapshotsDir = path.join(path.dirname(this.dbPath), 'snapshots');
-    
+
     try {
       const files = await fs.readdir(snapshotsDir);
       return files.filter(f => f.endsWith('.json'));

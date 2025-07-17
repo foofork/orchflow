@@ -5,11 +5,13 @@
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
+import type {
   Tool,
   TextContent
+} from '@modelcontextprotocol/sdk/types.js';
+import {
+  CallToolRequestSchema,
+  ListToolsRequestSchema
 } from '@modelcontextprotocol/sdk/types.js';
 import fetch from 'node-fetch';
 
@@ -47,7 +49,7 @@ export class OrchFlowMCPServer {
     // Handle tool calls
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
-      
+
       try {
         const result = await this.callTool(name, args);
         return {
@@ -60,7 +62,7 @@ export class OrchFlowMCPServer {
         return {
           content: [{
             type: 'text',
-            text: `Error: ${error.message}`
+            text: `Error: ${error instanceof Error ? error.message : String(error)}`
           } as TextContent],
           isError: true
         };
@@ -203,7 +205,7 @@ export class OrchFlowMCPServer {
 
   private async callTool(name: string, args: any): Promise<any> {
     const endpoint = `${ORCHFLOW_API}/mcp/${name}`;
-    
+
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {

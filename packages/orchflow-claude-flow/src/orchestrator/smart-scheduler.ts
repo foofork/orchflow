@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { Task } from './orchflow-orchestrator';
+import type { Task } from './orchflow-orchestrator';
 
 export interface SchedulingStrategy {
   name: string;
@@ -77,7 +77,7 @@ export class SmartScheduler extends EventEmitter {
         const estimatedResources = this.estimateResourceUsage(task);
         const availableCpu = context.systemResources.availableCpu;
         const availableMemory = context.systemResources.availableMemory;
-        
+
         // Prefer tasks that fit within available resources
         if (estimatedResources.cpu <= availableCpu && estimatedResources.memory <= availableMemory) {
           return 30;
@@ -172,7 +172,7 @@ export class SmartScheduler extends EventEmitter {
   private estimateResourceUsage(task: Task): { cpu: number; memory: number } {
     // Use historical data if available
     const historicalData = this.taskHistory.filter(h => h.taskType === task.type);
-    
+
     if (historicalData.length > 0) {
       const avgCpu = historicalData.reduce((sum, h) => sum + h.resources.cpuPeak, 0) / historicalData.length;
       const avgMemory = historicalData.reduce((sum, h) => sum + h.resources.memoryPeak, 0) / historicalData.length;
@@ -195,7 +195,7 @@ export class SmartScheduler extends EventEmitter {
   private estimateDuration(task: Task): number {
     // Use historical data if available
     const historicalData = this.taskHistory.filter(h => h.taskType === task.type && h.success);
-    
+
     if (historicalData.length > 0) {
       const avgDuration = historicalData.reduce((sum, h) => sum + h.duration, 0) / historicalData.length;
       return avgDuration;
@@ -216,7 +216,7 @@ export class SmartScheduler extends EventEmitter {
 
   private predictTaskPerformance(task: Task): { successRate: number; estimatedDuration: number } {
     const historicalData = this.taskHistory.filter(h => h.taskType === task.type);
-    
+
     if (historicalData.length === 0) {
       return { successRate: 0.8, estimatedDuration: this.estimateDuration(task) };
     }
@@ -262,7 +262,7 @@ export class SmartScheduler extends EventEmitter {
       if (allocatedCpu + requiredCpu <= context.systemResources.availableCpu &&
           allocatedMemory + requiredMemory <= context.systemResources.availableMemory &&
           context.runningTasks.length + schedulable.length < this.maxConcurrentTasks) {
-        
+
         schedulable.push(decision);
         allocatedCpu += requiredCpu;
         allocatedMemory += requiredMemory;

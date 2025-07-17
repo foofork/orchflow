@@ -1,10 +1,71 @@
-import { MCPTool } from '../orchestrator/mcp-server';
+import type { MCPTool } from '../orchestrator/mcp-server';
+import type { ExtendedWorker } from '../worker-access/advanced-worker-access';
+
+interface TaskInfo {
+  description: string;
+  assignedWorkerName: string;
+  quickAccessKey?: number;
+  taskType?: string;
+  priority?: number;
+}
+
+interface PerformanceMetrics {
+  system: {
+    cpu: number;
+    memory: number;
+    disk: number;
+    network: any;
+  };
+  workers: {
+    total: number;
+    avgLifetime: number;
+    successRate: number;
+    efficiency: number;
+  };
+  tasks: {
+    completed: number;
+    avgDuration: number;
+    throughput: number;
+  };
+  history?: any;
+  recommendations?: string[];
+}
+
+interface WorkerConnection {
+  id: string;
+  status: string;
+}
+
+interface ExtendedWorkerRich extends ExtendedWorker {
+  progress: number;
+  resources?: any;
+  estimatedCompletion?: Date;
+  priority?: number;
+  status: string;
+}
+
+interface Orchestrator {
+  parseNaturalLanguageTask(input: string, context: unknown[]): Promise<TaskInfo>;
+  spawnWorkerWithDescriptiveName(taskInfo: TaskInfo): Promise<string>;
+  findWorkerSmart(identifier: string, fuzzyMatch: boolean): Promise<ExtendedWorker | null>;
+  suggestSimilarWorkers(identifier: string): Promise<ExtendedWorker[]>;
+  connectToWorker(workerId: string): Promise<WorkerConnection>;
+  getWorkersWithRichInfo(includeInactive: boolean): Promise<ExtendedWorkerRich[]>;
+  getQuickAccessAssignments(): Promise<Array<{ key: number; workerId: string; workerName: string }>>;
+  assignQuickAccessKey(workerId: string, key: number): Promise<void>;
+  unassignQuickAccessKey(key: number): Promise<void>;
+  saveCurrentSession(): Promise<void>;
+  restoreFromSnapshot(snapshotName: string): Promise<void>;
+  listSessionSnapshots(): Promise<string[]>;
+  createSessionSnapshot(name: string): Promise<string>;
+  getPerformanceMetrics(timeframe: string): Promise<PerformanceMetrics>;
+}
 
 /**
  * Enhanced MCP Tools for Phase 4: Natural Language & Worker Access
  */
 
-export const createEnhancedMCPTools = (orchestrator: any): MCPTool[] => {
+export const createEnhancedMCPTools = (orchestrator: Orchestrator): MCPTool[] => {
   return [
     // Natural Language Task Creation
     {
@@ -18,15 +79,15 @@ export const createEnhancedMCPTools = (orchestrator: any): MCPTool[] => {
         },
         required: ['naturalLanguageInput']
       },
-      handler: async (params) => {
-        const { naturalLanguageInput, context = [] } = params;
-        
+      handler: async (params: any) => {
+        const { naturalLanguageInput, context = [] } = params as { naturalLanguageInput: string; context?: unknown[] };
+
         // Parse intent and extract task parameters
         const taskInfo = await orchestrator.parseNaturalLanguageTask(naturalLanguageInput, context);
-        
+
         // Create worker with descriptive name
         const workerId = await orchestrator.spawnWorkerWithDescriptiveName(taskInfo);
-        
+
         return {
           success: true,
           workerId,
@@ -44,33 +105,33 @@ export const createEnhancedMCPTools = (orchestrator: any): MCPTool[] => {
       parameters: {
         type: 'object',
         properties: {
-          workerIdentifier: { 
-            type: 'string', 
-            description: 'Worker name, partial name, or numeric key (1-9)' 
+          workerIdentifier: {
+            type: 'string',
+            description: 'Worker name, partial name, or numeric key (1-9)'
           },
           fuzzyMatch: { type: 'boolean', default: true }
         },
         required: ['workerIdentifier']
       },
-      handler: async (params) => {
-        const { workerIdentifier, fuzzyMatch = true } = params;
-        
+      handler: async (params: any) => {
+        const { workerIdentifier, fuzzyMatch = true } = params as { workerIdentifier: string; fuzzyMatch?: boolean };
+
         // Smart worker resolution
         const worker = await orchestrator.findWorkerSmart(workerIdentifier, fuzzyMatch);
-        
+
         if (!worker) {
           // Suggest similar workers
           const suggestions = await orchestrator.suggestSimilarWorkers(workerIdentifier);
           return {
             success: false,
             error: `Worker not found: "${workerIdentifier}"`,
-            suggestions: suggestions.map(w => ({ name: w.descriptiveName, key: w.quickAccessKey }))
+            suggestions: suggestions.map((w: any) => ({ name: w.descriptiveName, key: w.quickAccessKey }))
           };
         }
-        
+
         // Connect to worker
         const connection = await orchestrator.connectToWorker(worker.id);
-        
+
         return {
           success: true,
           workerId: worker.id,
@@ -94,11 +155,11 @@ export const createEnhancedMCPTools = (orchestrator: any): MCPTool[] => {
           sortBy: { type: 'string', enum: ['priority', 'progress', 'name'], default: 'priority' }
         }
       },
-      handler: async (params) => {
-        const { includeInactive = false, sortBy = 'priority' } = params;
-        
+      handler: async (params: any) => {
+        const { includeInactive = false, sortBy = 'priority' } = params as { includeInactive?: boolean; sortBy?: string };
+
         const workers = await orchestrator.getWorkersWithRichInfo(includeInactive);
-        
+
         // Sort workers
         const sortedWorkers = workers.sort((a, b) => {
           switch (sortBy) {
@@ -111,7 +172,7 @@ export const createEnhancedMCPTools = (orchestrator: any): MCPTool[] => {
               return (b.priority || 0) - (a.priority || 0);
           }
         });
-        
+
         return {
           success: true,
           workers: sortedWorkers.map(w => ({
@@ -148,28 +209,31 @@ export const createEnhancedMCPTools = (orchestrator: any): MCPTool[] => {
         },
         required: ['action']
       },
-      handler: async (params) => {
-        const { action, workerId, key } = params;
-        
+      handler: async (params: any) => {
+        const { action, workerId, key } = params as { action: string; workerId?: string; key?: number };
+
         switch (action) {
-          case 'list':
+          case 'list': {
             const assignments = await orchestrator.getQuickAccessAssignments();
             return { success: true, assignments };
-            
-          case 'assign':
+          }
+
+          case 'assign': {
             if (!workerId || !key) {
               throw new Error('workerId and key required for assign action');
             }
             await orchestrator.assignQuickAccessKey(workerId, key);
             return { success: true, message: `Assigned key ${key} to worker ${workerId}` };
-            
-          case 'unassign':
+          }
+
+          case 'unassign': {
             if (!key) {
               throw new Error('key required for unassign action');
             }
             await orchestrator.unassignQuickAccessKey(key);
             return { success: true, message: `Unassigned key ${key}` };
-            
+          }
+
           default:
             throw new Error(`Unknown action: ${action}`);
         }
@@ -183,38 +247,42 @@ export const createEnhancedMCPTools = (orchestrator: any): MCPTool[] => {
       parameters: {
         type: 'object',
         properties: {
-          action: { 
-            type: 'string', 
-            enum: ['save', 'restore', 'list_snapshots', 'create_snapshot'] 
+          action: {
+            type: 'string',
+            enum: ['save', 'restore', 'list_snapshots', 'create_snapshot']
           },
           snapshotName: { type: 'string' }
         },
         required: ['action']
       },
-      handler: async (params) => {
-        const { action, snapshotName } = params;
-        
+      handler: async (params: any) => {
+        const { action, snapshotName } = params as { action: string; snapshotName?: string };
+
         switch (action) {
-          case 'save':
+          case 'save': {
             await orchestrator.saveCurrentSession();
             return { success: true, message: 'Session saved successfully' };
-            
-          case 'restore':
+          }
+
+          case 'restore': {
             if (!snapshotName) {
               throw new Error('snapshotName required for restore action');
             }
             await orchestrator.restoreFromSnapshot(snapshotName);
             return { success: true, message: `Session restored from ${snapshotName}` };
-            
-          case 'list_snapshots':
+          }
+
+          case 'list_snapshots': {
             const snapshots = await orchestrator.listSessionSnapshots();
             return { success: true, snapshots };
-            
-          case 'create_snapshot':
+          }
+
+          case 'create_snapshot': {
             const name = snapshotName || `manual_${Date.now()}`;
             const snapshotPath = await orchestrator.createSessionSnapshot(name);
             return { success: true, snapshotName: name, path: snapshotPath };
-            
+          }
+
           default:
             throw new Error(`Unknown action: ${action}`);
         }
@@ -232,11 +300,11 @@ export const createEnhancedMCPTools = (orchestrator: any): MCPTool[] => {
           includeHistory: { type: 'boolean', default: false }
         }
       },
-      handler: async (params) => {
-        const { timeframe = '1h', includeHistory = false } = params;
-        
+      handler: async (params: any) => {
+        const { timeframe = '1h', includeHistory = false } = params as { timeframe?: string; includeHistory?: boolean };
+
         const metrics = await orchestrator.getPerformanceMetrics(timeframe);
-        
+
         return {
           success: true,
           timeframe,
@@ -272,15 +340,15 @@ export const createEnhancedMCPTools = (orchestrator: any): MCPTool[] => {
       parameters: {
         type: 'object',
         properties: {
-          topic: { 
-            type: 'string', 
-            enum: ['workers', 'tasks', 'natural_language', 'quick_access', 'performance'] 
+          topic: {
+            type: 'string',
+            enum: ['workers', 'tasks', 'natural_language', 'quick_access', 'performance']
           }
         }
       },
-      handler: async (params) => {
-        const { topic } = params;
-        
+      handler: async (params: any) => {
+        const { topic } = params as { topic?: string };
+
         const helpContent = {
           workers: {
             title: 'Worker Management',
@@ -323,13 +391,15 @@ export const createEnhancedMCPTools = (orchestrator: any): MCPTool[] => {
             ]
           }
         };
-        
-        const content = topic ? helpContent[topic] : {
-          title: 'OrchFlow Help',
-          description: 'Available help topics',
-          topics: Object.keys(helpContent)
-        };
-        
+
+        const content = topic && topic in helpContent
+          ? helpContent[topic as keyof typeof helpContent]
+          : {
+              title: 'OrchFlow Help',
+              description: 'Available help topics',
+              topics: Object.keys(helpContent)
+            };
+
         return { success: true, help: content };
       }
     }

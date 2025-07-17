@@ -1,12 +1,14 @@
 /**
  * Main OrchFlow Entry Point - Phase 4 Complete Integration
- * 
+ *
  * This module integrates all Phase 3 and Phase 4 components into a
  * complete natural language orchestration system.
  */
 
-import { OrchFlowOrchestrator, OrchFlowOrchestratorConfig } from './orchestrator/orchflow-orchestrator';
-import { SplitScreenManager, SplitScreenConfig } from './terminal-layout/split-screen-manager';
+import type { OrchFlowOrchestratorConfig } from './orchestrator/orchflow-orchestrator';
+import { OrchFlowOrchestrator } from './orchestrator/orchflow-orchestrator';
+import type { SplitScreenConfig } from './terminal-layout/split-screen-manager';
+import { SplitScreenManager } from './terminal-layout/split-screen-manager';
 import { AdvancedWorkerAccess } from './worker-access/advanced-worker-access';
 import { createEnhancedMCPTools } from './primary-terminal/enhanced-mcp-tools';
 import { NLIntentRecognizer } from './primary-terminal/nl-intent-recognizer';
@@ -33,7 +35,7 @@ export class MainOrchestrator extends EventEmitter {
 
   constructor(config: Partial<MainOrchestratorConfig> = {}) {
     super();
-    
+
     this.config = {
       orchestrator: {
         mcpPort: 3001,
@@ -54,7 +56,7 @@ export class MainOrchestrator extends EventEmitter {
       ...config
     };
 
-    this.tmux = new TmuxBackendImpl();
+    this.tmux = new TmuxBackend();
     this.splitScreen = new SplitScreenManager(this.config.splitScreen);
     this.workerAccess = new AdvancedWorkerAccess(this.tmux);
     this.nlRecognizer = new NLIntentRecognizer();
@@ -72,7 +74,7 @@ export class MainOrchestrator extends EventEmitter {
       await this.orchestrator.initialize();
       this.log('✅ Core orchestrator initialized');
 
-      // Phase 2: Setup split-screen layout  
+      // Phase 2: Setup split-screen layout
       await this.splitScreen.initialize();
       this.log('✅ Split-screen layout created (70/30)');
 
@@ -90,9 +92,9 @@ export class MainOrchestrator extends EventEmitter {
 
       this.isRunning = true;
       this.emit('initialized');
-      
+
       console.log('🚀 OrchFlow is ready! Natural language orchestration active.');
-      
+
     } catch (error) {
       console.error('❌ Failed to initialize OrchFlow:', error);
       throw error;
@@ -101,7 +103,7 @@ export class MainOrchestrator extends EventEmitter {
 
   private async registerEnhancedMCPTools(): Promise<void> {
     const enhancedTools = createEnhancedMCPTools(this);
-    
+
     for (const tool of enhancedTools) {
       this.orchestrator['mcpServer'].registerTool(tool.name, tool);
     }
@@ -147,24 +149,24 @@ export class MainOrchestrator extends EventEmitter {
 
     // Recognize intent
     const intent = await this.nlRecognizer.recognizeIntent(input);
-    this.log(`🧠 Intent recognized: ${intent.intent} (confidence: ${intent.confidence})`);
+    this.log(`🧠 Intent recognized: ${intent.action} (confidence: ${intent.confidence})`);
 
-    switch (intent.intent) {
+    switch (intent.action) {
       case 'create_task':
         return this.handleCreateTask(intent, input, context);
-        
+
       case 'connect_to_worker':
         return this.handleConnectToWorker(intent);
-        
+
       case 'list_workers':
         return this.handleListWorkers();
-        
+
       case 'pause_worker':
         return this.handlePauseWorker(intent);
-        
+
       case 'query':
         return this.handleQuery(intent, context);
-        
+
       default:
         return this.handleUnknownIntent(input);
     }
@@ -173,7 +175,7 @@ export class MainOrchestrator extends EventEmitter {
   private async handleCreateTask(intent: any, input: string, context: any[]): Promise<any> {
     const taskInfo = await this.parseNaturalLanguageTask(input, context);
     const workerId = await this.orchestrator.spawnWorkerWithDescriptiveName(taskInfo);
-    
+
     return {
       success: true,
       action: 'task_created',
@@ -185,7 +187,7 @@ export class MainOrchestrator extends EventEmitter {
 
   private async handleConnectToWorker(intent: any): Promise<any> {
     const { workerName, quickAccessKey } = intent.parameters;
-    
+
     if (quickAccessKey) {
       const session = await this.workerAccess.quickAccess(quickAccessKey);
       return { success: true, action: 'worker_connected', session };
@@ -276,7 +278,7 @@ export class MainOrchestrator extends EventEmitter {
   private generateDescriptiveWorkerName(input: string, type: string): string {
     // Enhanced worker naming based on context
     const lowerInput = input.toLowerCase();
-    
+
     if (lowerInput.includes('auth') || lowerInput.includes('login')) {
       return 'Auth System Builder';
     } else if (lowerInput.includes('api') || lowerInput.includes('endpoint')) {
@@ -299,13 +301,13 @@ export class MainOrchestrator extends EventEmitter {
   private async assignNextAvailableKey(): Promise<number | undefined> {
     const assignments = this.workerAccess.getQuickKeyAssignments();
     const usedKeys = new Set(assignments.map(a => a.key));
-    
+
     for (let i = 1; i <= 9; i++) {
       if (!usedKeys.has(i)) {
         return i;
       }
     }
-    
+
     return undefined; // All keys are used
   }
 
@@ -319,7 +321,7 @@ export class MainOrchestrator extends EventEmitter {
   }
 
   private buildClaudeFlowCommand(type: string, description: string): string {
-    const typeCommands = {
+    const typeCommands: Record<string, string> = {
       'research': `claude-flow sparc run researcher "${description}"`,
       'code': `claude-flow sparc run coder "${description}"`,
       'test': `claude-flow sparc run tester "${description}"`,
@@ -327,7 +329,7 @@ export class MainOrchestrator extends EventEmitter {
       'swarm': `claude-flow swarm "${description}" --strategy development`,
       'hive-mind': `claude-flow hive-mind spawn "${description}"`
     };
-    
+
     return typeCommands[type] || `claude-flow sparc run developer "${description}"`;
   }
 
@@ -363,15 +365,15 @@ export class MainOrchestrator extends EventEmitter {
    */
   async shutdown(): Promise<void> {
     console.log('🔄 Shutting down OrchFlow...');
-    
+
     this.isRunning = false;
-    
+
     await this.workerAccess.cleanup();
     await this.splitScreen.cleanup();
     await this.orchestrator.shutdown();
-    
+
     this.removeAllListeners();
-    
+
     console.log('✅ OrchFlow shutdown complete');
   }
 

@@ -126,7 +126,7 @@ export class RateLimiter {
    */
   updateConfig(config: Partial<RateLimiterConfig>): void {
     Object.assign(this.config, config);
-    
+
     // Update cache TTL if window changed
     if (config.windowMs !== undefined) {
       const oldCache = this.cache;
@@ -136,7 +136,7 @@ export class RateLimiter {
         updateAgeOnGet: false,
         updateAgeOnHas: false
       });
-      
+
       // Transfer existing entries
       for (const [key, value] of oldCache.entries()) {
         this.cache.set(key, value);
@@ -184,7 +184,6 @@ export class RateLimiter {
  */
 export class DistributedRateLimiter extends RateLimiter {
   private redisClient: any; // Would use ioredis in production
-  protected override config: Required<RateLimiterConfig>;
 
   constructor(config: RateLimiterConfig & { redisClient?: any }) {
     super(config);
@@ -214,19 +213,19 @@ export class DistributedRateLimiter extends RateLimiter {
     try {
       // Use Redis sorted set for sliding window
       const pipeline = this.redisClient.pipeline();
-      
+
       // Remove old entries
       pipeline.zremrangebyscore(key, '-inf', windowStart);
-      
+
       // Add current request
       pipeline.zadd(key, now, `${now}-${Math.random()}`);
-      
+
       // Count requests in window
       pipeline.zcard(key);
-      
+
       // Set expiry
       pipeline.expire(key, Math.ceil(this.config.windowMs / 1000));
-      
+
       const results = await pipeline.exec();
       const count = results[2][1] as number;
 

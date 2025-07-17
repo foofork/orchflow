@@ -4,7 +4,8 @@
  * Launches Claude with orchestration capabilities injected
  */
 
-import { spawn, ChildProcess } from 'child_process';
+import type { ChildProcess } from 'child_process';
+import { spawn } from 'child_process';
 import { writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
@@ -34,7 +35,7 @@ class OrchFlowLauncher {
 
   async launch(options: LaunchOptions = {}): Promise<void> {
     console.log(chalk.cyan.bold('\n🐝 OrchFlow - Natural Language Orchestration\n'));
-    
+
     // Start orchestration core
     if (!options.noCore) {
       const spinner = ora('Starting orchestration core...').start();
@@ -44,10 +45,10 @@ class OrchFlowLauncher {
           enablePersistence: true,
           enableWebSocket: true
         });
-        
+
         await this.core.start();
         spinner.succeed('Orchestration core started');
-        
+
         // Restore session if requested
         if (options.restore) {
           await this.restoreSession(options.restore);
@@ -90,7 +91,7 @@ class OrchFlowLauncher {
 
     // Launch Claude with injections
     console.log(chalk.green('\n✨ Launching Claude with OrchFlow capabilities...\n'));
-    
+
     await this.launchClaude(options);
   }
 
@@ -102,23 +103,23 @@ class OrchFlowLauncher {
 
     // Write MCP configuration
     this.writeMCPConfig(options.port || 3001);
-    
+
     // Write system prompt additions
     this.writeSystemPrompt();
-    
+
     // Write Claude configuration
     this.writeClaudeConfig();
   }
 
   private writeMCPConfig(port: number): void {
     const mcpConfig = {
-      "mcpServers": {
-        "orchflow": {
-          "command": "node",
-          "args": [join(__dirname, "mcp", "orchflow-mcp-server.js")],
-          "env": {
-            "ORCHFLOW_API": `http://localhost:${port}`,
-            "ORCHFLOW_TOKEN": process.env.ORCHFLOW_TOKEN || "dev"
+      'mcpServers': {
+        'orchflow': {
+          'command': 'node',
+          'args': [join(__dirname, 'mcp', 'orchflow-mcp-server.js')],
+          'env': {
+            'ORCHFLOW_API': `http://localhost:${port}`,
+            'ORCHFLOW_TOKEN': process.env.ORCHFLOW_TOKEN || 'dev'
           }
         }
       }
@@ -165,11 +166,11 @@ Remember: The goal is to multiply your effectiveness by working on multiple aspe
 
   private writeClaudeConfig(): void {
     const claudeConfig = {
-      "claudeDesktop": {
-        "systemPromptAdditions": [
+      'claudeDesktop': {
+        'systemPromptAdditions': [
           join(this.configDir, 'orchflow-system.md')
         ],
-        "mcpConfig": join(this.configDir, 'mcp.json')
+        'mcpConfig': join(this.configDir, 'mcp.json')
       }
     };
 
@@ -208,26 +209,26 @@ Remember: The goal is to multiply your effectiveness by working on multiple aspe
 
     this.claudeProcess.on('exit', async (code) => {
       console.log(chalk.yellow('\n👋 OrchFlow session ended'));
-      
+
       if (this.core) {
         await this.core.stop();
       }
-      
+
       process.exit(code || 0);
     });
 
     // Handle shutdown
     process.on('SIGINT', async () => {
       console.log(chalk.yellow('\n\n🛑 Shutting down OrchFlow...'));
-      
+
       if (this.claudeProcess) {
         this.claudeProcess.kill();
       }
-      
+
       if (this.core) {
         await this.core.stop();
       }
-      
+
       process.exit(0);
     });
   }
@@ -235,7 +236,7 @@ Remember: The goal is to multiply your effectiveness by working on multiple aspe
   private async findClaudeFlow(): Promise<string | null> {
     const { promisify } = require('util');
     const exec = promisify(require('child_process').exec);
-    
+
     try {
       const { stdout } = await exec('which claude-flow');
       return stdout.trim();
@@ -247,13 +248,13 @@ Remember: The goal is to multiply your effectiveness by working on multiple aspe
         join(homedir(), '.npm-global/bin/claude-flow'),
         join(homedir(), '.local/bin/claude-flow')
       ];
-      
+
       for (const loc of locations) {
         if (existsSync(loc)) {
           return loc;
         }
       }
-      
+
       return null;
     }
   }
@@ -266,19 +267,19 @@ Remember: The goal is to multiply your effectiveness by working on multiple aspe
         sessionName: 'orchflow_session',
         enableQuickAccess: true
       });
-      
+
       await this.splitScreen.initialize();
-      
+
       // Connect status updates
       if (this.core) {
         this.core.on('worker:created', (worker) => {
           this.splitScreen?.addWorker(worker);
         });
-        
+
         this.core.on('worker:updated', (worker) => {
           this.splitScreen?.updateWorker(worker);
         });
-        
+
         this.core.on('worker:deleted', (workerId) => {
           this.splitScreen?.removeWorker(workerId);
         });
@@ -300,9 +301,9 @@ Remember: The goal is to multiply your effectiveness by working on multiple aspe
           showQuickAccess: true
         }
       });
-      
+
       await this.terminal.initialize();
-      
+
       // Set up quick access keys (1-9)
       this.terminal.on('quickAccess', async (key: number) => {
         const workers = await this.core?.getWorkers() || [];
@@ -310,7 +311,7 @@ Remember: The goal is to multiply your effectiveness by working on multiple aspe
           await this.terminal?.switchToWorker(workers[key - 1].id);
         }
       });
-      
+
       // Connect WebSocket for real-time updates
       if (this.core) {
         const wsUrl = `ws://localhost:${port}`;
@@ -324,14 +325,14 @@ Remember: The goal is to multiply your effectiveness by working on multiple aspe
 
   private async restoreSession(sessionName: string): Promise<void> {
     console.log(chalk.cyan(`\n📂 Restoring session: ${sessionName}\n`));
-    
+
     if (this.core) {
       try {
         await this.core.restoreSession(sessionName);
         const workers = await this.core.getWorkers();
-        
+
         console.log(chalk.green(`✅ Restored ${workers.length} workers from session`));
-        
+
         // Update split-screen with restored workers
         if (this.splitScreen) {
           for (const worker of workers) {
@@ -349,7 +350,7 @@ Remember: The goal is to multiply your effectiveness by working on multiple aspe
 async function main() {
   const args = process.argv.slice(2);
   const options: LaunchOptions = {};
-  
+
   // Parse arguments
   for (let i = 0; i < args.length; i++) {
     switch (args[i]) {
@@ -372,7 +373,7 @@ async function main() {
   }
 
   const launcher = new OrchFlowLauncher();
-  
+
   try {
     await launcher.launch(options);
   } catch (error) {

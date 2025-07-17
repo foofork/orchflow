@@ -3,7 +3,7 @@
  * Injects orchestration capabilities directly into Claude Code conversation
  */
 
-import { MCPTool } from './types';
+import type { MCPTool } from './types';
 
 export class OrchFlowInjection {
   /**
@@ -77,7 +77,7 @@ You have access to OrchFlow, a natural language orchestration system. During our
           }
         },
         handler: async (input) => {
-          const url = input.workerId 
+          const url = input.workerId
             ? `http://localhost:3001/api/workers/${input.workerId}`
             : 'http://localhost:3001/api/workers';
           const response = await fetch(url);
@@ -99,7 +99,7 @@ You have access to OrchFlow, a natural language orchestration system. During our
           // Load worker's conversation state
           const response = await fetch(`http://localhost:3001/api/workers/${input.workerId}/context`);
           const context = await response.json();
-          
+
           // This would update Claude's context window
           return {
             success: true,
@@ -134,9 +134,9 @@ You have access to OrchFlow, a natural language orchestration system. During our
         inputSchema: {
           type: 'object',
           properties: {
-            tasks: { 
-              type: 'array', 
-              items: { 
+            tasks: {
+              type: 'array',
+              items: {
                 type: 'object',
                 properties: {
                   description: { type: 'string' },
@@ -177,48 +177,48 @@ You have access to OrchFlow, a natural language orchestration system. During our
 
 /**
  * Example of how this works in practice:
- * 
- * User: "I need to build a complete authentication system. Let's work on the API, 
+ *
+ * User: "I need to build a complete authentication system. Let's work on the API,
  *        frontend, and tests in parallel"
- * 
- * Claude: I'll help you build a complete authentication system. Let me set up 
+ *
+ * Claude: I'll help you build a complete authentication system. Let me set up
  *         parallel work streams for this.
- * 
+ *
  *         [Internally uses orchflow_spawn_worker three times]
- *         
+ *
  *         I've created three parallel workers:
  *         1. API Developer - Building the authentication endpoints
  *         2. Frontend Developer - Creating the login/signup UI
  *         3. Test Engineer - Writing comprehensive tests
- *         
+ *
  *         Let's start with the API. We'll need endpoints for:
  *         - POST /auth/register
  *         - POST /auth/login
  *         - POST /auth/logout
  *         - GET /auth/verify
- *         
+ *
  *         [Continues working naturally, Claude knows it's in "API Developer" context]
- * 
+ *
  * User: "How's the frontend coming along?"
- * 
+ *
  * Claude: [Uses orchflow_switch_context to frontend worker]
- *         
+ *
  *         The frontend is progressing well! Here's what we have so far:
- *         
+ *
  *         [Shows frontend work from that worker's context]
- *         
+ *
  *         The login component is complete with form validation...
- * 
+ *
  * User: "Great, let's see the overall status"
- * 
+ *
  * Claude: [Uses orchflow_worker_status]
- *         
+ *
  *         Here's the current status across all workers:
- *         
+ *
  *         📊 Authentication System Progress:
  *         • API Developer (65%) - Core endpoints implemented
- *         • Frontend Developer (45%) - Login/signup forms complete  
+ *         • Frontend Developer (45%) - Login/signup forms complete
  *         • Test Engineer (30%) - Unit tests for API in progress
- *         
+ *
  *         All workers are sharing the same interface definitions...
  */

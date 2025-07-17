@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { Task } from './orchflow-orchestrator';
+import type { Task } from './orchflow-orchestrator';
 import path from 'path';
 
 export interface ConflictInfo {
@@ -157,14 +157,14 @@ export class ConflictDetector extends EventEmitter {
 
     for (const port of ports) {
       const usingTask = this.portUsageMap.get(port);
-      
+
       if (usingTask) {
         conflicts.push({
           type: 'port',
           conflictingTask: usingTask,
           description: `Port ${port} is already in use`,
           severity: 'error',
-          resolution: `Use a different port or stop the conflicting task`
+          resolution: 'Use a different port or stop the conflicting task'
         });
       }
     }
@@ -177,11 +177,11 @@ export class ConflictDetector extends EventEmitter {
 
     for (const service of services) {
       const usingTasks = this.serviceUsageMap.get(service);
-      
+
       if (usingTasks && usingTasks.size > 0) {
         // Some services can be shared, others cannot
         const isExclusive = this.isExclusiveService(service);
-        
+
         if (isExclusive) {
           conflicts.push({
             type: 'resource',
@@ -211,7 +211,7 @@ export class ConflictDetector extends EventEmitter {
     // Check for circular dependencies
     const visited = new Set<string>();
     const recursionStack = new Set<string>();
-    
+
     if (this.hasCircularDependency(task, existingTasks, visited, recursionStack)) {
       conflicts.push({
         type: 'dependency',
@@ -331,7 +331,7 @@ export class ConflictDetector extends EventEmitter {
 
   releaseResources(taskId: string): void {
     const allocation = this.activeAllocations.get(taskId);
-    if (!allocation) return;
+    if (!allocation) {return;}
 
     // Release file access
     for (const file of allocation.resources.files) {
@@ -409,9 +409,9 @@ export class ConflictDetector extends EventEmitter {
   }
 
   private hasCircularDependency(
-    task: Task, 
-    existingTasks: Task[], 
-    visited: Set<string>, 
+    task: Task,
+    existingTasks: Task[],
+    visited: Set<string>,
     recursionStack: Set<string>
   ): boolean {
     visited.add(task.id);
