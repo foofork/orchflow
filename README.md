@@ -273,7 +273,7 @@ npm test
 
 ---
 
-## **Rust Implementation (IN DEVELOPMENT)**
+## Rust Implementation
 
 OrchFlow's core orchestration engine is built in Rust for performance and reliability:
 
