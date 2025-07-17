@@ -2,7 +2,7 @@ import { promisify } from 'util';
 import { exec } from 'child_process';
 import { existsSync } from 'fs';
 import { join } from 'path';
-import * as which from 'which';
+import which from 'which';
 
 const execAsync = promisify(exec);
 
@@ -18,7 +18,7 @@ export async function getRealClaudeFlowPath(): Promise<string | null> {
     }
     
     // Try to find claude-flow in PATH, excluding our own installation
-    const allPaths = await which.all('claude-flow');
+    const allPaths = await (which as any).all('claude-flow');
     
     // Filter out our wrapper from the results
     const realPaths = allPaths.filter(path => {

@@ -1,26 +1,60 @@
-# Common ignores
+# Dependencies
 node_modules/
+target/
 dist/
 build/
-*.log
-.DS_Store
-.env
-.env.local
-.env.*.local
+out/
+
+# Package manager files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+Cargo.lock
+
+# Build outputs
+packages/**/*.js
+packages/**/*.js.map
+packages/**/*.d.ts
+packages/**/*.tsbuildinfo
+!packages/**/jest.config.js
+!packages/**/src/**/*.d.ts
+
+# IDE and editors
+.vscode/
+.idea/
 *.swp
 *.swo
 *~
-.idea/
-.vscode/
 *.iml
+.DS_Store
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Testing
 coverage/
 .nyc_output/
+
+# OrchFlow runtime
+.orchflow/
+~/.orchflow/
+*.snapshot
+*.state
 
 # Claude Flow and development tools
 .swarm/
 .hive-mind/
 .claude/
-.github/
 .swam/
 .roomodes
 claude-flow
@@ -30,9 +64,29 @@ memory/
 *.db
 *.db-shm
 *.db-wal
-target
 
-# GitHub workflows (duplicate in subdirectories)
+# Rust
+debug/
+target/
+**/*.rs.bk
+*.pdb
+
+# Documentation build
+docs/_build/
+site/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+tmp/
+temp/
+
+# Misc
+*.bak
+*.orig
 desktop/.github/
-.swarm/memory.db-wal
-.swarm/memory.db-shm

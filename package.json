@@ -1,1 +1,16 @@
-{}
+{
+  "name": "orchflow-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build:wrapper": "cd packages/orchflow-claude-flow && npm run build",
+    "test:wrapper": "cd packages/orchflow-claude-flow && npm test",
+    "dev:wrapper": "cd packages/orchflow-claude-flow && npm run dev"
+  },
+  "devDependencies": {
+    "lerna": "^8.0.0"
+  }
+}

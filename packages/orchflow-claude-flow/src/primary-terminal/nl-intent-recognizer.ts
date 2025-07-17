@@ -29,6 +29,38 @@ export class NLIntentRecognizer {
     // Additional initialization if needed
   }
 
+  /**
+   * Main recognition method - analyzes input and returns intent
+   */
+  async recognizeIntent(input: string, context?: ConversationContext): Promise<Intent> {
+    const normalizedInput = input.trim().toLowerCase();
+    
+    // Try each pattern category
+    for (const [action, pattern] of this.patterns.entries()) {
+      for (const regex of pattern.patterns) {
+        const match = input.match(regex);
+        if (match) {
+          const extracted = pattern.extractor(match);
+          return {
+            action,
+            parameters: extracted.parameters || {},
+            confidence: extracted.confidence || 0.8,
+            context: context || new ConversationContext(),
+            workerTarget: extracted.workerTarget
+          };
+        }
+      }
+    }
+    
+    // Default unknown intent
+    return {
+      action: 'unknown',
+      parameters: { input },
+      confidence: 0.0,
+      context: context || new ConversationContext()
+    };
+  }
+
   private initializePatterns(): void {
     // Task creation patterns with descriptive naming
     this.patterns.set('create_task', {

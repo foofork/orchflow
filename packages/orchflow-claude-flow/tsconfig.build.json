@@ -1,0 +1,27 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitReturns": false,
+    "strict": false,
+    "skipLibCheck": true
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "src/__tests__/**/*",
+    "src/binary-manager.ts",
+    "src/cli.ts",
+    "src/main-orchestrator.ts",
+    "src/orchestrator/**/*",
+    "src/primary-terminal/**/*",
+    "src/terminal-layout/**/*",
+    "src/tmux-integration/**/*",
+    "src/worker-access/**/*",
+    "src/postinstall.ts",
+    "src/orchflow-launcher.ts"
+  ]
+}

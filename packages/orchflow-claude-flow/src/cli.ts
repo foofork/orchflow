@@ -26,7 +26,7 @@ async function main() {
       await launchOrchFlow(args.slice(1));
     } catch (error) {
       spinner.fail('Failed to initialize OrchFlow');
-      console.error(chalk.red('Error:'), error.message);
+      console.error(chalk.red('Error:'), error instanceof Error ? error.message : String(error));
       process.exit(1);
     }
   } else {
@@ -46,7 +46,7 @@ async function main() {
     });
     
     claudeFlow.on('error', (error) => {
-      console.error(chalk.red('Error running claude-flow:'), error.message);
+      console.error(chalk.red('Error running claude-flow:'), error instanceof Error ? error.message : String(error));
       process.exit(1);
     });
     
@@ -57,12 +57,12 @@ async function main() {
 }
 
 // Handle uncaught errors
-process.on('unhandledRejection', (error: Error) => {
-  console.error(chalk.red('Unhandled error:'), error.message);
+process.on('unhandledRejection', (error: unknown) => {
+  console.error(chalk.red('Unhandled error:'), error instanceof Error ? error.message : String(error));
   process.exit(1);
 });
 
 main().catch((error) => {
-  console.error(chalk.red('Fatal error:'), error.message);
+  console.error(chalk.red('Fatal error:'), error instanceof Error ? error.message : String(error));
   process.exit(1);
 });

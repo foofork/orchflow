@@ -1,0 +1,168 @@
+version: '3.9'
+
+services:
+  # OrchFlow production service
+  orchflow:
+    build:
+      context: .
+      target: production
+    image: orchflow/claude-flow:latest
+    container_name: orchflow-prod
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - ORCHFLOW_API_KEY=${ORCHFLOW_API_KEY}
+      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
+      - REDIS_URL=redis://redis:6379
+      - LOG_LEVEL=info
+    volumes:
+      - orchflow-data:/app/data
+      - orchflow-logs:/app/logs
+      - ./CLAUDE.md:/app/CLAUDE.md:ro
+      - ./.claude:/app/.claude:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - orchflow-network
+
+  # OrchFlow development service
+  orchflow-dev:
+    build:
+      context: .
+      target: development
+    image: orchflow/claude-flow:dev
+    container_name: orchflow-dev
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+      - "9229:9229"
+    environment:
+      - NODE_ENV=development
+      - DEBUG=orchflow:*
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - orchflow-dev-data:/app/data
+      - orchflow-dev-logs:/app/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - orchflow-network
+    profiles:
+      - development
+
+  # Redis for distributed rate limiting and caching
+  redis:
+    image: redis:7-alpine
+    container_name: orchflow-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - orchflow-network
+
+  # Monitoring with Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: orchflow-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    networks:
+      - orchflow-network
+    profiles:
+      - monitoring
+
+  # Grafana for dashboards
+  grafana:
+    image: grafana/grafana:latest
+    container_name: orchflow-grafana
+    ports:
+      - "3002:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    depends_on:
+      - prometheus
+    networks:
+      - orchflow-network
+    profiles:
+      - monitoring
+
+  # Jaeger for distributed tracing
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: orchflow-jaeger
+    ports:
+      - "5775:5775/udp"
+      - "6831:6831/udp"
+      - "6832:6832/udp"
+      - "5778:5778"
+      - "16686:16686"
+      - "14268:14268"
+      - "14250:14250"
+      - "9411:9411"
+    environment:
+      - COLLECTOR_ZIPKIN_HOST_PORT=:9411
+    networks:
+      - orchflow-network
+    profiles:
+      - monitoring
+
+  # Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: orchflow-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - orchflow
+    networks:
+      - orchflow-network
+    profiles:
+      - production
+
+volumes:
+  orchflow-data:
+  orchflow-logs:
+  orchflow-dev-data:
+  orchflow-dev-logs:
+  redis-data:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  orchflow-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

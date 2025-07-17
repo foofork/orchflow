@@ -1,52 +1,38 @@
 /**
- * OrchFlow Claude-Flow Wrapper
+ * OrchFlow - Natural Language Orchestration for Claude
  * 
- * This module provides programmatic access to OrchFlow functionality
+ * Main export file for programmatic usage
  */
 
-export { launchOrchFlow, launchOrchFlowDev } from './orchflow-launcher';
-export { ensureOrchFlowBinaries, checkForUpdates } from './binary-manager';
-export { getRealClaudeFlowPath, getOrchFlowHome, getComponentsDir } from './utils';
+export { OrchFlowCore } from './core/orchflow-core';
+export { OrchFlowMCPServer } from './mcp/orchflow-mcp-server';
 
-/**
- * OrchFlow configuration interface
- */
-export interface OrchFlowConfig {
-  orchestratorPort?: number;
-  statusPaneWidth?: number;
-  enableQuickAccess?: boolean;
-  maxWorkers?: number;
-  logLevel?: 'debug' | 'info' | 'warn' | 'error';
-}
+export type {
+  Worker,
+  WorkerContext,
+  WorkerType,
+  WorkerStatus,
+  Task,
+  TaskType,
+  TaskStatus,
+  TaskPriority,
+  Message,
+  CodeArtifact,
+  Decision,
+  OrchFlowConfig,
+  OrchFlowEvent,
+  EventType
+} from './types';
 
-/**
- * Initialize OrchFlow with custom configuration
- */
-export async function initializeOrchFlow(config?: OrchFlowConfig): Promise<void> {
-  // Ensure binaries are available
-  await ensureOrchFlowBinaries();
-  
-  // Set configuration in environment
-  if (config) {
-    if (config.orchestratorPort) {
-      process.env.ORCHFLOW_PORT = config.orchestratorPort.toString();
-    }
-    if (config.statusPaneWidth) {
-      process.env.ORCHFLOW_STATUS_WIDTH = config.statusPaneWidth.toString();
-    }
-    if (config.enableQuickAccess !== undefined) {
-      process.env.ORCHFLOW_QUICK_ACCESS = config.enableQuickAccess.toString();
-    }
-    if (config.maxWorkers) {
-      process.env.ORCHFLOW_MAX_WORKERS = config.maxWorkers.toString();
-    }
-    if (config.logLevel) {
-      process.env.ORCHFLOW_LOG_LEVEL = config.logLevel;
-    }
-  }
-}
-
-/**
- * OrchFlow version
- */
+// Version
 export const VERSION = '0.1.0';
+
+/**
+ * Quick start function for programmatic usage
+ */
+export async function startOrchFlow(config?: Partial<import('./core/orchflow-core').OrchFlowConfig>) {
+  const { OrchFlowCore } = await import('./core/orchflow-core');
+  const core = new OrchFlowCore(config);
+  await core.start();
+  return core;
+}

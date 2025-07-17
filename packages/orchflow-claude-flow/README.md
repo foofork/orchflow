@@ -1,190 +1,112 @@
-# @orchflow/claude-flow
+# OrchFlow
 
-🚀 **OrchFlow Terminal Architecture** - Natural language orchestration for claude-flow
+Natural language orchestration for Claude that feels like a superpower.
 
-A smart NPM wrapper that adds natural language orchestration capabilities to claude-flow while preserving all existing functionality.
+## What is OrchFlow?
+
+OrchFlow injects orchestration capabilities directly into your Claude conversation. Instead of managing multiple terminal windows or copying context between sessions, you naturally orchestrate complex tasks through conversation.
+
+## How it Works
+
+```bash
+# Install
+npm install -g @orchflow/claude-flow
+
+# Launch Claude with orchestration powers
+orchflow
+```
+
+Now in your Claude conversation:
+
+```
+You: Let's build a complete authentication system with frontend, backend, and tests
+
+Claude: I'll help you build a complete authentication system. Let me set up parallel 
+        work streams for the frontend, backend, and tests so we can develop all 
+        components simultaneously.
+
+        [Creates 3 workers behind the scenes]
+        
+        Starting with the backend API...
+        [Naturally continues the conversation while orchestrating]
+```
+
+## Key Features
+
+### 🧠 **Intelligent Orchestration**
+Claude understands when to parallelize work without being told explicitly.
+
+### 💬 **Natural Conversation**
+No special commands or syntax. Just describe what you want to build.
+
+### 🔄 **Seamless Context Switching**
+Move between different aspects of your project naturally in conversation.
+
+### 🔗 **Automatic Knowledge Sharing**
+Decisions, interfaces, and patterns are automatically shared across all work streams.
+
+### 💾 **Session Persistence**
+Save and restore entire orchestration sessions.
+
+## Example
+
+```
+You: I need to build an e-commerce platform with product catalog, shopping cart, 
+     payment processing, and admin dashboard
+
+Claude: I'll help you build a complete e-commerce platform. This is perfect for 
+        parallel development. Let me organize the work:
+
+        ✓ Product Catalog Developer - Building product management
+        ✓ Shopping Cart Engineer - Implementing cart and checkout
+        ✓ Payment Integration Specialist - Setting up payment processing  
+        ✓ Admin Dashboard Builder - Creating management interface
+
+        Let's start by defining shared data models that all components will use...
+
+You: How's the payment integration going?
+
+Claude: [Switches context seamlessly] The payment integration is progressing well! 
+        I've implemented Stripe integration with webhook handling...
+
+You: Make sure all components use the same error handling
+
+Claude: I'll synchronize the error handling pattern across all workers. 
+        [Shares error handling code to all workers automatically]
+        All components now use consistent error handling!
+```
 
 ## Installation
 
 ```bash
+# Requires Node.js 16+ and claude-flow
+npm install -g claude-flow
 npm install -g @orchflow/claude-flow
+
+# Launch
+orchflow
 ```
 
-## Usage
+## Architecture
 
-### Launch OrchFlow Terminal (Natural Language Interface)
+OrchFlow uses the Model Context Protocol (MCP) to inject orchestration tools into Claude:
 
-```bash
-claude-flow orchflow
-```
-
-This launches the OrchFlow terminal with:
-- **70% Primary Terminal**: Natural language interface for task management
-- **30% Status Pane**: Live worker monitoring with descriptive names
-- **Quick Access**: Press 1-9 to instantly connect to workers
-- **Smart Orchestration**: Automatic task scheduling and worker management
-
-### Regular claude-flow Commands (Pass-through)
-
-All standard claude-flow commands work exactly as before:
-
-```bash
-claude-flow swarm "build authentication system"
-claude-flow sparc run developer "add unit tests"
-claude-flow memory store mykey "important data"
-# ... all other claude-flow commands
-```
-
-## How It Works
-
-### Smart Command Interception
-
-The wrapper intercepts only the `orchflow` command:
-
-```
-claude-flow orchflow     → Launch OrchFlow Terminal
-claude-flow [anything]   → Pass to real claude-flow
-```
-
-### Thin Wrapper Architecture
-
-```
-User Input
-    ↓
-@orchflow/claude-flow (this package)
-    ↓
-    ├── "orchflow" command? → OrchFlow Components
-    │                         ├─ Primary Terminal
-    │                         ├─ Orchestrator
-    │                         ├─ Worker Manager
-    │                         └─ Status Pane
-    │
-    └── Other command? → Real claude-flow
-```
-
-### Component Management
-
-OrchFlow components are downloaded on first use:
-
-```
-~/.orchflow/
-├── components/
-│   ├── orchflow-terminal      # Primary terminal UI
-│   ├── orchflow-orchestrator  # Task orchestration
-│   ├── orchflow-worker        # Worker processes
-│   └── orchflow-status        # Status pane
-└── config.json                # User configuration
-```
-
-## Natural Language Examples
-
-In OrchFlow terminal, you can use natural language:
-
-```
-➤ Create a REST API for user management
-✓ Task created: "REST API Developer" worker spawned
-
-➤ Show me all workers
-[1] REST API Developer      🟢 Running (45%)
-[2] Database Architect      🟢 Running (80%)
-[3] Test Engineer          🟡 Paused
-
-➤ Connect to the API developer
-✓ Connected to "REST API Developer"
-
-➤ Press 2
-✓ Connected to "Database Architect"
-```
-
-## Configuration
-
-### Environment Variables
-
-```bash
-CLAUDE_FLOW_PATH=/custom/path/to/claude-flow  # Real claude-flow location
-ORCHFLOW_HOME=~/.orchflow                     # OrchFlow data directory
-ORCHFLOW_PORT=3000                           # Orchestrator port
-ORCHFLOW_STATUS_WIDTH=30                     # Status pane width (%)
-ORCHFLOW_MAX_WORKERS=10                      # Maximum concurrent workers
-```
-
-### Programmatic Usage
-
-```typescript
-import { initializeOrchFlow, launchOrchFlow } from '@orchflow/claude-flow';
-
-// Configure OrchFlow
-await initializeOrchFlow({
-  orchestratorPort: 3000,
-  statusPaneWidth: 30,
-  enableQuickAccess: true,
-  maxWorkers: 10
-});
-
-// Launch programmatically
-await launchOrchFlow(['--verbose']);
-```
-
-## Technical Details
-
-### Platform Support
-
-- macOS (x64, arm64)
-- Linux (x64, arm64)
-- Windows (x64)
-
-### Requirements
-
-- Node.js 16+
-- claude-flow (installed separately)
-- tmux (for terminal management)
-
-### Binary Distribution
-
-OrchFlow components are distributed as platform-specific binaries via GitHub releases. The wrapper automatically downloads the correct binaries for your platform on first use.
-
-## Development
-
-```bash
-# Clone the repository
-git clone https://github.com/orchflow/orchflow
-cd orchflow/packages/orchflow-claude-flow
-
-# Install dependencies
-npm install
-
-# Build TypeScript
-npm run build
-
-# Run in development mode
-npm run dev
-
-# Run tests
-npm test
-```
-
-## License
-
-MIT - See LICENSE file for details
+- **MCP Tools**: Provide orchestration capabilities
+- **System Prompt**: Teaches Claude orchestration patterns  
+- **Orchestration Core**: Manages worker states and coordination
+- **Seamless Integration**: Works within your normal Claude conversation
 
 ## Documentation
 
-### Quick Start
-- **[Quick Start Guide](QUICK_START.md)** - Get started in under 5 minutes
-- **[User Guide](USER_GUIDE.md)** - Complete usage documentation
-- **[Examples](EXAMPLES.md)** - Common patterns and workflows
+- [Quick Start](QUICK_START.md)
+- [User Guide](USER_GUIDE.md)
+- [Examples](EXAMPLES.md)
+- [API Reference](API.md)
 
-### Advanced
-- **[API Documentation](API.md)** - Programmatic usage reference
-- **[Troubleshooting](TROUBLESHOOTING.md)** - Problem resolution guide
-- **[Implementation Status](IMPLEMENTATION_STATUS.md)** - Technical details
+## Why OrchFlow?
 
-### Project
-- **[Changelog](CHANGELOG.md)** - Version history and updates
-- **[Implementation Complete](../ORCHFLOW_IMPLEMENTATION_COMPLETE.md)** - Full technical documentation
+Traditional development bounces between files, terminals, and contexts. OrchFlow lets you orchestrate complex development naturally through conversation, multiplying your effectiveness while maintaining quality and consistency.
 
-## Links
+## License
 
-- [OrchFlow Project](https://github.com/orchflow/orchflow)
-- [claude-flow](https://github.com/anthropics/claude-flow)
-- [Hive Mind Documentation](../../demos/ai-orchestrator/)
+MIT

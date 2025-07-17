@@ -10,7 +10,7 @@ import { SplitScreenManager, SplitScreenConfig } from './terminal-layout/split-s
 import { AdvancedWorkerAccess } from './worker-access/advanced-worker-access';
 import { createEnhancedMCPTools } from './primary-terminal/enhanced-mcp-tools';
 import { NLIntentRecognizer } from './primary-terminal/nl-intent-recognizer';
-import { TmuxBackendImpl } from './tmux-integration/tmux-backend';
+import { TmuxBackend } from './tmux-integration/tmux-backend';
 import { EventEmitter } from 'events';
 
 export interface MainOrchestratorConfig {
@@ -27,7 +27,7 @@ export class MainOrchestrator extends EventEmitter {
   private splitScreen: SplitScreenManager;
   private workerAccess: AdvancedWorkerAccess;
   private nlRecognizer: NLIntentRecognizer;
-  private tmux: TmuxBackendImpl;
+  private tmux: TmuxBackend;
   private config: MainOrchestratorConfig;
   private isRunning: boolean = false;
 
