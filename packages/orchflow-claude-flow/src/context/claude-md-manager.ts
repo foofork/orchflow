@@ -82,7 +82,7 @@ ${this.orchflowSectionEndMarker}`;
       if (existing.includes(this.orchflowSectionMarker)) {
         await this.updateExistingSection(content);
       } else {
-        // Append new section
+        // Append new section (creates file if it doesn't exist)
         await fs.appendFile(this.claudeMdPath, `\n\n${  content}`);
       }
     } catch (error) {
@@ -228,8 +228,13 @@ ${this.getWorkerSpecificGuidance(workerName, taskDescription)}
   private async readClaudeMD(): Promise<string> {
     try {
       return await fs.readFile(this.claudeMdPath, 'utf-8');
-    } catch (error) {
-      console.warn('Failed to read CLAUDE.md:', error);
+    } catch (error: any) {
+      // If file doesn't exist, return empty string
+      if (error.code === 'ENOENT') {
+        return '';
+      }
+      // For other errors, log and return empty
+      console.warn('Failed to read CLAUDE.md:', error.message);
       return '';
     }
   }

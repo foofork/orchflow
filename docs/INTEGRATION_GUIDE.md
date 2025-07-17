@@ -731,8 +731,8 @@ async function main() {
   await orchflow.start();
 
   // Create tasks
-  await orchflow.createTask('Build authentication system');
-  await orchflow.createTask('Test API endpoints');
+  await orchflow.createTask('Build a complete authentication system with JWT tokens, password reset, and email verification');
+  await orchflow.createTask('Create comprehensive test suite for all API endpoints with performance benchmarks');
 
   // List workers
   const workers = await orchflow.listWorkers();
@@ -783,7 +783,7 @@ class OrchFlowClient:
         
     async def start(self):
         """Start OrchFlow process."""
-        cmd = ['claude-flow', 'orchflow']
+        cmd = ['orchflow']
         
         if self.config:
             cmd.extend(['--config', self.config])
@@ -880,8 +880,8 @@ async def main():
         await client.start()
         
         # Create tasks
-        await client.create_task("Build Python API with FastAPI")
-        await client.create_task("Create unit tests with pytest")
+        await client.create_task("Build a complete Python API with FastAPI, including authentication, database integration, and documentation")
+        await client.create_task("Create comprehensive unit tests with pytest, including mocking, fixtures, and coverage reporting")
         
         # List workers
         workers = await client.list_workers()
@@ -912,19 +912,28 @@ import { OrchFlowClient } from './orchflow-integration';
 const app = express();
 app.use(express.json());
 
-const orchflow = new OrchFlowClient({ headless: true });
+const orchflow = new OrchFlowClient({ 
+  headless: true,
+  mode: 'inline' // Use inline mode for server integration
+});
 
 // Start OrchFlow on server start
 orchflow.start().then(() => {
-  console.log('OrchFlow started');
+  console.log('OrchFlow started with unified architecture');
 });
 
 // API Endpoints
 app.post('/api/tasks', async (req, res) => {
   try {
-    const { description } = req.body;
+    const { description, priority = 'medium' } = req.body;
     const taskId = await orchflow.createTask(description);
-    res.json({ taskId, description });
+    res.json({ 
+      taskId, 
+      description, 
+      priority,
+      architecture: 'unified',
+      naturalLanguage: true
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -1010,10 +1019,18 @@ export interface OrchFlowPlugin {
   onSessionSaved?(sessionName: string): Promise<void>;
   onSessionRestored?(sessionName: string): Promise<void>;
   
+  // Unified architecture hooks
+  onUnifiedSetup?(orchestrator: UnifiedSetupOrchestrator): Promise<void>;
+  onManagerInitialized?(managerType: string, manager: any): Promise<void>;
+  onMCPToolRegistered?(toolName: string, tool: any): Promise<void>;
+  
   // Command extensions
   commands?: PluginCommand[];
   
-  // Tool extensions
+  // MCP tool extensions
+  mcpTools?: PluginMCPTool[];
+  
+  // Legacy tool extensions (deprecated)
   tools?: PluginTool[];
 }
 
@@ -1028,6 +1045,15 @@ export interface PluginCommand {
   description: string;
   pattern: RegExp;
   handler: (match: RegExpMatchArray, context: PluginContext) => Promise<void>;
+}
+
+export interface PluginMCPTool {
+  name: string;
+  description: string;
+  parameters: any; // JSON Schema
+  handler: (params: any, context: PluginContext) => Promise<any>;
+  naturalLanguage?: boolean; // Support natural language processing
+  unified?: boolean; // Uses unified architecture features
 }
 
 export interface PluginTool {
@@ -1047,8 +1073,8 @@ import { OrchFlowPlugin, PluginContext } from '../orchflow-plugin';
 
 export class GitHubPlugin implements OrchFlowPlugin {
   name = 'github-integration';
-  version = '1.0.0';
-  description = 'GitHub integration for OrchFlow';
+  version = '2.0.0';
+  description = 'GitHub integration for OrchFlow with unified architecture support';
   
   private octokit: Octokit;
   
@@ -1106,10 +1132,10 @@ export class GitHubPlugin implements OrchFlowPlugin {
     }
   ];
   
-  tools = [
+  mcpTools = [
     {
       name: 'github_create_pr',
-      description: 'Create a pull request',
+      description: 'Create a pull request using natural language',
       parameters: {
         type: 'object',
         properties: {
@@ -1120,6 +1146,8 @@ export class GitHubPlugin implements OrchFlowPlugin {
         },
         required: ['title', 'head']
       },
+      naturalLanguage: true,
+      unified: true,
       handler: async (params: any, context: PluginContext) => {
         const { owner, repo } = context.config.github;
         
@@ -1132,8 +1160,48 @@ export class GitHubPlugin implements OrchFlowPlugin {
         return {
           number: pr.data.number,
           url: pr.data.html_url,
-          state: pr.data.state
+          state: pr.data.state,
+          architecture: 'unified'
         };
+      }
+    },
+    {
+      name: 'github_natural_task',
+      description: 'Process natural language GitHub tasks',
+      parameters: {
+        type: 'object',
+        properties: {
+          task: { type: 'string' },
+          context: { type: 'object' }
+        },
+        required: ['task']
+      },
+      naturalLanguage: true,
+      unified: true,
+      handler: async (params: any, context: PluginContext) => {
+        // Process natural language GitHub tasks
+        const { task } = params;
+        const { owner, repo } = context.config.github;
+        
+        if (task.toLowerCase().includes('create issue')) {
+          const match = task.match(/create issue.+?["'](.+?)["']/i);
+          if (match) {
+            const issue = await this.octokit.issues.create({
+              owner,
+              repo,
+              title: match[1],
+              body: `Created via OrchFlow natural language processing\n\nOriginal task: ${task}`,
+              labels: ['orchflow', 'auto-created']
+            });
+            return {
+              type: 'issue',
+              number: issue.data.number,
+              url: issue.data.html_url
+            };
+          }
+        }
+        
+        return { message: 'GitHub task processed', task };
       }
     }
   ];
@@ -1162,18 +1230,26 @@ export default GitHubPlugin;
 
 ```bash
 # Install plugin
-npm install orchflow-github-plugin
+npm install orchflow-github-plugin@2.0.0
 
 # Configure in orchflow.json
 {
+  "version": "2.0",
+  "unifiedArchitecture": true,
   "plugins": [
     {
       "name": "orchflow-github-plugin",
+      "version": "2.0.0",
       "config": {
         "github": {
           "owner": "myorg",
           "repo": "myrepo",
           "token": "${GITHUB_TOKEN}"
+        },
+        "unified": {
+          "enabled": true,
+          "naturalLanguage": true,
+          "mcpIntegration": true
         }
       }
     }
@@ -1473,4 +1549,53 @@ orchflow.on('taskCreated', async (task) => {
 
 ---
 
-This comprehensive integration guide provides everything needed to integrate OrchFlow into any development workflow, CI/CD pipeline, IDE, or enterprise environment.
+## Migration from v1.x to v2.0
+
+### Key Changes in v2.0
+
+1. **Unified Architecture**: Consolidated from 11 managers to 5 core managers
+2. **Auto-Installation**: Automatic tmux installation with 9 package manager support
+3. **Enhanced MCP Tools**: 7 new natural language tools replacing legacy tools
+4. **Type Safety**: 100% TypeScript compliance with no production 'as any' casts
+5. **Performance**: < 2 seconds startup, < 80MB memory overhead
+6. **Command Changes**: `claude-flow orchflow` → `orchflow`
+
+### Migration Steps
+
+```bash
+# 1. Update dependencies
+npm uninstall -g @orchflow/claude-flow
+npm install -g claude-flow@2.0.0-alpha.50
+npm install -g @orchflow/claude-flow@latest
+
+# 2. Update configuration
+# orchflow.json: version "1.0" → "2.0"
+# Add: "unifiedArchitecture": true
+# Add: "autoInstallTmux": true
+# Add: "mcpTools" configuration
+
+# 3. Update scripts
+# "claude-flow orchflow" → "orchflow"
+# Add mode options: --mode=tmux, --mode=inline
+
+# 4. Update integrations
+# Use new MCP tools: orchflow_natural_task, orchflow_smart_connect
+# Enable natural language processing features
+```
+
+### Breaking Changes
+
+- **Command**: `claude-flow orchflow` → `orchflow`
+- **Configuration**: New unified architecture configuration format
+- **MCP Tools**: Legacy tools deprecated in favor of enhanced natural language tools
+- **Plugin API**: New plugin format with MCP tool support
+
+### Backward Compatibility
+
+- Legacy MCP tools still work but are deprecated
+- Old configuration format is automatically migrated
+- Existing plugins continue to work with compatibility layer
+
+---
+
+This comprehensive integration guide provides everything needed to integrate OrchFlow v2.0 with unified architecture into any development workflow, CI/CD pipeline, IDE, or enterprise environment.

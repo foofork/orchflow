@@ -103,6 +103,14 @@ class OrchFlowLauncher {
     }
 
     // Launch Claude with injections
+    console.log(chalk.green('\n✨ OrchFlow is ready! Claude integration is active.\n'));
+    
+    // Skip launching Claude if already in Claude environment
+    if (process.env.CLAUDE_CODE || process.env.IN_CLAUDE_CODE) {
+      console.log(chalk.cyan('Already running in Claude environment. OrchFlow enhancements active!'));
+      return;
+    }
+    
     console.log(chalk.green('\n✨ Launching Claude with OrchFlow capabilities...\n'));
 
     await this.launchClaude(options);
@@ -204,8 +212,8 @@ Remember: The goal is to multiply your effectiveness by working on multiple aspe
     // Check if claude-flow exists
     const claudeFlowPath = await this.findClaudeFlow();
     if (!claudeFlowPath) {
-      console.error(chalk.red('\n❌ claude-flow not found. Please install it first:'));
-      console.error(chalk.yellow('   npm install -g claude-flow\n'));
+      console.error(chalk.red('\n❌ Claude CLI not found. Please install it first:'));
+      console.error(chalk.yellow('   npm install -g @anthropic/claude-sdk\n'));
       process.exit(1);
     }
 
@@ -251,24 +259,35 @@ Remember: The goal is to multiply your effectiveness by working on multiple aspe
     const exec = promisify(require('child_process').exec);
 
     try {
-      const { stdout } = await exec('which claude-flow');
+      // Try finding the actual claude command first
+      const { stdout } = await exec('which claude');
       return stdout.trim();
     } catch {
-      // Try common locations
-      const locations = [
-        '/usr/local/bin/claude-flow',
-        '/usr/bin/claude-flow',
-        join(homedir(), '.npm-global/bin/claude-flow'),
-        join(homedir(), '.local/bin/claude-flow')
-      ];
+      // If that fails, try claude-flow
+      try {
+        const { stdout } = await exec('which claude-flow');
+        return stdout.trim();
+      } catch {
+        // Try common locations for both
+        const locations = [
+          '/usr/local/bin/claude',
+          '/usr/bin/claude',
+          join(homedir(), '.npm-global/bin/claude'),
+          join(homedir(), '.local/bin/claude'),
+          '/usr/local/bin/claude-flow',
+          '/usr/bin/claude-flow',
+          join(homedir(), '.npm-global/bin/claude-flow'),
+          join(homedir(), '.local/bin/claude-flow')
+        ];
 
-      for (const loc of locations) {
-        if (existsSync(loc)) {
-          return loc;
+        for (const loc of locations) {
+          if (existsSync(loc)) {
+            return loc;
+          }
         }
-      }
 
-      return null;
+        return null;
+      }
     }
   }
 

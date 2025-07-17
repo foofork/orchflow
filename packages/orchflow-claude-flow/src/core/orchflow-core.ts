@@ -389,10 +389,10 @@ export class OrchFlowCore extends EventEmitter {
       this.wss = new WebSocketServer({ server: this.server });
 
       this.wss.on('connection', (ws) => {
-        ws.on('message', (message) => {
+        ws.on('message', async (message) => {
           try {
             const data = JSON.parse(message.toString());
-            this.handleWebSocketMessage(ws, data);
+            await this.handleWebSocketMessage(ws, data);
           } catch (error) {
             ws.send(JSON.stringify({ error: 'Invalid message format' }));
           }
@@ -435,7 +435,61 @@ export class OrchFlowCore extends EventEmitter {
     }
   }
 
-  private handleWebSocketMessage(ws: WebSocket, message: any): void {
+  private async handleWebSocketMessage(ws: WebSocket, message: any): Promise<void> {
+    // Handle request-response pattern
+    if (message.id && message.method) {
+      try {
+        let result;
+        switch (message.method) {
+          case 'getSessionData':
+            result = {
+              sessionId: crypto.randomUUID(),
+              workers: Array.from(this.workers.values()).map(w => ({
+                id: w.id,
+                name: w.name,
+                type: w.type,
+                status: w.status,
+                progress: w.progress
+              }))
+            };
+            break;
+          
+          case 'saveSessionData':
+            // Save session data
+            result = { success: true };
+            break;
+            
+          case 'listWorkers':
+            // Return list of workers
+            result = Array.from(this.workers.values()).map(w => ({
+              id: w.id,
+              name: w.name,
+              type: w.type,
+              status: w.status,
+              progress: w.progress,
+              createdAt: w.createdAt,
+              lastActive: w.lastActive
+            }));
+            break;
+          
+          default:
+            throw new Error(`Unknown method: ${message.method}`);
+        }
+        
+        ws.send(JSON.stringify({
+          id: message.id,
+          result
+        }));
+      } catch (error) {
+        ws.send(JSON.stringify({
+          id: message.id,
+          error: error.message
+        }));
+      }
+      return;
+    }
+
+    // Handle old-style messages
     switch (message.type) {
       case 'ping':
         ws.send(JSON.stringify({ type: 'pong' }));

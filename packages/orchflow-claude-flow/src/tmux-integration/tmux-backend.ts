@@ -58,14 +58,23 @@ export class TmuxBackend {
     size?: number
   ): Promise<TmuxPane> {
     const direction = splitType === 'horizontal' ? '-h' : '-v';
-    const sizeArg = size ? `-p ${size}` : '';
-
-    // Split the pane
-    const { stdout } = await execAsync(
-      `tmux split-window ${direction} ${sizeArg} -t "${paneId}" -P -F "#{pane_id}"`
-    );
+    
+    // Split the pane - try using resize after split instead of size during split
+    // This is more reliable across tmux versions
+    const command = `tmux split-window ${direction} -t "${paneId}" -P -F "#{pane_id}"`;
+    const { stdout } = await execAsync(command);
 
     const newPaneId = stdout.trim();
+
+    // If size is specified, resize the pane after creation
+    if (size && size > 0) {
+      try {
+        // Use resize-pane to set the percentage
+        await execAsync(`tmux resize-pane -t "${newPaneId}" -${splitType === 'horizontal' ? 'x' : 'y'} ${size}%`);
+      } catch (resizeError) {
+        // Resize failed, but continue - the split still worked
+      }
+    }
 
     // Get pane info
     const paneInfo = await this.getPaneInfo(newPaneId);

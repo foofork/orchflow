@@ -123,7 +123,11 @@ export class OrchestratorClient extends EventEmitter {
       this.pendingRequests.delete(message.id);
 
       if (message.error) {
-        handler.reject(new Error(message.error.message));
+        // Handle error properly - it might be a string or an object
+        const errorMessage = typeof message.error === 'string' 
+          ? message.error 
+          : (message.error.message || 'Unknown error');
+        handler.reject(new Error(errorMessage));
       } else {
         handler.resolve(message.result);
       }

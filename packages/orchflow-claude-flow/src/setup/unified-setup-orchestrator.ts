@@ -816,9 +816,9 @@ export class UnifiedSetupOrchestrator {
     // Return enhanced config format
     return {
       core: {
-        port: (config as any).server?.port || 3000,
+        port: (config as any).server?.port || 3001,
         enablePersistence: (config as any).persistence?.enabled || false,
-        enableWebSocket: (config as any).server?.enableWebSocket || false,
+        enableWebSocket: (config as any).server?.enableWebSocket ?? true,
         mode: userPreference.mode,
         storageDir: (config as any).core?.storageDir || '.orchflow',
         maxWorkers: (config as any).core?.maxWorkers || 4
@@ -843,9 +843,9 @@ export class UnifiedSetupOrchestrator {
     const config = await this.configManager.load();
     return {
       core: {
-        port: (config as any).server?.port || 3000,
+        port: (config as any).server?.port || 3001,
         enablePersistence: (config as any).persistence?.enabled || false,
-        enableWebSocket: (config as any).server?.enableWebSocket || false,
+        enableWebSocket: (config as any).server?.enableWebSocket ?? true,
         mode: 'auto'
       },
       splitScreen: {

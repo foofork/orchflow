@@ -187,14 +187,16 @@ ${chalk.cyan(`└${  '─'.repeat(32)  }┘`)}
 
   private renderResourceBar(usage: number): string {
     const width = 10;
-    const filled = Math.floor((usage / 100) * width);
+    // Ensure usage is between 0 and 100
+    const safeUsage = Math.max(0, Math.min(100, usage));
+    const filled = Math.floor((safeUsage / 100) * width);
     const empty = width - filled;
 
     let color = chalk.green;
-    if (usage > 80) {color = chalk.red;}
-    else if (usage > 60) {color = chalk.yellow;}
+    if (safeUsage > 80) {color = chalk.red;}
+    else if (safeUsage > 60) {color = chalk.yellow;}
 
-    return `${color('█'.repeat(filled)) + chalk.gray('░'.repeat(empty))  } ${usage}%`;
+    return `${color('█'.repeat(filled)) + chalk.gray('░'.repeat(empty))  } ${safeUsage}%`;
   }
 
   private async renderShortcutSection(): Promise<void> {

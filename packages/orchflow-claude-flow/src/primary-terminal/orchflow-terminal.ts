@@ -297,8 +297,14 @@ export class OrchFlowTerminal extends EventEmitter {
     // Restore previous session state if available
     const sessionData = await this.orchestratorClient.getSessionData();
     if (sessionData) {
-      this.conversationContext.restore(sessionData.conversation);
-      await this.statusPane.restoreWorkers(sessionData.workers as WorkerInfo[]);
+      // Only restore conversation if it exists
+      if (sessionData.conversation) {
+        this.conversationContext.restore(sessionData.conversation);
+      }
+      // Restore workers if they exist
+      if (sessionData.workers) {
+        await this.statusPane.restoreWorkers(sessionData.workers as WorkerInfo[]);
+      }
     }
   }
 
