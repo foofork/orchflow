@@ -5,7 +5,7 @@ import { ConversationContext } from './conversation-context';
 import { OrchestratorClient } from './orchestrator-client';
 import { StatusPane } from './status-pane';
 import { WorkerAccessManager } from './worker-access-manager';
-import { TmuxBackend } from '../../tmux-integration/tmux-backend';
+import { TmuxBackend } from '../tmux-integration/tmux-backend';
 import chalk from 'chalk';
 
 export interface OrchFlowTerminalConfig {
@@ -26,9 +26,9 @@ export class OrchFlowTerminal extends EventEmitter {
   private statusPane: StatusPane;
   private workerAccessManager: WorkerAccessManager;
   private tmuxBackend: TmuxBackend;
-  private sessionId: string;
-  private primaryPaneId: string;
-  private statusPaneId: string;
+  private sessionId: string = '';
+  private primaryPaneId: string = '';
+  private statusPaneId: string = '';
 
   constructor(config: OrchFlowTerminalConfig) {
     super();
@@ -165,7 +165,7 @@ export class OrchFlowTerminal extends EventEmitter {
       descriptiveName: intent.parameters.descriptiveName
     };
 
-    const result = await this.orchestratorClient.submitTask(task);
+    await this.orchestratorClient.submitTask(task);
     await this.updateUI(`✓ Task created: "${task.descriptiveName}" worker will be spawned`);
   }
 
@@ -187,7 +187,7 @@ export class OrchFlowTerminal extends EventEmitter {
     }
   }
 
-  private async handleListWorkers(intent: any): Promise<void> {
+  private async handleListWorkers(_intent: any): Promise<void> {
     const workers = await this.orchestratorClient.listWorkers();
     
     if (workers.length === 0) {
@@ -280,6 +280,40 @@ export class OrchFlowTerminal extends EventEmitter {
 
   private generateId(): string {
     return `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  async switchToWorker(workerId: string): Promise<void> {
+    const worker = await this.orchestratorClient.getWorker(workerId);
+    if (!worker) {
+      await this.updateUI(`Worker ${workerId} not found`);
+      return;
+    }
+    
+    // Update conversation context
+    this.conversationContext.switchContext(workerId);
+    
+    // Update UI
+    await this.updateUI(`Switched to ${worker.descriptiveName || worker.name}`);
+    
+    // Emit event for status pane update
+    this.emit('workerSwitched', worker);
+  }
+
+  async connectWebSocket(wsUrl: string): Promise<void> {
+    await this.orchestratorClient.connectWebSocket(wsUrl);
+    
+    // Forward events to status pane
+    this.orchestratorClient.on('worker:created', (worker) => {
+      this.statusPane.addWorker(worker);
+    });
+    
+    this.orchestratorClient.on('worker:updated', (worker) => {
+      this.statusPane.updateWorker(worker);
+    });
+    
+    this.orchestratorClient.on('worker:deleted', (workerId) => {
+      this.statusPane.removeWorker(workerId);
+    });
   }
 
   async shutdown(): Promise<void> {

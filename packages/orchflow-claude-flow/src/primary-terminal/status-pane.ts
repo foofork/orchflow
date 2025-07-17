@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 import { WorkerInfo } from './conversation-context';
-import { TmuxBackend } from '../../tmux-integration/tmux-backend';
+import { TmuxBackend } from '../tmux-integration/tmux-backend';
 import chalk from 'chalk';
 
 export interface StatusPaneConfig {
@@ -34,10 +34,16 @@ export class StatusPane extends EventEmitter {
   private resourceUsage: ResourceUsage = { cpu: 0, memory: 0, disk: 0 };
   private taskGraph: TaskGraph = { nodes: [], edges: [] };
 
-  constructor(config: StatusPaneConfig) {
+  constructor(tmuxBackend: TmuxBackend | StatusPaneConfig, paneId?: string) {
     super();
-    this.config = config;
-    this.tmuxBackend = new TmuxBackend();
+    if (tmuxBackend instanceof TmuxBackend) {
+      this.tmuxBackend = tmuxBackend;
+      this.paneId = paneId || '';
+      this.config = { width: 30, updateInterval: 1000, showQuickAccess: true };
+    } else {
+      this.config = tmuxBackend;
+      this.tmuxBackend = new TmuxBackend();
+    }
   }
 
   async initialize(paneId: string): Promise<void> {
@@ -55,7 +61,7 @@ export class StatusPane extends EventEmitter {
     await this.tmuxBackend.sendKeys(this.paneId, 'clear');
     await this.renderHeader();
     await this.renderWorkerSection();
-    await this.renderResourceSection();
+    await this.renderResourceUsage();
     await this.renderShortcutSection();
   }
 
@@ -244,5 +250,40 @@ ${chalk.cyan('└' + '─'.repeat(32) + '┘')}
       clearInterval(this.updateInterval);
       this.updateInterval = null;
     }
+  }
+
+  // Additional methods required by OrchFlowTerminal and SplitScreenManager
+  async addWorker(worker: WorkerInfo): Promise<void> {
+    await this.updateWorkerDisplay(worker.id, worker);
+  }
+
+  async updateWorker(worker: WorkerInfo): Promise<void> {
+    await this.updateWorkerDisplay(worker.id, worker);
+  }
+
+  async removeWorker(workerId: string): Promise<void> {
+    this.workerDisplays.delete(workerId);
+    await this.refreshDisplay();
+  }
+
+  async updateWorkers(workers: WorkerInfo[]): Promise<void> {
+    // Clear existing displays and add all workers
+    this.workerDisplays.clear();
+    for (const worker of workers) {
+      await this.updateWorkerDisplay(worker.id, worker);
+    }
+  }
+
+  async highlightWorker(workerId: string): Promise<void> {
+    const workerDisplay = this.workerDisplays.get(workerId);
+    if (workerDisplay) {
+      // Re-render with highlight
+      await this.refreshDisplay();
+      // Could add special highlighting logic here
+    }
+  }
+
+  async cleanup(): Promise<void> {
+    await this.shutdown();
   }
 }

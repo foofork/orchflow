@@ -1,3 +1,11 @@
+/**
+ * DEPRECATED: This file is part of the old word-watching architecture.
+ * In the new injection-based architecture, Claude naturally understands
+ * orchestration commands through MCP tools - no NLP parsing needed.
+ * 
+ * Kept for reference/compatibility but not used in production.
+ */
+
 import { ConversationContext } from './conversation-context';
 import { WorkerNamer } from './worker-namer';
 

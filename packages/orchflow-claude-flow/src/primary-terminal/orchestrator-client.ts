@@ -169,4 +169,17 @@ export class OrchestratorClient extends EventEmitter {
   onTaskUpdate(callback: (task: Task) => void): void {
     this.on('taskUpdate', callback);
   }
+
+  // Connect to WebSocket for real-time updates
+  async connectWebSocket(wsUrl: string): Promise<void> {
+    // If already connected to a different URL, close the existing connection
+    if (this.ws && this.connected) {
+      this.ws.close();
+      this.connected = false;
+    }
+    
+    // Update endpoint and connect
+    this.endpoint = wsUrl;
+    await this.connect();
+  }
 }

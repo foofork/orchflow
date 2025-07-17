@@ -68,15 +68,20 @@ Complete documentation for OrchFlow natural language orchestration system.
   - Claude integration patterns
 
 ### Architecture
+- **[Architecture Overview](ARCHITECTURE.md)** ⭐
+  - Injection-based architecture explained
+  - Component relationships and data flow
+  - Key differences from original vision
+
 - **[Implementation Status](IMPLEMENTATION_STATUS.md)**
   - Current feature completion
   - Technical architecture overview
   - Component relationships
 
-- **[Implementation Complete](../ORCHFLOW_IMPLEMENTATION_COMPLETE.md)** ⭐
-  - Complete technical documentation
-  - Hive Mind coordination details
-  - Performance metrics and statistics
+- **[Injection Example](INJECTION_EXAMPLE.md)** ⭐
+  - Real conversation showing how injection works
+  - Behind-the-scenes orchestration
+  - Natural language orchestration in action
 
 ### Configuration
 - **[Configuration Guide](USER_GUIDE.md#configuration)**

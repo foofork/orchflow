@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 import { WorkerInfo } from './conversation-context';
-import { TmuxBackend } from '../../tmux-integration/tmux-backend';
+import { TmuxBackend } from '../tmux-integration/tmux-backend';
 import { OrchestratorClient } from './orchestrator-client';
 import chalk from 'chalk';
 
@@ -68,7 +68,7 @@ class WorkerConnectionImpl implements WorkerConnection {
 
   async getHistory(): Promise<string[]> {
     const output = await this.tmuxBackend.capturePane(this.tmuxPaneId);
-    return output.split('\n').filter(line => line.trim());
+    return output.split('\n').filter((line: string) => line.trim());
   }
 }
 
@@ -164,7 +164,7 @@ export class WorkerAccessManager extends EventEmitter {
   }
 
   async disconnectAll(): Promise<void> {
-    for (const [workerId, connection] of this.activeConnections) {
+    for (const [, connection] of this.activeConnections) {
       await connection.disconnect();
     }
     this.activeConnections.clear();

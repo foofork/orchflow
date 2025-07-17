@@ -159,7 +159,7 @@ OrchFlow is designed as a thin wrapper around claude-flow, preserving all existi
 User Input (Natural Language)
     ↓
 OrchFlow Terminal Interface
-    ├── Natural Language Processing
+    ├── Natural Language Interface (via MCP injection)
     ├── Worker Management
     ├── Task Orchestration
     └── Status Monitoring
@@ -202,7 +202,7 @@ await connectToWorker(worker.id);
 - **Startup Time**: < 3 seconds
 - **Memory Overhead**: < 100MB for orchestration
 - **Worker Capacity**: 8 concurrent workers (configurable)
-- **Response Time**: Real-time natural language processing
+- **Response Time**: Real-time orchestration via Claude
 - **TypeScript Codebase**: 264KB optimized implementation
 
 ## Contributing

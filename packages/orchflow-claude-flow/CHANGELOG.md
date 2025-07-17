@@ -7,11 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.0] - 2025-07-16
 
+### Architecture Update
+- **Injection-Based Design**: OrchFlow now injects orchestration capabilities directly into Claude's conversation via MCP tools
+- **No NLP Word Watching**: Claude naturally understands orchestration through system prompts and MCP tools
+- **Seamless Experience**: Orchestration happens within the natural conversation flow
+
 ### Added
 - 🎉 **Initial release of OrchFlow natural language orchestration system**
 - 🐝 **Complete Hive Mind implementation** with collective intelligence coordination
 - 🚀 **Phase 3: Orchestration Engine** - Complete backend infrastructure
-- 💬 **Phase 4: Natural Language & Worker Access** - Full conversational interface
+- 💬 **Phase 4: Natural Language & Worker Access** - Injection-based orchestration (no NLP parsing)
 
 #### Core Orchestration Engine
 - **OrchFlow Orchestrator** - Main coordination engine with WebSocket support

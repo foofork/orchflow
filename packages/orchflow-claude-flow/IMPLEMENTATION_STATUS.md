@@ -23,12 +23,12 @@
   - `status-pane.ts` - 30% status display
   - `worker-access-manager.ts` - Worker connections
 
-### 3. Natural Language Features
-- Intent recognition for:
-  - Task creation ("build X", "implement Y")
-  - Worker management ("connect to worker", "pause X")
-  - Status queries ("list workers", "show progress")
-  - Quick access (press 1-9 for workers)
+### 3. Natural Language Features (Injection-Based)
+- Claude naturally understands orchestration through MCP injection:
+  - Task creation happens conversationally 
+  - Worker management through natural dialogue
+  - Status queries integrated into conversation
+  - Quick access keys (1-9) still available in status pane
 - Context-aware descriptive naming:
   - "Auth System Builder" for authentication tasks
   - "API Developer" for API endpoints
@@ -143,10 +143,10 @@ packages/orchflow-claude-flow/
 5. ✅ Performance optimization with AI scheduling
 6. ✅ Resource conflict detection and prevention
 
-### Phase 4: Natural Language & Worker Access (COMPLETED)
-1. ✅ Enhanced natural language processing
+### Phase 4: Natural Language & Worker Access (COMPLETED - INJECTION ARCHITECTURE)
+1. ✅ Natural language via Claude MCP injection (no word watching)
 2. ✅ 70/30 split-screen layout with status pane
-3. ✅ Advanced worker access with fuzzy search
+3. ✅ Advanced worker access with context switching
 4. ✅ Quick access keys (1-9) for instant connection
 5. ✅ Complete system integration
 6. ✅ Production-ready deployment configuration

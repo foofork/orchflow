@@ -11,6 +11,8 @@ import { homedir } from 'os';
 import chalk from 'chalk';
 import ora from 'ora';
 import { OrchFlowCore } from './core/orchflow-core';
+import { OrchFlowTerminal } from './primary-terminal/orchflow-terminal';
+import { SplitScreenManager } from './terminal-layout/split-screen-manager';
 
 interface LaunchOptions {
   debug?: boolean;
@@ -22,6 +24,8 @@ interface LaunchOptions {
 class OrchFlowLauncher {
   private configDir: string;
   private core?: OrchFlowCore;
+  private terminal?: OrchFlowTerminal;
+  private splitScreen?: SplitScreenManager;
   private claudeProcess?: ChildProcess;
 
   constructor() {
@@ -52,6 +56,26 @@ class OrchFlowLauncher {
         spinner.fail('Failed to start orchestration core');
         throw error;
       }
+    }
+
+    // Initialize split-screen layout
+    const splitSpinner = ora('Setting up split-screen terminal...').start();
+    try {
+      await this.initializeSplitScreen();
+      splitSpinner.succeed('Split-screen layout ready (70/30)');
+    } catch (error) {
+      splitSpinner.fail('Failed to setup split-screen');
+      console.log(chalk.yellow('Continuing without split-screen...'));
+    }
+
+    // Initialize OrchFlow terminal
+    const terminalSpinner = ora('Initializing OrchFlow terminal...').start();
+    try {
+      await this.initializeTerminal(options.port || 3001);
+      terminalSpinner.succeed('Terminal interface ready');
+    } catch (error) {
+      terminalSpinner.fail('Failed to initialize terminal');
+      throw error;
     }
 
     // Setup Claude configuration
@@ -234,10 +258,90 @@ Remember: The goal is to multiply your effectiveness by working on multiple aspe
     }
   }
 
+  private async initializeSplitScreen(): Promise<void> {
+    try {
+      this.splitScreen = new SplitScreenManager({
+        primaryWidth: 70,
+        statusWidth: 30,
+        sessionName: 'orchflow_session',
+        enableQuickAccess: true
+      });
+      
+      await this.splitScreen.initialize();
+      
+      // Connect status updates
+      if (this.core) {
+        this.core.on('worker:created', (worker) => {
+          this.splitScreen?.addWorker(worker);
+        });
+        
+        this.core.on('worker:updated', (worker) => {
+          this.splitScreen?.updateWorker(worker);
+        });
+        
+        this.core.on('worker:deleted', (workerId) => {
+          this.splitScreen?.removeWorker(workerId);
+        });
+      }
+    } catch (error) {
+      console.error('Split-screen initialization error:', error);
+      throw error;
+    }
+  }
+
+  private async initializeTerminal(port: number): Promise<void> {
+    try {
+      this.terminal = new OrchFlowTerminal({
+        mcpEndpoint: `http://localhost:${port}/mcp`,
+        orchestratorEndpoint: `http://localhost:${port}`,
+        statusPaneConfig: {
+          width: 30,
+          updateInterval: 1000,
+          showQuickAccess: true
+        }
+      });
+      
+      await this.terminal.initialize();
+      
+      // Set up quick access keys (1-9)
+      this.terminal.on('quickAccess', async (key: number) => {
+        const workers = await this.core?.getWorkers() || [];
+        if (workers[key - 1]) {
+          await this.terminal?.switchToWorker(workers[key - 1].id);
+        }
+      });
+      
+      // Connect WebSocket for real-time updates
+      if (this.core) {
+        const wsUrl = `ws://localhost:${port}`;
+        await this.terminal.connectWebSocket(wsUrl);
+      }
+    } catch (error) {
+      console.error('Terminal initialization error:', error);
+      throw error;
+    }
+  }
+
   private async restoreSession(sessionName: string): Promise<void> {
-    // This would restore a saved session
     console.log(chalk.cyan(`\n📂 Restoring session: ${sessionName}\n`));
-    // Implementation would load saved workers and state
+    
+    if (this.core) {
+      try {
+        await this.core.restoreSession(sessionName);
+        const workers = await this.core.getWorkers();
+        
+        console.log(chalk.green(`✅ Restored ${workers.length} workers from session`));
+        
+        // Update split-screen with restored workers
+        if (this.splitScreen) {
+          for (const worker of workers) {
+            this.splitScreen.addWorker(worker);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to restore session:', error);
+      }
+    }
   }
 }
 
@@ -272,8 +376,9 @@ async function main() {
   try {
     await launcher.launch(options);
   } catch (error) {
-    console.error(chalk.red('\n❌ Launch failed:'), error.message);
-    if (options.debug) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(chalk.red('\n❌ Launch failed:'), errorMessage);
+    if (options.debug && error instanceof Error) {
       console.error(error.stack);
     }
     process.exit(1);

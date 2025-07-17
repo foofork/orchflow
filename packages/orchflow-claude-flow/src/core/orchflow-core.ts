@@ -85,6 +85,7 @@ export class OrchFlowCore extends EventEmitter {
   private server?: Server;
   private wss?: WebSocketServer;
   private workers: Map<string, Worker> = new Map();
+  private sharedKnowledge: Record<string, any> = {};
   private config: OrchFlowConfig;
   private storageDir: string;
 
@@ -147,7 +148,8 @@ export class OrchFlowCore extends EventEmitter {
       this.app.use((req, res, next) => {
         const apiKey = req.headers['x-api-key'] || req.headers.authorization?.replace('Bearer ', '');
         if (apiKey !== this.config.security.apiKey) {
-          return res.status(401).json({ error: 'Unauthorized' });
+          res.status(401).json({ error: 'Unauthorized' });
+          return;
         }
         next();
       });
@@ -156,7 +158,7 @@ export class OrchFlowCore extends EventEmitter {
 
   private setupRoutes(): void {
     // Health check
-    this.app.get('/health', (req, res) => {
+    this.app.get('/health', (_req, res) => {
       res.json({
         status: 'healthy',
         workers: this.workers.size,
@@ -178,7 +180,7 @@ export class OrchFlowCore extends EventEmitter {
           }
         });
       } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
       }
     });
 
@@ -188,7 +190,8 @@ export class OrchFlowCore extends EventEmitter {
       if (workerId) {
         const worker = this.workers.get(workerId as string);
         if (!worker) {
-          return res.status(404).json({ error: 'Worker not found' });
+          res.status(404).json({ error: 'Worker not found' });
+          return;
         }
         res.json({ worker });
       } else {
@@ -205,11 +208,12 @@ export class OrchFlowCore extends EventEmitter {
     });
 
     this.app.post('/mcp/orchflow_switch_context', async (req, res) => {
-      const { workerId, preserveHistory } = req.body;
+      const { workerId } = req.body;
       const worker = this.workers.get(workerId);
       
       if (!worker) {
-        return res.status(404).json({ error: 'Worker not found' });
+        res.status(404).json({ error: 'Worker not found' });
+        return;
       }
 
       // Return worker's full context for Claude to load
@@ -272,7 +276,8 @@ export class OrchFlowCore extends EventEmitter {
       
       const worker = this.workers.get(workerId);
       if (!worker) {
-        return res.status(404).json({ error: 'Worker not found' });
+        res.status(404).json({ error: 'Worker not found' });
+        return;
       }
 
       worker.context.conversationHistory.push({
@@ -294,7 +299,8 @@ export class OrchFlowCore extends EventEmitter {
       
       const worker = this.workers.get(workerId);
       if (!worker) {
-        return res.status(404).json({ error: 'Worker not found' });
+        res.status(404).json({ error: 'Worker not found' });
+        return;
       }
 
       const artifact: CodeArtifact = {
@@ -319,7 +325,7 @@ export class OrchFlowCore extends EventEmitter {
       res.json({ success: true, artifact });
     });
 
-    this.app.get('/api/knowledge', async (req, res) => {
+    this.app.get('/api/knowledge', async (_req, res) => {
       const allKnowledge: Record<string, any> = {};
       
       this.workers.forEach(worker => {
@@ -507,5 +513,52 @@ export class OrchFlowCore extends EventEmitter {
         resolve();
       }
     });
+  }
+
+  async getWorkers(): Promise<Worker[]> {
+    return Array.from(this.workers.values());
+  }
+
+  async restoreSession(sessionName: string): Promise<void> {
+    const sessionPath = join(this.storageDir, 'sessions', `${sessionName}.json`);
+    
+    if (!existsSync(sessionPath)) {
+      throw new Error(`Session ${sessionName} not found`);
+    }
+    
+    const stateData = readFileSync(sessionPath, 'utf-8');
+    const state = JSON.parse(stateData);
+    
+    // Restore workers
+    this.workers.clear();
+    for (const [id, worker] of state.workers) {
+      this.workers.set(id, {
+        ...worker,
+        createdAt: new Date(worker.createdAt),
+        lastActive: new Date(worker.lastActive)
+      });
+      this.emit('worker:created', worker);
+    }
+    
+    // Restore shared knowledge
+    if (state.sharedKnowledge) {
+      Object.assign(this.sharedKnowledge, state.sharedKnowledge);
+    }
+    
+    this.emit('session:restored', { sessionName, workerCount: this.workers.size });
+  }
+
+  async saveSession(sessionName: string): Promise<void> {
+    const state = {
+      workers: Array.from(this.workers.entries()),
+      sharedKnowledge: this.sharedKnowledge,
+      sessionId: crypto.randomUUID(),
+      timestamp: new Date().toISOString()
+    };
+    
+    const sessionPath = join(this.storageDir, 'sessions', `${sessionName}.json`);
+    writeFileSync(sessionPath, JSON.stringify(state, null, 2));
+    
+    this.emit('session:saved', { sessionName });
   }
 }

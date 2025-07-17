@@ -21,12 +21,10 @@ export class SplitScreenManager extends EventEmitter {
   constructor(config: SplitScreenConfig) {
     super();
     this.config = {
-      primaryWidth: 70,
-      statusWidth: 30,
       enableQuickAccess: true,
       ...config
     };
-    this.tmux = new (require('../tmux-integration/tmux-backend').TmuxBackendImpl)();
+    this.tmux = new TmuxBackend();
   }
 
   async initialize(): Promise<void> {
@@ -35,18 +33,22 @@ export class SplitScreenManager extends EventEmitter {
     try {
       // Create main session
       const sessionName = this.config.sessionName || `orchflow_${Date.now()}`;
-      this.sessionId = await this.tmux.createSession(sessionName);
+      const session = await this.tmux.createSession(sessionName);
+      this.sessionId = session.id;
+      
+      // Get the first pane as primary
+      this.primaryPaneId = session.panes[0].id;
 
       // Create 70/30 vertical split
-      this.statusPaneId = await this.tmux.splitPane(this.sessionId, true);
-      this.primaryPaneId = this.sessionId; // Main pane is the session itself
+      const statusPane = await this.tmux.splitPane(this.sessionId, this.primaryPaneId, 'vertical', this.config.statusWidth);
+      this.statusPaneId = statusPane.id;
 
       // Resize panes to 70/30 ratio
       await this.resizePanes();
 
       // Initialize status pane
       this.statusPane = new StatusPane(this.tmux, this.statusPaneId);
-      await this.statusPane.initialize();
+      await this.statusPane.initialize(this.statusPaneId);
 
       // Setup primary pane
       await this.setupPrimaryPane();
@@ -165,12 +167,12 @@ export class SplitScreenManager extends EventEmitter {
 
   async connectToWorker(workerId: string): Promise<void> {
     // Create new pane for worker connection
-    const workerPaneId = await this.tmux.splitPane(this.sessionId, false);
+    const workerPane = await this.tmux.splitPane(this.sessionId, this.primaryPaneId, 'horizontal');
     
     // Connect to worker in new pane
-    await this.tmux.sendKeys(workerPaneId, `# Connecting to worker ${workerId}`);
+    await this.tmux.sendKeys(workerPane.id, `# Connecting to worker ${workerId}`);
     
-    this.emit('workerConnected', { workerId, paneId: workerPaneId });
+    this.emit('workerConnected', { workerId, paneId: workerPane.id });
   }
 
   async switchToPrimaryPane(): Promise<void> {
@@ -229,5 +231,20 @@ export class SplitScreenManager extends EventEmitter {
 
     this.removeAllListeners();
     this.isInitialized = false;
+  }
+
+  // Worker management methods for cli-injected.ts
+  async addWorker(worker: any): Promise<void> {
+    await this.addWorkerToStatus(worker);
+  }
+
+  async updateWorker(worker: any): Promise<void> {
+    if (this.statusPane) {
+      await this.statusPane.updateWorker(worker);
+    }
+  }
+
+  async removeWorker(workerId: string): Promise<void> {
+    await this.removeWorkerFromStatus(workerId);
   }
 }

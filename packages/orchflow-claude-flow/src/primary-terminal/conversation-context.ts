@@ -14,6 +14,7 @@ export interface UserPreferences {
 
 export interface WorkerInfo {
   id: string;
+  name?: string; // Optional name property for compatibility
   descriptiveName: string;
   status: string;
   progress: number;
@@ -131,6 +132,19 @@ export class ConversationContext {
 
   private generateSessionId(): string {
     return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  switchContext(workerId: string): void {
+    // Switch the conversation context to a specific worker
+    const worker = this.activeWorkers.get(workerId);
+    if (worker) {
+      this.addMessage({
+        type: 'system',
+        content: `Switched context to worker: ${worker.descriptiveName}`,
+        timestamp: new Date(),
+        metadata: { workerId }
+      });
+    }
   }
 
   // Context analysis methods

@@ -556,12 +556,12 @@ Build an API endpoint for authentication
 Test the user registration system
 ```
 
-2. **Check intent recognition:**
+2. **Claude handles orchestration naturally:**
 ```bash
-# Try different phrasings
-Implement a React component
-Develop a React component
-Code a React component
+# Just describe what you need - Claude understands
+Build a React component for user profiles
+Create an authentication system
+Test the payment integration
 ```
 
 3. **Use structured commands:**
@@ -575,8 +575,8 @@ Analyze [specific area]
 
 4. **Check debug output:**
 ```bash
-claude-flow orchflow --debug
-# Watch for intent recognition logs
+orchflow --debug
+# Watch for MCP tool calls and orchestration logs
 ```
 
 ### Worker Names Not Descriptive
