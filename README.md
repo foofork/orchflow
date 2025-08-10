@@ -332,14 +332,6 @@ npm run build
 npm test
 ```
 
-## Support
-
-- **Issues**: [GitHub Issues](https://github.com/orchflow/orchflow/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/orchflow/orchflow/discussions)
-- **Documentation**: [Full Documentation](packages/orchflow-claude-flow/DOCUMENTATION.md)
-
----
-
 
 ---
 
