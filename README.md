@@ -1,6 +1,73 @@
-# **🚧 OrchFlow - IN DEVELOPMENT 🚧**
+# **🚧 OrchFlow 🚧**
 
-**⚠️ THIS PROJECT IS ACTIVELY UNDER DEVELOPMENT AND NOT YET STABLE ⚠️**
+## Rust Implementation
+
+OrchFlow's core orchestration engine is built in Rust for performance and reliability:
+
+### Core Crates
+
+#### [orchflow-core](https://crates.io/crates/orchflow-core) [![Crates.io](https://img.shields.io/crates/v/orchflow-core.svg)](https://crates.io/crates/orchflow-core)
+
+Transport-agnostic orchestration engine for managing terminal sessions, panes, and plugins with an event-driven architecture.
+
+**Features:**
+- Manager pattern for coordinating operations
+- State management with persistent storage
+- Plugin system with event-driven architecture
+- Backend abstraction for terminal multiplexers
+- Async/await support throughout
+
+#### [orchflow-mux](https://crates.io/crates/orchflow-mux) [![Crates.io](https://img.shields.io/crates/v/orchflow-mux.svg)](https://crates.io/crates/orchflow-mux)
+
+Terminal multiplexer abstraction layer supporting tmux, mock backends, and custom implementations.
+
+**Features:**
+- Clean trait-based interface for terminal multiplexers
+- **Production**: Full tmux integration with session and pane management
+- **Testing**: Mock backend with configurable behavior for testing and development
+- Factory pattern for automatic backend selection
+- Comprehensive error handling
+
+#### [orchflow-terminal](https://crates.io/crates/orchflow-terminal) [![Crates.io](https://img.shields.io/crates/v/orchflow-terminal.svg)](https://crates.io/crates/orchflow-terminal)
+
+High-performance terminal I/O management with PTY support, buffering, and stream processing.
+
+**Features:**
+- **Production**: Real PTY creation and lifecycle management for actual terminal processes
+- Async streams for non-blocking terminal operations
+- Smart buffering with ring buffer and scrollback
+- Stream processing and output management
+- Resource cleanup with automatic Drop implementation
+- **Testing**: Use `MockBackend` from `orchflow-mux` for testing without real PTYs
+
+### Rust Architecture
+
+```
+Application Layer
+├── Your Application Code
+└── OrchFlow Integration
+    │
+OrchFlow Core
+├── Manager · State · Events · Plugins
+├── Backend Abstraction
+└── OrchFlow Mux
+    ├── Tmux Backend
+    ├── Mock Backend (testing)
+    └── Custom Backends
+        │
+OrchFlow Terminal
+├── PTY Management
+├── I/O Streaming
+└── Buffer Management
+```
+
+### Rust Documentation
+
+- [orchflow-core README](./crates/orchflow-core/README.md) - Core orchestration engine
+- [orchflow-mux README](./crates/orchflow-mux/README.md) - Terminal multiplexer abstraction
+- [orchflow-terminal README](./crates/orchflow-terminal/README.md) - Terminal I/O management
+
+**⚠️ This portion of the project is under development ⚠️**
 
 **Natural language orchestration for command-line workflows.**
 
@@ -273,72 +340,6 @@ npm test
 
 ---
 
-## Rust Implementation
-
-OrchFlow's core orchestration engine is built in Rust for performance and reliability:
-
-### Core Crates
-
-#### [orchflow-core](https://crates.io/crates/orchflow-core) [![Crates.io](https://img.shields.io/crates/v/orchflow-core.svg)](https://crates.io/crates/orchflow-core)
-
-Transport-agnostic orchestration engine for managing terminal sessions, panes, and plugins with an event-driven architecture.
-
-**Features:**
-- Manager pattern for coordinating operations
-- State management with persistent storage
-- Plugin system with event-driven architecture
-- Backend abstraction for terminal multiplexers
-- Async/await support throughout
-
-#### [orchflow-mux](https://crates.io/crates/orchflow-mux) [![Crates.io](https://img.shields.io/crates/v/orchflow-mux.svg)](https://crates.io/crates/orchflow-mux)
-
-Terminal multiplexer abstraction layer supporting tmux, mock backends, and custom implementations.
-
-**Features:**
-- Clean trait-based interface for terminal multiplexers
-- **Production**: Full tmux integration with session and pane management
-- **Testing**: Mock backend with configurable behavior for testing and development
-- Factory pattern for automatic backend selection
-- Comprehensive error handling
-
-#### [orchflow-terminal](https://crates.io/crates/orchflow-terminal) [![Crates.io](https://img.shields.io/crates/v/orchflow-terminal.svg)](https://crates.io/crates/orchflow-terminal)
-
-High-performance terminal I/O management with PTY support, buffering, and stream processing.
-
-**Features:**
-- **Production**: Real PTY creation and lifecycle management for actual terminal processes
-- Async streams for non-blocking terminal operations
-- Smart buffering with ring buffer and scrollback
-- Stream processing and output management
-- Resource cleanup with automatic Drop implementation
-- **Testing**: Use `MockBackend` from `orchflow-mux` for testing without real PTYs
-
-### Rust Architecture
-
-```
-Application Layer
-├── Your Application Code
-└── OrchFlow Integration
-    │
-OrchFlow Core
-├── Manager · State · Events · Plugins
-├── Backend Abstraction
-└── OrchFlow Mux
-    ├── Tmux Backend
-    ├── Mock Backend (testing)
-    └── Custom Backends
-        │
-OrchFlow Terminal
-├── PTY Management
-├── I/O Streaming
-└── Buffer Management
-```
-
-### Rust Documentation
-
-- [orchflow-core README](./crates/orchflow-core/README.md) - Core orchestration engine
-- [orchflow-mux README](./crates/orchflow-mux/README.md) - Terminal multiplexer abstraction
-- [orchflow-terminal README](./crates/orchflow-terminal/README.md) - Terminal I/O management
 
 ---
 
