@@ -67,6 +67,8 @@ OrchFlow Terminal
 - [orchflow-mux README](./crates/orchflow-mux/README.md) - Terminal multiplexer abstraction
 - [orchflow-terminal README](./crates/orchflow-terminal/README.md) - Terminal I/O management
 
+---
+
 **⚠️ This portion of the project is under development ⚠️**
 
 **Natural language orchestration for command-line workflows.**
@@ -77,8 +79,6 @@ OrchFlow Terminal
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
 
 **OrchFlow transforms how you work with AI by injecting orchestration capabilities directly into Claude.** Instead of managing multiple windows or sessions, you naturally orchestrate complex tasks through conversation - Claude becomes capable of working on multiple aspects of your project simultaneously.
-
-**🔴 IMPORTANT: This is an alpha release. APIs and features are subject to change.**
 
 ## **Quick Example (IN DEVELOPMENT)**
 
