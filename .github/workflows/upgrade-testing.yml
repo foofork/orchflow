@@ -90,7 +90,7 @@ jobs:
           CI: true
       
       - name: Upload security reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: phase1-security-reports
@@ -130,7 +130,7 @@ jobs:
           CI: true
       
       - name: Upload framework reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: phase2-framework-reports
@@ -176,7 +176,7 @@ jobs:
           CI: true
       
       - name: Upload modernization reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: phase3-modernization-reports
@@ -217,7 +217,7 @@ jobs:
           CI: true
       
       - name: Upload ecosystem reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: phase4-ecosystem-reports
@@ -269,7 +269,7 @@ jobs:
           } > final-reports/ci-cd-summary.md
       
       - name: Upload complete report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: complete-pipeline-report
           path: final-reports/
